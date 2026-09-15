@@ -1,0 +1,2582 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#1f3348" />
+<meta name="description" content="Lokální anonymizace dokumentů pro české státní firmy a přípravu textu pro veřejnou AI. Jeden HTML soubor. Žádný cloud." />
+<title>Znečitelně</title>
+<style>
+:root {
+  --bg: #f3efe6; --bg-subtle: #e3dcc9; --surface: #fffcf6; --fg: #14161a;
+  --muted: #464e57; --border: #b9ae94; --primary: #1a2c40; --on-primary: #ffffff;
+  --accent: #2c4658; --danger: #7a1f1f; --ok: #1e5a3f; --hit: #a8460f;
+  --focus: #0f5fa8;
+  --header-bg: #1a2c40; --header-fg: #ffffff; --header-muted: #d7e0e8;
+  --overlay: rgba(14,16,20,.6); --bar-bg: color-mix(in srgb, var(--surface) 97%, transparent);
+  --radius: 12px; --font: "Segoe UI", "Source Sans 3", system-ui, sans-serif;
+  --display: Georgia, "Times New Roman", serif; --mono: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+html[data-theme="dark"] {
+  --bg: #12161c; --bg-subtle: #1b222c; --surface: #1c2430; --fg: #e8e4d8;
+  --muted: #9aa4b0; --border: #3a4656; --primary: #c9b896; --on-primary: #14161a;
+  --accent: #8fb4c9; --danger: #e07a6a; --ok: #6fbf96; --hit: #e09a5a;
+  --focus: #7eb6e8;
+  --header-bg: #0d1218; --header-fg: #e8e4d8; --header-muted: #9aa4b0;
+  --overlay: rgba(6,8,12,.72); --bar-bg: color-mix(in srgb, var(--surface) 92%, transparent);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--fg); font: 16px/1.5 var(--font); }
+button:not(:disabled) { cursor: pointer; }
+button { font: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+header.app :focus-visible { outline-color: #ffd166; }
+h1, h2 { font-family: var(--display); font-weight: 600; }
+header.app {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px; padding: 12px 20px; background: var(--header-bg); color: var(--header-fg);
+}
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.mark { width: 36px; height: 36px; border-radius: 10px; background: var(--surface); color: var(--primary); display: grid; place-items: center; font-weight: 700; }
+.tag { margin: 0; font-size: 12px; color: var(--header-muted); }
+.hdr-actions { display: flex; gap: 8px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid transparent;
+  background: var(--primary); color: var(--on-primary); font-weight: 500;
+}
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-sm { min-height: 36px; padding: 0 12px; font-size: 13px; }
+.btn-ghost { background: transparent; color: var(--header-fg); border-color: color-mix(in srgb, var(--header-fg) 40%, transparent); }
+.btn-ghost:hover { background: color-mix(in srgb, var(--header-fg) 16%, transparent); border-color: color-mix(in srgb, var(--header-fg) 60%, transparent); }
+.btn-sec { background: var(--surface); color: var(--fg); border: 1.5px solid var(--border); }
+.btn-sec:hover { background: var(--bg-subtle); border-color: var(--accent); }
+.btn-file {
+  background: var(--surface); color: var(--primary); border-color: var(--surface);
+  font-weight: 650; box-shadow: 0 0 0 2px rgba(246,241,232,.35);
+}
+.btn-file:hover { background: #fff; }
+.btn-file .plus { font-size: 18px; line-height: 1; font-weight: 700; }
+@media (max-width: 640px) {
+  #lblNewFile { display: none; }
+}
+.wrap { max-width: 1100px; margin: 0 auto; padding: 40px 16px 80px; }
+.grid-landing { display: grid; gap: 32px; }
+@media (min-width: 900px) { .grid-landing { grid-template-columns: 1.1fr .9fr; align-items: start; } }
+.kicker { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+h1.hero { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.15; margin: 12px 0; font-weight: 500; }
+.lead { max-width: 36rem; color: var(--muted); }
+ol.steps { padding: 0; margin: 28px 0; list-style: none; }
+ol.steps li { display: flex; gap: 12px; margin: 12px 0; }
+.num { width: 28px; height: 28px; border-radius: 999px; background: var(--primary); color: var(--on-primary); display: grid; place-items: center; font-size: 12px; flex: none; }
+.card { background: var(--surface); border-radius: 16px; padding: 12px; box-shadow: 0 0 0 1.5px var(--border), 0 12px 40px rgba(20,22,26,.12); }
+.drop {
+  border: 2px dashed #8a806a; border-radius: 12px; background: var(--bg); padding: 40px 20px; text-align: center; cursor: pointer;
+}
+.drop.over { border-color: var(--accent); background: var(--bg-subtle); border-style: solid; }
+.stack { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+details.settings { margin-top: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; }
+label.field, .lbl { display: block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 12px 0 4px; }
+select, input[type=text], textarea {
+  width: 100%; min-height: 44px; border: 1.5px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--fg);
+  padding: 8px 12px; font: inherit;
+}
+select:focus, input[type=text]:focus, textarea:focus { border-color: var(--focus); }
+textarea { min-height: 80px; font-family: var(--mono); font-size: 13px; }
+.cats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.cats label { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; }
+.help-i {
+  display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 99px;
+  border: 1.5px solid var(--muted); font-size: 11px; font-weight: 700; color: var(--muted); background: var(--surface);
+}
+.privacy { display: flex; gap: 8px; color: var(--fg); font-size: 14px; margin-top: 28px; }
+.review { max-width: 1400px; margin: 0 auto; padding: 16px 16px 120px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+.badge { display: inline-flex; align-items: center; border-radius: 999px; border: 1.5px solid var(--border); background: var(--bg-subtle); padding: 4px 10px; font-size: 12px; color: var(--fg); font-family: var(--mono); font-weight: 600; }
+.ok { color: var(--ok); font-weight: 600; } .danger { color: var(--danger); font-weight: 600; }
+.work { display: grid; gap: 16px; }
+@media (min-width: 1100px) { .work { grid-template-columns: minmax(0,1fr) 340px; } }
+.pane { background: var(--surface); border-radius: 16px; padding: 12px; box-shadow: 0 0 0 1.5px var(--border); }
+pre.doc { max-height: min(70dvh, 640px); overflow: auto; white-space: pre-wrap; word-break: break-word; font: 13px/1.65 var(--mono); margin: 0; color: var(--fg); }
+pre.doc button.mk { border: 1.5px solid transparent; border-radius: 3px; padding: 1px 3px; font: inherit; color: var(--fg); }
+.mk-on { background: #f3c9a8; background: color-mix(in srgb, var(--hit) 45%, white); border-color: #8a3a12; border-color: color-mix(in srgb, var(--hit) 70%, black); font-weight: 600; }
+.mk-off { background: #c5e4d4; background: color-mix(in srgb, var(--ok) 35%, white); border-color: #1e5a3f; border-color: color-mix(in srgb, var(--ok) 60%, black); }
+.mk-sel { outline: 3px solid var(--focus); outline-offset: 1px; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { min-height: 36px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--surface); color: var(--fg); padding: 0 12px; font-size: 13px; font-weight: 500; }
+.chip.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+.hits { max-height: 42dvh; overflow: auto; border-radius: 16px; background: var(--surface); box-shadow: 0 0 0 1.5px var(--border); }
+.hit { display: flex; gap: 8px; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--fg); padding: 10px 12px; font: inherit; }
+.hit.sel { background: var(--bg-subtle); box-shadow: inset 3px 0 0 var(--accent); }
+.mono { font-family: var(--mono); font-size: 12px; }
+.pill { border-radius: 999px; padding: 2px 8px; font-size: 10px; text-transform: uppercase; font-weight: 700; letter-spacing: .03em; }
+.pill-hit { background: var(--hit); color: #fff; }
+.pill-ok { background: var(--ok); color: #fff; }
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; border-top: 2px solid var(--border);
+  background: var(--bar-bg); backdrop-filter: blur(8px);
+  padding: 10px 16px;
+}
+.bar-inner { max-width: 1400px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.check { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 8px; font-size: 14px; }
+.modal { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: var(--overlay); padding: 16px; }
+.sheet { width: min(520px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: 0 12px 40px rgba(14,16,20,.3); }
+.hidden { display: none !important; }
+footer { text-align: center; font-size: 12px; color: var(--muted); padding: 8px 16px 24px; }
+kbd { display: inline-block; min-width: 1.4rem; padding: .1rem .4rem; border-radius: 4px; border: 1.5px solid var(--muted); background: var(--surface); color: var(--fg); font: 11px/1.4 var(--mono); font-weight: 700; text-align: center; }
+#tip {
+  position: fixed; z-index: 80; max-width: 280px; padding: 8px 12px; border-radius: 8px;
+  background: var(--primary); color: var(--on-primary); font-size: 12px; line-height: 1.4;
+  pointer-events: none; opacity: 0; transform: translateY(4px); transition: opacity .15s, transform .15s;
+  box-shadow: 0 8px 24px rgba(31,51,72,.18);
+}
+#tip.on { opacity: 1; transform: none; }
+.toast {
+  position: fixed; right: 16px; bottom: 80px; z-index: 50; background: var(--primary); color: var(--on-primary);
+  padding: 10px 16px; border-radius: 10px; font-size: 13px; display: none;
+}
+.process { font-size: 13px; line-height: 1.45; max-height: 22rem; overflow: auto; }
+.process h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; font-family: var(--font); }
+.process ul { margin: 0; padding-left: 1.1rem; }
+.process .token { font-family: var(--mono); font-size: 12px; }
+.leak-ok { color: var(--ok); }
+.leak-bad { color: var(--danger); }
+.layer-note { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+.dict-hint { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+
+body.movie-active header.app,
+body.movie-active .bar { pointer-events: none; }
+body.movie-active .drop,
+body.movie-active #btnSample,
+body.movie-active #btnBrowse { pointer-events: none; }
+#movie-caption-bar {
+  display: none; position: fixed; left: 16px; right: 16px; bottom: 72px; z-index: 70;
+  max-width: 720px; margin: 0 auto; padding: 12px 16px; border-radius: 14px;
+  background: color-mix(in srgb, var(--header-bg) 92%, transparent);
+  color: var(--header-fg); box-shadow: 0 12px 40px rgba(14,16,20,.28);
+  border: 1px solid color-mix(in srgb, var(--header-fg) 22%, transparent);
+}
+#movie-caption-bar.active { display: block; }
+#movie-chapter-label {
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--header-muted); margin-bottom: 4px;
+}
+#movie-caption-text { font-size: 15px; line-height: 1.45; }
+.action-marquee {
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+}
+.action-marquee-inner { display: inline-block; }
+.action-marquee.marquee-active .action-marquee-inner {
+  padding-left: 100%;
+  animation: actionMarqueeScroll var(--marquee-duration, 10s) linear infinite;
+}
+@keyframes actionMarqueeScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+.chip-track {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  animation: chipMarquee var(--chip-marquee-duration, 8s) linear infinite;
+}
+.chip-content-clone { margin-left: 32px; }
+@keyframes chipMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-1 * var(--chip-marquee-shift, 0px))); }
+}
+.hit-value.marquee, .insp-marquee.marquee {
+  overflow: hidden;
+  display: block;
+  max-width: 100%;
+}
+body.movie-paused .action-marquee-inner,
+body.movie-paused .chip-track,
+body.movie-paused .movie-pulse {
+  animation-play-state: paused !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .action-marquee.marquee-active .action-marquee-inner,
+  .chip-track { animation: none !important; padding-left: 0; }
+}
+#movie-controls {
+  display: none; position: fixed; right: 16px; bottom: 16px; z-index: 71;
+  gap: 6px; align-items: center;
+}
+#movie-controls.active { display: flex; }
+#movie-controls button {
+  min-height: 40px; padding: 0 12px; border-radius: 999px;
+  border: 1.5px solid var(--border); background: var(--surface); color: var(--fg);
+  font: 13px/1 var(--font); font-weight: 600;
+}
+#movie-title-card {
+  display: none; position: fixed; inset: 0; z-index: 72; place-items: center;
+  background: var(--overlay); padding: 24px;
+}
+#movie-title-card.show { display: grid; }
+#movie-title-card .sheet { text-align: center; max-width: 420px; }
+#movie-title-card h2 { margin: 0 0 8px; font-size: 1.6rem; }
+.movie-pulse {
+  outline: 3px solid var(--focus) !important;
+  animation: moviePulse 1.1s ease-in-out infinite;
+  position: relative; z-index: 5;
+}
+@keyframes moviePulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--focus) 50%, transparent); }
+  50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--focus) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .movie-pulse { animation: none; }
+}
+</style>
+</head>
+<body>
+<div id="tip" role="tooltip"></div>
+<div class="toast" id="toast"></div>
+<div id="movie-caption-bar" aria-live="polite">
+  <div id="movie-chapter-label"></div>
+  <div id="movie-caption-text" class="action-marquee"><span class="action-marquee-inner" id="movie-caption-inner"></span></div>
+</div>
+<div id="movie-controls">
+  <button type="button" id="movie-btn-back" disabled>⏮️</button>
+  <button type="button" id="movie-btn-playpause">⏸️</button>
+  <button type="button" id="movie-btn-skip">⏭️</button>
+  <button type="button" id="movie-btn-speed">1×</button>
+  <button type="button" id="movie-btn-exit">✖️</button>
+</div>
+<div id="movie-title-card"><div class="sheet"><h2 id="movie-title-h"></h2><p id="movie-title-p" style="color:var(--muted)"></p></div></div>
+<header class="app">
+  <div class="brand">
+    <div class="mark">Z</div>
+    <div>
+      <h1 style="margin:0;font-size:18px" id="title">Znečitelně</h1>
+      <p class="tag" id="tagline"></p>
+    </div>
+  </div>
+  <div class="hdr-actions">
+    <button class="btn btn-sm btn-file" id="btnNewFile" type="button"><span class="plus" aria-hidden="true">+</span><span id="lblNewFile">Nový soubor</span></button>
+    <button class="btn btn-sm btn-ghost" id="btnTheme" type="button" aria-pressed="false" aria-label="Tmavý režim">☾</button>
+    <button class="btn btn-sm btn-ghost" id="btnSettings" type="button" aria-label="Nastavení">⚙</button>
+    <button class="btn btn-sm btn-ghost" id="btnHtml" type="button">HTML</button>
+    <button class="btn btn-sm btn-ghost" id="btnLang" type="button">EN</button>
+    <button class="btn btn-sm btn-ghost" id="btnHelp" type="button">?</button>
+  </div>
+</header>
+
+<section id="landing" class="wrap">
+  <div class="grid-landing">
+    <div>
+      <p class="kicker" id="kicker"></p>
+      <h1 class="hero" id="hero">Znečitelně</h1>
+      <p class="lead" id="lead"></p>
+      <ol class="steps">
+        <li><span class="num">1</span><span id="s1"></span></li>
+        <li><span class="num">2</span><span id="s2"></span></li>
+        <li><span class="num">3</span><span id="s3"></span></li>
+      </ol>
+      <p class="privacy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span id="privacy"></span></p>
+    </div>
+    <div class="card">
+      <div class="drop" id="drop">
+        <p style="font-weight:600;margin:0" id="dropTitle"></p>
+        <p style="color:var(--muted);font-size:14px;margin:8px 0 0" id="dropHint"></p>
+      </div>
+      <input id="file" type="file" hidden accept=".pdf,.docx,.xlsx,.txt,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+      <div class="stack">
+        <button class="btn" id="btnSample" type="button"></button>
+        <button class="btn btn-sec" id="btnMovie" type="button"></button>
+        <button class="btn btn-sec" id="btnBrowse" type="button"></button>
+      </div>
+      <details class="settings">
+        <summary id="sumSettings"></summary>
+        <div id="settingsMount"></div>
+      </details>
+      <p class="danger hidden" id="errLand"></p>
+    </div>
+  </div>
+</section>
+
+<section id="review" class="review hidden">
+  <div class="toolbar" id="toolbar"></div>
+  <p id="residual" class="ok"></p>
+  <div class="work">
+    <div class="pane">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+        <h2 class="lbl" style="margin:0" id="lblOrig"></h2>
+        <button class="btn btn-sm btn-sec" id="btnAdd" type="button"></button>
+      </div>
+      <pre class="doc" id="orig"></pre>
+    </div>
+    <aside>
+      <div class="filters" id="filters"></div>
+      <div class="hits" id="hitList"></div>
+      <div class="pane" id="inspector" style="margin-top:12px"></div>
+      <div class="pane" style="margin-top:12px">
+        <h2 class="lbl" id="lblRes"></h2>
+        <pre class="doc" id="result" style="max-height:12rem"></pre>
+      </div>
+      <div class="pane" style="margin-top:12px">
+        <h2 class="lbl" id="lblProc"></h2>
+        <div class="process" id="processBox"></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<div class="bar hidden" id="bar"></div>
+<footer id="footer"></footer>
+
+<div class="modal hidden" id="helpModal">
+  <div class="sheet" id="helpSheet"></div>
+</div>
+<div class="modal hidden" id="exportModal">
+  <div class="sheet" id="exportSheet"></div>
+</div>
+<div class="modal hidden" id="settingsModal">
+  <div class="sheet" id="settingsSheet" style="max-height:min(90dvh,720px);overflow:auto">
+    <h2 id="settingsTitle" style="margin-top:0"></h2>
+    <div id="settingsModalMount"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+      <button class="btn" id="btnSettingsApply" type="button"></button>
+      <button class="btn btn-sec" id="btnSettingsClose" type="button"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+(function () {
+  const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo"];
+  const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];
+  const KEYS = PII_KEYS.concat(ORG_KEYS);
+  const HIGH = new Set(["rc","ico","dic","account","email","ticket","casefile"]);
+  const RULES = "2026.09.14-ai3";
+  const LABEL = {
+    cs: { rc:"RČ", ico:"IČO", dic:"DIČ", account:"ÚČET", phone:"TELEFON", email:"E-MAIL", address:"ADRESA", dob:"DATUM_NAROZENÍ", name:"OSOBA", idcard:"DOKLAD", datovka:"DS", spz:"SPZ", geo:"GPS", secrets:"TAJEMSTVÍ", ticket:"TICKET", system:"SYSTÉM", project:"PROJEKT", incident:"INCIDENT", casefile:"ŘÍZENÍ", status:"STAV", orgunit:"ORGÁN", host:"HOST", ip:"IP", credential:"TAJNÉ" },
+    en: { rc:"BIRTH_NO", ico:"COMPANY_ID", dic:"VAT_ID", account:"ACCOUNT", phone:"PHONE", email:"EMAIL", address:"ADDRESS", dob:"DOB", name:"PERSON", idcard:"ID_DOC", datovka:"MAILBOX", spz:"PLATE", geo:"GPS", secrets:"SECRET", ticket:"TICKET", system:"SYSTEM", project:"PROJECT", incident:"INCIDENT", casefile:"CASE", status:"STATUS", orgunit:"ORG", host:"HOST", ip:"IP", credential:"SECRET" }
+  };
+  const TICKET_STOP = new Set(["COVID","ISO","IEC","UTF","SHA","RFC","HTTP","HTML","JSON","GDPR","IEEE","W3C","CEN","XML","PDF","CSV","XLSX","DOCX","YAML","SMTP","IMAP","LDAP","SAML","OAUTH","OPENAPI","REST","SOAP","JIRA","CONFLUENCE","GITLAB","GITHUB","BITBUCKET","WINDOWS","LINUX","ANDROID","CHROME","CSN","MHD","Sb","API","SQL","NATO","VIN","IPV","AES","TLS","CPU","GPU","USB","ICD","DSM","OECD","UNESCO","UNICEF","WHO","WTO","SWIFT","IBAN","VAT","CIDR","UUID","MD5","SHA256","IPv","IPv4","IPv6"]);
+  const STATUS_GENERIC = {
+    cs: {
+      prod: "nasazeno v produkčním prostředí (konkrétní stav a termín odstraněny)",
+      incident: "provozní incident (konkrétní závada zobecněna)",
+      release: "plánované / provedené nasazení (verze a termín odstraněny)",
+      defect: "evidovaná vada (konkrétní popis zkrácen)"
+    },
+    en: {
+      prod: "deployed to production (specific state and date removed)",
+      incident: "operational incident (specific defect generalized)",
+      release: "planned or completed release (version and date removed)",
+      defect: "logged defect (specific description shortened)"
+    }
+  };
+  const NAMES = new Set("Adam Aleš Alexandr Alexandra Alena Alice Alois Alžběta Andrea Anežka Anna Antonín Barbora Běla Blanka Bohdan Bohumil Bohuslav Božena Čeněk Dagmar Dalibor Dana Daniel Daniela David Denis Dominik Drahomíra Dušan Edita Eduard Eliška Ema Emil Emilie Erik Eva Filip František Františka Gabriela Hana Helena Hynek Ivan Ivana Iva Iveta Ivo Jáchym Jakub Jan Jana Jarmila Jaromír Jaroslav Jaroslava Jindřich Jiří Jiřina Jitka Josef Julie Kamila Karel Karla Kateřina Klára Kristýna Květa Ladislav Lenka Leoš Libor Libuše Linda Luboš Lucie Ludmila Luděk Lukáš Magdalena Marcel Marcela Marek Marie Markéta Marta Martin Martina Matěj Matyáš Michaela Michal Mikuláš Milan Milada Milena Miloslav Miloš Miroslav Miroslava Monika Naděžda Natálie Nela Nikola Oldřich Olga Ondřej Otto Patrik Pavel Pavla Pavlína Petr Petra Přemysl Radek Radim Radka Renata René Robert Roman Romana Rudolf Růžena Sabina Samuel Sandra Simona Soňa Stanislav Šárka Šimon Štěpán Tadeáš Tereza Tomáš Václav Vendula Věra Veronika Viktor Viktorie Vilém Vladimír Vlasta Vojtěch Zdeněk Zdeňka Zuzana Žaneta Žofie Alex Emma Hannah Jacob James Liam Noah Oliver Olivia Sophia William".split(" ").map(s => s.toLocaleLowerCase("cs")));
+  const TITLES = ["prof","doc","mudr","judr","phdr","rndr","ing","arch","mgr","mga","bc","bca","dis","mba","phd","csc","dr","pplk","plk","npor","por","kpt","mjr","gen"];
+  const PUBLIC = ["česká republika","ministerstvo","úřad","krajský úřad","obecní úřad","městský úřad","okresní soud","krajský soud","státní podnik","národní podnik","české dráhy","česká pošta","správa železnic","praha","brno","ostrava","plzeň"];
+  const SAMPLE = `SMLOUVA O DÍLO
+uzavřená dle § 2586 a násl. zákona č. 89/2012 Sb., občanský zákoník
+
+Smluvní strany
+
+Objednatel:
+Státní podnik Ukázkový, IČO: 00000205
+se sídlem Václavské náměstí 1, 110 00 Praha 1
+datová schránka: ab12cde
+
+Zhotovitel:
+Jan Novák, nar. 12. 3. 1978, rodné číslo 780312/0006
+bytem Komenského 12/4, 602 00 Brno
+tel. +420 777 123 456
+e-mail: jan.novak@example.cz
+číslo účtu 123456789/0100
+IBAN CZ6508000000192000145399
+IČO: 25596641
+DIČ: CZ25596641
+číslo občanského průkazu 123456789
+
+Předmět
+Zhotovitel provede dílo „projekt ORION – kalkulace jednotkové ceny“.
+
+Cena díla činí 1 250 000 Kč bez DPH.
+
+V Praze dne 11. 9. 2026
+
+Ing. Jan Novák                          Mgr. Eva Svobodová
+zhotovitel                              za objednatele
+
+Příloha — pracovní postup (vzor pro veřejnou AI)
+Projekt CBUAIS, systém AIS SBS, integrace eSpis, modul SAMO2.
+Orgán: OBÚ.
+
+1. Analytik založí ticket CBUAIS-5164 po incidentu HD 1552.
+2. Vývoj naváže CBUAIS-7306 (oprava produkční vady v SAMO2).
+3. Řízení SBS 09379/2026 se doplní do eSpis.
+4. Stav k 11. 9. 2026: hotfix nasazen na produkci AIS SBS, rollback nepřipraven.
+`;
+
+  const I18N = {
+    cs: {
+      name:"Znečitelně", tagline:"Anonymizace pro úřady i veřejnou AI",
+      themeDark:"Tmavý režim", themeLight:"Světlý režim",
+      privacy:"Soubor nikam neodesíláme. Detekce, začernění i analýza postupu běží v tomto zařízení.",
+      trySample:"Vyzkoušet vzorovou smlouvu", movieTutorial:"Video tutoriál", newFile:"Nový soubor",
+      drop:"Přetáhněte PDF, DOCX, XLSX nebo TXT",
+      dropHint:"Nebo vyberte z úložiště. Skeny bez textové vrstvy neprojdou.",
+      browse:"Vybrat soubor", profile:"Profil zveřejnění", mode:"Režim výstupu",
+      suspicion:"Podezření",
+      categories:"Kategorie", secrets:"Obchodní tajemství",
+      systemsDict:"Interní systémy a integrace",
+      projectsDict:"Projekty / prefixy JIRA",
+      orgsDict:"Orgány a útvary",
+      dictHint:"Jeden název na řádek. Stejný token se použije v celém dokumentu.",
+      layerPii:"Osobní údaje", layerOrg:"Identifikátory firmy a projektu",
+      processTitle:"Struktura postupu",
+      processEmpty:"Málo struktury k odhadu — přidejte nadpisy nebo číslované kroky.",
+      processSteps:"Kroky", processActors:"Role", processSystems:"Systémy / tokeny",
+      processTickets:"Vazby ticketů", processRisks:"Zbytkové riziko pro veřejnou AI",
+      leakOk:"Po anonymizaci nevypadá text na uniklé tickety, e-maily ani rodná čísla.",
+      leakBad:"Po anonymizaci zbývají vzory, které by veřejná AI ještě mohla zneužít.",
+      stripMeta:"Odstranit metadata (autor, lastModifiedBy, společnost)",
+      aiPack:"Balíček pro AI", includeOutline:"Přiložit osnovu postupu",
+      publicGlossary:"Slovník bez původních hodnot (pro veřejnou AI)",
+      readyPublic:"Vhodné k posouzení pro veřejnou AI",
+      readyInternal:"Spíš pro interní AI / další kontrolu",
+      verdict:"Verdikt",
+      operator:"Odpovědný pracovník", operatorPh:"jméno / služební číslo",
+      original:"Originál", result:"Návrh", redact:"Anonymizovat", keep:"Ponechat",
+      acceptAll:"Přijmout vše", rejectAll:"Zamítnout vše", keepOfficials:"Ponechat instituce",
+      reviewed:"Zkontrolováno", secondEyes:"Druhá kontrola", export:"Exportovat", audit:"Audit JSON",
+      clear:"Nová relace", noHits:"Nic se nenašlo.", confirmExport:"Citlivé údaje budou nevratně odstraněny.",
+      needReview:"Než exportujete, potvrďte kontrolu.", exporting:"Exportuji…",
+      footer:"Jeden HTML soubor · GDPR čl. 25 a 32 · zákon 340/2015 · InfZ 106/1999 · vrstva pro veřejnou AI",
+      helpTitle:"Jak to používat",
+      help:"Černé zvýraznění ve Wordu nestačí. Pro veřejnou AI nestačí ani jen rodná čísla — zakryjte tickety, názvy systémů, stav produkce a metadata souboru. Vždy zkontrolujte nálezy.",
+      found:"nalezeno", toRedact:"k anonymizaci", kept:"ponecháno",
+      stepDoc:"Dokument", stepReview:"Kontrola", stepExport:"Export",
+      landingLead:"Nejprve osobní údaje, potom identifikátory projektu. Výsledek má jít poslat veřejné AI bez konkrétní firmy.",
+      landingStep1:"Nahrajte smlouvu, ticket, rozhodnutí, PDF s textovou vrstvou nebo XLSX.",
+      landingStep2:"Projdete nálezy: RČ a účty i JIRA ID, systémy, řízení a stav produkce.",
+      landingStep3:"Exportujte začerněné PDF, XLSX bez metadat, nebo balíček pro AI s osnovou postupu.",
+      filterAll:"Vše", filterRedact:"K anonymizaci", filterKeep:"Ponecháno",
+      addSelection:"Přidat výběr", selected:"Vybraný nález", context:"Kontext",
+      high:"ověřeno", medium:"heuristika", keys:"J/K nález · R anonymizovat · P ponechat",
+      settings:"Nastavení", apply:"Použít", cancel:"Zpět", confirmTitle:"Nevratný export",
+      residual:"V návrhu zůstal původní řetězec.", residualOk:"Žádný přijatý řetězec v návrhu nezůstal.",
+      exported:"Export hotov", walk:"z",
+      kbdNext:"Další / předchozí nález", kbdRedact:"Anonymizovat vybraný", kbdKeep:"Ponechat vybraný",
+      profiles:{ registr:"Registr smluv (340/2015)", infoact:"InfZ (106/1999)", court:"Soud / vyhláška 403/2022", internal:"Interní AI (pseudonymy)", publicai:"Veřejná / externí AI", custom:"Vlastní pravidla" },
+      modes:{ box:"Nevratné začernění", xxxx:"Náhrada XXXX", label:"Třída [OSOBA]", pseudo:"Konzistentní TICKET_001" },
+      suspicions:{ high:"Vysoké — méně promeškaných", medium:"Střední — kompromis", low:"Nízké — méně falešných poplachů" },
+      cats:{ rc:"Rodné číslo", ico:"IČO", dic:"DIČ", account:"Účet / IBAN", phone:"Telefon", email:"E-mail", address:"Adresa / PSČ", dob:"Datum narození", name:"Jména a tituly", idcard:"Číslo dokladu", datovka:"Datová schránka", spz:"SPZ", geo:"Souřadnice", secrets:"Tajemství", ticket:"Ticket / JIRA", system:"Interní systém", project:"Projekt", incident:"Incident / HD", casefile:"Č.j. / řízení", status:"Stav produkce", orgunit:"Orgán / útvar", host:"Interní URL / host", ip:"Privátní IP", credential:"Klíč / heslo" },
+      tips:{
+        lang:"Přepnout jazyk (CS / EN).", theme:"Přepnout světlý / tmavý režim.", help:"Jak anonymizace funguje.", sample:"Fiktivní smlouva s RČ, IČO a IBAN.", movie:"Automatická prohlídka vzorové smlouvy — pauza, 1×/1,75×, další krok.",
+        settings:"Profil, režim, podezření a kategorie — lze měnit i během kontroly.",
+        browse:"PDF s textovou vrstvou, DOCX, XLSX nebo TXT.",
+        newFile:"Kdykoli vyberte jiný dokument. Stejný soubor lze zvolit znovu.",
+        html:"Uložte si tuto stránku jako jeden soubor a otevřete ji i bez serveru.",
+        keepOfficials:"IČO ministerstev a státních podniků se v Registru smluv obvykle nezakrývá.",
+        reviewed:"Bez lidské kontroly export nejde.", exportLocked:"Nejprve zaškrtněte Zkontrolováno.",
+        export:"Stáhne nevratně začerněný soubor. U XLSX/PDF smaže autora v metadatech.", audit:"JSON s hashem a rozhodnutími — hodnoty jsou zkrácené.",
+        aiPack:"TXT + osnova postupu + slovník tokenů. Veřejný slovník neobsahuje původní řetězce.",
+        stripMeta:"Excel i PDF drží Author / lastModifiedBy. Před odesláním pryč.",
+        process:"Lokální odhad kroků, rolí a vazeb ticketů — bez odeslání do cloudu.",
+        clear:"Zahodí dokument z paměti.", addSelection:"Označte text v originálu.",
+        high:"Silný důkaz (checksum, popisek, slovník).", medium:"Heuristika — ověřte falešný poplach.",
+        suspicion:"Vysoké: chytí víc (riziko falešných poplachů). Nízké: přísnější (riziko promeškání). Střední: kompromis.",
+        cats:{ rc:"Rodné číslo s kontrolním součtem.", ico:"Osmimístné IČO. U instituce zvažte ponechání.", dic:"DIČ / CZ + IČO.", account:"Český účet a IBAN.", phone:"České telefonní číslo.", email:"E-mail.", address:"Ulice, náměstí, sídlo a PSČ.", dob:"Datum narození v kontextu — ne datum smlouvy.", name:"Jména s titulem, pádem i iniciálou.", idcard:"Číslo OP / pasu.", datovka:"ID datové schránky.", spz:"Registrační značka včetně EL.", geo:"Zeměpisné souřadnice.", secrets:"Vlastní fráze tajemství.", ticket:"JIRA-like ID. Prefix ze slovníku má přednost.", system:"Názvy z interního slovníku a fráze systém/modul/integrace.", project:"Prefix ticketu nebo název projektu.", incident:"HD / INC / provozní číslo.", casefile:"Číslo jednací a spisová značka.", status:"Konkrétní produkční stav se zobecní.", orgunit:"Konkrétní orgán nebo útvar ze slovníku.", host:"Interní hostname nebo URL.", ip:"Privátní IPv4 (10/8, 192.168/16, 172.16/12).", credential:"API klíč, Bearer token, heslo." }
+      }
+    },
+    en: {
+      name:"Znečitelně", tagline:"Redaction for agencies and public AI",
+      themeDark:"Dark mode", themeLight:"Light mode",
+      privacy:"Nothing is uploaded. Detection, redaction and process analysis stay on this device.",
+      trySample:"Try the sample contract", movieTutorial:"Video tutorial", newFile:"New file",
+      drop:"Drop a PDF, DOCX, XLSX or TXT",
+      dropHint:"Or pick from storage. Scans without a text layer will not match.",
+      browse:"Choose file", profile:"Publication profile", mode:"Output mode",
+      suspicion:"Suspicion",
+      categories:"Categories", secrets:"Trade secrets",
+      systemsDict:"Internal systems and integrations",
+      projectsDict:"Projects / JIRA prefixes",
+      orgsDict:"Bodies and units",
+      dictHint:"One name per line. The same token is reused across the document.",
+      layerPii:"Personal data", layerOrg:"Company and project identifiers",
+      processTitle:"Process structure",
+      processEmpty:"Not enough structure to infer — add headings or numbered steps.",
+      processSteps:"Steps", processActors:"Roles", processSystems:"Systems / tokens",
+      processTickets:"Ticket links", processRisks:"Residual risk for public AI",
+      leakOk:"After redaction, no leftover ticket, email or birth-number patterns.",
+      leakBad:"After redaction, patterns remain that a public AI could still misuse.",
+      stripMeta:"Strip metadata (author, lastModifiedBy, company)",
+      aiPack:"AI pack", includeOutline:"Attach process outline",
+      publicGlossary:"Glossary without original values (for public AI)",
+      readyPublic:"Reasonable to review for public AI",
+      readyInternal:"Better for internal AI / further review",
+      verdict:"Verdict",
+      operator:"Responsible officer", operatorPh:"name / staff ID",
+      original:"Original", result:"Proposal", redact:"Redact", keep:"Keep",
+      acceptAll:"Accept all", rejectAll:"Reject all", keepOfficials:"Keep public bodies",
+      reviewed:"Reviewed", secondEyes:"Second review", export:"Export", audit:"Audit JSON",
+      clear:"New session", noHits:"No hits.", confirmExport:"Sensitive data will be removed irreversibly.",
+      needReview:"Confirm review before export.", exporting:"Exporting…",
+      footer:"Single HTML file · GDPR Arts. 25 & 32 · Act 340/2015 · Info Act 106/1999 · public-AI layer",
+      helpTitle:"How to use it",
+      help:"Black highlighting in Word is not anonymization. For public AI, also hide tickets, system names, production status and file metadata. Always review hits.",
+      found:"found", toRedact:"to redact", kept:"kept",
+      stepDoc:"Document", stepReview:"Review", stepExport:"Export",
+      landingLead:"First personal data, then project identifiers. The result should not name your firm to a public AI.",
+      landingStep1:"Upload a contract, ticket, decision, a searchable PDF, or an XLSX sheet.",
+      landingStep2:"Walk the hits: birth numbers and accounts, plus JIRA IDs, systems, case files and production status.",
+      landingStep3:"Export a rasterized PDF, metadata-stripped XLSX, or an AI pack with a process outline.",
+      filterAll:"All", filterRedact:"To redact", filterKeep:"Kept",
+      addSelection:"Add selection", selected:"Selected hit", context:"Context",
+      high:"validated", medium:"heuristic", keys:"J/K hit · R redact · P keep",
+      settings:"Settings", apply:"Apply", cancel:"Back", confirmTitle:"Irreversible export",
+      residual:"An accepted string is still in the proposal.", residualOk:"No accepted string remains in the proposal.",
+      exported:"Export complete", walk:"of",
+      kbdNext:"Next / previous hit", kbdRedact:"Redact selected", kbdKeep:"Keep selected",
+      profiles:{ registr:"Register of Contracts (340/2015)", infoact:"Info Act (106/1999)", court:"Court / Decree 403/2022", internal:"Internal AI (pseudonyms)", publicai:"Public / external AI", custom:"Custom rules" },
+      modes:{ box:"Irreversible black-box", xxxx:"Replace with XXXX", label:"Class [PERSON]", pseudo:"Consistent TICKET_001" },
+      suspicions:{ high:"High — fewer misses", medium:"Medium — compromise", low:"Low — fewer false positives" },
+      cats:{ rc:"Birth number (RČ)", ico:"Company ID (IČO)", dic:"VAT ID (DIČ)", account:"Account / IBAN", phone:"Phone", email:"Email", address:"Address / postcode", dob:"Date of birth", name:"Names and titles", idcard:"ID document", datovka:"Data mailbox", spz:"Licence plate", geo:"Coordinates", secrets:"Trade secrets", ticket:"Ticket / JIRA", system:"Internal system", project:"Project", incident:"Incident / HD", casefile:"Case file no.", status:"Production status", orgunit:"Body / unit", host:"Internal URL / host", ip:"Private IP", credential:"Key / password" },
+      tips:{
+        lang:"Switch language (CS / EN).", theme:"Switch light / dark mode.", help:"How redaction works.", sample:"A fictitious contract with a birth number, IČO and IBAN.", movie:"Guided walkthrough of the sample contract — pause, 1×/1.75×, skip step.",
+        settings:"Profile, mode, suspicion and categories — editable during review too.",
+        browse:"Searchable PDF, DOCX, XLSX or TXT.",
+        newFile:"Pick another document at any time. The same file can be chosen again.",
+        html:"Save this page as one file and open it without a server.",
+        keepOfficials:"IČO of ministries and state enterprises is usually left in the Register.",
+        reviewed:"Export stays locked without a human review.", exportLocked:"Tick Reviewed first.",
+        export:"Downloads an irreversibly redacted file. XLSX/PDF author metadata is cleared.", audit:"JSON with hashes and decisions — values are truncated.",
+        aiPack:"TXT + process outline + token glossary. The public glossary has no original strings.",
+        stripMeta:"Excel and PDF keep Author / lastModifiedBy. Remove them before sending.",
+        process:"Local estimate of steps, roles and ticket links — nothing is sent to a cloud.",
+        clear:"Drops the document from memory.", addSelection:"Select text in the original.",
+        high:"Strong evidence (checksum, label, dictionary).", medium:"Heuristic — check for false positives.",
+        suspicion:"High: catches more (risk of false positives). Low: stricter (risk of misses). Medium: compromise.",
+        cats:{ rc:"Birth number with checksum.", ico:"8-digit company ID.", dic:"VAT ID.", account:"Czech account and IBAN.", phone:"Czech phone number.", email:"Email.", address:"Street, square, seat and postcode.", dob:"Date of birth in context — not a contract date.", name:"Titled, declined and initialised names.", idcard:"ID / passport number.", datovka:"Data mailbox ID.", spz:"Licence plate including EL.", geo:"Geographic coordinates.", secrets:"Your own secret phrases.", ticket:"JIRA-like IDs. Dictionary prefixes win.", system:"Names from your dictionary plus system/module/integration phrases.", project:"Ticket prefix or project name.", incident:"HD / INC / ops number.", casefile:"File number and case reference.", status:"Specific production state is generalized.", orgunit:"Named body or unit from your dictionary.", host:"Internal hostname or URL.", ip:"Private IPv4 (10/8, 192.168/16, 172.16/12).", credential:"API key, Bearer token, password." }
+      }
+    }
+  };
+
+  const S = {
+    lang: localStorage.getItem("znec-lang") === "en" ? "en" : "cs",
+    theme: (localStorage.getItem("znec-theme") === "dark" || localStorage.getItem("znec-theme") === "light")
+      ? localStorage.getItem("znec-theme")
+      : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
+    profile: "publicai", mode: "pseudo",
+    suspicion: localStorage.getItem("znec-suspicion") || "medium",
+    enabled: Object.fromEntries(KEYS.map(k => [k, true])),
+    secrets: "jednotkové ceny",
+    systems: "AIS SBS | SYSTÉM\neSpis | INTEGRACE\nSAMO2 | MODUL",
+    projects: "CBUAIS | PROJEKT\nORION | PROJEKT",
+    orgs: "OBÚ | ORGÁN",
+    stripMeta: true, includeOutline: true, publicGlossary: true,
+    operator: "", fileName: "", kind: "text", text: "", sourceBuf: null,
+    pages: [], cellMap: [],
+    hashIn: "", hashOut: "", hits: [], reviewed: false, secondEyes: false,
+    selectedId: null, filter: "all", seen: new Set(),
+    movie: false, movieStepIndex: 0
+  };
+  const i = () => I18N[S.lang];
+  const $ = (id) => document.getElementById(id);
+
+  function applyTheme(){
+    const dark = S.theme === "dark";
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", dark ? "#0d1218" : "#1f3348");
+    const btn = $("btnTheme");
+    if (btn) {
+      const t = i();
+      btn.textContent = dark ? "☀" : "☾";
+      btn.setAttribute("aria-pressed", dark ? "true" : "false");
+      btn.setAttribute("aria-label", dark ? t.themeLight : t.themeDark);
+      btn.setAttribute("data-tip", t.tips.theme);
+    }
+  }
+  function toggleTheme(){
+    S.theme = S.theme === "dark" ? "light" : "dark";
+    localStorage.setItem("znec-theme", S.theme);
+    applyTheme();
+  }
+
+  function digits(s){ return String(s).replace(/[^\d]/g, ""); }
+  function parseRC(raw){
+    const m = String(raw).trim().match(/^(\d{2})(\d{2})(\d{2})\s*\/?\s*(\d{3,4})$/);
+    if (!m) return null;
+    let month = +m[2];
+    if (month >= 71) month -= 70; else if (month >= 51) month -= 50; else if (month >= 21) month -= 20;
+    const day = +m[3];
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+    const yy = +m[1];
+    const d = m[1]+m[2]+m[3]+m[4];
+    if (d.length === 10 && Number(d) % 11 !== 0) return null;
+    if (d.length !== 9 && d.length !== 10) return null;
+    const year = d.length === 9 ? 1900 + yy : (yy < 54 ? 2000 + yy : 1900 + yy);
+    const dim = [31, (year%4===0&&year%100!==0)||year%400===0?29:28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month-1];
+    if (day > dim) return null;
+    return true;
+  }
+  function pageOf(start){
+    if (!S.pages || !S.pages.length) return 1;
+    for (const p of S.pages) if (start >= p.start && start < p.end) return p.n;
+    return S.pages[S.pages.length-1].n;
+  }
+  function toBytes(buf){
+    if (!buf) return new Uint8Array(0);
+    if (buf instanceof Uint8Array) return buf;
+    if (buf instanceof ArrayBuffer) return new Uint8Array(buf);
+    if (buf.buffer) return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+    return new Uint8Array(buf);
+  }
+  function isValidICO(raw){
+    const d = digits(raw); if (d.length !== 8 || /^0+$/.test(d)) return false;
+    const w = [8,7,6,5,4,3,2]; let sum = 0;
+    for (let i=0;i<7;i++) sum += w[i]*+d[i];
+    return (11 - (sum % 11)) % 10 === +d[7];
+  }
+  function isValidDIC(raw){
+    const s = String(raw).replace(/\s+/g,"").toUpperCase();
+    const m = s.match(/^CZ(\d{8,10})$/); if (!m) return false;
+    return m[1].length === 8 ? isValidICO(m[1]) : !!parseRC(m[1]);
+  }
+  function ibanOk(iban){
+    const s = iban.replace(/\s+/g,"").toUpperCase();
+    if (!/^CZ\d{22}$/.test(s)) return false;
+    const rearr = s.slice(4)+s.slice(0,4);
+    let rem = 0;
+    for (const ch of rearr) {
+      const v = /[A-Z]/.test(ch) ? String(ch.charCodeAt(0)-55) : ch;
+      for (const d of v) rem = (rem * 10 + +d) % 97;
+    }
+    return rem === 1;
+  }
+  function stripTitle(token){
+    return String(token||"").replace(/[.,;:()]/g,"").trim();
+  }
+  function stemNamePart(token){
+    const t = stripTitle(token).toLocaleLowerCase("cs");
+    if (NAMES.has(t)) return t;
+    if (/ov(?:á|ou|é|ých|ými|ým)$/u.test(t)) return t.replace(/ov(?:á|ou|é|ých|ými|ým)$/u, "");
+    const decl = t.replace(/(?:ovi|ovým|ovými|ových|ové|ovým|ama|ami|ách|ům|em|ou|u)$/u, "");
+    if (decl !== t && decl.length >= 3) {
+      if (/ov$/u.test(decl) && decl.length >= 4) return decl.replace(/ov$/u, "");
+      return decl;
+    }
+    if (/ová$/u.test(t)) return t.replace(/ová$/u, "");
+    return t;
+  }
+  function looksName(token){
+    if (!token) return false;
+    const t = stripTitle(token);
+    if (!t) return false;
+    const low = t.toLocaleLowerCase("cs");
+    if (NAMES.has(low)) return true;
+    if (/^\p{Lu}\.$/u.test(t)) return true;
+    const stem = stemNamePart(t);
+    if (NAMES.has(stem)) return true;
+    return /ová$|ský$|cká$|cký$|ek$|ák$|ář$|íř$|ec$|áč$|ič$/i.test(t)
+      || /ová$|ský$|cký$|ek$|ák$|ář$|ec$/i.test(stem);
+  }
+  function nameKey(value){
+    const parts = String(value||"").split(/\s+/).map(stripTitle).filter(Boolean)
+      .filter(p => !TITLES.includes(p.toLocaleLowerCase("cs").replace(/\./g,"")));
+    return parts.map(stemNamePart).filter(p => p.length>1).join(" ");
+  }
+  function canonToken(s){
+    return String(s||"").toLocaleLowerCase("cs").replace(/[^\p{L}\p{N}]+/gu,"");
+  }
+  function systemCore(value){
+    return String(value||"").replace(/^(?:systém|system|aplikace|modul|rozhraní|integrace|platforma)\s+/i, "").trim();
+  }
+  function accountKey(raw){
+    const s = String(raw||"").replace(/\s+/g,"").toUpperCase();
+    if (/^CZ\d{22}$/.test(s)) {
+      const bank = s.slice(4,8);
+      const acc = (s.slice(8).replace(/^0+/, "") || "0");
+      return "account|"+bank+"|"+acc;
+    }
+    const m = s.match(/^(?:(\d{1,6})-)?(\d{2,16})\/(\d{4})$/);
+    if (m) {
+      const acc = ((m[1]||"").padStart(6,"0") + m[2].padStart(10,"0")).replace(/^0+/, "") || "0";
+      return "account|"+m[3]+"|"+acc;
+    }
+    return "account|"+canonToken(raw);
+  }
+  function nameInitial(value){
+    const m = String(value||"").match(/(?<![\p{L}\p{N}])(\p{Lu})\.(?=\s|$)/u);
+    return m ? m[1].toLocaleLowerCase("cs") : "";
+  }
+  function clusterNameKeys(hits){
+    const names = hits.filter(h => h.type==="name");
+    const full = names.filter(h => nameKey(h.value).split(" ").length>=2);
+    const shorts = names.filter(h => nameKey(h.value).split(" ").length<2);
+    shorts.forEach(s => {
+      const stem = nameKey(s.value);
+      if (!stem) return;
+      const initial = nameInitial(s.value);
+      const cands = full.filter(f => {
+        const words = nameKey(f.value).split(" ").filter(Boolean);
+        const sur = words[words.length-1] || "";
+        if (sur!==stem && !sur.startsWith(stem) && !stem.startsWith(sur)) return false;
+        if (initial) return (words[0]||"").charAt(0)===initial;
+        return true;
+      });
+      const keys = Array.from(new Set(cands.map(f => f.entityKey)));
+      if (keys.length===1) s.entityKey = keys[0];
+    });
+    return hits;
+  }
+  function alignDictEntity(h, src){
+    const dicts = parseDict(S.systems+"\n"+S.projects+"\n"+S.orgs).filter(d => d.name && d.name.length>=2);
+    if (!dicts.length) return h;
+    const val = h.value || "";
+    const low = val.toLocaleLowerCase("cs");
+    let best = null;
+    dicts.forEach(d => {
+      const needle = d.name.toLocaleLowerCase("cs");
+      const i = low.indexOf(needle);
+      if (i<0) return;
+      if (!best || needle.length>best.needle.length) best = { d, i, needle, len: d.name.length };
+    });
+    if (!best) {
+      if (h.type==="system" || h.type==="project") {
+        const core = systemCore(val);
+        if (core && core!==val) h.entityKey = (h.tokenClass||h.type)+"|"+canonToken(core);
+      }
+      return h;
+    }
+    h.tokenClass = best.d.kind || h.tokenClass;
+    h.entityKey = (h.tokenClass||h.type)+"|"+canonToken(best.d.name);
+    const prefix = val.slice(0, best.i).trim();
+    const suffix = val.slice(best.i+best.len).trim();
+    const okPrefix = !prefix || /^(?:systém|system|aplikace|modul|rozhraní|integrace|platforma)$/i.test(prefix);
+    if (okPrefix && !suffix && best.i>=0) {
+      const ns = h.start + best.i;
+      const ne = ns + best.len;
+      if (ne>ns && ne<= (src?src.length:ne)) {
+        h.start = ns; h.end = ne; h.value = (src||val).slice(ns, ne);
+        if (!src) h.value = val.slice(best.i, best.i+best.len);
+      }
+    }
+    return h;
+  }
+  function isPublic(text){ const l = String(text||"").toLocaleLowerCase("cs"); return PUBLIC.some(k => l.includes(k)); }
+  function tokenizeCtx(s){
+    return String(s||"").toLocaleLowerCase("cs").split(/[^\p{L}\p{N}+./]+/u).filter(Boolean);
+  }
+  function ctxSlice(text, start, end, win=40, bias="both"){
+    const left = bias==="right" ? 0 : (bias==="left" ? (typeof win==="number"?win:40) : (typeof win==="number"?win:40));
+    const right = bias==="left" ? 10 : (typeof win==="number"?win:40);
+    return (text.slice(Math.max(0,start-left), start) + " " + text.slice(end, end+right)).toLocaleLowerCase("cs");
+  }
+  function matchNeedles(c, needles){
+    const tokens = tokenizeCtx(c);
+    return needles.filter(n => {
+      const needle = String(n).toLocaleLowerCase("cs");
+      if (!needle) return false;
+      if (/[ .č]/.test(needle) && needle.length > 3) return c.includes(needle);
+      return tokens.includes(needle) || tokens.some(tok => tok === needle || tok.replace(/\.$/,"") === needle);
+    });
+  }
+  function ctxHas(text, start, end, needles, win=40, bias="both"){
+    return matchNeedles(ctxSlice(text, start, end, win, bias), needles).length > 0;
+  }
+  function ctxOk(text, start, end, needles, win=40){ return ctxHas(text, start, end, needles, win); }
+  function ctxWhich(text, start, end, needles, win=40, bias="both"){
+    return matchNeedles(ctxSlice(text, start, end, win, bias), needles);
+  }
+  function isContractDateCtx(text, start, end, win=48){
+    const c = (text.slice(Math.max(0,start-win), start) + " " + text.slice(end, end+win)).toLocaleLowerCase("cs");
+    const born = /nar(?:\.|ozen|ozena)|datum narození|birth/.test(c);
+    if (born) return false;
+    return /(?:v\s+\p{Ll}+\s+dne|\bdne\b|uzavřen|uzavrena|podeps|platnost|vyhotoven|vystaven)/u.test(c);
+  }
+  function makeWork(text){
+    const src = String(text ?? "");
+    let work = "";
+    const toSrc = [];
+    for (let i = 0; i < src.length; i++) {
+      const c = src.charCodeAt(i);
+      if (c===0x00AD || c===0x200B || c===0x200C || c===0x200D || c===0x2060 || c===0xFEFF) continue;
+      let ch = src[i];
+      if (c===0x00A0 || c===0x202F || c===0x2007 || c===0x2009 || c===0x200A) ch = " ";
+      else if (c===0x2013 || c===0x2014 || c===0x2212) ch = "-";
+      work += ch;
+      toSrc.push(i);
+    }
+    return { src, work, toSrc };
+  }
+  function mapSpan(toSrc, start, end){
+    if (!toSrc.length) return { start:0, end:0 };
+    const s = toSrc[Math.min(Math.max(0,start), toSrc.length-1)];
+    const last = toSrc[Math.min(Math.max(0,end-1), toSrc.length-1)];
+    return { start:s, end:last+1 };
+  }
+  function parseDict(raw){
+    return String(raw||"").split(/\n/).map(line => {
+      const s = line.trim();
+      if (!s || s.startsWith("#")) return null;
+      const parts = s.split("|");
+      const name = (parts[0]||"").trim();
+      const kind = (parts[1]||"").trim().toUpperCase();
+      if (!name) return null;
+      return { name, kind };
+    }).filter(Boolean);
+  }
+  function dictRe(name){
+    const esc = name.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    if (/\s/.test(name)) return new RegExp(esc, "gi");
+    return new RegExp("(?<![\\p{L}\\p{N}])"+esc+"(?![\\p{L}\\p{N}])", "giu");
+  }
+  function trimHitValue(h, src){
+    let v = h.value, s = h.start, e = h.end;
+    while (e>s && /[.,;:)\]\s]/.test(src[e-1]||"")) e--;
+    while (s<e && /[(\[\s]/.test(src[s]||"")) s++;
+    if (e<=s) return h;
+    h.start = s; h.end = e; h.value = src.slice(s,e);
+    return h;
+  }
+  function findAll(text, re, type, validate, group){
+    const out = []; const r = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags+"g");
+    let m; while ((m = r.exec(text))) {
+      let value = m[0], start = m.index;
+      if (group && m[group] != null) {
+        const g = m[group];
+        const rel = m[0].indexOf(g);
+        start = m.index + (rel >= 0 ? rel : 0);
+        value = g;
+      }
+      if (validate && !validate(value, text, start, m)) continue;
+      out.push({ type, value, start, end: start+value.length, reasons: [], confidence: "medium" });
+      if (m.index === r.lastIndex) r.lastIndex++;
+    }
+    return out;
+  }
+  function scoreHit(h){
+    let s = 0;
+    const rs = h.reasons || [];
+    const has = (p) => rs.some(r => r===p || r.startsWith(p+":"));
+    if (has("checksum")) s += 50;
+    if (has("iban")) s += 50;
+    if (has("label")) s += 40;
+    if (has("dict")) s += 45;
+    if (has("titled")) s += 25;
+    if (has("gazetteer")) s += 28;
+    if (has("context")) s += 20;
+    if (has("format")) s += 10;
+    if (has("declined")) s += 16;
+    if (has("initials")) s += 14;
+    if (has("prefix-list")) s += 22;
+    if (has("private-range")) s += 30;
+    if (h.type==="email" && has("format")) s += 20;
+    if (h.type==="ticket" && has("format")) s += 12;
+    if (h.confidence === "high") s += 6;
+    s += Math.min(18, Math.max(0, (h.end-h.start)-2));
+    const prio = { rc:7, email:7, account:6, ico:6, dic:6, ticket:6, credential:6, phone:4, datovka:4, idcard:3, address:4, name:3, dob:2, host:5, ip:5, geo:3, spz:3 };
+    s += prio[h.type] || 1;
+    return s;
+  }
+  function finalizeHit(h, src){
+    trimHitValue(h, src);
+    const sc = scoreHit(h);
+    h.score = sc;
+    h.confidence = sc >= 48 ? "high" : "medium";
+    return h;
+  }
+  function projectPrefixes(){
+    const set = new Set();
+    parseDict(S.projects).forEach(d => {
+      const pref = (d.name.split(/[\s-]/)[0]||"").toUpperCase();
+      if (pref.length >= 2) set.add(pref);
+    });
+    return set;
+  }
+  function detect(text, enabled, secrets){
+    const bag = []; const seen = new Set();
+    const { src, work, toSrc } = makeWork(text || "");
+    const t = work;
+    const sus = S.suspicion || "medium";
+    const win = sus === "high" ? 70 : sus === "low" ? 28 : 40;
+    const lift = (h) => {
+      const mapped = mapSpan(toSrc, h.start, h.end);
+      const raw = Object.assign({}, h, { start: mapped.start, end: mapped.end, value: src.slice(mapped.start, mapped.end) });
+      finalizeHit(raw, src);
+      return raw;
+    };
+    const push = (h) => {
+      if (!h || !h.value || !h.value.trim()) return;
+      const mapped = (h.start < src.length && src.slice(h.start, h.end) === h.value) ? finalizeHit(h, src) : lift(h);
+      if (!mapped.value || !mapped.value.trim()) return;
+      const k = mapped.type+"|"+mapped.start+"|"+mapped.end;
+      if (seen.has(k)) return;
+      seen.add(k);
+      bag.push(mapped);
+    };
+    const add = (hits, extraReasons) => {
+      hits.forEach(h => {
+        if (extraReasons && extraReasons.length) h.reasons = (h.reasons||[]).concat(extraReasons);
+        push(h);
+      });
+    };
+
+    if (enabled.rc) {
+      add(findAll(t, /\b\d{2}(?:0[1-9]|1[0-2]|2[1-9]|3[0-2]|5[1-9]|6[0-2]|7[1-9]|8[0-2])(?:0[1-9]|[12]\d|3[01])\s*\/\s*\d{3,4}\b/g, "rc", v => parseRC(v.replace(/\s+/g,""))), ["checksum","format"]);
+      add(findAll(t, /\b\d{9,10}\b/g, "rc", (v,f,i) => {
+        if (!parseRC(v)) return false;
+        const needles = sus === "low"
+          ? ["rodné číslo","rodne cislo","r.č.","r. č.","rč","birth number","nar."]
+          : ["rodné číslo","rodne cislo","r.č","rč","birth","nar.","narozen"];
+        return ctxHas(f,i,i+v.length, needles, win, "left");
+      }).map(h => {
+        const why = ctxWhich(t,h.start,h.end, ["rodné číslo","rodne cislo","r.č.","rč","nar.","narozen","birth"], win, "left");
+        h.reasons = ["checksum"].concat(why.length ? ["context:"+why[0]] : []);
+        return h;
+      }));
+    }
+    if (enabled.ico) {
+      add(findAll(t, /(?:IČO|IČ)[:\s]*(\d{8})/gi, "ico", v => isValidICO(v.replace(/\D/g,"")), 1).map(h => {
+        h.reasons = ["checksum","label:IČO"];
+        return h;
+      }));
+      add(findAll(t, /\b\d{8}\b/g, "ico", (v,f,i) => {
+        if (!isValidICO(v)) return false;
+        const nearLabel = /IČO|IČ/i.test(f.slice(Math.max(0,i-16), i));
+        if (nearLabel) return true;
+        if (sus === "high") return ctxHas(f,i,i+8,["ičo","ico","identifikační","identifikacni","společnost","s.r.o","s. r. o","a.s"], win);
+        if (sus === "low") return ctxHas(f,i,i+8,["ičo","ico","identifikační číslo","identifikacni cislo"], win);
+        return ctxHas(f,i,i+8,["ičo","ico","identifikač","ič"], win);
+      }).map(h => {
+        const why = ctxWhich(t,h.start,h.end,["ičo","ico","identifikační","ič"], win);
+        h.reasons = ["checksum"].concat(why.length?["context:"+why[0]]:[]).concat(/IČO|IČ/i.test(t.slice(Math.max(0,h.start-16),h.start))?["label:IČO"]:[]);
+        return h;
+      }));
+    }
+    if (enabled.dic) add(findAll(t, /\bCZ\s?\d{8,10}\b/gi, "dic", isValidDIC), ["checksum","format"]);
+    if (enabled.account) {
+      add(findAll(t, /\bCZ\d{2}(?:\s?\d{4}){5}\b/gi, "account", ibanOk), ["iban","checksum"]);
+      add(findAll(t, /\b\d{1,6}-\d{2,10}\/\d{4}\b/g, "account"), ["format"]);
+      add(findAll(t, /\b\d{6,16}\/\d{4}\b/g, "account", (v,f,i) => {
+        if (parseRC(v.replace("/",""))) return false;
+        if (sus === "high") return ctxHas(f,i,i+v.length,["účet","ucet","account","iban","bank","číslo účtu"], win);
+        const needles = sus === "low"
+          ? ["číslo účtu","cislo uctu","účet","ucet","iban","bankovní účet"]
+          : ["účet","ucet","account","iban","bank"];
+        return ctxHas(f,i,i+v.length, needles, win);
+      }).map(h => {
+        const why = ctxWhich(t,h.start,h.end,["účet","ucet","iban","bank","account"], win);
+        h.reasons = ["format"].concat(why.length?["context:"+why[0]]:[]);
+        return h;
+      }));
+    }
+    if (enabled.phone) add(findAll(t, /(?:(?:\+|00)420[\s-]*)?(?:(?:\d{3}[\s-]){2}\d{3}|\d{9})/g, "phone", (v,f,i) => {
+      const d = v.replace(/\D/g,"");
+      if (d.length===12 && d.startsWith("420")) { return true; }
+      if (d.length===11 && d.startsWith("420")) return false;
+      if ((d.length===12 || d.length===14) && d.startsWith("00420")) return true;
+      if (d.length!==9 || !/^[2-9]/.test(d)) return false;
+      if (parseRC(d) && ctxHas(f,i,i+v.length,["rodn","r.č","rč","nar."], win)) return false;
+      if (v.trim().startsWith("+") || v.trim().startsWith("00") || /[\s-]/.test(v)) return true;
+      if (sus === "low") return ctxHas(f,i,i+v.length,["tel","telefon","mobil","phone","kontakt"], win);
+      return ctxHas(f,i,i+v.length,["tel","telefon","mobil","phone","kontakt"], win);
+    }).map(h => {
+      const d = h.value.replace(/\D/g,"");
+      h.reasons = ["format"];
+      if (d.startsWith("420") || h.value.includes("+")) h.reasons.push("label:+420");
+      const why = ctxWhich(t,h.start,h.end,["tel","telefon","mobil","phone","kontakt"], win);
+      if (why.length) h.reasons.push("context:"+why[0]);
+      return h;
+    }));
+    if (enabled.email) add(findAll(t, /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "email"), ["format"]);
+    if (enabled.address) {
+      add(findAll(t, /(?:se sídlem|se sidlem|bytem|adresa|sídlo|sidlo)[:\s]+([^\n]{8,90})/gi, "address", (v) => /\d/.test(v), 1).map(h => {
+        h.reasons = ["label:adresa","gazetteer"];
+        const cut = h.value.split(/\s{2,}|\t/)[0];
+        if (cut && cut.length >= 8) { h.value = cut; h.end = h.start + cut.length; }
+        return h;
+      }));
+      add(findAll(t, /\p{Lu}[\p{L}.]+(?:\s+\p{Lu}[\p{L}.]+)*\s+(?:náměstí|nám\.|namesti|třída|trida|ulice|nábřeží|nabrezi|alej|sady)\s+\d{1,4}(?:\s*\/\s*\d{1,4})?/giu, "address"), ["gazetteer"]);
+      add(findAll(t, /\p{Lu}\p{Ll}+(?:ova|ová|ská|cká|ního|kého)?\s+\d{1,4}\s*\/\s*\d{1,4}/gu, "address"), ["format"]);
+      if (sus !== "low") {
+        add(findAll(t, /\p{Lu}\p{Ll}+(?:ova|ová|ská|cká|ního|kého)\s+\d{1,4}\b/gu, "address", (v,f,i) =>
+          ctxHas(f,i,i+v.length,["ulice","bytem","adresa","sídlo","sidlo","se sídlem"], win)
+        ), ["format","context"]);
+      }
+      add(findAll(t, /\b\d{3}\s?\d{2}\b/g, "address", (v,f,i) => {
+        const n=+v.replace(/\s/g,"");
+        if (n<10000 || n>79999) return false;
+        const needles = sus === "low"
+          ? ["psč","psc","adresa","ulice","obec","bytem","sídlo","sidlo"]
+          : ["psč","psc","adresa","ulice","obec","bytem","sídlo","sidlo","praha","brno"];
+        return ctxHas(f,i,i+v.length, needles, win) || /\b\d{3}\s?\d{2}\s+\p{Lu}/u.test(f.slice(i, i+v.length+24));
+      }).map(h => {
+        const why = ctxWhich(t,h.start,h.end,["psč","psc","adresa","bytem","sídlo","praha","brno"], win);
+        h.reasons = ["format"].concat(why.length?["context:"+why[0]]:[]);
+        return h;
+      }));
+    }
+    if (enabled.dob) add(findAll(t, /\b(?:0?[1-9]|[12]\d|3[01])\.\s*(?:0?[1-9]|1[0-2])\.\s*(?:19|20)\d{2}\b/g, "dob", (v,f,i) => {
+      if (isContractDateCtx(f,i,i+v.length, win)) return false;
+      if (sus === "high") return ctxHas(f,i,i+v.length,["nar","narozen","narozena","datum narození","birth","dob"], win);
+      const needles = sus === "low" ? ["narozen","nar.","datum narození","birth"] : ["nar","narozen","birth","dob"];
+      return ctxHas(f,i,i+v.length, needles, win);
+    }).map(h => {
+      const why = ctxWhich(t,h.start,h.end,["nar.","narozen","datum narození","birth"], win);
+      h.reasons = ["format"].concat(why.length?["context:"+why[0]]:[]);
+      return h;
+    }));
+    if (enabled.idcard) add(findAll(t, /\b\d{9}\b/g, "idcard", (v,f,i) => {
+      if (parseRC(v) && ctxHas(f,i,i+9,["rodn","r.č","rč","nar."], win)) return false;
+      if (sus === "low") return ctxHas(f,i,i+9,["občanský průkaz","obcansky prukaz","pas","doklad totožnosti","passport"], win);
+      return ctxHas(f,i,i+9,["občansk","průkaz","pas","doklad","passport","op"], win);
+    }).map(h => {
+      const why = ctxWhich(t,h.start,h.end,["průkaz","pas","doklad","passport","op"], win);
+      h.reasons = ["format"].concat(why.length?["context:"+why[0]]:[]);
+      return h;
+    }));
+    if (enabled.datovka) {
+      add(findAll(t, /(?:datov\p{L}*\s+schrán\p{L}*|dat\.?\s*schránk\p{L}*|IDDS|ID\s*DS|datovka)\W{0,4}([a-z0-9]{7})\b/giu, "datovka", v => /\d/.test(v) && /[a-z]/i.test(v), 1), ["label:datovka","format"]);
+      if (sus === "high") {
+        add(findAll(t, /\b[a-z0-9]{7}\b/gi, "datovka", (v,f,i) => /\d/.test(v) && /[a-z]/i.test(v) && ctxHas(f,i,i+7,["schrán","schrank","datov","idds"], win)), ["context","format"]);
+      }
+    }
+    if (enabled.spz) {
+      add(findAll(t, /\b[1-9][A-ZÁ]{1,2}\s?\d{4}\b/g, "spz", (v,f,i) => {
+        if (sus === "low") return ctxHas(f,i,i+v.length,["spz","registrační značka","vozidlo","rz"], win);
+        if (sus === "high") return true;
+        return ctxHas(f,i,i+v.length,["spz","vozid","značk","plate"], win) || true;
+      }).map(h => { h.reasons = ["format"]; return h; }));
+      add(findAll(t, /\b(?:EL|AK|EB|EE)\s?\d{2,4}\b/g, "spz", (v,f,i) => sus==="high" || ctxHas(f,i,i+v.length,["spz","vozid","značk","elektro"], win)), ["format"]);
+    }
+    if (enabled.name) {
+      const title = TITLES.join("|");
+      add(findAll(t, new RegExp("(?<![\\p{L}\\p{N}])(?:"+title+")\\.?\\s+\\p{Lu}\\p{Ll}+(?:\\s+\\p{Lu}\\p{Ll}+)?(?!\\s+(?:"+title+")\\b)","gui"), "name"), ["titled"]);
+      add(findAll(t, /(?<![\p{L}\p{N}])\p{Lu}\.\s+\p{Lu}\p{Ll}{2,}(?![\p{L}\p{N}])/gu, "name", v => looksName(v.split(/\s+/).pop()||"")), ["initials"]);
+      add(findAll(t, /(?<![\p{L}\p{N}])\p{Lu}\p{Ll}{2,}(?:ová|á)\s+roz\.\s+\p{Lu}\p{Ll}{2,}/gu, "name"), ["format","label:roz"]);
+      add(findAll(t, /(?<![\p{L}\p{N}])\p{Lu}\p{Ll}{3,}(?:ovi|em|ové)(?![\p{L}\p{N}])/gu, "name", v => looksName(v)), ["declined"]);
+      add(findAll(t, /(?<![\p{L}\p{N}])\p{Lu}\p{Ll}{2,}\s+\p{Lu}\p{Ll}{2,}(?![\p{L}\p{N}])/gu, "name", v => {
+        const p = v.split(/\s+/);
+        const first = (p[0]||"").toLocaleLowerCase("cs");
+        const second = p[1]||"";
+        if (["V","Dne","Na","Pro","Při","The","This"].includes(p[0])) return false;
+        if (sus === "low") return NAMES.has(first) && looksName(second);
+        if (sus === "high") return (NAMES.has(first) || looksName(p[0])) && looksName(second);
+        return NAMES.has(first) || looksName(second);
+      }).map(h => {
+        h.reasons = ["format"];
+        return h;
+      }).filter(h => !isPublic(h.value)));
+    }
+    if (enabled.secrets) (secrets||[]).forEach(p => { p=p.trim(); if (p.length<3) return; add(findAll(t, dictRe(p), "secrets"), ["dict"]); });
+    const ticketHits = [];
+    const prefList = projectPrefixes();
+    if (enabled.ticket) {
+      findAll(t, /\b[A-Z][A-Z0-9]{1,9}-\d{2,7}\b/g, "ticket", v => {
+        const pref = v.split("-")[0];
+        return pref.length >= 2 && !TICKET_STOP.has(pref);
+      }).forEach(h => {
+        const pref = h.value.split("-")[0];
+        h.reasons = ["format"];
+        if (prefList.has(pref)) h.reasons.push("prefix-list");
+        h.confidence = prefList.has(pref) || pref.length>=4 ? "high" : "medium";
+        push(h);
+        ticketHits.push(h);
+      });
+    }
+    if (enabled.incident) add(findAll(t, /\b(?:HD|INC|CHG|REQ|RITM|PRB)\s*[-:]?\s*\d{3,7}\b/gi, "incident"), ["format"]);
+    if (enabled.casefile) {
+      add(findAll(t, /\b(?:č\.?\s*j\.?|čj\.?|sp\.?\s*zn\.?)\s*[A-Z0-9Á-Ž][A-Z0-9Á-Ž./\s-]{4,40}/gi, "casefile"), ["label:č.j."]);
+      add(findAll(t, /\b[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]{2,8}\s+\d{3,6}\/\d{4}\b/g, "casefile", (v,f,i) => {
+        if (/^(?:ZÁKON|VYHL|NAŘ)\b/i.test(v)) return false;
+        if (sus === "low") return ctxHas(f,i,i+v.length,["řízení","rizeni","spis","č.j","čj","sbs"], win);
+        return true;
+      }), ["format"]);
+    }
+    const dictPush = (raw, type) => {
+      parseDict(raw).forEach(d => {
+        if (!d.name || d.name.length < 2) return;
+        findAll(t, dictRe(d.name), type).forEach(h => {
+          h.tokenClass = d.kind || "";
+          h.reasons = ["dict"];
+          h.confidence = "high";
+          push(h);
+        });
+      });
+    };
+    if (enabled.system) {
+      dictPush(S.systems, "system");
+      add(findAll(t, /(?:systém|system|aplikace|modul|rozhraní|integrace|platforma)\s+[A-ZÁ-Ž0-9][\w./-]{1,32}/giu, "system", (v,f,i) => {
+        const name = v.replace(/^(?:systém|system|aplikace|modul|rozhraní|integrace|platforma)\s+/i, "");
+        const dictNames = parseDict(S.systems).map(d => d.name.toLocaleLowerCase("cs"));
+        if (dictNames.some(n => n && (name.toLocaleLowerCase("cs")===n || n.includes(name.toLocaleLowerCase("cs"))))) return false;
+        if (TICKET_STOP.has(name.toUpperCase().replace(/\.$/,""))) return false;
+        if (sus === "low") return ctxHas(f,i,i+v.length,["intern","nasaz","prod","test","integr"], win);
+        return name.length >= 3;
+      }).map(h => { h.reasons = ["label:systém"]; return h; }));
+    }
+    if (enabled.project) {
+      dictPush(S.projects, "project");
+      const prefixes = new Set(ticketHits.map(h => (h.value.split("-")[0]||"").toUpperCase()).filter(p => p.length>=3 && !TICKET_STOP.has(p)));
+      prefList.forEach(p => prefixes.add(p));
+      prefixes.forEach(pref => {
+        findAll(t, new RegExp("(?<![\\p{L}\\p{N}])"+pref.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(?![\\p{L}\\p{N}])","g"), "project", (v,f,i) => {
+          return !ticketHits.some(th => i >= th.start && i < th.end);
+        }).forEach(h => { h.tokenClass = "PROJEKT"; h.reasons = ["prefix-list"]; h.confidence = "medium"; push(h); });
+      });
+    }
+    if (enabled.orgunit) dictPush(S.orgs, "orgunit");
+    if (enabled.status) {
+      add(findAll(t, /(?:hotfix(?:\s+nasazen[oaíy]?\s+na\s+produkci)?|rollback|outage|go-?live|nasazen[oaíy]?\s+na\s+produkci|v\s+produkci|produkční\s+(?:vad[ay]|stav|prostředí)(?:\s+v\s+[^\s,.;]{1,32})?|prod(?:ukce)?\s+(?:down|incident))/gi, "status").map(h => {
+        h.statusKind = /incident|outage|vad/i.test(h.value) ? "incident" : /hotfix|go-?live|nasazen|release|verz/i.test(h.value) ? "release" : "prod";
+        h.reasons = ["format"];
+        return h;
+      }));
+    }
+    if (enabled.host) {
+      add(findAll(t, /\b(?:https?:\/\/)[^\s<>"']+/gi, "host", (v) => {
+        try {
+          const u = new URL(v.replace(/[),.;]+$/,""));
+          const host = u.hostname.toLowerCase();
+          if (/\.(internal|intranet|corp|local|lan)$/.test(host)) return true;
+          if (/(^|\.)(intranet|internal|mailhost|vpn)\./.test(host)) return true;
+          const dict = parseDict(S.systems+"\n"+S.projects).map(d => d.name.toLocaleLowerCase("cs"));
+          return dict.some(n => n.length>=3 && host.includes(n.replace(/\s+/g,"").toLowerCase()));
+        } catch (_) { return false; }
+      }), ["format"]);
+      add(findAll(t, /\b[a-z0-9][a-z0-9.-]{2,60}\.(?:internal|intranet|corp|local|lan)\b/gi, "host"), ["format"]);
+    }
+    if (enabled.ip) add(findAll(t, /\b(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})\b/g, "ip", v => {
+      return v.split(".").every(p => +p>=0 && +p<=255);
+    }), ["private-range","format"]);
+    if (enabled.credential) {
+      add(findAll(t, /\b(?:sk-live-[A-Za-z0-9]{8,}|sk-[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{16}|Bearer\s+[A-Za-z0-9._\-]{12,})\b/g, "credential"), ["format"]);
+      add(findAll(t, /(?:heslo|password|passwd|secret|api[_-]?key)\s*[:=]\s*(\S{6,80})/gi, "credential", null, 1), ["label:secret"]);
+    }
+    if (enabled.geo) add(findAll(t, /\b-?\d{1,2}\.\d{4,8}\s*,\s*-?\d{1,3}\.\d{4,8}\b/g, "geo", (v,f,i) => {
+      const m = v.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
+      if (!m) return false;
+      const lat=+m[1], lon=+m[2];
+      if (lat<48 || lat>51.2 || lon<12 || lon>19) return sus==="high" && ctxHas(f,i,i+v.length,["gps","souřad","coord","lat"], win);
+      return true;
+    }), ["format"]);
+
+    bag.sort((a,b)=>a.start-b.start || (b.end-a.start)-(a.end-a.start));
+    const merged = [];
+    const rank = (h) => scoreHit(h)*10 + (h.end-h.start);
+    for (const h of bag) {
+      const last = merged[merged.length-1];
+      if (last && h.start < last.end) {
+        if (h.type===last.type) {
+          const hDict = !!(h.tokenClass || (h.reasons||[]).includes("dict"));
+          const lDict = !!(last.tokenClass || (last.reasons||[]).includes("dict"));
+          if (hDict && !lDict && h.end<=last.end) {
+            last.start = h.start; last.end = h.end; last.value = src.slice(h.start,h.end);
+            last.tokenClass = h.tokenClass || last.tokenClass;
+            last.reasons = Array.from(new Set([].concat(last.reasons||[], h.reasons||[])));
+            continue;
+          }
+          if (h.end>last.end) { last.end=h.end; last.value=src.slice(last.start,last.end); last.reasons = Array.from(new Set([].concat(last.reasons||[], h.reasons||[]))); if (h.tokenClass && !last.tokenClass) last.tokenClass = h.tokenClass; }
+          continue;
+        }
+        const numeric = {rc:1,ico:1,dic:1,account:1,phone:1,idcard:1};
+        if (numeric[h.type] && numeric[last.type]) {
+          if (rank(h) > rank(last)) merged[merged.length-1] = h;
+          continue;
+        }
+        if (h.end <= last.end) continue;
+        if (rank(h) > rank(last) && h.start <= last.start) {
+          merged[merged.length-1] = h;
+          continue;
+        }
+        if (h.start < last.end && h.start > last.start) {
+          merged.push(h);
+          continue;
+        }
+        continue;
+      }
+      merged.push(h);
+    }
+    const clustered = merged.map((h, idx) => {
+      let entityKey;
+      if (h.type==="name") entityKey = "name|"+nameKey(h.value);
+      else if (h.type==="ico") entityKey = "org|"+digits(h.value);
+      else if (h.type==="dic") {
+        const d = digits(h.value);
+        entityKey = d.length===8 ? "org|"+d : "dic|"+h.value.toLocaleLowerCase("cs");
+      } else if (h.type==="account") entityKey = accountKey(h.value);
+      else if (h.type==="system" || h.type==="project") {
+        const core = h.type==="system" ? systemCore(h.value) : h.value;
+        entityKey = (h.tokenClass||h.type)+"|"+canonToken(core||h.value);
+      } else {
+        entityKey = (h.tokenClass||h.type)+"|"+canonToken(h.value);
+      }
+      const row = Object.assign({}, h, {
+        id: idx+1,
+        accept: true,
+        page: h.page || pageOf(h.start),
+        entityKey,
+        reasons: Array.from(new Set(h.reasons||[]))
+      });
+      if (row.type==="system" || row.type==="project" || row.type==="orgunit") alignDictEntity(row, src);
+      return row;
+    });
+    clusterNameKeys(clustered);
+    return clustered;
+  }
+  function tokenBase(h, lang){
+    if (h.tokenClass) return h.tokenClass;
+    return LABEL[lang][h.type] || h.type.toUpperCase();
+  }
+  function nextSuffix(type, n){
+    if (type==="system" || type==="project" || type==="orgunit") {
+      if (n <= 26) return String.fromCharCode(64 + n);
+    }
+    return String(n).padStart(3, "0");
+  }
+  function makeReplacer(mode, lang){
+    const counters = {}; const map = new Map();
+    return (h) => {
+      if (h.type==="status" && (mode==="label" || mode==="pseudo" || mode==="xxxx")) {
+        const kind = h.statusKind || "prod";
+        return STATUS_GENERIC[lang][kind] || STATUS_GENERIC[lang].prod;
+      }
+      if (mode==="box") return "█".repeat(Math.max(4, Math.min(24, h.value.length)));
+      if (mode==="xxxx") return "X".repeat(Math.max(4, h.value.length));
+      const base = tokenBase(h, lang);
+      if (mode==="label") return "["+base+"]";
+      const key = h.entityKey || ((h.tokenClass||h.type)+"|"+canonToken(h.value));
+      if (!map.has(key)) {
+        counters[base]=(counters[base]||0)+1;
+        map.set(key, "["+base+"_"+nextSuffix(h.type, counters[base])+"]");
+      }
+      return map.get(key);
+    };
+  }
+  function bindReplacer(mode, lang, hits){
+    const replacer = makeReplacer(mode, lang);
+    (hits||[]).filter(h => h && h.accept).slice()
+      .sort((a,b) => a.start-b.start || (a.id||0)-(b.id||0))
+      .forEach(h => { replacer(h); });
+    return replacer;
+  }
+  function buildGlossary(hits, mode, lang, publicOnly){
+    const replacer = bindReplacer(mode, lang, hits);
+    const rows = [];
+    const seen = new Set();
+    hits.filter(h => h.accept).forEach(h => {
+      const token = replacer(h);
+      const k = h.type+"|"+h.value.toLocaleLowerCase("cs");
+      if (seen.has(k)) return;
+      seen.add(k);
+      rows.push(publicOnly
+        ? { token, type: h.type, length: h.value.length }
+        : { token, type: h.type, originalPreview: h.value.slice(0,8)+(h.value.length>8?"…":""), length: h.value.length });
+    });
+    return rows;
+  }
+  function topHits(hits){
+    const accepted = hits.filter(h=>h.accept);
+    return accepted.filter(h => !accepted.some(o => o!==h && h.start>=o.start && h.end<=o.end && (o.end-o.start)>(h.end-h.start)));
+  }
+  function apply(text, hits, mode, lang){
+    const replacer = bindReplacer(mode, lang, hits);
+    const accepted = topHits(hits).sort((a,b)=>b.start-a.start);
+    let out = text;
+    for (const h of accepted) out = out.slice(0,h.start)+replacer(h)+out.slice(h.end);
+    return out;
+  }
+  function xlsxToText(wb){
+    const cellMap = []; let text = "";
+    wb.SheetNames.forEach((sheetName) => {
+      const ws = wb.Sheets[sheetName];
+      text += "\n\n--- "+sheetName+" ---\n";
+      const ref = ws["!ref"]; if (!ref) return;
+      const range = XLSX.utils.decode_range(ref);
+      for (let r=range.s.r; r<=range.e.r; r++) {
+        for (let c=range.s.c; c<=range.e.c; c++) {
+          const addr = XLSX.utils.encode_cell({ r, c });
+          const cell = ws[addr];
+          if (!cell || cell.v===undefined || cell.v===null || cell.v==="") continue;
+          const str = String(cell.v);
+          const start = text.length; text += str; const end = text.length;
+          cellMap.push({ sheet: sheetName, ref: addr, start, end });
+          text += "\t";
+        }
+        text += "\n";
+      }
+    });
+    return { text, cellMap };
+  }
+  async function extractXlsx(buf){
+    if (!window.XLSX) throw new Error("XLSX: knihovna se nenačetla (síť).");
+    return xlsxToText(XLSX.read(buf, { type:"array" }));
+  }
+  function exportXlsxFile(sourceBuf, hits, mode, lang){
+    const wb = XLSX.read(sourceBuf.slice(0), { type:"array" });
+    const { cellMap } = xlsxToText(wb);
+    const replacer = bindReplacer(mode, lang, hits);
+    const accepted = topHits(hits);
+    cellMap.forEach(cm => {
+      const cellHits = accepted.filter(h => h.end>cm.start && h.start<cm.end).sort((a,b)=>b.start-a.start);
+      if (!cellHits.length) return;
+      const ws = wb.Sheets[cm.sheet]; const cell = ws[cm.ref]; if (!cell) return;
+      let str = String(cell.v);
+      cellHits.forEach(h => {
+        const s = Math.max(0, h.start-cm.start);
+        const e = Math.min(str.length, h.end-cm.start);
+        if (e<=s) return;
+        const piece = (h.start>=cm.start && h.end<=cm.end) ? replacer(h) : replacer({ ...h, value: str.slice(s,e) });
+        str = str.slice(0,s)+piece+str.slice(e);
+      });
+      cell.v = str; cell.t = "s"; delete cell.f; delete cell.w;
+    });
+    if (S.stripMeta) stripWorkbookMeta(wb);
+    return XLSX.write(wb, { bookType:"xlsx", type:"array" });
+  }
+  function stripWorkbookMeta(wb){
+    wb.Props = {
+      Title: "anonymized",
+      Subject: "",
+      Author: "",
+      Manager: "",
+      Company: "",
+      LastAuthor: "",
+      CreatedDate: new Date(0),
+      ModifiedDate: new Date(0),
+      Keywords: "",
+      Comments: "Znečitelně — metadata stripped"
+    };
+    wb.Custprops = {};
+    if (wb.Workbook && wb.Workbook.WBProps) {
+      wb.Workbook.WBProps.date1904 = wb.Workbook.WBProps.date1904;
+    }
+  }
+  function stampPdfMeta(doc, title){
+    try {
+      doc.setTitle((title||"document")+" — anonymized");
+      doc.setAuthor("");
+      doc.setSubject("");
+      doc.setKeywords([]);
+      doc.setProducer("Znečitelně");
+      doc.setCreator("Znečitelně");
+      if (S.stripMeta && doc.setCreationDate) doc.setCreationDate(new Date(0));
+    } catch (_) {}
+  }
+  function leakScan(text){
+    const checks = [
+      { id:"ticket", re:/\b[A-Z][A-Z0-9]{1,9}-\d{2,7}\b/g },
+      { id:"email", re:/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi },
+      { id:"iban", re:/\bCZ\d{2}(?:\s?\d{4}){5}\b/gi },
+      { id:"rc", re:/\b\d{2}(?:0[1-9]|1[0-2]|5[1-9]|6[0-2])(?:0[1-9]|[12]\d|3[01])\s*\/\s*\d{3,4}\b/g },
+      { id:"casefile", re:/\b[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]{2,8}\s+\d{3,6}\/\d{4}\b/g },
+      { id:"incident", re:/\b(?:HD|INC)\s*[-:]?\s*\d{3,7}\b/gi },
+      { id:"ip", re:/\b(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})\b/g },
+      { id:"credential", re:/\b(?:sk-live-|sk-[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{16}|Bearer\s+[A-Za-z0-9._\-]{12,})/g },
+      { id:"host", re:/\bhttps?:\/\/[^\s]+(?:\.internal|\.local|\.corp|\.intranet)/gi }
+    ];
+    const found = [];
+    checks.forEach(c => {
+      const m = text.match(c.re);
+      if (m && m.length) found.push({ id:c.id, n:m.length, sample:m[0] });
+    });
+    parseDict(S.systems+"\n"+S.projects+"\n"+S.orgs).forEach(d => {
+      if (d.name.length>=3 && text.toLocaleLowerCase("cs").includes(d.name.toLocaleLowerCase("cs"))) {
+        found.push({ id:"dict", n:1, sample:d.name });
+      }
+    });
+    return found;
+  }
+  function analyzeProcess(orig, replaced, hits){
+    const packMode = S.mode==="box"?"pseudo":S.mode;
+    const replacer = bindReplacer(packMode, S.lang, hits);
+    const rawLines = orig.split(/\n/);
+    const numbered = [];
+    const prose = [];
+    let cursor = 0;
+    rawLines.forEach((raw) => {
+      const ln = raw.trim();
+      const start = ln ? cursor + raw.indexOf(ln) : cursor;
+      cursor += raw.length + 1;
+      if (!ln) return;
+      const localHits = hits.filter(h => h.accept && h.start >= start && h.start < start+ln.length);
+      const item = { text: generalizeLine(ln, localHits, start, replacer), rawLen: ln.length };
+      if (/^(?:\d+[\.)]\s+|[-*•]\s+|(?:krok|step)\s+\d+)/i.test(ln)) numbered.push(item);
+      else if (/(?:nejprve|poté|následně|pak se|analyti|vývoj|nasad|schvál|ověř|předá)/i.test(ln) && ln.length<220) prose.push(item);
+    });
+    const steps = (numbered.length ? numbered : prose).map((s, i) => ({ ...s, n: i+1 }));
+    const byType = {};
+    hits.filter(h=>h.accept).forEach(h => {
+      (byType[h.type] = byType[h.type]||new Set()).add(replacer(h));
+    });
+    const ticketTokens = [...(byType.ticket||[])];
+    const links = [];
+    if (ticketTokens.length>1) links.push(ticketTokens.join(" → "));
+    const actors = [];
+    ["analytik","vývoj","tester","provoz","objednatel","zhotovitel","schvalovatel","manažer","analyst","developer","tester","operator"].forEach(role => {
+      if (orig.toLocaleLowerCase("cs").includes(role)) actors.push(role);
+    });
+    const leaks = leakScan(replaced);
+    const orgKept = hits.some(h => !h.accept && ORG_KEYS.includes(h.type));
+    const orgAccepted = hits.filter(h => h.accept && ORG_KEYS.includes(h.type)).length;
+    const verdict = leaks.length || S.profile==="internal" || (S.profile==="publicai" && orgKept)
+      ? "internal"
+      : (S.profile==="publicai" || S.profile==="registr" || S.profile==="infoact" || S.profile==="court")
+        ? "public"
+        : "internal";
+    return { steps: steps.slice(0,24), actors, systems: [...(byType.system||[]), ...(byType.project||[]), ...(byType.orgunit||[])], tickets: ticketTokens, links, leaks, verdict, orgAccepted };
+  }
+  function generalizeLine(line, hits, lineStart, replacer){
+    replacer = replacer || bindReplacer(S.mode==="box"?"pseudo":S.mode, S.lang, hits);
+    const base = lineStart || 0;
+    let out = line;
+    topHits(hits).sort((a,b)=>b.start-a.start).forEach(h => {
+      const s = h.start - base, e = h.end - base;
+      if (s>=0 && e<=out.length && out.slice(s,e)===h.value) out = out.slice(0,s)+replacer(h)+out.slice(e);
+      else if (out.includes(h.value)) out = out.replace(h.value, replacer(h));
+    });
+    return out;
+  }
+  function processHTML(info){
+    const t = i();
+    if (!S.text) return "";
+    const leakCls = info.leaks.length ? "leak-bad" : "leak-ok";
+    const verd = info.verdict==="public" && !info.leaks.length ? t.readyPublic : t.readyInternal;
+    const steps = info.steps.length
+      ? "<ol>"+info.steps.map(s=>"<li>"+esc(s.text)+"</li>").join("")+"</ol>"
+      : "<p class='layer-note'>"+esc(t.processEmpty)+"</p>";
+    const list = (arr) => arr.length ? "<ul>"+arr.map(x=>"<li class='token'>"+esc(x)+"</li>").join("")+"</ul>" : "<p class='layer-note'>—</p>";
+    const leaks = info.leaks.length
+      ? "<ul>"+info.leaks.map(l=>"<li class='token'>"+esc(l.id)+" × "+l.n+" · "+esc(l.sample)+"</li>").join("")+"</ul>"
+      : "<p class='"+leakCls+"'>"+esc(t.leakOk)+"</p>";
+    return `<p><strong>${esc(t.verdict)}:</strong> ${esc(verd)}</p>
+      <h3>${esc(t.processSteps)}</h3>${steps}
+      <h3>${esc(t.processActors)}</h3>${list(info.actors)}
+      <h3>${esc(t.processSystems)}</h3>${list(info.systems)}
+      <h3>${esc(t.processTickets)}</h3>${list(info.links.length?info.links:info.tickets)}
+      <h3>${esc(t.processRisks)}</h3>${info.leaks.length?"<p class='leak-bad'>"+esc(t.leakBad)+"</p>":""}${leaks}`;
+  }
+  function processMarkdown(info){
+    const t = i();
+    const lines = ["# "+t.processTitle, "", "**"+t.verdict+":** "+(info.verdict==="public"&&!info.leaks.length?t.readyPublic:t.readyInternal), ""];
+    lines.push("## "+t.processSteps);
+    if (!info.steps.length) lines.push(t.processEmpty);
+    else info.steps.forEach(s => lines.push(s.n+". "+s.text));
+    lines.push("", "## "+t.processActors);
+    (info.actors.length?info.actors:["—"]).forEach(a => lines.push("- "+a));
+    lines.push("", "## "+t.processSystems);
+    (info.systems.length?info.systems:["—"]).forEach(a => lines.push("- "+a));
+    lines.push("", "## "+t.processTickets);
+    (info.tickets.length?info.tickets:["—"]).forEach(a => lines.push("- "+a));
+    lines.push("", "## "+t.processRisks);
+    if (!info.leaks.length) lines.push(t.leakOk);
+    else {
+      lines.push(t.leakBad);
+      info.leaks.forEach(l => lines.push("- "+l.id+" × "+l.n+" · "+l.sample));
+    }
+    lines.push("", "_Generated locally by Znečitelně "+RULES+". No original identifiers in this outline._");
+    return lines.join("\n");
+  }
+  async function sha256(buf){
+    const u8 = toBytes(buf);
+    const copy = u8.buffer.slice(u8.byteOffset, u8.byteOffset+u8.byteLength);
+    const h = await crypto.subtle.digest("SHA-256", copy);
+    return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
+  function download(name, blob){
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+  function toast(msg){ const t=$("toast"); t.textContent=msg; t.style.display="block"; setTimeout(()=>t.style.display="none", 2400); }
+  function tipShow(el, text){
+    const box = $("tip"); box.textContent = text; box.classList.add("on");
+    const r = el.getBoundingClientRect();
+    let x = r.left; let y = r.bottom + 8;
+    if (x + 280 > innerWidth) x = innerWidth - 292;
+    if (y + 80 > innerHeight) y = r.top - 48;
+    box.style.left = Math.max(8,x)+"px"; box.style.top = Math.max(8,y)+"px";
+  }
+  function tipHide(){ $("tip").classList.remove("on"); }
+  let tipsBound = false;
+  function bindTips(){
+    if (tipsBound) return;
+    tipsBound = true;
+    const elOf = (e) => e.target.closest && e.target.closest("[data-tip]");
+    document.addEventListener("pointerover", (e) => { const el = elOf(e); if (el) tipShow(el, el.getAttribute("data-tip")); });
+    document.addEventListener("pointerout", (e) => { if (elOf(e)) tipHide(); });
+    document.addEventListener("focusin", (e) => { const el = elOf(e); if (el) tipShow(el, el.getAttribute("data-tip")); });
+    document.addEventListener("focusout", tipHide);
+  }
+
+  function settingsHTML(prefix){
+    const p = prefix || "";
+    const t = i();
+    return `<label class="field">${t.profile} <button type="button" class="help-i" data-tip="${t.tips.cats.ico}">?</button></label>
+      <select id="${p}selProfile">${Object.entries(t.profiles).map(([k,v])=>`<option value="${k}" ${S.profile===k?"selected":""}>${v}</option>`).join("")}</select>
+      <label class="field">${t.mode}</label>
+      <select id="${p}selMode">${Object.entries(t.modes).map(([k,v])=>`<option value="${k}" ${S.mode===k?"selected":""}>${v}</option>`).join("")}</select>
+      <label class="field">${t.suspicion} <button type="button" class="help-i" data-tip="${t.tips.suspicion}">?</button></label>
+      <select id="${p}selSuspicion">${Object.entries(t.suspicions).map(([k,v])=>`<option value="${k}" ${S.suspicion===k?"selected":""}>${v}</option>`).join("")}</select>
+      <p class="lbl">${t.layerPii}</p>
+      <div class="cats">${PII_KEYS.map(k=>`<label><input type="checkbox" data-cat="${k}" ${S.enabled[k]?"checked":""} /> <span>${t.cats[k]}</span> <button type="button" class="help-i" data-tip="${t.tips.cats[k]}">?</button></label>`).join("")}</div>
+      <p class="lbl">${t.layerOrg}</p>
+      <div class="cats">${ORG_KEYS.map(k=>`<label><input type="checkbox" data-cat="${k}" ${S.enabled[k]?"checked":""} /> <span>${t.cats[k]}</span> <button type="button" class="help-i" data-tip="${t.tips.cats[k]}">?</button></label>`).join("")}</div>
+      <label class="field">${t.secrets}</label>
+      <textarea id="${p}taSecrets">${escAttr(S.secrets)}</textarea>
+      <label class="field">${t.systemsDict}</label>
+      <textarea id="${p}taSystems">${escAttr(S.systems)}</textarea>
+      <label class="field">${t.projectsDict}</label>
+      <textarea id="${p}taProjects">${escAttr(S.projects)}</textarea>
+      <label class="field">${t.orgsDict}</label>
+      <textarea id="${p}taOrgs">${escAttr(S.orgs)}</textarea>
+      <p class="dict-hint">${t.dictHint}</p>
+      <label class="check"><input type="checkbox" id="${p}chkMeta" ${S.stripMeta?"checked":""}/> ${t.stripMeta}</label>`;
+  }
+  function escAttr(s){
+    return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+  function applyProfile(p){
+    S.profile = p;
+    if (p === "custom") return;
+    KEYS.forEach(k => { S.enabled[k] = true; });
+    if (p === "infoact") S.enabled.ico = false;
+    if (p === "registr" || p === "infoact" || p === "court") {
+      ORG_KEYS.forEach(k => { if (k !== "secrets") S.enabled[k] = false; });
+      if (p === "registr") S.mode = "box";
+    }
+    if (p === "internal") {
+      S.mode = "pseudo";
+      S.publicGlossary = false;
+    }
+    if (p === "publicai") {
+      S.mode = "pseudo";
+      S.stripMeta = true;
+      S.publicGlossary = true;
+      S.includeOutline = true;
+    }
+  }
+  function wireSettings(root, prefix){
+    const p = prefix || "";
+    const q = (id) => root.querySelector("#"+p+id);
+    q("selProfile").onchange = (e) => {
+      applyProfile(e.target.value);
+      root.querySelectorAll("[data-cat]").forEach(cb => { cb.checked = S.enabled[cb.getAttribute("data-cat")]; });
+      const sm = q("selMode"); if (sm) sm.value = S.mode;
+      if (S.text) runAnalyze();
+      else paintLanding();
+      syncSettingsForms(root);
+    };
+    q("selMode").onchange = (e) => { S.mode = e.target.value; if (S.text) paintReview(); syncSettingsForms(root); };
+    q("selSuspicion").onchange = (e) => {
+      S.suspicion = e.target.value;
+      localStorage.setItem("znec-suspicion", S.suspicion);
+      if (S.text) runAnalyze();
+      else paintLanding();
+      syncSettingsForms(root);
+    };
+    root.querySelectorAll("[data-cat]").forEach(cb => cb.onchange = () => {
+      S.enabled[cb.getAttribute("data-cat")] = cb.checked;
+      S.profile = "custom";
+      const sp = q("selProfile"); if (sp) sp.value = "custom";
+      if (S.text) runAnalyze();
+      syncSettingsForms(root);
+    });
+    const bindTa = (id, field) => {
+      const el = q(id); if (!el) return;
+      el.oninput = (e) => { S[field] = e.target.value; };
+      el.onchange = () => { if (S.text) runAnalyze(); };
+    };
+    bindTa("taSecrets", "secrets");
+    bindTa("taSystems", "systems");
+    bindTa("taProjects", "projects");
+    bindTa("taOrgs", "orgs");
+    const meta = q("chkMeta");
+    if (meta) meta.onchange = (e) => { S.stripMeta = e.target.checked; };
+  }
+  function syncSettingsForms(except){
+    const mounts = [$("settingsMount"), $("settingsModalMount")].filter(Boolean);
+    mounts.forEach(m => {
+      if (m === except || !m.children.length) return;
+      const selP = m.querySelector("[id$=selProfile]");
+      const selM = m.querySelector("[id$=selMode]");
+      const selS = m.querySelector("[id$=selSuspicion]");
+      const ta = m.querySelector("[id$=taSecrets]");
+      const ts = m.querySelector("[id$=taSystems]");
+      const tp = m.querySelector("[id$=taProjects]");
+      const to = m.querySelector("[id$=taOrgs]");
+      const cm = m.querySelector("[id$=chkMeta]");
+      if (selP) selP.value = S.profile;
+      if (selM) selM.value = S.mode;
+      if (selS) selS.value = S.suspicion;
+      if (ta && document.activeElement !== ta) ta.value = S.secrets;
+      if (ts && document.activeElement !== ts) ts.value = S.systems;
+      if (tp && document.activeElement !== tp) tp.value = S.projects;
+      if (to && document.activeElement !== to) to.value = S.orgs;
+      if (cm) cm.checked = !!S.stripMeta;
+      m.querySelectorAll("[data-cat]").forEach(cb => { cb.checked = !!S.enabled[cb.getAttribute("data-cat")]; });
+    });
+  }
+  function openSettings(){
+    const t = i();
+    $("settingsTitle").textContent = t.settings;
+    $("btnSettingsApply").textContent = t.apply;
+    $("btnSettingsClose").textContent = t.cancel;
+    $("settingsModalMount").innerHTML = settingsHTML("m_");
+    wireSettings($("settingsModalMount"), "m_");
+    $("settingsModal").classList.remove("hidden");
+    bindTips();
+  }
+  function closeSettings(){
+    $("settingsModal").classList.add("hidden");
+    // secrets may have changed without onchange (typing only)
+    const root = $("settingsModalMount");
+    if (root) {
+      const pull = (id, field) => { const el = root.querySelector("#"+id); if (el) S[field] = el.value; };
+      pull("m_taSecrets", "secrets");
+      pull("m_taSystems", "systems");
+      pull("m_taProjects", "projects");
+      pull("m_taOrgs", "orgs");
+      const cm = root.querySelector("#m_chkMeta");
+      if (cm) S.stripMeta = cm.checked;
+    }
+    if (S.text) runAnalyze();
+    // refresh landing details if visible
+    if (!$("landing").classList.contains("hidden")) {
+      $("settingsMount").innerHTML = settingsHTML();
+      wireSettings($("settingsMount"));
+    }
+  }
+
+  function paintLanding(){
+    const t = i();
+    $("title").textContent = t.name; $("tagline").textContent = t.tagline;
+    $("kicker").textContent = t.stepDoc+" · "+t.stepReview+" · "+t.stepExport;
+    $("hero").textContent = t.name; $("lead").textContent = t.landingLead;
+    $("s1").textContent = t.landingStep1; $("s2").textContent = t.landingStep2; $("s3").textContent = t.landingStep3;
+    $("privacy").textContent = t.privacy; $("dropTitle").textContent = t.drop; $("dropHint").textContent = t.dropHint;
+    $("btnSample").textContent = t.trySample; $("btnSample").setAttribute("data-tip", t.tips.sample);
+    $("btnMovie").textContent = t.movieTutorial; $("btnMovie").setAttribute("data-tip", t.tips.movie);
+    $("btnBrowse").textContent = t.browse; $("btnBrowse").setAttribute("data-tip", t.tips.browse);
+    $("lblNewFile").textContent = t.newFile;
+    $("btnNewFile").setAttribute("data-tip", t.tips.newFile);
+    $("btnHtml").textContent = "HTML"; $("btnHtml").setAttribute("data-tip", t.tips.html);
+    $("btnLang").textContent = S.lang==="cs"?"EN":"CS"; $("btnLang").setAttribute("data-tip", t.tips.lang);
+    applyTheme();
+    $("btnHelp").setAttribute("data-tip", t.tips.help);
+    $("btnSettings").setAttribute("data-tip", t.tips.settings);
+    $("btnSettings").setAttribute("aria-label", t.settings);
+    $("sumSettings").textContent = t.settings;
+    $("settingsMount").innerHTML = settingsHTML(); wireSettings($("settingsMount"));
+    $("footer").textContent = t.footer;
+    bindTips();
+  }
+
+  function visibleHits(hits, sel){
+    const ordered = [...hits].sort((a,b) => a.id===sel?-1:b.id===sel?1:a.start-b.start);
+    const taken = []; const chosen = [];
+    for (const h of ordered) {
+      if (taken.some(([s,e]) => h.start < e && h.end > s)) continue;
+      taken.push([h.start,h.end]); chosen.push(h);
+    }
+    return chosen.sort((a,b)=>a.start-b.start);
+  }
+  function esc(s){
+    const amp = "&" + "amp;";
+    const lt = "&" + "lt;";
+    const gt = "&" + "gt;";
+    const quot = "&" + "quot;";
+    return String(s).replace(/&/g, amp).replace(/</g, lt).replace(/>/g, gt).replace(/"/g, quot).replace(/'/g, "&#39;");
+  }
+  function hitEvidence(h, t){
+    const ev = h.confidence==="high"?t.high:t.medium;
+    const rs = (h.reasons||[]).map(r => r.replace(/^context:/,"ctx:"));
+    return [ev].concat(rs).join(" · ");
+  }
+  function origHTML(){
+    const t = i(); const vis = visibleHits(S.hits, S.selectedId);
+    let html = ""; let cur = 0;
+    vis.forEach(h => {
+      if (h.start > cur) html += esc(S.text.slice(cur, h.start));
+      const cls = "mk " + (h.accept?"mk-on":"mk-off") + (S.selectedId===h.id?" mk-sel":"");
+      const tip = t.cats[h.type]+" · "+hitEvidence(h, t);
+      html += `<button type="button" class="${cls}" data-id="${h.id}" data-tip="${esc(tip)}">${esc(S.text.slice(h.start,h.end))}</button>`;
+      cur = h.end;
+    });
+    html += esc(S.text.slice(cur));
+    return html;
+  }
+  function filtered(){
+    return S.hits.filter(h => S.filter==="all" || (S.filter==="redact"?h.accept:!h.accept));
+  }
+  function paintReview(){
+    const t = i();
+    const replaced = apply(S.text, S.hits, S.mode, S.lang);
+    const leftovers = topHits(S.hits).filter(h => h.value.length>=5 && replaced.includes(h.value));
+    const red = S.hits.filter(h=>h.accept).length;
+    $("toolbar").innerHTML = `
+      <span class="badge">${esc(S.fileName)}</span>
+      <span class="badge">${S.hits.length} ${t.found}</span>
+      <span class="badge">${red} ${t.toRedact}</span>
+      <span class="badge">${S.hits.length-red} ${t.kept}</span>
+      <span class="badge">${S.seen.size} ${t.walk} ${S.hits.length}</span>
+      <span class="badge" data-tip="${t.keys}">${t.keys}</span>
+      <button class="btn btn-sm btn-sec" id="btnSettings2" data-tip="${t.tips.settings}">${t.settings}</button>
+      <button class="btn btn-sm btn-ghost" id="btnClear" data-tip="${t.tips.clear}">${t.clear}</button>`;
+    $("residual").className = leftovers.length ? "danger" : "ok";
+    $("residual").textContent = S.hits.length ? (leftovers.length?t.residual:t.residualOk) : t.noHits;
+    $("lblOrig").textContent = t.original; $("btnAdd").textContent = t.addSelection; $("btnAdd").setAttribute("data-tip", t.tips.addSelection);
+    $("orig").innerHTML = origHTML();
+    $("orig").querySelectorAll("button.mk").forEach(b => b.onclick = () => select(+b.dataset.id));
+    $("filters").innerHTML = ["all","redact","keep"].map(f => `<button type="button" class="chip ${S.filter===f?"on":""}" data-f="${f}">${f==="all"?t.filterAll:f==="redact"?t.filterRedact:t.filterKeep}</button>`).join("");
+    $("filters").querySelectorAll("[data-f]").forEach(b => b.onclick = () => { S.filter = b.dataset.f; paintReview(); });
+    const list = filtered();
+    $("hitList").innerHTML = list.map(h => `<button type="button" class="hit ${S.selectedId===h.id?"sel":""}" data-id="${h.id}">
+      <span class="mono" style="width:24px;color:var(--muted)">${h.id}</span>
+      <span style="flex:1;min-width:0"><span class="action-marquee"><span class="action-marquee-inner" style="font-size:12px;color:var(--muted)">${t.cats[h.type]} · ${hitEvidence(h,t)}</span></span><span class="hit-value"><span class="chip-content mono">${esc(h.value)}</span></span></span>
+      <span class="pill ${h.accept?"pill-hit":"pill-ok"}">${h.accept?t.redact:t.keep}</span>
+    </button>`).join("");
+    $("hitList").querySelectorAll(".hit").forEach(b => b.onclick = () => select(+b.dataset.id));
+    initActionMarquees($("hitList"));
+    $("hitList").querySelectorAll(".hit-value").forEach(startTextMarquee);
+    const sel = S.hits.find(h => h.id===S.selectedId);
+    if (sel) {
+      const a = Math.max(0, sel.start-42), b = Math.min(S.text.length, sel.end+42);
+      const snip = (a>0?"…":"")+S.text.slice(a,b)+(b<S.text.length?"…":"");
+      $("inspector").innerHTML = `<p class="lbl">${t.selected}</p><p class="insp-marquee"><span class="chip-content mono">${esc(sel.value)}</span></p>
+        <p class="lbl">${t.context}</p><p class="action-marquee"><span class="action-marquee-inner mono" style="color:var(--muted)">${esc(snip)}</span></p>
+        <p class="layer-note">${esc(hitEvidence(sel,t))}${sel.entityKey?" · "+esc(sel.entityKey):""}</p>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn-sm" id="btnR" data-tip="${t.redact} · R">${t.redact}</button>
+          <button class="btn btn-sm btn-sec" id="btnK" data-tip="${t.keep} · P">${t.keep}</button>
+        </div>`;
+      $("btnR").onclick = () => patch(sel.id, true); $("btnK").onclick = () => patch(sel.id, false);
+      initActionMarquees($("inspector"));
+      $("inspector").querySelectorAll(".insp-marquee").forEach(startTextMarquee);
+    } else $("inspector").innerHTML = "";
+    $("lblRes").textContent = t.result; $("result").textContent = replaced;
+    if ($("lblProc")) $("lblProc").textContent = t.processTitle;
+    const proc = analyzeProcess(S.text, replaced, S.hits);
+    if ($("processBox")) $("processBox").innerHTML = processHTML(proc);
+    const leaks = proc.leaks;
+    if (leaks.length && !leftovers.length) {
+      $("residual").className = "danger";
+      $("residual").textContent = t.leakBad;
+    }
+    $("bar").innerHTML = `<div class="bar-inner">
+      <button class="btn btn-sm btn-sec" id="btnAll">${t.acceptAll}</button>
+      <button class="btn btn-sm btn-sec" id="btnNone">${t.rejectAll}</button>
+      <button class="btn btn-sm btn-sec" id="btnOff" data-tip="${t.tips.keepOfficials}">${t.keepOfficials}</button>
+      <label class="check" data-tip="${t.tips.reviewed}"><input type="checkbox" id="chkRev" ${S.reviewed?"checked":""}/> ${t.reviewed}</label>
+      <label class="check"><input type="checkbox" id="chk2" ${S.secondEyes?"checked":""}/> ${t.secondEyes}</label>
+      <span data-tip="${S.reviewed?t.tips.export:t.tips.exportLocked}"><button class="btn btn-sm" id="btnExp" ${S.reviewed?"":"disabled"}>${t.export}</button></span>
+      <span data-tip="${S.reviewed?(t.tips.aiPack||t.aiPack):t.tips.exportLocked}"><button class="btn btn-sm btn-sec" id="btnAi" ${S.reviewed?"":"disabled"}>${t.aiPack}</button></span>
+      <button class="btn btn-sm btn-ghost" id="btnAudit" data-tip="${t.tips.audit}">${t.audit}</button>
+    </div>`;
+    $("btnClear").onclick = reset;
+    $("btnSettings2").onclick = openSettings;
+    $("btnAll").onclick = () => { S.hits.forEach(h=>h.accept=true); paintReview(); };
+    $("btnNone").onclick = () => { S.hits.forEach(h=>h.accept=false); paintReview(); };
+    $("btnOff").onclick = () => {
+      S.hits.forEach(h => {
+        const around = S.text.slice(Math.max(0,h.start-80), h.end+20);
+        if (isPublic(h.value) || isPublic(around) || (h.type==="ico" && /státní podnik|ministerstvo|úřad|správa|republik/i.test(around))) h.accept=false;
+      });
+      paintReview();
+    };
+    $("chkRev").onchange = (e) => { S.reviewed = e.target.checked; paintReview(); };
+    $("chk2").onchange = (e) => { S.secondEyes = e.target.checked; };
+    $("btnExp").onclick = () => openExport(false);
+    $("btnAi").onclick = () => openExport(true);
+    $("btnAudit").onclick = () => download("znecitelne-audit.json", new Blob([JSON.stringify(buildAudit(),null,2)], {type:"application/json"}));
+    bindTips();
+  }
+  function select(id){
+    S.selectedId = id; S.seen.add(id); paintReview();
+    const el = $("orig").querySelector(`[data-id="${id}"]`);
+    if (el) el.scrollIntoView({ block:"center", behavior:"smooth" });
+  }
+  function patch(id, accept){ const h = S.hits.find(x=>x.id===id); if (h) h.accept = accept; S.seen.add(id); paintReview(); }
+  function paint(){
+    document.documentElement.lang = S.lang;
+    paintLanding();
+    if (S.text) { $("landing").classList.add("hidden"); $("review").classList.remove("hidden"); $("bar").classList.remove("hidden"); paintReview(); }
+    else { $("landing").classList.remove("hidden"); $("review").classList.add("hidden"); $("bar").classList.add("hidden"); }
+  }
+  function secretList(){ return S.secrets.split("\n").map(s=>s.trim()).filter(Boolean); }
+  function runAnalyze(text, opts){
+    const src = text ?? S.text;
+    const prev = S.hits || [];
+    const fresh = detect(src, S.enabled, secretList());
+    const bySpan = new Map(prev.map(h => [h.type+"|"+h.start+"|"+h.end+"|"+h.value, h]));
+    const byVal = new Map();
+    prev.forEach(h => {
+      const k = h.type+"|"+h.value.toLocaleLowerCase("cs");
+      if (!byVal.has(k)) byVal.set(k, h);
+    });
+    S.hits = fresh.map(h => {
+      const exact = bySpan.get(h.type+"|"+h.start+"|"+h.end+"|"+h.value);
+      const loose = byVal.get(h.type+"|"+h.value.toLocaleLowerCase("cs"));
+      if (exact) h.accept = exact.accept;
+      else if (loose) h.accept = loose.accept;
+      return h;
+    });
+    const sameSet = prev.length===S.hits.length && S.hits.every(h => bySpan.has(h.type+"|"+h.start+"|"+h.end+"|"+h.value));
+    S.selectedId = S.hits.some(h => h.id===S.selectedId) ? S.selectedId : (S.hits[0] ? S.hits[0].id : null);
+    if (!sameSet) S.seen = new Set(S.selectedId ? [S.selectedId] : []);
+    if (!sameSet && !(opts && opts.keepReview)) S.reviewed = false;
+    paint();
+  }
+  async function ingest(name, kind, text, buf, extra){
+    S.fileName = name; S.kind = kind; S.text = text; S.sourceBuf = (kind==="pdf"||kind==="xlsx") ? buf : null;
+    S.pages = (extra && extra.pages) || (text ? [{ n:1, start:0, end:text.length }] : []);
+    S.cellMap = (extra && extra.cellMap) || [];
+    S.hashIn = await sha256(buf); S.hashOut = "";
+    S.reviewed = false; S.hits = [];
+    runAnalyze(text);
+  }
+  async function onFile(file){
+    $("errLand").classList.add("hidden");
+    $("errLand").textContent = "";
+    try {
+      const buf = await file.arrayBuffer();
+      const n = file.name.toLowerCase();
+      if (n.endsWith(".docx")) {
+        if (!window.mammoth) throw new Error("DOCX: knihovna se nenačetla (síť).");
+        const res = await window.mammoth.extractRawText({ arrayBuffer: buf });
+        await ingest(file.name, "docx", res.value||"", buf);
+      } else if (n.endsWith(".xlsx") || file.type==="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+        const extracted = await extractXlsx(buf);
+        await ingest(file.name, "xlsx", extracted.text, buf, { cellMap: extracted.cellMap });
+      } else if (n.endsWith(".pdf") || file.type==="application/pdf") {
+        const extracted = await extractPdf(buf);
+        await ingest(file.name, "pdf", extracted.text, buf, { pages: extracted.pages });
+      } else {
+        await ingest(file.name, "text", new TextDecoder().decode(buf), buf);
+      }
+    } catch (e) { $("errLand").textContent = e.message||String(e); $("errLand").classList.remove("hidden"); }
+  }
+  function pdfWorker(){
+    if (!window.pdfjsLib) throw new Error("PDF: knihovna se nenačetla (síť).");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+  }
+  function pageTextFromItems(items){
+    return items.map(it => it.str||"").filter(Boolean).join(" ");
+  }
+  function mapPageGlyphs(items, scale, vp){
+    let text = "";
+    const map = [];
+    for (const it of items) {
+      if (!it || !it.str) continue;
+      if (text) text += " ";
+      const start = text.length;
+      text += it.str;
+      const end = text.length;
+      const tx = vp && pdfjsLib.Util.transform(vp.transform, it.transform);
+      const h = tx ? Math.hypot(tx[2], tx[3]) : 0;
+      map.push({
+        start, end, str: it.str,
+        x: tx ? tx[4] : 0,
+        y: tx ? tx[5]-h : 0,
+        w: (it.width||0)*scale,
+        h: h*1.2
+      });
+    }
+    return { text, map };
+  }
+  async function extractPdf(data){
+    pdfWorker();
+    const pdf = await pdfjsLib.getDocument({ data: data.slice(0), disableStream:true, disableAutoFetch:true }).promise;
+    const pages = [];
+    let text = "";
+    for (let i=1;i<=pdf.numPages;i++) {
+      const page = await pdf.getPage(i);
+      const tc = await page.getTextContent();
+      const compact = (tc.items||[]).map(it => ({ str: it.str, transform: it.transform, width: it.width }));
+      const body = pageTextFromItems(compact);
+      const chunk = "\n\n--- "+i+" ---\n"+body;
+      const start = text.length + chunk.indexOf(body);
+      text += chunk;
+      pages.push({ n:i, start, end: start+body.length, body, items: compact });
+    }
+    return { text, pages };
+  }
+  function buildAudit(){
+    return {
+      product:"Znečitelně", generatedAt:new Date().toISOString(), operator:S.operator, language:S.lang,
+      profile:S.profile, outputMode:S.mode, suspicion:S.suspicion, rulesVersion:RULES, reviewed:S.reviewed, fourEyes:S.secondEyes,
+      file:{ name:S.fileName, sha256Input:S.hashIn, sha256Output:S.hashOut,
+        hits:S.hits.map(h=>({ id:h.id, type:h.type, valuePreview:h.value.slice(0,6)+(h.value.length>6?"…":""), length:h.value.length, accepted:h.accept, page:h.page||1, confidence:h.confidence, score:h.score||0, reasons:h.reasons||[], entityKey:h.entityKey||"" })),
+        acceptedCount:S.hits.filter(h=>h.accept).length, rejectedCount:S.hits.filter(h=>!h.accept).length },
+      notes:"Values in the audit log are truncated."
+    };
+  }
+  function translit(ch){
+    const m = {"á":"a","č":"c","ď":"d","é":"e","ě":"e","í":"i","ň":"n","ó":"o","ř":"r","š":"s","ť":"t","ú":"u","ů":"u","ý":"y","ž":"z","Á":"A","Č":"C","Ď":"D","É":"E","Ě":"E","Í":"I","Ň":"N","Ó":"O","Ř":"R","Š":"S","Ť":"T","Ú":"U","Ů":"U","Ý":"Y","Ž":"Z","█":"#"};
+    return m[ch] ?? (/[^\x00-\x7F]/.test(ch)?"?":ch);
+  }
+  async function exportTextPdf(text, title){
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+    const doc = await PDFDocument.create();
+    stampPdfMeta(doc, title);
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const pageW=595, pageH=842, margin=48, size=10, lh=13;
+    const lines = [];
+    for (const raw of text.split(/\n/)) {
+      const safe = [...raw].map(translit).join("");
+      let line="";
+      for (const w of safe.split(/(\s+)/)) {
+        if (font.widthOfTextAtSize(line+w, size) > pageW-margin*2) { lines.push(line); line = w.trimStart(); }
+        else line += w;
+      }
+      lines.push(line);
+    }
+    let page = doc.addPage([pageW,pageH]); let y = pageH-margin;
+    for (const line of lines) {
+      if (y < margin) { page = doc.addPage([pageW,pageH]); y = pageH-margin; }
+      page.drawText(line.slice(0,500), { x:margin, y, size, font, color: rgb(0.09,0.1,0.12) });
+      y -= lh;
+    }
+    return await doc.save({ useObjectStreams:false });
+  }
+  async function exportPdfRaster(source, hits, title){
+    pdfWorker();
+    const pdf = await pdfjsLib.getDocument({ data: source.slice(0), disableStream:true, disableAutoFetch:true }).promise;
+    const { PDFDocument } = PDFLib;
+    const doc = await PDFDocument.create();
+    stampPdfMeta(doc, title);
+    for (let i=1;i<=pdf.numPages;i++) {
+      const page = await pdf.getPage(i);
+      const scale = 1.7; const vp = page.getViewport({ scale });
+      const canvas = document.createElement("canvas"); canvas.width=vp.width; canvas.height=vp.height;
+      const ctx = canvas.getContext("2d");
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      const pageMeta = (S.pages||[]).find(p => p.n===i);
+      const rawItems = (pageMeta && pageMeta.items && pageMeta.items.length) ? pageMeta.items : (await page.getTextContent()).items;
+      const mapped = mapPageGlyphs(rawItems, scale, vp);
+      const text = mapped.text;
+      const map = mapped.map;
+      ctx.fillStyle = "#16181d";
+      topHits(hits).filter(h => (h.page || pageOf(h.start)) === i).forEach(hit => {
+        let idx = -1;
+        if (pageMeta && hit.start >= pageMeta.start && hit.end <= pageMeta.end) {
+          idx = hit.start - pageMeta.start;
+          const slice = text.slice(idx, idx+hit.value.length);
+          if (slice !== hit.value) {
+            const local = text.indexOf(hit.value);
+            idx = local;
+          }
+        }
+        if (idx < 0) idx = text.indexOf(hit.value);
+        if (idx < 0) {
+          const compact = hit.value.replace(/\s+/g," ").trim();
+          idx = text.indexOf(compact);
+        }
+        if (idx < 0) return;
+        const end = idx + Math.max(hit.value.length, 1);
+        map.forEach(m => { if (m.end>idx && m.start<end) ctx.fillRect(m.x-2, m.y-2, Math.max(m.w,6)+4, Math.max(m.h,8)+4); });
+      });
+      const blob = await new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error("blob")), "image/jpeg", 0.84));
+      const img = await doc.embedJpg(new Uint8Array(await blob.arrayBuffer()));
+      const p = doc.addPage([canvas.width*0.72, canvas.height*0.72]);
+      p.drawImage(img, { x:0, y:0, width:p.getWidth(), height:p.getHeight() });
+    }
+    return await doc.save({ useObjectStreams:false });
+  }
+  function openExport(aiPack){
+    const t = i();
+    S._aiPack = !!aiPack;
+    $("exportModal").classList.remove("hidden");
+    $("exportSheet").innerHTML = `<h2>${t.confirmTitle}</h2><p style="color:var(--muted)">${t.confirmExport}</p>
+      <label class="field">${t.operator}</label>
+      <input type="text" id="opIn" value="${esc(S.operator)}" placeholder="${t.operatorPh}" />
+      <label class="check"><input type="checkbox" id="exMeta" ${S.stripMeta?"checked":""}/> ${t.stripMeta}</label>
+      <label class="check"><input type="checkbox" id="exOut" ${S.includeOutline?"checked":""}/> ${t.includeOutline}</label>
+      <label class="check"><input type="checkbox" id="exGloss" ${S.publicGlossary?"checked":""}/> ${t.publicGlossary}</label>
+      <p class="mono" style="font-size:11px;color:var(--muted);word-break:break-all">SHA-256 ${S.hashIn}</p>
+      <p style="font-size:12px;color:var(--muted)">v${RULES}${aiPack?" · AI pack":""}</p>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn" id="goExp">${aiPack?t.aiPack:t.export}</button>
+        <button class="btn btn-sec" id="noExp">${t.cancel}</button>
+      </div>`;
+    $("opIn").oninput = (e) => S.operator = e.target.value;
+    $("exMeta").onchange = (e) => { S.stripMeta = e.target.checked; };
+    $("exOut").onchange = (e) => { S.includeOutline = e.target.checked; };
+    $("exGloss").onchange = (e) => { S.publicGlossary = e.target.checked; };
+    $("noExp").onclick = () => $("exportModal").classList.add("hidden");
+    $("goExp").onclick = doExport;
+  }
+  async function doExport(){
+    const t = i(); if (!S.reviewed) { toast(t.needReview); return; }
+    const btn = $("goExp"); btn.disabled = true; btn.textContent = t.exporting;
+    try {
+      const base = (S.fileName||"document").replace(/\.[^.]+$/,"")+"-anonymized";
+      const packMode = S.mode==="box" && S._aiPack ? "pseudo" : S.mode;
+      const replaced = apply(S.text, S.hits, packMode, S.lang);
+      const info = analyzeProcess(S.text, replaced, S.hits);
+      if (!S._aiPack && S.kind==="pdf" && S.sourceBuf && window.pdfjsLib && window.PDFLib) {
+        const bytes = await exportPdfRaster(S.sourceBuf, S.hits, S.fileName);
+        S.hashOut = await sha256(bytes);
+        download(base+".pdf", new Blob([bytes], {type:"application/pdf"}));
+      } else if (!S._aiPack && S.kind==="xlsx" && S.sourceBuf && window.XLSX) {
+        const bytes = exportXlsxFile(S.sourceBuf, S.hits, S.mode, S.lang);
+        S.hashOut = await sha256(bytes);
+        download(base+".xlsx", new Blob([bytes], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+      } else if (!S._aiPack) {
+        download(base+".txt", new Blob([replaced], {type:"text/plain;charset=utf-8"}));
+        if (window.PDFLib) {
+          const bytes = await exportTextPdf(replaced, S.fileName);
+          S.hashOut = await sha256(bytes);
+          download(base+".pdf", new Blob([bytes], {type:"application/pdf"}));
+        }
+      }
+      if (S._aiPack) {
+        download(base+"-ai.txt", new Blob([replaced], {type:"text/plain;charset=utf-8"}));
+        if (S.includeOutline) download(base+"-process.md", new Blob([processMarkdown(info)], {type:"text/markdown;charset=utf-8"}));
+        const gloss = buildGlossary(S.hits, packMode, S.lang, S.publicGlossary);
+        download(base+"-glossary.json", new Blob([JSON.stringify({
+          product:"Znečitelně", rulesVersion:RULES, public:!!S.publicGlossary,
+          note: S.publicGlossary ? "Original values omitted for public AI." : "Previews are truncated.",
+          tokens: gloss, leakScan: info.leaks, verdict: info.verdict
+        }, null, 2)], {type:"application/json"}));
+        if (window.PDFLib) {
+          const bytes = await exportTextPdf(replaced+"\n\n---\n"+processMarkdown(info), S.fileName+" AI pack");
+          S.hashOut = await sha256(bytes);
+          download(base+"-ai.pdf", new Blob([bytes], {type:"application/pdf"}));
+        }
+      }
+      $("exportModal").classList.add("hidden"); toast(t.exported);
+    } catch (e) { toast(e.message||String(e)); }
+    finally { btn.disabled=false; btn.textContent=t.export; }
+  }
+  function reset(){ S.text=""; S.hits=[]; S.fileName=""; S.reviewed=false; S.hashIn=""; S.sourceBuf=null; S.pages=[]; S.cellMap=[]; paint(); }
+  async function downloadSelf(){
+    try {
+      if (!/^https?:/i.test(location.protocol)) throw new Error("file");
+      const res = await fetch(location.href); const blob = await res.blob();
+      download("znecitelne.html", blob);
+    } catch {
+      const html = "<!DOCTYPE html>\n"+document.documentElement.outerHTML;
+      download("znecitelne.html", new Blob([html], {type:"text/html;charset=utf-8"}));
+    }
+  }
+
+  $("btnLang").onclick = () => { S.lang = S.lang==="cs"?"en":"cs"; localStorage.setItem("znec-lang", S.lang); paint(); };
+  $("btnTheme").onclick = toggleTheme;
+  $("btnSettings").onclick = openSettings;
+  $("btnSettingsApply").onclick = () => {
+    const root = $("settingsModalMount");
+    const pull = (id, field) => { const el = root.querySelector("#"+id); if (el) S[field] = el.value; };
+    pull("m_taSecrets", "secrets");
+    pull("m_taSystems", "systems");
+    pull("m_taProjects", "projects");
+    pull("m_taOrgs", "orgs");
+    const cm = root.querySelector("#m_chkMeta");
+    if (cm) S.stripMeta = cm.checked;
+    // values already live-applied via wireSettings; force re-detect for secrets
+    if (S.text) runAnalyze();
+    $("settingsModal").classList.add("hidden");
+    if (!$("landing").classList.contains("hidden")) {
+      $("settingsMount").innerHTML = settingsHTML();
+      wireSettings($("settingsMount"));
+    }
+  };
+  $("btnSettingsClose").onclick = closeSettings;
+  $("btnHelp").onclick = () => {
+    const t=i(); $("helpModal").classList.remove("hidden");
+    $("helpSheet").innerHTML = `<h2>${t.helpTitle}</h2><p style="color:var(--muted)">${t.help}</p>
+      <ul style="padding:0;list-style:none"><li><kbd>J</kbd> <kbd>K</kbd> ${t.kbdNext}</li>
+      <li style="margin-top:8px"><kbd>R</kbd> ${t.kbdRedact}</li>
+      <li style="margin-top:8px"><kbd>P</kbd> ${t.kbdKeep}</li></ul>
+      <p style="color:var(--muted);font-size:13px">Profil „Veřejná AI“ drží konzistentní tokeny (CBUAIS-5164 → [TICKET_001]) a maže Author / lastModifiedBy. Stejná osoba s titulem, iniciálou i v pádě sdílí token. Slovník a osnova používají stejná čísla jako text. Slovník pište jako <span class="mono">eSpis | INTEGRACE</span> — krátké názvy se berou jen na hranici slova.</p>
+      <button class="btn" style="margin-top:12px" id="okHelp">OK</button>`;
+    $("okHelp").onclick = () => $("helpModal").classList.add("hidden");
+  };
+  function pickFile(){
+    if (S.movie) return;
+    const f = $("file");
+    f.value = "";
+    f.click();
+  }
+  $("btnNewFile").onclick = pickFile;
+  $("btnHtml").onclick = downloadSelf;
+  $("helpModal").onclick = (e) => { if (e.target.id==="helpModal") e.target.classList.add("hidden"); };
+  $("exportModal").onclick = (e) => { if (e.target.id==="exportModal") e.target.classList.add("hidden"); };
+  $("settingsModal").onclick = (e) => { if (e.target.id==="settingsModal") closeSettings(); };
+  $("btnSample").onclick = async () => {
+    if (S.movie) return;
+    const enc = new TextEncoder().encode(SAMPLE);
+    await ingest("smlouva-vzor.txt", "text", SAMPLE, enc.buffer.slice(enc.byteOffset, enc.byteOffset+enc.byteLength));
+  };
+  $("btnMovie").onclick = () => startMovieTutorial();
+  $("movie-btn-back").onclick = () => movieBackStep();
+  $("movie-btn-playpause").onclick = () => movieTogglePause();
+  $("movie-btn-skip").onclick = () => movieSkipStep();
+  $("movie-btn-speed").onclick = () => movieToggleSpeed();
+  $("movie-btn-exit").onclick = () => exitMovieTutorial();
+  $("btnBrowse").onclick = pickFile;
+  $("file").onchange = (e) => { if (e.target.files[0]) onFile(e.target.files[0]); e.target.value = ""; };
+  $("drop").onclick = pickFile;
+  $("drop").ondragover = (e) => { e.preventDefault(); $("drop").classList.add("over"); };
+  $("drop").ondragleave = () => $("drop").classList.remove("over");
+  $("drop").ondrop = (e) => { e.preventDefault(); $("drop").classList.remove("over"); if (e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); };
+  $("btnAdd").onclick = () => {
+    const sel = window.getSelection().toString().trim();
+    if (sel.length<3) return;
+    const start = S.text.indexOf(sel); if (start<0) return;
+    const nid = S.hits.reduce((m,h)=>Math.max(m,h.id||0),0)+1;
+    S.hits.push({ id:nid, type:"secrets", value:sel, start, end:start+sel.length, accept:true, confidence:"high", reasons:["dict"], entityKey:"secrets|"+sel.toLocaleLowerCase("cs"), page: pageOf(start) });
+    if (!secretList().includes(sel)) S.secrets += "\n"+sel;
+    paintReview();
+  };
+  document.addEventListener("keydown", (e) => {
+    const tag = (e.target.tagName||"");
+    if (tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
+    if (e.metaKey||e.ctrlKey||e.altKey||!S.text) return;
+    const list = filtered();
+    if (e.key==="j"||e.key==="J"||e.key==="ArrowDown") { e.preventDefault(); const idx=list.findIndex(h=>h.id===S.selectedId); const n=list[(idx<0?0:idx+1)%list.length]; if(n) select(n.id); }
+    else if (e.key==="k"||e.key==="K"||e.key==="ArrowUp") { e.preventDefault(); const idx=list.findIndex(h=>h.id===S.selectedId); const n=list[(idx<0?0:idx-1+list.length)%list.length]; if(n) select(n.id); }
+    else if ((e.key==="r"||e.key==="R") && S.selectedId) patch(S.selectedId, true);
+    else if ((e.key==="p"||e.key==="P") && S.selectedId) patch(S.selectedId, false);
+  });
+  window.addEventListener("resize", () => {
+    initActionMarquees(document);
+    document.querySelectorAll(".hit-value, .insp-marquee").forEach(startTextMarquee);
+  });
+
+
+  let MOVIE_TIMER = null;
+  let MOVIE_PENDING = null;
+  let MOVIE_PAUSED = false;
+  let MOVIE_SPEED = 1;
+  const MOVIE_SLOWDOWN = 0.3;
+  function movieEffectiveSpeed(){ return MOVIE_SPEED * MOVIE_SLOWDOWN; }
+
+  function marqueeDurationSec(shiftPx){
+    const base = Math.max(6, (shiftPx || 80) / 28);
+    return S.movie ? base / movieEffectiveSpeed() : base;
+  }
+  function initActionMarquees(root){
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    (root || document).querySelectorAll(".action-marquee").forEach(el => {
+      const inner = el.querySelector(".action-marquee-inner");
+      if (!inner) return;
+      el.classList.remove("marquee-active");
+      el.style.removeProperty("--marquee-duration");
+      if (reduce) return;
+      if (inner.scrollWidth > el.clientWidth + 2) {
+        const shift = inner.scrollWidth + el.clientWidth;
+        el.style.setProperty("--marquee-duration", marqueeDurationSec(shift) + "s");
+        el.classList.add("marquee-active");
+      }
+    });
+  }
+  function startTextMarquee(chip){
+    if (!chip) return;
+    chip.classList.remove("marquee");
+    chip.style.removeProperty("--chip-marquee-duration");
+    chip.style.removeProperty("--chip-marquee-shift");
+    const existingTrack = chip.querySelector(".chip-track");
+    if (existingTrack) {
+      const original = existingTrack.querySelector(".chip-content:not(.chip-content-clone)");
+      if (original) chip.replaceChild(original, existingTrack);
+    }
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    requestAnimationFrame(() => {
+      const content = chip.querySelector(".chip-content");
+      if (!content) return;
+      const contentWidth = content.scrollWidth;
+      const chipWidth = chip.clientWidth || chip.parentElement && chip.parentElement.clientWidth || 0;
+      if (reduce || contentWidth <= chipWidth + 2 || chipWidth < 24) return;
+      const GAP = 32;
+      const track = document.createElement("span");
+      track.className = "chip-track";
+      const clone = content.cloneNode(true);
+      clone.classList.add("chip-content-clone");
+      clone.setAttribute("aria-hidden", "true");
+      chip.replaceChild(track, content);
+      track.appendChild(content);
+      track.appendChild(clone);
+      const shift = contentWidth + GAP;
+      chip.style.setProperty("--chip-marquee-shift", shift + "px");
+      chip.style.setProperty("--chip-marquee-duration", marqueeDurationSec(shift) + "s");
+      chip.classList.add("marquee");
+    });
+  }
+  let MOVIE_SNAPSHOTS = [];
+
+  function movieCaption(cs, en){ return S.lang === "en" ? en : cs; }
+
+  const MOVIE_SCRIPT = [
+    {
+      chapter: () => movieCaption("Kapitola 1 — Proč Znečitelně", "Chapter 1 — Why Znečitelně"),
+      caption: () => movieCaption(
+        "Černé zvýraznění ve Wordu není anonymizace. Veřejné AI si text stejně přečte — včetně ticketů a jmen.",
+        "Black highlighting in Word is not anonymization. A public AI still reads the text — tickets and names included."
+      ),
+      highlight: "drop",
+      holdMs: 5200
+    },
+    {
+      caption: () => movieCaption(
+        "Nic se neodesílá. Detekce i začernění běží jen v tomto souboru HTML.",
+        "Nothing is uploaded. Detection and redaction stay inside this single HTML file."
+      ),
+      highlight: "privacy",
+      holdMs: 4200
+    },
+    {
+      chapter: () => movieCaption("Kapitola 2 — Vzorová smlouva", "Chapter 2 — Sample contract"),
+      caption: () => movieCaption(
+        "Vezmeme fiktivní smlouvu: RČ, IČO, IBAN, jména, tickety CBUAIS a interní systémy.",
+        "We load a fictitious contract: birth number, company ID, IBAN, names, CBUAIS tickets and internal systems."
+      ),
+      highlight: "btnSample",
+      action: async () => {
+        const enc = new TextEncoder().encode(SAMPLE);
+        await ingest("smlouva-vzor.txt", "text", SAMPLE, enc.buffer.slice(enc.byteOffset, enc.byteOffset+enc.byteLength));
+        S.movie = true;
+      },
+      actionDelayMs: 700,
+      holdMs: 4800
+    },
+    {
+      caption: () => movieCaption(
+        "Nálezy jsou v originálu oranžové (anonymizovat) nebo zelené (ponechat). Klávesy J/K listují, R začerní, P ponechá.",
+        "Hits in the original are orange (redact) or green (keep). J/K walk them, R redacts, P keeps."
+      ),
+      highlight: "orig",
+      holdMs: 5600
+    },
+    {
+      chapter: () => movieCaption("Kapitola 3 — Osobní údaje", "Chapter 3 — Personal data"),
+      caption: () => movieCaption(
+        "Rodné číslo má kontrolní součet. Stejná osoba s titulem, iniciálou i v pádě sdílí jeden token.",
+        "The birth number has a checksum. The same person with a title, initial or declined form shares one token."
+      ),
+      action: () => {
+        const h = S.hits.find(x => x.type === "rc") || S.hits.find(x => x.type === "name");
+        if (h) select(h.id);
+      },
+      holdMs: 5600
+    },
+    {
+      caption: () => movieCaption(
+        "IČO státního podniku v Registru smluv často necháte. IČO zhotovitele a IBAN zakryjete.",
+        "A state enterprise IČO is often left in the Register of Contracts. The contractor IČO and IBAN you hide."
+      ),
+      action: () => {
+        const h = S.hits.find(x => x.type === "account") || S.hits.find(x => x.type === "ico" && /25596641/.test(x.value));
+        if (h) select(h.id);
+      },
+      holdMs: 5200
+    },
+    {
+      chapter: () => movieCaption("Kapitola 4 — Firma a projekt", "Chapter 4 — Firm and project"),
+      caption: () => movieCaption(
+        "Pro veřejnou AI nestačí schovat lidi. Ticket CBUAIS-5164, AIS SBS i stav produkce jsou také identifikátory.",
+        "For a public AI, hiding people is not enough. Ticket CBUAIS-5164, AIS SBS and production status are identifiers too."
+      ),
+      action: () => {
+        const h = S.hits.find(x => x.type === "ticket") || S.hits.find(x => x.type === "system");
+        if (h) select(h.id);
+      },
+      highlight: "hitList",
+      holdMs: 5800
+    },
+    {
+      caption: () => movieCaption(
+        "Režim „konzistentní token“ nahradí CBUAIS-5164 vždy stejným [TICKET_001]. Osnova a slovník používají stejná čísla.",
+        "Consistent-token mode replaces CBUAIS-5164 with the same [TICKET_001] every time. The outline and glossary reuse those numbers."
+      ),
+      highlight: "result",
+      holdMs: 5600
+    },
+    {
+      chapter: () => movieCaption("Kapitola 5 — Kontrola a export", "Chapter 5 — Review and export"),
+      caption: () => movieCaption(
+        "Bez zaškrtnutí „Zkontrolováno“ export nejde. Druhá kontrola je pro čtyři oči.",
+        "Export stays locked until you tick Reviewed. Second review is the four-eyes check."
+      ),
+      action: () => {
+        S.reviewed = true;
+        paintReview();
+      },
+      highlight: "bar",
+      holdMs: 5200
+    },
+    {
+      caption: () => movieCaption(
+        "Export je nevratný: začerněné PDF, XLSX bez autora, nebo balíček pro AI s osnovou postupu a slovníkem bez původních hodnot.",
+        "Export is irreversible: a rasterized PDF, metadata-stripped XLSX, or an AI pack with a process outline and a glossary without original values."
+      ),
+      highlight: "processBox",
+      holdMs: 6000
+    },
+    {
+      caption: () => movieCaption(
+        "Teď si můžete vzor otevřít ručně, nebo nahrát vlastní dokument. Soubor zůstává v tomto zařízení.",
+        "You can now open the sample yourself, or upload your own file. The document stays on this device."
+      ),
+      action: () => { exitMovieTutorial(true); },
+      actionDelayMs: 900,
+      holdMs: 2800
+    }
+  ];
+
+  function movieClearPulse(){
+    document.querySelectorAll(".movie-pulse").forEach(el => el.classList.remove("movie-pulse"));
+  }
+  function movieHighlight(id){
+    movieClearPulse();
+    if (!id) return;
+    const el = $(id);
+    if (el) {
+      el.classList.add("movie-pulse");
+      try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (_) {}
+    }
+  }
+  function movieCancelPlayback(){
+    if (MOVIE_TIMER) clearTimeout(MOVIE_TIMER);
+    MOVIE_TIMER = null;
+    MOVIE_PENDING = null;
+  }
+  function movieSetTimeout(fn, ms){
+    MOVIE_PENDING = { fn, remainingMs: ms };
+    scheduleMoviePending();
+  }
+  function scheduleMoviePending(){
+    if (!MOVIE_PENDING) return;
+    MOVIE_PENDING.startedAt = Date.now();
+    MOVIE_TIMER = setTimeout(() => {
+      const p = MOVIE_PENDING;
+      MOVIE_PENDING = null;
+      MOVIE_TIMER = null;
+      if (p && p.fn) p.fn();
+    }, Math.max(0, MOVIE_PENDING.remainingMs / movieEffectiveSpeed()));
+  }
+  function ensureMovieUI(){
+    $("movie-caption-bar").classList.add("active");
+    $("movie-controls").classList.add("active");
+    document.body.classList.add("movie-active");
+  }
+  function hideMovieUI(){
+    $("movie-caption-bar").classList.remove("active");
+    $("movie-controls").classList.remove("active");
+    $("movie-title-card").classList.remove("show");
+    document.body.classList.remove("movie-active");
+    document.body.classList.remove("movie-paused");
+    movieClearPulse();
+  }
+  async function startMovieTutorial(){
+    movieCancelPlayback();
+    S.movie = true;
+    S.movieStepIndex = 0;
+    S.reviewed = false;
+    MOVIE_PAUSED = false;
+    document.body.classList.remove("movie-paused");
+    MOVIE_SPEED = 1;
+    MOVIE_SNAPSHOTS = [];
+    $("movie-btn-speed").textContent = "1×";
+    $("movie-btn-playpause").textContent = "⏸️";
+    $("movie-btn-back").disabled = true;
+    ensureMovieUI();
+    await runMovieStep();
+  }
+  function movieShowCaption(step){
+    const ch = typeof step.chapter === "function" ? step.chapter() : (step.chapter || "");
+    const cap = typeof step.caption === "function" ? step.caption() : (step.caption || "");
+    $("movie-chapter-label").textContent = ch;
+    const inner = $("movie-caption-inner") || $("movie-caption-text");
+    inner.textContent = cap;
+    const wrap = $("movie-caption-text");
+    if (wrap) {
+      wrap.classList.add("action-marquee");
+      requestAnimationFrame(() => initActionMarquees(wrap.parentElement || wrap));
+    }
+    if (ch) {
+      $("movie-title-h").textContent = ch;
+      $("movie-title-p").textContent = cap;
+      $("movie-title-card").classList.add("show");
+      movieSetTimeout(() => $("movie-title-card").classList.remove("show"), 2200);
+    }
+  }
+  async function runMovieStep(){
+    if (!S.movie) return;
+    const idx = S.movieStepIndex || 0;
+    const step = MOVIE_SCRIPT[idx];
+    if (!step) { exitMovieTutorial(); return; }
+    MOVIE_SNAPSHOTS[idx] = {
+      text: S.text, hits: S.hits.map(h => Object.assign({}, h)),
+      selectedId: S.selectedId, reviewed: S.reviewed, fileName: S.fileName
+    };
+    $("movie-btn-back").disabled = idx === 0;
+    movieShowCaption(step);
+    movieHighlight(step.highlight);
+    const go = async () => {
+      if (step.action) await step.action();
+      movieHighlight(step.highlight);
+      const hold = step.holdMs || 4000;
+      movieSetTimeout(() => {
+        if (!S.movie) return;
+        S.movieStepIndex = idx + 1;
+        runMovieStep();
+      }, hold);
+    };
+    if (step.actionDelayMs) movieSetTimeout(go, step.actionDelayMs);
+    else await go();
+  }
+  function movieTogglePause(){
+    if (!S.movie) return;
+    MOVIE_PAUSED = !MOVIE_PAUSED;
+    document.body.classList.toggle("movie-paused", MOVIE_PAUSED);
+    $("movie-btn-playpause").textContent = MOVIE_PAUSED ? "▶️" : "⏸️";
+    if (MOVIE_PAUSED) {
+      if (MOVIE_TIMER) clearTimeout(MOVIE_TIMER);
+      MOVIE_TIMER = null;
+      if (MOVIE_PENDING) {
+        MOVIE_PENDING.remainingMs -= (Date.now() - MOVIE_PENDING.startedAt);
+        if (MOVIE_PENDING.remainingMs < 0) MOVIE_PENDING.remainingMs = 0;
+      }
+    } else scheduleMoviePending();
+  }
+  function movieToggleSpeed(){
+    MOVIE_SPEED = MOVIE_SPEED === 1 ? 1.75 : 1;
+    $("movie-btn-speed").textContent = MOVIE_SPEED === 1 ? "1×" : "1,75×";
+  }
+  function movieSkipStep(){
+    if (!S.movie) return;
+    movieCancelPlayback();
+    S.movieStepIndex = (S.movieStepIndex || 0) + 1;
+    runMovieStep();
+  }
+  async function movieBackStep(){
+    if (!S.movie) return;
+    const idx = S.movieStepIndex || 0;
+    if (idx <= 0) return;
+    movieCancelPlayback();
+    const prev = Math.max(0, idx - 1);
+    const snap = MOVIE_SNAPSHOTS[prev];
+    if (snap) {
+      S.text = snap.text;
+      S.hits = (snap.hits || []).map(h => Object.assign({}, h));
+      S.selectedId = snap.selectedId;
+      S.reviewed = snap.reviewed;
+      S.fileName = snap.fileName;
+      if (S.text) paint();
+      else { reset(); S.movie = true; }
+    }
+    S.movieStepIndex = prev;
+    await runMovieStep();
+  }
+  function exitMovieTutorial(keepDoc){
+    movieCancelPlayback();
+    S.movie = false;
+    hideMovieUI();
+    if (!keepDoc) reset();
+    else paint();
+  }
+
+  function selfTest(){
+    const enabled = Object.fromEntries(KEYS.map(k => [k, true]));
+    const secrets = ["jednotkové ceny"];
+    const prev = S.suspicion;
+    const cases = [];
+    cases.push({ name:"movie 70% slower", ok: Math.abs(movieEffectiveSpeed() - 0.3 * MOVIE_SPEED) < 1e-9 && MOVIE_SLOWDOWN === 0.3, type:"movie", includes:"0.3", got:[String(MOVIE_SLOWDOWN), String(movieEffectiveSpeed())] });
+    cases.push({ name:"marquee helpers", ok: typeof initActionMarquees === "function" && typeof startTextMarquee === "function", type:"movie", includes:"fns", got:[typeof initActionMarquees, typeof startTextMarquee] });
+    const expect = (name, text, sus, type, includes) => {
+      S.suspicion = sus;
+      const hits = detect(text, enabled, secrets);
+      const ok = hits.some(h => h.type===type && String(h.value).includes(includes));
+      cases.push({ name, ok, type, includes, got: hits.filter(h=>h.type===type).map(h=>h.value) });
+    };
+    const expectNone = (name, text, sus, type) => {
+      S.suspicion = sus;
+      const hits = detect(text, enabled, secrets);
+      const bad = hits.filter(h => h.type===type);
+      cases.push({ name, ok: bad.length===0, type, includes:"∅", got: bad.map(h=>h.value) });
+    };
+    expect("rc slash", "rodné číslo 780312/0006", "medium", "rc", "780312/0006");
+    expect("ico label", "IČO: 00000205", "medium", "ico", "00000205");
+    expect("namesti", "se sídlem Václavské náměstí 1, 110 00 Praha 1", "medium", "address", "náměstí");
+    expect("ticket", "ticket CBUAIS-5164", "medium", "ticket", "CBUAIS-5164");
+    expect("declined", "sešli jsme se s Novákem.", "medium", "name", "Novákem");
+    expect("initials", "podepsal J. Novák", "medium", "name", "J. Novák");
+    expect("ip", "server 10.12.8.4 uvnitř", "medium", "ip", "10.12.8.4");
+    expect("host", "viz https://ais.internal/ticket/1", "medium", "host", "ais.internal");
+    expect("geo", "stanoviště 50.087465, 14.421253", "medium", "geo", "50.087465");
+    expect("el plate", "SPZ EL 1234", "medium", "spz", "EL 1234");
+    expectNone("contract date", "V Praze dne 11. 9. 2026", "high", "dob");
+    expectNone("iso ticket", "norma ISO-9001", "high", "ticket");
+    expectNone("phone as rc high", "částka 777123456 bez rodného", "high", "rc");
+    S.suspicion = "medium";
+    const prevSys = S.systems, prevProj = S.projects;
+    S.systems = "AIS SBS | SYSTÉM\neSpis | INTEGRACE\nSAMO2 | MODUL";
+    S.projects = "CBUAIS | PROJEKT\nORION | PROJEKT";
+    const sampleHits = detect(SAMPLE, enabled, secrets);
+    const replaced = apply(SAMPLE, sampleHits, "pseudo", "cs");
+    const gloss = buildGlossary(sampleHits, "pseudo", "cs", false);
+    const byKey = new Map();
+    sampleHits.filter(h=>h.accept && h.type==="name").forEach(h => {
+      const list = byKey.get(h.entityKey)||[]; list.push(h.value); byKey.set(h.entityKey, list);
+    });
+    const janVals = [...byKey.values()].find(arr => arr.some(v => /Jan Novák/i.test(v))) || [];
+    cases.push({ name:"name title shares key", ok: janVals.some(v => /Ing\.\s*Jan Novák/i.test(v)), type:"name", includes:"Ing. Jan Novák", got: janVals });
+    const nameTok = new Map();
+    const rNames = bindReplacer("pseudo", "cs", sampleHits);
+    sampleHits.filter(h=>h.accept && h.type==="name").forEach(h => nameTok.set(h.value, rNames(h)));
+    cases.push({ name:"name title same token", ok: nameTok.get("Jan Novák") && nameTok.get("Jan Novák")===nameTok.get("Ing. Jan Novák"), type:"name", includes:"same token", got: [...nameTok.entries()].map(([k,v])=>k+":"+v) });
+    const extra = "Jan Novák volal Novákovi a sešel se s Novákem. J. Novák i Ing. Jan Novák.";
+    const extraHits = detect(extra, enabled, []);
+    const rExtra = bindReplacer("pseudo", "cs", extraHits);
+    const extraToks = extraHits.filter(h=>h.type==="name").map(h => rExtra(h));
+    cases.push({ name:"declined+initials share token", ok: extraToks.length>=4 && extraToks.every(t => t===extraToks[0]), type:"name", includes:"one person", got: extraHits.filter(h=>h.type==="name").map(h=>h.value+":"+h.entityKey+":"+rExtra(h)) });
+    const sysText = "Projekt CBUAIS, systém AIS SBS, integrace eSpis, eSpis, modul SAMO2, AIS SBS.";
+    const sysHits = detect(sysText, enabled, []);
+    const rSys = bindReplacer("pseudo", "cs", sysHits);
+    const espis = sysHits.filter(h => /espis/i.test(h.value) || /eSpis/.test(h.value));
+    const espisTok = Array.from(new Set(espis.map(h => rSys(h))));
+    cases.push({ name:"eSpis phrase+dict one token", ok: espis.length>=1 && espisTok.length===1, type:"system", includes:"eSpis", got: espis.map(h=>h.value+":"+h.entityKey+":"+rSys(h)) });
+    const ais = sysHits.filter(h => /AIS SBS/i.test(h.value));
+    const aisTok = Array.from(new Set(ais.map(h => rSys(h))));
+    cases.push({ name:"AIS SBS phrase+dict one token", ok: ais.length>=1 && aisTok.length===1, type:"system", includes:"AIS SBS", got: ais.map(h=>h.value+":"+h.entityKey+":"+rSys(h)) });
+    const icoDic = sampleHits.filter(h => h.type==="ico" || h.type==="dic");
+    const firm = icoDic.filter(h => String(h.value).includes("25596641") || String(h.value).includes("CZ25596641"));
+    const firmTok = Array.from(new Set(firm.map(h => rNames(h))));
+    cases.push({ name:"ico+dic same org token", ok: firm.length>=2 && firmTok.length===1, type:"ico", includes:"25596641", got: firm.map(h=>h.value+":"+rNames(h)) });
+    const applyTok = {};
+    sampleHits.filter(h=>h.accept && h.type==="name").forEach(h => { applyTok[h.entityKey] = rNames(h); });
+    const glossTok = {};
+    gloss.filter(g => g.type==="name").forEach(g => { (glossTok[g.token] = glossTok[g.token]||[]).push(g); });
+    const janToken = rNames(sampleHits.find(h => h.value==="Jan Novák"));
+    const janGloss = gloss.filter(g => g.type==="name" && /Jan/.test(g.originalPreview||""));
+    cases.push({ name:"glossary matches apply", ok: janGloss.length>=1 && janGloss.every(g => g.token===janToken), type:"name", includes:janToken, got: janGloss.map(g=>g.token+":"+g.originalPreview) });
+    cases.push({ name:"status not mid-word", ok: !/odstraněny\)e/.test(replaced) && !/n\)epřipraven/.test(replaced), type:"status", includes:"word-boundary", got: [replaced.split("\n").filter(l=>/Stav|hotfix|nasazen|rollback|plánovan/i.test(l)).join(" | ")] });
+    const t1 = sampleHits.find(h => h.value==="CBUAIS-5164");
+    const t2hits = detect(SAMPLE + "\nOpakovaný ticket CBUAIS-5164.", enabled, secrets);
+    const rT = bindReplacer("pseudo", "cs", t2hits);
+    const same = t2hits.filter(h => h.value==="CBUAIS-5164").map(h => rT(h));
+    cases.push({ name:"repeated ticket same token", ok: same.length>=2 && same.every(t => t===same[0]), type:"ticket", includes:"CBUAIS-5164", got: same });
+    S.systems = prevSys; S.projects = prevProj;
+    S.suspicion = prev;
+    const failed = cases.filter(c => !c.ok);
+    return { ok: failed.length===0, failed, n: cases.length };
+  }
+
+  if (typeof location !== "undefined" && /(?:\?|&)selftest=1\b/.test(location.search||"")) {
+    const r = selfTest();
+    console.log("Znečitelně selftest", r);
+    if (!r.ok) console.warn(r.failed);
+  }
+  applyTheme();
+  paint();
+})();
+</script>
+</body>
+</html>
