@@ -1,0 +1,8 @@
+{
+  "name": "Znečitelně",
+  "description": "Lokální anonymizace dokumentů pro české státní firmy a přípravu textu pro veřejnou AI. Jeden HTML soubor. Žádný cloud.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
