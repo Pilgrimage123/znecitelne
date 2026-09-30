@@ -2093,8 +2093,7 @@ Orgán: OBÚ.
       <label class="check"><input type="checkbox" id="${p}chkTrueRedact" ${S.truePdfRedact?"checked":""}/> ${t.truePdfRedact} <button type="button" class="help-i" data-tip="${t.truePdfRedactHint}">?</button></label>
       <label class="check"><input type="checkbox" id="${p}chkOcr" ${S.ocrEnabled?"checked":""}/> ${t.enableOcr} <button type="button" class="help-i" data-tip="${t.tips.ocr}">?</button></label>
       <label class="check"><input type="checkbox" id="${p}chkExpert" ${S.expertMode?"checked":""}/> ${t.expertMode} <button type="button" class="help-i" data-tip="${t.tips.expertMode}">?</button></label>
-      <label class="check"><input type="checkbox" id="${p}chkProcessAnalysis" ${S.processAnalysis?"checked":""}/> ${t.processAnalysisLabel} <button type="button" class="help-i" data-tip="${t.tips.processAnalysis}">?</button></label>
-      <button type="button" class="btn btn-sec" id="${p}btnMovieAdvanced" ${S.expertMode?"":"disabled"}>${t.movieAdvancedHelp}</button>`;
+      <label class="check"><input type="checkbox" id="${p}chkProcessAnalysis" ${S.processAnalysis?"checked":""}/> ${t.processAnalysisLabel} <button type="button" class="help-i" data-tip="${t.tips.processAnalysis}">?</button></label>`;
   }
   function escAttr(s){
     return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -2178,14 +2177,6 @@ Orgán: OBÚ.
       S.expertMode = e.target.checked;
       localStorage.setItem("znec-expert", S.expertMode ? "1" : "0");
       if (S.text) paintReview();
-      const advBtn = q("btnMovieAdvanced");
-      if (advBtn) advBtn.disabled = !S.expertMode;
-    };
-    const movieAdv = q("btnMovieAdvanced");
-    if (movieAdv) movieAdv.onclick = () => {
-      if (!S.expertMode) return;
-      closeSettings();
-      startMovieTutorial(MOVIE_SCRIPT_ADVANCED);
     };
     const procAn = q("chkProcessAnalysis");
     if (procAn) procAn.onchange = (e) => {
