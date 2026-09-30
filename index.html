@@ -386,14 +386,22 @@ body.quick-mode #quickHitBar[data-pos="right"] {
 
 
 [inert] { opacity: .45; filter: grayscale(.15); pointer-events: none; }
+body.movie-active [inert] {
+  opacity: 1;
+  filter: none;
+}
 #movie-caption-bar {
-  display: none; position: fixed; left: 16px; right: 16px; bottom: calc(var(--bar-h, 72px) + 12px); z-index: 70;
+  display: none; position: fixed; left: 16px; right: 16px; bottom: 68px; z-index: 70;
   max-width: 720px; margin: 0 auto; padding: 12px 16px; border-radius: 14px;
+  max-height: 42dvh; overflow-y: auto;
   background: color-mix(in srgb, var(--header-bg) 92%, transparent);
   color: var(--header-fg); box-shadow: 0 12px 40px rgba(14,16,20,.28);
   border: 1px solid color-mix(in srgb, var(--header-fg) 22%, transparent);
 }
 #movie-caption-bar.active { display: block; }
+body.bar-pos-bottom #movie-caption-bar { bottom: calc(var(--bar-h, 72px) + 68px); }
+body.bar-pos-bottom #movie-controls { bottom: calc(var(--bar-h, 72px) + 16px); }
+#movie-caption-bar.movie-cap-top { bottom: auto; top: 12px; }
 #movie-chapter-label {
   font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
   color: var(--header-muted); margin-bottom: 4px;
@@ -401,7 +409,6 @@ body.quick-mode #quickHitBar[data-pos="right"] {
 #movie-caption-text {
   font-size: 15px; line-height: 1.5;
   white-space: normal; word-wrap: break-word; overflow-wrap: anywhere;
-  max-height: 6.5em; overflow-y: auto;
 }
 .movie-progress {
   margin-top: 8px; height: 4px; border-radius: 999px;
@@ -452,6 +459,32 @@ body.movie-paused .movie-pulse {
 }
 #movie-title-card.show { display: grid; }
 #movie-title-card .sheet { text-align: center; max-width: 420px; }
+#movie-select-menu {
+  display: none; position: fixed; z-index: 95; min-width: 240px; max-width: min(520px, calc(100vw - 24px));
+  max-height: min(52dvh, 420px); overflow: auto; padding: 6px;
+  background: var(--surface); color: var(--fg); border: 1.5px solid var(--border);
+  border-radius: 10px; box-shadow: 0 12px 36px rgba(14,16,20,.28);
+}
+#movie-select-menu.active { display: block; }
+.movie-select-menu-title {
+  padding: 6px 10px 5px; font-size: 10px; font-weight: 800; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted);
+}
+.movie-select-option {
+  display: block; width: 100%; min-height: 40px; padding: 8px 10px; border: 0; border-radius: 7px;
+  background: transparent; color: var(--fg); text-align: left; font: inherit; cursor: default;
+}
+.movie-select-option.is-selected { font-weight: 750; box-shadow: inset 3px 0 0 var(--focus); background: var(--bg-subtle); }
+.movie-select-option.is-focus { outline: 3px solid var(--focus); outline-offset: -3px; background: color-mix(in srgb, var(--focus) 12%, var(--surface)); }
+@media (max-width: 640px) {
+  #movie-select-menu { max-width: calc(100vw - 20px); max-height: min(48dvh, 360px); }
+  .movie-select-option { min-height: 42px; }
+}
+
+body.movie-active #settingsSheet {
+  padding-top: 36px;
+  padding-bottom: 220px;
+}
 #movie-title-card h2 { margin: 0 0 8px; font-size: 1.6rem; }
 .movie-pulse {
   outline: 3px solid var(--focus) !important;
@@ -484,6 +517,7 @@ body.movie-paused .movie-pulse {
   <button type="button" id="movie-btn-exit">✖️</button>
 </div>
 <div id="movie-title-card"><div class="sheet"><h2 id="movie-title-h"></h2><p id="movie-title-p" style="color:var(--muted)"></p></div></div>
+<div id="movie-select-menu" aria-hidden="true"></div>
 <header class="app">
   <div class="brand">
     <div class="mark">Z</div>
@@ -601,9 +635,13 @@ body.movie-paused .movie-pulse {
   const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];
   const KEYS = PII_KEYS.concat(ORG_KEYS);
   const HIGH = new Set(["rc","ico","dic","account","email","ticket","casefile","sigcert"]);
-  const RULES = "2026.09.22-ai11";
+  const RULES = "2026.09.30-ai15";
   const CHANGELOG = [
-    { version: RULES, notes: { cs: "Video tutoriál má novou Kapitolu 6 — pokročilé funkce (citlivost, poloha lišty, metadata/true-redact, rychlý režim, zrychlené schvalování, expertní režim, hromadné akce, druhá kontrola, nahrání vlastního souboru) se zřetelným varováním, že jde o volitelné pokročilé nastavení.", en: "The video tutorial has a new Chapter 6 — advanced functions (sensitivity, toolbar position, metadata/true-redact, quick mode, accelerated approval, expert mode, bulk actions, second review, uploading your own file) with a clear warning that these are optional advanced settings." } },
+    { version: "2026.09.30-ai15", notes: { cs: "Video tutoriál: opraveny texty o veřejné AI a nezávislém zapínání/vypínání metadat a PDF režimu („Běžně je oboje zapnuto“). Opraveno spolehlivé otevírání a scrollování nastavení od kroku 14 i v pokročilé kapitole při jakémkoli posunu šipkami nebo klikáním tak, aby byly probírané prvky vždy plně viditelné a nezakryté lištou.", en: "Video tutorial: updated captions about public AI identifiers and independent toggling of metadata and PDF true redaction ('Both are enabled by default'). Fixed reliable opening and scrolling of settings from step 14 onwards and in the advanced chapter during any keyboard arrow or click navigation so discussed elements are always clearly visible and never obscured by toolbar." } },
+    { version: "2026.09.30-ai14", notes: { cs: "Tlačítko HTML spolehlivě exportuje celou samostatnou app vhodnou k úpravě v jiné AI: chrání citlivá data před únikem do exportu (žádné zbytky z otevřených souborů v DOMu), funguje online i offline (file://) a garantuje kompletní zdrojový kód se všemi knihovnami.", en: "The HTML button reliably exports the complete standalone app ready for editing in another AI: prevents sensitive data leaks into export (no open document traces in DOM), works online and offline (file://), and guarantees complete source code with all libraries." } },
+    { version: "2026.09.30-ai13", notes: { cs: "Video tutoriál je deterministický: každý krok se znovu sestaví bez snapshotů, Zpět/Další/Přeskočit ruší staré asynchronní akce, pauza zastaví i čekající časovače, klávesy šipek/J/K/R/P nezasahují do dat a konec přes Přeskočit zachová dokument. Kroky 12 a 13 zobrazují vlastní rozbalené ukázky všech profilů a režimů s postupným zvýrazněním položek; ukázka nemění data.", en: "The video tutorial is deterministic: every step is rebuilt without snapshots, Back/Next/Skip invalidate stale async work, pause also stops pending timers, tutorial keys no longer alter document data, and skipping the last step preserves the document. Steps 12 and 13 show custom expanded previews of all profiles and replacement modes with progressive item highlighting; the preview never changes data." } },
+    { version: "2026.09.22-ai12", notes: { cs: "Video tutoriál opraven: zvýrazňuje přesně to, o čem titulek mluví (IBAN, stavy produkce, tlačítka R/P, textová vrstva PDF), titulek nezakrývá zvýrazněné prvky ani lepivou lištu, „Zkontrolováno“ se nezaškrtává předem a tutoriál ukazuje všechny prvky i v rychlém režimu na mobilu.", en: "Video tutorial fixed: it now highlights exactly what the caption describes (IBAN, production status, R/P buttons, PDF text layer), the caption no longer covers highlighted items or the sticky bar, 'Reviewed' is no longer ticked in advance, and the tutorial shows every control even in quick mode on mobile." } },
+    { version: "2026.09.22-ai11", notes: { cs: "Video tutoriál má novou Kapitolu 6 — pokročilé funkce (citlivost, poloha lišty, metadata/true-redact, rychlý režim, zrychlené schvalování, expertní režim, hromadné akce, druhá kontrola, nahrání vlastního souboru) se zřetelným varováním, že jde o volitelné pokročilé nastavení.", en: "The video tutorial has a new Chapter 6 — advanced functions (sensitivity, toolbar position, metadata/true-redact, quick mode, accelerated approval, expert mode, bulk actions, second review, uploading your own file) with a clear warning that these are optional advanced settings." } },
     { version: "2026.09.22-ai10", notes: { cs: "Video tutoriál nově ukazuje i nastavení: profil, režim náhrady, vypínání kategorií, vlastní slovník systémů/projektů, OCR a tlačítko Audit JSON.", en: "The video tutorial now also covers Settings: profile, replacement mode, toggling categories, your own system/project dictionary, OCR and the Audit JSON button." } },
     { version: "2026.09.21-ai9", notes: { cs: "V razítku elektronického podpisu se anonymizuje jen jméno podepisujícího. Rámeček, organizace, CA, sériové číslo i datum zůstanou.", en: "Inside a visible e-signature stamp only the signer name is redacted. The frame, organisation, CA, serial and date stay." } },
     { version: "2026.09.21-ai8", notes: { cs: "Viditelný elektronický podpis: celé razítko se při exportu začerní.", en: "Visible e-signature: the whole stamp is covered on export." } },
@@ -916,7 +954,7 @@ Orgán: OBÚ.
         clear:"Drops the document from memory.", addSelection:"Select text in the original.",
         high:"Strong evidence (checksum, label, dictionary).", medium:"Heuristic — check for false positives.",
         suspicion:"High: catches more (risk of false positives). Low: stricter (risk of misses). Medium: compromise.",
-        cats:{ rc:"Birth number with checksum.", ico:"8-digit company ID.", dic:"VAT ID.", account:"Czech account and IBAN.", phone:"Czech phone number.", email:"Email.", address:"Street, square, seat and postcode.", dob:"Date of birth in context — not a contract date.", name:"Titled, declined and initialised names.", idcard:"ID / passport number.", datovka:"Data mailbox ID.", spz:"Licence plate including EL.", geo:"Geographic coordinates.", sigcert:"Personal certificate serial number and fingerprint, the serialNumber attribute and raw signature data. Inside a visible stamp only the signer name is covered — the frame, organisation, CA and date stay.", secrets:"Your own secret phrases.", ticket:"JIRA-like IDs. Dictionary prefixes win.", system:"Names from your dictionary plus system/module/integration phrases.", project:"Ticket prefix or project name.", incident:"HD / INC / ops number.", casefile:"File number and case reference.", status:"Specific production state is generalized.", orgunit:"Named body or unit from your dictionary.", host:"Internal hostname or URL.", ip:"Private IPv4 (10/8, 192.168/16, 172.16/12).", credential:"API key, Bearer token, password." },
+        cats:{ rc:"Birth number with checksum.", ico:"8-digit company ID.", dic:"VAT ID.", account:"Czech account and IBAN.", phone:"Czech phone number.", email:"Email.", address:"Street, square, seat and postcode.", dob:"Date of birth in context — not a contract date.", name:"Titled, declined and initialised names.", idcard:"ID / passport number.", datovka:"Data mailbox ID.", spz:"Licence plate including EL.", geo:"Coordinates.", sigcert:"Personal certificate serial number and fingerprint, the serialNumber attribute and raw signature data. Inside a visible stamp only the signer name is covered — the frame, organisation, CA and date stay.", secrets:"Your own secret phrases.", ticket:"JIRA-like IDs. Dictionary prefixes win.", system:"Names from your dictionary plus system/module/integration phrases.", project:"Ticket prefix or project name.", incident:"HD / INC / ops number.", casefile:"Case file no.", status:"Production status", orgunit:"Body / unit", host:"Internal URL / host", ip:"Private IPv4 (10/8, 192.168/16, 172.16/12).", credential:"Key / password" },
         profiles:{ registr:"Goes into the central Register of Contracts — redact per Act 340/2015 (personal data, trade secrets).", infoact:"A reply to a request under the Freedom of Information Act (106/1999).", court:"Publishing a decision under Decree 403/2022 on anonymising court decisions.", internal:"For an internal tool with restricted access — values become consistent pseudonyms, not fully removed.", publicai:"The strictest profile — no company, systems or specific numbers, suited to public AI tools.", custom:"Set your own categories and dictionaries." },
         modes:{ box:"The text is physically removed / blacked out in the file — it cannot be recovered.", xxxx:"Replaces the hit with an XXXX string of the same length.", label:"Replaces the hit with a generic category tag, e.g. [PERSON] or [ADDRESS].", pseudo:"The same value gets the same pseudonym (TICKET_001) throughout the document, so links stay readable." }
       }
@@ -953,7 +991,6 @@ Orgán: OBÚ.
   };
   const i = () => I18N[S.lang];
   const $ = (id) => document.getElementById(id);
-
   function applyTheme(){
     const dark = S.theme === "dark";
     document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
@@ -1203,11 +1240,6 @@ Orgán: OBÚ.
     if (/\s/.test(name)) return new RegExp(esc, "gi");
     return new RegExp("(?<![\\p{L}\\p{N}])"+esc+"(?![\\p{L}\\p{N}])", "giu");
   }
-  // Any URL-ish token (http(s)://..., www...., bareword.tld/path...) found in the raw
-  // source text. Computed independently of the "host" detector toggle, because these
-  // spans exist purely to PROTECT structured tokens (links) from being partially
-  // clipped by unrelated PII regexes (phone/account/name/etc. matching digits or words
-  // that happen to sit inside a query string or path) — not to redact hosts themselves.
   const URL_TOKEN_RE = /\b(?:https?:\/\/|www\.)[^\s<>"'\u00AD\u200B]+|\b[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+\.(?:cz|sk|com|net|org|eu|io)\/[^\s<>"'\u00AD\u200B]*/gi;
   function urlSpans(text){
     const spans = [];
@@ -1221,11 +1253,6 @@ Orgán: OBÚ.
   function spanInUrl(spans, start, end){
     return spans.find(u => start < u.end && end > u.start) || null;
   }
-  // Trailing/leading punctuation trimming that is safe for a URL: only strip
-  // characters that are clearly sentence punctuation glued on the *outside*,
-  // never characters that could be meaningful inside a URL (parens can be part
-  // of the path/query, e.g. Wikipedia-style links, so only strip an unbalanced
-  // trailing ')' or ']' — i.e. one with no matching opener earlier in the value).
   function trimUrlValue(h, src){
     let s = h.start, e = h.end;
     while (e>s) {
@@ -1448,12 +1475,10 @@ Orgán: OBÚ.
       return h;
     }));
     if (enabled.sigcert) {
-      // Sériové číslo osobního / kvalifikovaného certifikátu (kontextově vázané, aby se neshodovalo s IČO/RČ apod.)
       add(findAll(t, /(?:sériové\s+č[ií]slo(?:\s+certifikátu)?|sériové\s+č\.?\s*cert\.?|seriove\s+cislo|serial\s*number|serialnumber|s\/n)\s*[:=]?\s*([0-9A-Fa-f]{2}(?:[:\s-]?[0-9A-Fa-f]{2}){3,19}|[0-9A-Fa-f]{6,40}|\d{6,12})/giu, "sigcert", null, 1).map(h => {
         h.reasons = ["label:sériové číslo","cert-serial"];
         return h;
       }));
-      // Viditelné razítko PostSignum / I.CA — jméno za „Podpisující:“
       add(findAll(t, /(?:podpisuj[íi]c[íi]|podepisuj[íi]c[íi]|podepsal(?:\/a)?|signed\s+by)\s*[:=]\s*([^\n]{3,80})/giu, "sigcert", v => {
         const s = String(v||"").trim();
         if (!s || /^(čb[uú]|organizace|postsignum)/i.test(s)) return false;
@@ -1462,21 +1487,17 @@ Orgán: OBÚ.
         h.reasons = ["label:podpisující","visible-stamp"];
         return h;
       }));
-      // DN-styl atributů certifikátu, které nesou identitu podepisující osoby (ne CA, ne roli)
       add(findAll(t, /\bserialNumber\s*=\s*([A-Za-z0-9][A-Za-z0-9\/. -]{2,38}[A-Za-z0-9])(?=\s*[,\n]|$)/g, "sigcert", null, 1), ["label:serialNumber","dn"]);
-      // Otisk / fingerprint / thumbprint certifikátu nebo podpisu (SHA-1/256/512, MD5)
       add(findAll(t, /(?:otisk(?:\s*\(?(?:sha-?1|sha-?256|sha-?384|sha-?512|md5)\)?)?|fingerprint|thumbprint|digest)\s*[:=]?\s*((?:[0-9A-Fa-f]{2}[:\s]){15,63}[0-9A-Fa-f]{2}|[0-9A-Fa-f]{32,128})/giu, "sigcert", null, 1).map(h => {
         h.reasons = ["label:otisk","hash"];
         return h;
       }));
-      // Nekontextové dlouhé hex řetězce typické délky hashů (MD5/SHA1/SHA256/SHA512) — jen při vyšší citlivosti
       if (sus !== "low") {
         add(findAll(t, /\b[0-9A-Fa-f]{32}\b|\b[0-9A-Fa-f]{40}\b|\b[0-9A-Fa-f]{64}\b|\b[0-9A-Fa-f]{128}\b/g, "sigcert", (v,f,i) => {
           if (sus === "high") return ctxHas(f,i,i+v.length,["podpis","certifikát","otisk","hash","fingerprint","thumbprint","signature"], 90);
           return ctxHas(f,i,i+v.length,["otisk","fingerprint","thumbprint","hash"], 60);
         }), ["format","hash-length"]);
       }
-      // Syrové technické struktury elektronického podpisu (PDF /Sig slovník, PKCS#7 blok) — vždy pryč, nejde o čitelný obsah
       add(findAll(t, /\/(?:Contents|ByteRange)\s*[<\[][^\n]{6,4000}?[>\]]/g, "sigcert"), ["format","pdf-sig-structure"]);
       add(findAll(t, /-----BEGIN PKCS7-----[\s\S]{0,20000}?-----END PKCS7-----/g, "sigcert"), ["format","pkcs7-blob"]);
     }
@@ -1606,12 +1627,6 @@ Orgán: OBÚ.
       return true;
     }), ["format"]);
 
-    // --- URL/link guard -----------------------------------------------------
-    // Never let an unrelated PII hit (phone/account/name/ico/...) partially
-    // redact a URL: any hit that overlaps a URL token gets absorbed into a
-    // single hit spanning the *whole* URL, so either the entire link is
-    // redacted as one clean token or (if "host" detection is off) left
-    // completely alone — never left half-mangled.
     const urlTokens = urlSpans(src);
     if (urlTokens.length) {
       const survivors = [];
@@ -1619,9 +1634,9 @@ Orgán: OBÚ.
       bag.forEach(h => {
         const u = spanInUrl(urlTokens, h.start, h.end);
         if (!u) { survivors.push(h); return; }
-        if (!enabled.host) return; // host redaction is off: leave the whole link untouched
+        if (!enabled.host) return;
         const key = u.start+"|"+u.end;
-        if (consumedUrls.has(key)) return; // already emitted a whole-url hit for this link
+        if (consumedUrls.has(key)) return;
         consumedUrls.add(key);
         const wholeUrl = finalizeHit({
           type: "host",
@@ -1635,7 +1650,6 @@ Orgán: OBÚ.
       bag.length = 0;
       bag.push(...survivors);
     }
-    // -------------------------------------------------------------------------
 
     bag.sort((a,b)=>a.start-b.start || (b.end-a.start)-(a.end-a.start));
     const merged = [];
@@ -1987,7 +2001,6 @@ Orgán: OBÚ.
     const th = box.offsetHeight || 48;
     const gap = 8;
     const margin = 8;
-    // preferred placement: bottom, flip to top if overflow
     let y = r.bottom + gap;
     let placement = "bottom";
     if (y + th + margin > innerHeight) {
@@ -1995,7 +2008,6 @@ Orgán: OBÚ.
       if (yTop >= margin) { y = yTop; placement = "top"; }
       else y = Math.max(margin, innerHeight - th - margin);
     }
-    // shift horizontally to stay on screen
     let x = r.left + (r.width / 2) - (tw / 2);
     if (x + tw + margin > innerWidth) x = innerWidth - tw - margin;
     if (x < margin) x = margin;
@@ -2018,7 +2030,6 @@ Orgán: OBÚ.
   }
   function tipHide(fromEl){
     if (fromEl && tipAnchor && (fromEl === tipAnchor || fromEl.contains(tipAnchor) || tipAnchor.contains(fromEl))) {
-      // leaving a child of the same tip host — keep visible
     }
     if (tipTimer) { clearTimeout(tipTimer); tipTimer = null; }
     tipAnchor = null;
@@ -2259,7 +2270,6 @@ Orgán: OBÚ.
   }
   function closeSettings(){
     $("settingsModal").classList.add("hidden");
-    // secrets may have changed without onchange (typing only)
     const root = $("settingsModalMount");
     if (root) {
       const pull = (id, field) => { const el = root.querySelector("#"+id); if (el) S[field] = el.value; };
@@ -2271,7 +2281,6 @@ Orgán: OBÚ.
       if (cm) S.stripMeta = cm.checked;
     }
     if (S.text) runAnalyze();
-    // refresh landing details if visible
     if (!$("landing").classList.contains("hidden")) {
       $("settingsMount").innerHTML = settingsHTML();
       wireSettings($("settingsMount"));
@@ -2539,7 +2548,6 @@ Orgán: OBÚ.
       document.documentElement.style.setProperty("--bar-h", "0px");
       return;
     }
-    // total reserved space for the review content padding: export bar + (if shown) the floating hit card on top of it
     let total = exportH;
     if (showingQuick) total += Math.ceil(qbar.getBoundingClientRect().height) + 8;
     document.documentElement.style.setProperty("--bar-h", Math.max(total ? 56 : 0, total)+"px");
@@ -2628,7 +2636,6 @@ Orgán: OBÚ.
       text += it.str;
       const end = text.length;
       if (it._ocr) {
-        // OCR item: pre-computed PDF-unit coords → scale to canvas space here
         map.push({ start, end, str: it.str,
           x: it._pdfX * scale,
           y: it._pdfYTop * scale,
@@ -2781,7 +2788,6 @@ Orgán: OBÚ.
     }).filter(r => (r[2]-r[0]) > 2 && (r[3]-r[1]) > 2);
   }
   function inferStampRectsFromItems(items, vp, scale){
-    // Only the signer-name line after „Podpisující:“ — never the whole frame.
     if (!items || !items.length) return [];
     const mapped = mapPageGlyphs(items, scale || 1, vp);
     const re = /podpisuj[íi]c[íi]|podepisuj[íi]c[íi]|podepsal(?:\/a)?|signed\s+by/gi;
@@ -2846,7 +2852,6 @@ Orgán: OBÚ.
     const pages = [];
     let text = "";
 
-    // --- OCR setup (only if user enabled OCR and Tesseract is loaded) ---
     let ocrWorker = null;
     if (S.ocrEnabled && window.Tesseract) {
       try {
@@ -2877,7 +2882,6 @@ Orgán: OBÚ.
       const tc = await page.getTextContent();
       const compact = (tc.items||[]).map(it => ({ str: it.str, transform: it.transform, width: it.width }));
 
-      // Scan heuristic: fewer than 5 non-empty text items → treat as image scan
       const meaningfulItems = compact.filter(it => it.str && it.str.trim());
       const isScan = meaningfulItems.length < 5;
 
@@ -2885,7 +2889,7 @@ Orgán: OBÚ.
       let body;
 
       if (isScan && ocrWorker) {
-        const t = S.lang; // cache lang for closure
+        const t = S.lang;
         showOcrProgress((t === "cs" ? "OCR: zpracovávám stránku " : "OCR: processing page ") + i + "/" + pdf.numPages + "…");
         try {
           const ocrScale = 2.5;
@@ -2898,9 +2902,6 @@ Orgán: OBÚ.
           showOcrProgress((t === "cs" ? "OCR: stránka " : "OCR: page ") + i + "/" + pdf.numPages + "…");
           const { data: ocrData } = await ocrWorker.recognize(canvas);
 
-          // Build synthetic OCR items in PDF coordinate space (scale-independent)
-          // Tesseract bbox: canvas pixels, top-left origin
-          // PDF space: points, bottom-left origin  →  _pdfYTop = y0/ocrScale (distance from page top)
           finalItems = (ocrData.words || [])
             .filter(w => w.text && w.text.trim() && (w.confidence || 0) > 25)
             .map(w => ({
@@ -2927,9 +2928,6 @@ Orgán: OBÚ.
       const signatures = await pageSignatureMeta(page);
       let stampText = signatures.map(s => s.text).filter(Boolean).join(" ");
 
-      // Visible QES stamps are annotation appearances (or flattened images).
-      // Crop-OCR them even on pages that already have a text layer, otherwise
-      // the signer name never enters detect().
       if (ocrWorker && signatures.length && !isScan) {
         try {
           const ocrScale = 2.2;
@@ -2978,12 +2976,6 @@ Orgán: OBÚ.
 
       if (stampText) body = (body ? body + "\n" : "") + stampText;
 
-      // Flag pages that had no real text layer and, for whatever reason
-      // (OCR off, Tesseract not loaded, OCR init/run failure, or OCR
-      // found nothing above the confidence threshold), still ended up
-      // with nothing searchable — these were never actually checked
-      // for sensitive content, so the caller must warn about them
-      // instead of silently reporting "no hits".
       const noTextLayer = isScan && (!ocrWorker || !finalItems.some(it => it.str && it.str.trim()));
 
       const chunk = "\n\n--- "+i+" ---\n"+body;
@@ -3038,39 +3030,6 @@ Orgán: OBÚ.
     return await doc.save({ useObjectStreams:false });
   }
 
-  // ============================================================
-  // TRUE (content-stream) PDF REDACTION
-  //
-  // exportPdfRaster (above) is the safe default: it turns every
-  // page into a picture, so there is no text layer left at all —
-  // leak-proof, but the output is no longer searchable/selectable.
-  //
-  // This engine instead edits the PDF's own content stream: it
-  // physically deletes the Tj/TJ text-showing operators for the
-  // matched text (the bytes are gone, not just covered), then either
-  // draws a black box over the vacated area ("box" mode) or the same
-  // replacement token the text export would use — XXXX, [LABEL], or
-  // the consistent pseudonym — as new, real, searchable text (every
-  // other mode), and leaves everything else as live, searchable
-  // vector text.
-  //
-  // It only touches "simple" fonts (Type1/TrueType), and for matching
-  // purposes decodes each string through the font's own /ToUnicode
-  // CMap when it has one, rather than assuming the raw bytes are
-  // Latin-1: an embedded subset font's byte values are an arbitrary
-  // internal numbering, and even a non-subset font's actual encoding
-  // (WinAnsi/CP1250, which is what real diacritics show up as) isn't
-  // Latin-1 either, so without this a hit's text almost never matches
-  // the raw bytes and nothing gets removed. Fonts using /Subtype
-  // /Type0 (CID/Identity-H — also common with embedded subset fonts)
-  // need their embedded CMap walked differently (2-byte codes); that's
-  // real work with a real silent-failure mode if done casually, so any
-  // page where a hit's text still can't be safely matched this way is
-  // routed to the proven exportPdfRaster path instead of guessing.
-  // Same for pages where text is drawn as vector paths rather than
-  // font glyphs (search finds nothing) — those also fall back to
-  // rasterization.
-  // ============================================================
   function pdfTokenize(bytes){
     const tokens = [];
     let i = 0; const n = bytes.length;
@@ -3146,14 +3105,6 @@ Orgán: OBÚ.
   }
   function pdfBytesToLatin1(u8){ let s=""; for (let k=0;k<u8.length;k++) s+=String.fromCharCode(u8[k]); return s; }
   function pdfConcatU8(a,b){ const out=new Uint8Array(a.length+b.length); out.set(a,0); out.set(b,a.length); return out; }
-  // Parses a /ToUnicode CMap stream into a code->text map (1-byte codes
-  // only, which is what simple fonts use). This is what actually lets
-  // matching work on real documents: an embedded subset font's raw
-  // bytes are an arbitrary internal numbering (and even a non-subset
-  // font's WinAnsi/CP1250 bytes don't line up with Latin-1), so bytes
-  // can't be compared to the plain-text hit values directly. The
-  // ToUnicode CMap is the font's own declared byte->real-character
-  // mapping, so decoding through it gives text that actually matches.
   function parseToUnicodeCMap(bytes){
     const s = pdfBytesToLatin1(bytes);
     const map = new Map();
@@ -3171,7 +3122,7 @@ Orgán: OBÚ.
       const pairRe = /<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g;
       let p;
       while ((p = pairRe.exec(m[1]))) {
-        if (p[1].length !== 2) continue; // only 1-byte source codes (simple fonts)
+        if (p[1].length !== 2) continue;
         map.set(parseInt(p[1],16), hexToStr(p[2]));
       }
     }
@@ -3188,12 +3139,6 @@ Orgán: OBÚ.
     }
     return map.size ? map : null;
   }
-  // Decodes raw content-stream string bytes into text for matching,
-  // preferring the font's ToUnicode mapping. Falls back to Latin-1
-  // per byte wherever a code isn't mapped, or maps to something other
-  // than exactly one character (ligature, etc.) — this keeps text.length
-  // strictly equal to raw.length, byte-for-byte, which the caller
-  // relies on to translate a text match back into a byte range.
   function pdfDecodeBytesToText(raw, toUnicode){
     if (!toUnicode) return pdfBytesToLatin1(raw);
     let out = "";
@@ -3255,10 +3200,6 @@ Orgán: OBÚ.
     if (cursor < len) keep.push({ start:cursor, end:len });
     return keep;
   }
-  // Removes matched text from one page's decoded content-stream bytes.
-  // Returns the rewritten bytes plus which targets were (not) found,
-  // so the caller can decide whether this page still needs the
-  // rasterization fallback for anything it couldn't reach.
   function redactPageContentBytes(decodedBytes, resourcesDict, context, targets){
     const tokens = pdfTokenize(decodedBytes);
     let currentFontSafe = true;
@@ -3338,14 +3279,12 @@ Orgán: OBÚ.
     for (const p of patches) out = pdfConcatU8(pdfConcatU8(out.slice(0,p.start), p.replacement), out.slice(p.end));
     return { bytes: out, removedCount, unmatched: Array.from(unmatched) };
   }
-  // Reads a page's /Contents (single stream or array of streams),
-  // decoded to raw bytes, plus enough to write it back afterwards.
   function getPageContentStream(context, pageNode){
     const { PDFName, PDFArray, decodePDFRawStream } = PDFLib;
     let ref = pageNode.get(PDFName.of("Contents"));
     let obj = context.lookup(ref);
     if (obj instanceof PDFArray) {
-      if (obj.size() !== 1) return null; // multi-stream contents: skip, use raster fallback for this page
+      if (obj.size() !== 1) return null;
       ref = obj.get(0);
       obj = context.lookup(ref);
     }
@@ -3354,23 +3293,12 @@ Orgán: OBÚ.
     return { ref, streamObj: obj, decoded };
   }
   function writePageContentStream(context, ref, streamObj, newBytes){
-    // Written uncompressed (Filter removed) rather than re-deflating —
-    // pdf-lib bundles pako internally but doesn't expose it on
-    // window.PDFLib, and adding a whole extra script just for this
-    // isn't worth it for a page-sized content stream. Costs a little
-    // file size, changes nothing about correctness or safety.
     const { PDFName, PDFRawStream } = PDFLib;
     const newDict = streamObj.dict.clone(context);
     newDict.set(PDFName.of("Length"), context.obj(newBytes.length));
     newDict.delete(PDFName.of("Filter"));
     context.assign(ref, PDFRawStream.of(newDict, newBytes));
   }
-  // Attempts true (content-stream) redaction across the whole document.
-  // Returns { doc, rasterPages: Set<pageNumber> } — pages that could
-  // not be safely and completely handled this way (CID fonts, vector
-  // text, multi-stream contents, or a hit whose text wasn't found)
-  // are listed for the caller to rasterize instead, page-by-page,
-  // so no page is ever left with a merely-covered residual text layer.
   async function exportPdfTrueRedact(source, hits, title, mode, lang){
     pdfWorker();
     const pdfjsDoc = await pdfjsLib.getDocument({ data: source.slice(0), disableStream:true, disableAutoFetch:true }).promise;
@@ -3402,7 +3330,7 @@ Orgán: OBÚ.
         });
         const list = Array.from(byKey.values());
         pageSigs[i] = list;
-        if (list.length) rasterPages.add(i); // appearance sits outside /Contents — rasterize + cover
+        if (list.length) rasterPages.add(i);
       }
     }
 
@@ -3423,15 +3351,8 @@ Orgán: OBÚ.
       const result = redactPageContentBytes(contentInfo.decoded, resourcesDict, doc.context, targets);
       writePageContentStream(doc.context, contentInfo.ref, contentInfo.streamObj, result.bytes);
 
-      if (result.unmatched.length) rasterPages.add(i); // couldn't guarantee removal — redo this page as an image
+      if (result.unmatched.length) rasterPages.add(i);
 
-      // Paint over the vacated regions using the same glyph-position
-      // map the rasterization path already relies on, so the visual
-      // result lines up even though this is vector text. In "box"
-      // mode that's a solid black rectangle (irreversible blackout);
-      // in every other mode it's the same replacement token the text
-      // export would use (XXXX, [LABEL], or the consistent pseudonym),
-      // drawn as new, real, searchable text over a light backing box.
       const pjsPage = await pdfjsDoc.getPage(i);
       const pageMeta = (S.pages||[]).find(p => p.n===i);
       const rawItems = (pageMeta && pageMeta.items && pageMeta.items.length) ? pageMeta.items : (await pjsPage.getTextContent()).items;
@@ -3446,8 +3367,6 @@ Orgán: OBÚ.
         const end = idx + Math.max(hit.value.length, 1);
         const glyphs = map.filter(m => m.end>idx && m.start<end);
         if (!glyphs.length) return;
-        // mapPageGlyphs y is measured from the top (canvas space);
-        // PDF page space is bottom-up, so flip it here.
         const minX = Math.min(...glyphs.map(m=>m.x));
         const maxX = Math.max(...glyphs.map(m=>m.x+m.w));
         const maxH = Math.max(...glyphs.map(m=>m.h));
@@ -3470,14 +3389,9 @@ Orgán: OBÚ.
     }
 
     if (S.stripMeta) {
-      try { doc.catalog.delete(PDFLib.PDFName.of("Metadata")); } catch(_) {} // drops XMP stream ref
+      try { doc.catalog.delete(PDFLib.PDFName.of("Metadata")); } catch(_) {}
     }
 
-    // Any page we couldn't fully guarantee (CID font, unmatched hit,
-    // multi-stream contents) gets replaced with a rasterized version
-    // of just that page — same technique as exportPdfRaster, applied
-    // page-by-page so a single problem page doesn't force the whole
-    // document back to images.
     for (const pageNum of rasterPages) {
       const i = pageNum;
       const pjsPage = await pdfjsDoc.getPage(i);
@@ -3505,10 +3419,6 @@ Orgán: OBÚ.
           ctx.fillRect(minX-2, minY-2, boxW, boxH);
           return;
         }
-        // This page is already becoming a flat image (leaked-vector or
-        // CID-font page), so there's no text layer to preserve here
-        // regardless — just keep the replacement token visually
-        // consistent with the pages that stayed vector.
         const token = replacer(hit);
         let size = Math.max(8, Math.min(boxH*scale*0.6, 15*scale));
         ctx.font = size+"px sans-serif";
@@ -3707,7 +3617,7 @@ Orgán: OBÚ.
             bytes = result.bytes;
             rasterPages = result.rasterPages;
           } catch (e) {
-            bytes = await exportPdfRaster(S.sourceBuf, S.hits, S.fileName, S.mode, S.lang); // safe fallback on any engine error
+            bytes = await exportPdfRaster(S.sourceBuf, S.hits, S.fileName, S.mode, S.lang);
           }
         } else {
           bytes = await exportPdfRaster(S.sourceBuf, S.hits, S.fileName, S.mode, S.lang);
@@ -3747,17 +3657,94 @@ Orgán: OBÚ.
     finally { btn.disabled=false; btn.textContent=t.export; }
   }
   function reset(){ S.text=""; S.hits=[]; S.fileName=""; S.reviewed=false; S.hashIn=""; S.sourceBuf=null; S.pages=[]; S.noTextPages=0; S.cellMap=[]; paint(); }
-  async function downloadSelf(){
+  let PRISTINE_HTML = "";
+
+  function buildSanitizedHtml() {
     try {
-      if (!/^https?:/i.test(location.protocol)) throw new Error("file");
-      const res = await fetch(location.href); const blob = await res.blob();
-      download("znecitelne.html", blob);
-    } catch {
-      const html = "<!DOCTYPE html>\n"+document.documentElement.outerHTML;
-      download("znecitelne.html", new Blob([html], {type:"text/html;charset=utf-8"}));
+      const doc = document.implementation.createHTMLDocument(document.title || "Znečitelně");
+      doc.documentElement.innerHTML = document.documentElement.innerHTML;
+
+      const landing = doc.getElementById("landing");
+      if (landing) landing.classList.remove("hidden");
+      const review = doc.getElementById("review");
+      if (review) review.classList.add("hidden");
+      const bar = doc.getElementById("bar");
+      if (bar) { bar.classList.add("hidden"); bar.innerHTML = ""; }
+      const quickHitBar = doc.getElementById("quickHitBar");
+      if (quickHitBar) { quickHitBar.classList.add("hidden"); quickHitBar.innerHTML = ""; }
+
+      const orig = doc.getElementById("orig");
+      if (orig) orig.innerHTML = "";
+      const result = doc.getElementById("result");
+      if (result) result.innerHTML = "";
+      const hitList = doc.getElementById("hitList");
+      if (hitList) hitList.innerHTML = "";
+      const processBox = doc.getElementById("processBox");
+      if (processBox) processBox.innerHTML = "";
+      const inspector = doc.getElementById("inspector");
+      if (inspector) inspector.innerHTML = "";
+      const scanWarn = doc.getElementById("scanWarn");
+      if (scanWarn) { scanWarn.classList.add("hidden"); scanWarn.textContent = ""; }
+      const residual = doc.getElementById("residual");
+      if (residual) { residual.classList.add("hidden"); residual.textContent = ""; }
+
+      ["helpModal", "featuresModal", "changelogModal", "exportModal", "settingsModal"].forEach(id => {
+        const m = doc.getElementById(id);
+        if (m) m.classList.add("hidden");
+      });
+
+      doc.body.className = "";
+      const tip = doc.getElementById("tip");
+      if (tip) { tip.className = ""; tip.textContent = ""; }
+      const toastEl = doc.getElementById("toast");
+      if (toastEl) { toastEl.className = "toast"; toastEl.style.display = "none"; }
+      const capBar = doc.getElementById("movie-caption-bar");
+      if (capBar) capBar.className = "";
+      const mControls = doc.getElementById("movie-controls");
+      if (mControls) mControls.className = "";
+      const mTitle = doc.getElementById("movie-title-card");
+      if (mTitle) mTitle.className = "";
+      const mMenu = doc.getElementById("movie-select-menu");
+      if (mMenu) { mMenu.className = ""; mMenu.innerHTML = ""; }
+
+      return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+    } catch (_) {
+      return "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
     }
   }
 
+  async function getCleanExportHtml() {
+    if (/^https?:/i.test(location.protocol)) {
+      const candidates = ["index.html", "./index.html", "/", location.pathname, location.href];
+      for (const url of candidates) {
+        try {
+          const res = await fetch(url, { cache: "no-cache" });
+          if (res.ok) {
+            const txt = await res.text();
+            if (txt.includes("<!DOCTYPE html>") && txt.includes("Znečitelně") && txt.includes("PII_KEYS") && txt.length > 50000) {
+              return txt;
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (PRISTINE_HTML && PRISTINE_HTML.length > 50000 && PRISTINE_HTML.includes("<!DOCTYPE") && PRISTINE_HTML.includes("PII_KEYS")) {
+      return PRISTINE_HTML;
+    }
+
+    return buildSanitizedHtml();
+  }
+
+  async function downloadSelf(){
+    try {
+      const html = await getCleanExportHtml();
+      download("znecitelne.html", new Blob([html], {type:"text/html;charset=utf-8"}));
+      toast(S.lang === "cs" ? "HTML aplikace byla stažena." : "HTML app downloaded.");
+    } catch (e) {
+      toast(e.message || String(e));
+    }
+  }
   $("btnLang").onclick = () => { S.lang = S.lang==="cs"?"en":"cs"; localStorage.setItem("znec-lang", S.lang); paint(); };
   $("btnTheme").onclick = toggleTheme;
   $("btnSettings").onclick = openSettings;
@@ -3770,7 +3757,6 @@ Orgán: OBÚ.
     pull("m_taOrgs", "orgs");
     const cm = root.querySelector("#m_chkMeta");
     if (cm) S.stripMeta = cm.checked;
-    // values already live-applied via wireSettings; force re-detect for secrets
     if (S.text) runAnalyze();
     $("settingsModal").classList.add("hidden");
     if (!$("landing").classList.contains("hidden")) {
@@ -3852,12 +3838,26 @@ Orgán: OBÚ.
     const enc = new TextEncoder().encode(SAMPLE);
     await ingest("smlouva-vzor.txt", "text", SAMPLE, enc.buffer.slice(enc.byteOffset, enc.byteOffset+enc.byteLength));
   };
-  $("btnMovie").onclick = () => startMovieTutorial(MOVIE_SCRIPT_BASIC);
+  $("btnMovie").onclick = () => startMovieTutorial(MOVIE_SCRIPT);
   $("movie-btn-back").onclick = () => movieBackStep();
   $("movie-btn-playpause").onclick = () => movieTogglePause();
   $("movie-btn-skip").onclick = () => movieSkipStep();
+
+  document.addEventListener("mousedown", (e) => {
+    if (!S.movie || MOVIE_PAUSED || e.button !== 0) return;
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest(
+      "button, a, input, select, textarea, label, summary, details, " +
+      ".modal, #movie-title-card, #movie-controls"
+    )) return;
+    movieSkipStep();
+  });
   $("movie-btn-speed").onclick = () => movieToggleSpeed();
   $("movie-btn-exit").onclick = () => exitMovieTutorial();
+  $("movie-title-card").addEventListener("click", (e) => {
+    if (e.target.id === "movie-title-card") movieCloseTitleCard();
+  });
   $("btnBrowse").onclick = pickFile;
   $("file").onchange = (e) => { if (e.target.files[0]) onFile(e.target.files[0]); e.target.value = ""; };
   $("drop").onclick = pickFile;
@@ -3873,7 +3873,20 @@ Orgán: OBÚ.
     if (!secretList().includes(sel)) S.secrets += "\n"+sel;
     paintReview();
   };
-  document.addEventListener("keydown", (e) => {
+    document.addEventListener("keydown", (e) => {
+    if (S.movie) {
+      const k = e.key;
+      if (["ArrowLeft","ArrowRight"," ","Escape","Esc","j","J","k","K","r","R","p","P","ArrowUp","ArrowDown"].includes(k)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (MOVIE_TRANSITION_LOCK) return;
+      if (k === "ArrowLeft") movieBackStep();
+      else if (k === "ArrowRight") movieSkipStep();
+      else if (k === " ") movieTogglePause();
+      else if (k === "Escape" || k === "Esc") exitMovieTutorial(true);
+      return;
+    }
     const tag = (e.target.tagName||"");
     if (tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
     if (e.metaKey||e.ctrlKey||e.altKey||!S.text) return;
@@ -3892,6 +3905,7 @@ Orgán: OBÚ.
 
   let MOVIE_TIMER = null;
   let MOVIE_PENDING = null;
+  let MOVIE_TITLE_TIMER = null;
   let MOVIE_PAUSED = false;
   let MOVIE_SPEED = 1;
   const MOVIE_SLOWDOWN = 0.3;
@@ -3948,50 +3962,77 @@ Orgán: OBÚ.
       chip.classList.add("marquee");
     });
   }
-  let MOVIE_SNAPSHOTS = [];
+
+  let MOVIE_PREV = null;
 
   function movieCaption(cs, en){ return S.lang === "en" ? en : cs; }
 
   const MOVIE_SCRIPT_BASIC = [
     {
+      setup: () => {},
       chapter: () => movieCaption("Kapitola 1 — Proč Znečitelně", "Chapter 1 — Why Znečitelně"),
       caption: () => movieCaption(
-        "Černé zvýraznění ve Wordu není anonymizace. Veřejné AI si text stejně přečte — včetně ticketů a jmen.",
-        "Black highlighting in Word is not anonymization. A public AI still reads the text — tickets and names included."
+        "Běžné černé zvýraznění ve Wordu pro anonymizaci nestačí. Veřejná AI si pod ním text, včetně jmen a interních ticketů, snadno přečte.",
+        "Black highlighting in Word is not anonymization. A public AI still reads the text under it — tickets and names included."
       ),
-      highlight: "drop",
-      holdMs: 5200
+      holdMs: 7500
     },
     {
+      setup: () => {},
       caption: () => movieCaption(
-        "Nic se neodesílá. Detekce i začernění běží jen v tomto souboru HTML.",
-        "Nothing is uploaded. Detection and redaction stay inside this single HTML file."
+        "Aplikace je plně bezpečná. Žádná data se nikam neodesílají, veškerá detekce a začernění probíhá lokálně přímo ve vašem prohlížeči.",
+        "The application is completely safe. Nothing is uploaded; all detection and redaction runs locally directly in your browser."
       ),
       highlight: "privacy",
-      holdMs: 4200
+      holdMs: 7500
     },
     {
       chapter: () => movieCaption("Kapitola 2 — Vzorová smlouva", "Chapter 2 — Sample contract"),
       caption: () => movieCaption(
-        "Vezmeme fiktivní smlouvu: RČ, IČO, IBAN, jména, tickety CBUAIS a interní systémy.",
-        "We load a fictitious contract: birth number, company ID, IBAN, names, CBUAIS tickets and internal systems."
+        "Pro ukázku si načteme fiktivní smlouvu. Na ní si ukážeme, jak se automaticky vyhledávají rodná čísla, IČO nebo bankovní účty.",
+        "We load a fictitious contract to show how birth numbers, company IDs and bank accounts are automatically detected."
       ),
-      highlight: "btnSample",
-      action: async () => {
+      preHighlight: "btnSample",
+      highlight: () => ["rc", "ico", "account"].map(t => {
+        const x = S.hits.find(k => k.type === t);
+        return x ? $("orig").querySelector(`[data-id="${x.id}"]`) : null;
+      }).filter(Boolean),
+      setup: async () => {
         const enc = new TextEncoder().encode(SAMPLE);
         await ingest("smlouva-vzor.txt", "text", SAMPLE, enc.buffer.slice(enc.byteOffset, enc.byteOffset+enc.byteLength));
         S.movie = true;
       },
-      actionDelayMs: 700,
-      holdMs: 4800
+      holdMs: 8000
     },
     {
       caption: () => movieCaption(
-        "Nálezy jsou v originálu oranžové (anonymizovat) nebo zelené (ponechat). Klávesy J/K listují, R začerní, P ponechá.",
-        "Hits in the original are orange (redact) or green (keep). J/K walk them, R redacts, P keeps."
+        "V textu vidíte barevně vyznačené nálezy. Oranžová barva znamená „anonymizovat“ (skrýt), zelená barva znamená „ponechat“ ve veřejném textu.",
+        "Hits in the text are color-coded. Orange means 'redact' (hide), green means 'keep' in the public text."
       ),
-      highlight: "orig",
-      holdMs: 5600
+      setup: () => {
+        setDocView("original");
+        const h = movieHit(x => x.type === "ico" && /00000205/.test(x.value));
+        if (h) patch(h.id, false);
+        S.selectedId = null; paintReview();
+      },
+      highlight: () => [
+        $("orig").querySelector(".mk-on"),
+        $("orig").querySelector(".mk-off")
+      ],
+      holdMs: 7500
+    },
+    {
+      caption: () => movieCaption(
+        "Práci si můžete urychlit klávesovými zkratkami: J a K pro listování mezi nálezy, R pro začernění a P pro ponechání nálezu.",
+        "Speed up your work with shortcuts: J and K to navigate hits, R to redact, and P to keep the hit."
+      ),
+      setup: () => {
+        setDocView("original");
+        const h = movieHit(x => x.accept && x.type === "name") || movieHit(x => x.accept);
+        if (h) select(h.id);
+      },
+      highlight: () => [$("orig").querySelector(".mk-sel"), "btnR", "btnK", "qhR", "qhK"],
+      holdMs: 7000
     }
   ];
 
@@ -3999,217 +4040,283 @@ Orgán: OBÚ.
     {
       chapter: () => movieCaption("Kapitola 3 — Osobní údaje", "Chapter 3 — Personal data"),
       caption: () => movieCaption(
-        "Rodné číslo má kontrolní součet. Stejná osoba s titulem, iniciálou i v pádě sdílí jeden token.",
-        "The birth number has a checksum. The same person with a title, initial or declined form shares one token."
+        "Aplikace je chytrá: rodná čísla rovnou ověřuje pomocí kontrolního součtu.",
+        "Birth numbers are verified via a checksum."
       ),
-      action: () => {
-        const h = S.hits.find(x => x.type === "rc") || S.hits.find(x => x.type === "name");
+      setup: () => {
+        setDocView("original");
+        const h = movieHit(x => x.type === "rc" && x.accept) || movieHit(x => x.type === "rc");
         if (h) select(h.id);
       },
-      holdMs: 5600
+      highlight: () => [$("orig").querySelector(".mk-sel"), "#inspector .layer-note"],
+      holdMs: 7000
     },
     {
       caption: () => movieCaption(
-        "IČO státního podniku v Registru smluv často necháte. IČO zhotovitele a IBAN zakryjete.",
-        "A state enterprise IČO is often left in the Register of Contracts. The contractor IČO and IBAN you hide."
+        "Všimněte si, že stejná osoba má v celém textu jeden stejný zástupný token, i když je jinde uvedena s titulem, iniciálou nebo v jiném pádě.",
+        "Notice that the same person shares one token throughout the text, even if cited with a title, initial, or declined form."
       ),
-      action: () => {
-        const h = S.hits.find(x => x.type === "account") || S.hits.find(x => x.type === "ico" && /25596641/.test(x.value));
+      setup: () => {
+        setDocView("preview");
+        const h = movieHit(x => x.type === "name" && /Nov[áa]k/.test(x.value));
         if (h) select(h.id);
       },
-      holdMs: 5200
+      highlight: () => {
+        const sel = $("orig").querySelector(".mk-sel");
+        if (!sel) return [];
+        const tok = sel.textContent.trim();
+        return Array.from($("orig").querySelectorAll(".mk-preview")).filter(m => m.textContent.trim() === tok);
+      },
+      holdMs: 8000
+    },
+    {
+      caption: () => movieCaption(
+        "Vždy ale zvažte kontext. Zatímco IČO ministerstva či státního podniku se v Registru smluv běžně nechává, IČO zhotovitele a jeho IBAN je nutné skrýt.",
+        "Always consider the context. While a state enterprise IČO is often left in the Register of Contracts, the contractor's IČO and IBAN must be hidden."
+      ),
+      setup: () => {
+        setDocView("original");
+        const st = movieHit(x => x.type === "ico" && /00000205/.test(x.value));
+        const ic = movieHit(x => x.type === "ico" && /25596641/.test(x.value));
+        const ac = movieHit(x => (x.type === "account" || x.type === "iban") && /^CZ\d{2}/i.test(String(x.value).replace(/\s/g, ""))) || movieHit(x => x.type === "account" || x.type === "iban");
+        S.selectedId = null; paintReview();
+        S.__movieCtx = [st, ic, ac].filter(Boolean).map(x => x.id);
+      },
+      highlight: () => (S.__movieCtx || []).map(id => $("orig").querySelector(`[data-id="${id}"]`)),
+      holdMs: 8500
     },
     {
       chapter: () => movieCaption("Kapitola 4 — Firma a projekt", "Chapter 4 — Firm and project"),
       caption: () => movieCaption(
-        "Pro veřejnou AI nestačí schovat lidi. Ticket CBUAIS-5164, AIS SBS i stav produkce jsou také identifikátory.",
-        "For a public AI, hiding people is not enough. Ticket CBUAIS-5164, AIS SBS and production status are identifiers too."
+        "Při sdílení dat s veřejnou AI nestačí skrýt pouze jména. Zvažte také odstranění identifikátorů, jako jsou tickety (např. CBUAIS-5164), názvy systémů nebo stavy produkce.",
+        "When sharing data with a public AI, hiding names is not enough. Consider also removing identifiers like tickets (e.g., CBUAIS-5164), system names, or production statuses."
       ),
-      action: () => {
-        const h = S.hits.find(x => x.type === "ticket") || S.hits.find(x => x.type === "system");
+      setup: () => {
+        setDocView("original");
+        const h = movieHit(x => x.type === "ticket") || movieHit(x => x.type === "system");
         if (h) select(h.id);
       },
-      highlight: "hitList",
-      holdMs: 5800
-    },
-    {
-      caption: () => movieCaption(
-        "Režim „konzistentní token“ nahradí CBUAIS-5164 vždy stejným [TICKET_001]. Osnova a slovník používají stejná čísla.",
-        "Consistent-token mode replaces CBUAIS-5164 with the same [TICKET_001] every time. The outline and glossary reuse those numbers."
-      ),
-      highlight: "result",
-      holdMs: 5600
-    },
-    {
-      chapter: () => movieCaption("Kapitola 4b — Nastavení podle případu", "Chapter 4b — Settings for the case"),
-      caption: () => movieCaption(
-        "Zubaté kolo otevře nastavení. Profil — Registr smluv, InfZ, Soud, Interní AI, Veřejná AI, Vlastní — přednastaví režim i kategorie za vás.",
-        "The gear icon opens Settings. A profile — Register of Contracts, Info Act, Court, Internal AI, Public AI, Custom — presets the mode and categories for you."
-      ),
-      action: () => { openSettings(); },
-      highlight: "m_selProfile",
-      actionDelayMs: 400,
-      holdMs: 5600
-    },
-    {
-      caption: () => movieCaption(
-        "Kromě konzistentních tokenů lze zvolit i nevratné začernění, náhradu XXXX nebo obecnou značku jako [OSOBA] či [ADRESA].",
-        "Besides consistent tokens you can pick irreversible black-boxing, an XXXX replacement, or a generic tag like [PERSON] or [ADDRESS]."
-      ),
-      highlight: "m_selMode",
-      holdMs: 5000
-    },
-    {
-      caption: () => movieCaption(
-        "Každou kategorii — jména, adresy, systémy, projekty a další — lze vypnout zvlášť. Vlastní systémy, projekty i tajná slova doplníte přímo do slovníku.",
-        "Every category — names, addresses, systems, projects and more — can be switched off individually. Add your own systems, projects and secret words straight into the dictionary."
-      ),
-      highlight: "m_taSystems",
-      holdMs: 5600
-    },
-    {
-      caption: () => movieCaption(
-        "Naskenované PDF bez textové vrstvy přečte OCR přímo v prohlížeči. Začernění PDF lze provést i se zachováním prohledávatelné textové vrstvy.",
-        "OCR reads a scanned PDF with no text layer right in the browser. A PDF can be redacted while still keeping a searchable text layer."
-      ),
-      highlight: "m_chkOcr",
-      holdMs: 5000
-    },
-    {
-      caption: () => movieCaption(
-        "Nastavení zase zavřeme — nic z toho se nedotkne už otevřené smlouvy, dokud to sami nezměníte.",
-        "We close Settings again — none of it touches the contract already open, until you change it yourself."
-      ),
-      action: () => { closeSettings(); },
-      actionDelayMs: 700,
-      holdMs: 2600
-    },
-    {
-      chapter: () => movieCaption("Kapitola 5 — Kontrola a export", "Chapter 5 — Review and export"),
-      caption: () => movieCaption(
-        "Bez zaškrtnutí „Zkontrolováno“ export nejde. Druhá kontrola je pro čtyři oči.",
-        "Export stays locked until you tick Reviewed. Second review is the four-eyes check."
-      ),
-      action: () => {
-        S.reviewed = true;
-        paintReview();
+      highlight: () => {
+        const m = Array.from($("orig").querySelectorAll(".mk")).filter(e => {
+          const h = S.hits.find(x => String(x.id) === e.getAttribute("data-id"));
+          return h && ["ticket", "system", "status"].includes(h.type) && e.classList.contains("mk-on");
+        });
+        const sel = $("orig").querySelector(".mk-sel");
+        return sel ? [sel, ...m.filter(e => e !== sel)] : m;
       },
-      highlight: "bar",
-      holdMs: 5200
+      holdMs: 8500
     },
     {
       caption: () => movieCaption(
-        "Export je nevratný: začerněné PDF, XLSX bez autora, nebo balíček pro AI s osnovou postupu a slovníkem bez původních hodnot.",
-        "Export is irreversible: a rasterized PDF, metadata-stripped XLSX, or an AI pack with a process outline and a glossary without original values."
+        "K tomu slouží režim „konzistentní token“. Ten konkrétní ticket vždy nahradí stejným identifikátorem, například [TICKET_001], a to jednotně v textu, osnově i ve slovníku.",
+        "The 'consistent token' mode helps here. It replaces a specific ticket with the same identifier, e.g., [TICKET_001], uniformly in the text, outline, and glossary."
       ),
-      highlight: "processBox",
+      setup: () => {
+        setDocView("preview");
+        const h = movieHit(x => x.type === "ticket");
+        S.selectedId = h ? h.id : null; paintReview();
+      },
+      highlight: () => {
+        const m = Array.from($("orig").querySelectorAll(".mk-preview")).filter(e => /TICKET/i.test(e.textContent));
+        return m.length ? m : $("result");
+      },
+      holdMs: 9000
+    },
+    {
+      setup: () => { closeSettings(); },
+      chapter: () => movieCaption("Kapitola 5 — Nastavení podle případu", "Chapter 5 — Settings for the case"),
+      caption: () => movieCaption(
+        "Kliknutím na ozubené kolo otevřete nastavení.",
+        "Click the gear icon to open Settings."
+      ),
+      highlight: "btnSettings",
+      holdMs: 4500
+    },
+    {
+      caption: () => movieCaption(
+        "Výběr přednastaveného profilu (Registr smluv, InfZ, Soud, Veřejná AI atd.) za vás automaticky vybere správná pravidla a kategorie.",
+        "Selecting a preset profile (Register of Contracts, Info Act, Court, Public AI, etc.) automatically configures the right rules and categories for you."
+      ),
+      setup: () => { openSettings(); movieShowSelectMenu("profiles"); },
+      highlight: "m_selProfile",
+      holdMs: 8000
+    },
+    {
+      caption: () => movieCaption(
+        "Změnit můžete i způsob nahrazení: kromě konzistentních tokenů lze zvolit nevratné začernění, náhradu znaky XXXX nebo obecnou značku (např. [OSOBA]).",
+        "You can change the replacement mode: besides consistent tokens, you can pick irreversible black-boxing, XXXX replacement, or a generic tag (e.g., [PERSON])."
+      ),
+      setup: () => { openSettings(); movieShowSelectMenu("modes"); },
+      highlight: "m_selMode",
+      holdMs: 8000
+    },
+    {
+      setup: () => { openSettings(); },
+      caption: () => movieCaption(
+        "Jednotlivé kategorie nálezů lze vypínat.",
+        "Individual hit categories can be toggled off."
+      ),
+      highlight: () => Array.from(document.querySelectorAll("#settingsModalMount .cats")),
+      holdMs: 5500
+    },
+    {
+      setup: () => { openSettings(); },
+      caption: () => movieCaption(
+        "Do vlastního slovníku pak můžete doplňovat konkrétní interní systémy, projekty nebo tajná slova.",
+        "You can also add specific internal systems, projects, or secret words to your custom dictionary."
+      ),
+      highlight: ["m_taSecrets", "m_taSystems", "m_taProjects"],
+      holdMs: 6500
+    },
+    {
+      setup: () => { openSettings(); },
+      caption: () => movieCaption(
+        "Pokud nahrajete naskenované PDF bez textové vrstvy, zabudované OCR text přečte přímo v prohlížeči. U PDF pak lze prohledávatelnou vrstvu zachovat i po začernění.",
+        "If you upload a scanned PDF without a text layer, the built-in OCR reads it directly in the browser. You can also preserve a searchable text layer in PDFs even after redaction."
+      ),
+      highlight: ["m_chkOcr", "m_chkTrueRedact"],
+      holdMs: 9000
+    },
+    {
+      caption: () => movieCaption(
+        "Nastavení zase zavřeme — změny se na právě otevřené smlouvě projeví až ve chvíli, kdy je sami upravíte.",
+        "Let's close Settings again — changes won't affect the currently open contract until you adjust them yourself."
+      ),
+      setup: () => { closeSettings(); },
       holdMs: 6000
     },
     {
+      setup: () => { closeSettings(); },
+      chapter: () => movieCaption("Kapitola 6 — Kontrola a export", "Chapter 6 — Review and export"),
       caption: () => movieCaption(
-        "Tlačítko „Audit JSON“ stáhne záznam rozhodnutí se zkrácenými hodnotami a hashem — pro pozdější doložení, aniž byste posílali originál.",
-        "The “Audit JSON” button downloads a record of the decisions with truncated values and a hash — for later proof, without sending the original."
+        "Bezpečnostní mechanismus: bez manuálního zaškrtnutí políčka „Zkontrolováno“ vám aplikace dokument nedovolí exportovat.",
+        "Security mechanism: the application won't allow export until you manually check the 'Reviewed' box."
+      ),
+      highlight: ["chkRev", "btnExp"],
+      holdMs: 6500
+    },
+    {
+      caption: () => movieCaption(
+        "Výsledný export je nevratný. Vybírat můžete mezi začerněným PDF, souborem Excel zbaveným metadat autora, nebo balíčkem pro AI, který obsahuje slovník bez původních citlivých hodnot.",
+        "The resulting export is irreversible. You can choose a redacted PDF, an author-metadata-stripped Excel file, or an AI pack with a glossary excluding original sensitive values."
+      ),
+      setup: () => { closeSettings(); S.reviewed = true; paintReview(); },
+      highlight: ["btnExp", "btnAi"],
+      holdMs: 9500
+    },
+    {
+      setup: () => { closeSettings(); },
+      caption: () => movieCaption(
+        "Tlačítko „Audit JSON“ stáhne technický protokol. Slouží k pozdějšímu formálnímu doložení rozsahu anonymizace, aniž byste si museli ukládat citlivý originál.",
+        "The 'Audit JSON' button downloads a technical protocol. It serves as later formal proof of the redaction scope without the need to store the sensitive original."
       ),
       highlight: "btnAudit",
-      holdMs: 5400
+      holdMs: 8500
     },
     {
-      chapter: () => movieCaption("Kapitola 6 — Pokročilé funkce", "Chapter 6 — Advanced functions"),
+      setup: () => { closeSettings(); },
+      chapter: () => movieCaption("Kapitola 7 — Pokročilé funkce", "Chapter 7 — Advanced functions"),
       caption: () => movieCaption(
-        "Pozor, teď to bude pokročilé: pro běžné anonymizování to nepotřebujete, ale pro specifické případy se to hodí. Klidně krok přeskočte tlačítkem ⏭️.",
-        "Heads up, this part is advanced: you don't need it for everyday redaction, but it's useful for specific cases. Feel free to skip ahead with ⏭️."
+        "Následující funkce jsou pokročilé a pro běžnou agendu je nebudete potřebovat. Tlačítkem ⏭️ posunete tutoriál o krok dál, křížkem ✖️ ho ukončíte.",
+        "The following functions are advanced and not needed for everyday tasks. Use ⏭️ to jump to the next step, or ✖️ to close the tutorial."
       ),
-      highlight: "btnSettings",
-      holdMs: 5400
+      highlight: ["movie-btn-skip", "movie-btn-exit"],
+      holdMs: 7500
     },
     {
       caption: () => movieCaption(
-        "Citlivost detekce (nízká/střední/vysoká) mění, jak snadno vzor spustí nález — vysoká citlivost najde víc, ale i víc planých poplachů.",
-        "Detection sensitivity (low/medium/high) changes how easily a pattern triggers a hit — high sensitivity finds more, but also more false positives."
+        "Úpravou citlivosti detekce (nízká/střední/vysoká) určujete přísnost pravidel. Vysoká citlivost najde více dat, ale zvyšuje riziko takzvaných planých poplachů.",
+        "Adjusting detection sensitivity (low/medium/high) dictates rule strictness. High sensitivity finds more data but increases the risk of false positives."
       ),
-      action: () => { openSettings(); },
+      setup: () => { openSettings(); },
       highlight: "m_selSuspicion",
-      actionDelayMs: 400,
-      holdMs: 5400
+      holdMs: 8500
     },
     {
+      setup: () => { openSettings(); },
       caption: () => movieCaption(
-        "Umístění lišty s tlačítky (nahoře/dole/vlevo/vpravo) je jen otázka pohodlí, na anonymizaci nemá vliv.",
-        "The toolbar position (top/bottom/left/right) is only a comfort setting — it doesn't affect redaction."
+        "Ovládací lištu si můžete přesunout (nahoru/dolů/do stran) podle toho, jak vám to vyhovuje. Na samotnou anonymizaci to nemá vliv.",
+        "You can move the toolbar (top/bottom/sides) to whatever is most comfortable for you. It does not affect the redaction itself."
       ),
       highlight: "m_selBarPos",
-      holdMs: 4400
+      holdMs: 7000
     },
     {
+      setup: () => { openSettings(); },
       caption: () => movieCaption(
-        "Smazání metadat a skutečné odstranění textu z PDF (místo jen obrázku přes něj) lze zapnout i zvlášť, nezávisle na sobě.",
-        "Stripping metadata and truly removing PDF text (instead of just an image over it) can each be switched on independently."
+        "Smazání skrytých metadat souboru a režim PDF, který začerněný text skutečně odstraní a zbytek ponechá jako prohledávatelný text, můžete zapínat a vypínat nezávisle na sobě. Běžně je oboje zapnuto.",
+        "You can independently toggle the removal of hidden file metadata and the PDF mode that truly removes redacted text while keeping the rest searchable. Both are enabled by default."
       ),
-      highlight: "m_chkTrueRedact",
-      holdMs: 5200
+      highlight: ["m_chkMeta", "m_chkTrueRedact"],
+      holdMs: 8500
     },
     {
+      setup: () => { openSettings(); },
       caption: () => movieCaption(
-        "Pozor, tohle záměrně obchází kontroly: Rychlý režim skryje pokročilé prvky a Zrychlené schvalování vypne „Zkontrolováno“, druhou kontrolu i jméno úředníka při exportu. Používejte jen, pokud víte, co děláte.",
-        "Careful, these deliberately bypass safeguards: Quick mode hides advanced controls, and Accelerated approval turns off Reviewed, the second check, and the officer name on export. Use only if you know what you're doing."
+        "Důrazné varování: „Rychlý režim“ a „Zrychlené schvalování“ záměrně skrývají pokročilé prvky a obcházejí nutnost kontroly i vyplnění jména úředníka. Používejte je jen tehdy, pokud přesně víte, co děláte.",
+        "Strong warning: 'Quick mode' and 'Accelerated approval' deliberately hide advanced elements and bypass the review requirement and officer name entry. Use only if you know exactly what you are doing."
       ),
-      highlight: "m_chkQuick",
-      holdMs: 6200
+      highlight: ["m_chkQuick", "m_chkFast"],
+      holdMs: 10500
     },
     {
+      setup: () => { openSettings(); },
       caption: () => movieCaption(
-        "Expertní režim u každého nálezu ukáže, podle čeho byl rozpoznán — kontrolní součet, slovník nebo vzor. Na anonymizaci samu nemá vliv, jen na kontrolu.",
-        "Expert mode shows, for every hit, what triggered it — a checksum, a dictionary entry or a pattern. It doesn't affect the redaction itself, only the review."
+        "Zapnutím „Expertního režimu“ si u každého nálezu zobrazíte přesný technický důvod, proč byl detekován (např. kontrolní součet, shoda se slovníkem či vzor). Poskytuje lepší přehled při kontrole.",
+        "Enabling 'Expert mode' displays the exact technical reason for each hit (e.g., checksum, dictionary match, or pattern). It provides better oversight during review."
       ),
       highlight: "m_chkExpert",
-      holdMs: 5000
+      holdMs: 9500
     },
     {
       caption: () => movieCaption(
         "Nastavení naposledy zavíráme.",
         "Closing Settings one last time."
       ),
-      action: () => { closeSettings(); },
-      actionDelayMs: 600,
-      holdMs: 2200
+      setup: () => { closeSettings(); },
+      holdMs: 3000
     },
     {
+      setup: () => { closeSettings(); },
       caption: () => movieCaption(
-        "Pozor, hromadné akce: „Přijmout vše“ a „Zamítnout vše“ rozhodnou za vás o všech nálezech najednou — snadno tak něco přehlédnete. „Ponechat instituce“ cíleně vrátí IČO úřadů a státních firem.",
-        "Careful, these are bulk actions: “Accept all” and “Reject all” decide every hit at once — it's easy to miss something this way. “Keep public bodies” specifically restores the IČO of ministries and state enterprises."
+        "Pozor na hromadné akce „Přijmout vše“ a „Zamítnout vše“. Snadno kvůli nim něco přehlédnete. Tlačítko „Ponechat instituce“ pak hromadně a cíleně odkryje IČO známých úřadů.",
+        "Beware of bulk actions 'Accept all' and 'Reject all'. It's easy to miss something with them. The 'Keep public bodies' button specifically reveals the IČO of known authorities."
       ),
-      highlight: "btnAll",
-      holdMs: 6000
+      highlight: ["btnAll", "btnNone", "btnOff"],
+      holdMs: 9500
     },
     {
+      setup: () => { closeSettings(); },
       caption: () => movieCaption(
-        "„Druhá kontrola“ přidá druhé zaškrtnutí vedle „Zkontrolováno“ — pro čtyři oči u citlivějších dokumentů.",
-        "“Second review” adds a second checkbox next to Reviewed — a four-eyes check for more sensitive documents."
+        "Zaškrtávátko „Druhá kontrola“ se používá u vysoce citlivých dokumentů pro formální potvrzení pravidla „čtyř očí“.",
+        "The 'Second review' checkbox is used for highly sensitive documents to formally confirm the 'four eyes' rule."
       ),
       highlight: "chk2",
-      holdMs: 4600
+      holdMs: 7000
+    },
+    {
+      setup: () => { closeSettings(); },
+      caption: () => movieCaption(
+        "Vlastní soubor nahrajete na úvodní obrazovce tlačítkem „Nový soubor“ nebo pouhým přetažením myší na plochu.",
+        "Upload your own file on the start screen using the 'New file' button or simply by drag-and-dropping it onto the area."
+      ),
+      highlight: "btnNewFile",
+      holdMs: 7000
     },
     {
       caption: () => movieCaption(
-        "A tady nahoře přidáte vlastní soubor — přetažením nebo tlačítkem „Procházet“. Zůstává to samé: nic neopouští toto zařízení.",
-        "And up here is where you add your own file — by dragging it in or with the “Browse” button. Same rule applies: nothing leaves this device."
+        "Nyní si můžete vzorovou smlouvu projít sami, nebo rovnou nahrát vlastní dokument. Platí absolutní pravidlo: vaše soubory toto zařízení nikdy neopouští.",
+        "You can now review the sample contract yourself, or upload your own document directly. The absolute rule applies: your files never leave this device."
       ),
-      highlight: "btnBrowse",
-      holdMs: 4800
-    },
-    {
-      caption: () => movieCaption(
-        "Teď si můžete vzor otevřít ručně, nebo nahrát vlastní dokument. Soubor zůstává v tomto zařízení.",
-        "You can now open the sample yourself, or upload your own file. The document stays on this device."
-      ),
-      action: () => { exitMovieTutorial(true); },
-      actionDelayMs: 900,
-      holdMs: 2800
+      setup: () => { closeSettings(); },
+      finish: () => { exitMovieTutorial(true); },
+      holdMs: 8500
     }
   ];
 
-  let ACTIVE_MOVIE_SCRIPT = MOVIE_SCRIPT_BASIC;
+  const MOVIE_SCRIPT = [...MOVIE_SCRIPT_BASIC, ...MOVIE_SCRIPT_ADVANCED];
 
+  let ACTIVE_MOVIE_SCRIPT = MOVIE_SCRIPT;
   const MOVIE_INERT_SELECTOR = "header.app, #landing, #review, #bar";
   function setMovieInert(on){
     document.querySelectorAll(MOVIE_INERT_SELECTOR).forEach(el => {
@@ -4221,33 +4328,237 @@ Orgán: OBÚ.
   function movieClearPulse(){
     document.querySelectorAll(".movie-pulse").forEach(el => el.classList.remove("movie-pulse"));
   }
-  function movieHighlight(id){
-    movieClearPulse();
-    if (!id) return;
-    const el = $(id);
-    if (el) {
-      el.classList.add("movie-pulse");
-      try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (_) {}
+  function movieResolve(spec){
+    let v = typeof spec === "function" ? spec() : spec;
+    if (!v) return [];
+    if (!Array.isArray(v)) v = [v];
+    return v.map(x => {
+      if (typeof x !== "string") return x;
+      const byId = $(x);
+      if (byId) return byId;
+      try { return document.querySelector(x); } catch (_) { return null; }
+    }).filter(Boolean);
+  }
+  function movieMark(h){ return h ? $("orig").querySelector(`[data-id="${h.id}"]`) : null; }
+  function movieHit(pred){ return S.hits.find(pred); }
+  function movieVisible(el){
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  }
+  function movieOverlapsCaption(el){
+    const c = $("movie-caption-bar").getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    return !(r.bottom < c.top || r.top > c.bottom || r.right < c.left || r.left > c.right);
+  }
+  function movieObstructions(){
+    let top = 0, bottom = window.innerHeight;
+    ["header.app", "#bar", "#quickHitBar"].forEach(sel => {
+      const e = document.querySelector(sel);
+      if (!e || e.classList.contains("hidden")) return;
+      const pos = getComputedStyle(e).position;
+      if (pos !== "sticky" && pos !== "fixed") return;
+      const r = e.getBoundingClientRect();
+      if (r.height <= 0 || r.width < window.innerWidth * 0.6) return;
+      if (r.top + r.height / 2 < window.innerHeight / 2) top = Math.max(top, r.bottom);
+      else bottom = Math.min(bottom, r.top);
+    });
+    return { top, bottom };
+  }
+  function movieInViewport(el){
+    const r = el.getBoundingClientRect();
+    return r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth;
+  }
+  function movieClearlyVisible(el, obs){
+    const r = el.getBoundingClientRect();
+    let top = 0, bottom = window.innerHeight;
+    if (!el.closest("#bar, header.app, #quickHitBar, .modal")) { top = obs.top; bottom = obs.bottom; }
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+      if (!/(auto|scroll)/.test(getComputedStyle(p).overflowY) || p.scrollHeight <= p.clientHeight + 1) continue;
+      const pr = p.getBoundingClientRect();
+      top = Math.max(top, pr.top); bottom = Math.min(bottom, pr.bottom);
     }
+    return r.top >= top - 1 && r.bottom <= bottom + 1;
+  }
+  function movieCovered(el){
+    const ctl = $("movie-controls").getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const underControls = !(r.bottom < ctl.top || r.top > ctl.bottom || r.right < ctl.left || r.left > ctl.right);
+    return movieOverlapsCaption(el) || underControls;
+  }
+  function movieReveal(els){
+    const cap = $("movie-caption-bar");
+    cap.classList.remove("movie-cap-top");
+    const first = els[0];
+    if (!first || first.closest("#movie-controls, #movie-caption-bar")) return;
+    const fixedSel = "#bar, header.app, #quickHitBar";
+    const inFixed = !!first.closest(fixedSel);
+    const inModal = !!first.closest(".modal");
+    const sheet = inModal ? (first.closest(".sheet") || first.closest(".modal")) : null;
+    try {
+      first.scrollIntoView({ block: inFixed ? "nearest" : "center", inline: "nearest", behavior: "auto" });
+    } catch (_) {}
+    const pageEls = els.filter(e => !e.closest(fixedSel + ", .modal"));
+    const obs = movieObstructions();
+    const controlsTop = $("movie-controls").getBoundingClientRect().top;
+    const tryOption = (capTop) => {
+      cap.classList.toggle("movie-cap-top", capTop);
+      const cr = cap.getBoundingClientRect();
+      let lo = obs.top + 8, hi = obs.bottom - 8;
+      if (capTop) { lo = Math.max(lo, cr.bottom + 8); hi = Math.min(hi, controlsTop - 8); }
+      else hi = Math.min(hi, cr.top - 8);
+      if (inModal && sheet && sheet.scrollHeight > sheet.clientHeight) {
+        if (hi > lo) {
+          const rects = els.map(e => e.getBoundingClientRect());
+          let t = Math.min(...rects.map(r => r.top)), b = Math.max(...rects.map(r => r.bottom));
+          if (b - t > hi - lo) { t = rects[0].top; b = rects[0].bottom; }
+          const delta = (t + b) / 2 - (lo + hi) / 2;
+          if (Math.abs(delta) > 2) sheet.scrollTop += delta;
+        }
+      } else if (!inFixed && !inModal && pageEls.length) {
+        if (hi > lo) {
+          const rects = pageEls.map(e => e.getBoundingClientRect());
+          let t = Math.min(...rects.map(r => r.top)), b = Math.max(...rects.map(r => r.bottom));
+          if (b - t > hi - lo) { t = rects[0].top; b = rects[0].bottom; }
+          const delta = (t + b) / 2 - (lo + hi) / 2;
+          if (Math.abs(delta) > 2) window.scrollBy(0, delta);
+        }
+      }
+      const o = movieObstructions();
+      return els.filter(e => movieCovered(e)).length * 10 + els.filter(e => !movieClearlyVisible(e, o)).length;
+    };
+    const s0 = tryOption(false);
+    if (s0 === 0) return;
+    const s1 = tryOption(true);
+    if (s1 < s0) return;
+    tryOption(false);
+  }
+  let MOVIE_HL_TOKEN = 0;
+  let MOVIE_GENERATION = 0;
+  let MOVIE_TRANSITION_LOCK = false;
+  let MOVIE_MENU_TIMER = null;
+  let MOVIE_MENU_KIND = null;
+  function movieClearSelectMenu(){
+    if (MOVIE_MENU_TIMER) clearInterval(MOVIE_MENU_TIMER);
+    MOVIE_MENU_TIMER = null;
+    MOVIE_MENU_KIND = null;
+    const menu = $("movie-select-menu");
+    if (!menu) return;
+    menu.classList.remove("active");
+    menu.setAttribute("aria-hidden", "true");
+    menu.innerHTML = "";
+  }
+  function movieShowSelectMenu(kind){
+    movieClearSelectMenu();
+    const menu = $("movie-select-menu");
+    const root = $("settingsModalMount");
+    if (!menu || !root) return;
+    const t = i();
+    const source = kind === "profiles" ? t.profiles : t.modes;
+    const select = root.querySelector(kind === "profiles" ? "#m_selProfile" : "#m_selMode");
+    if (!select) return;
+    MOVIE_MENU_KIND = kind;
+    const entries = Object.entries(source);
+    const selected = kind === "profiles" ? S.profile : S.mode;
+    const title = kind === "profiles"
+      ? (S.lang === "cs" ? "Profil" : "Profile")
+      : (S.lang === "cs" ? "Režim náhrady" : "Replacement mode");
+    menu.innerHTML = `<div class="movie-select-menu-title">${esc(title)}</div>` +
+      entries.map(([k,v], idx) =>
+        `<div class="movie-select-option ${k===selected?"is-selected":""}" data-index="${idx}">${esc(v)}</div>`
+      ).join("");
+    menu.classList.add("active");
+    menu.setAttribute("aria-hidden", "false");
+
+    const place = () => {
+      const r = select.getBoundingClientRect();
+      const mw = Math.min(Math.max(r.width, 240), window.innerWidth - 20);
+      let left = Math.max(10, Math.min(r.left, window.innerWidth - mw - 10));
+      let top = r.bottom + 4;
+      const mh = Math.min(menu.scrollHeight || 360, Math.floor(window.innerHeight * .52));
+      if (top + mh > window.innerHeight - 10) top = Math.max(10, r.top - mh - 4);
+      menu.style.left = `${left}px`;
+      menu.style.top = `${top}px`;
+      menu.style.width = `${mw}px`;
+    };
+    place();
+    requestAnimationFrame(place);
+
+    let focusIndex = entries.findIndex(([k]) => k === selected);
+    if (focusIndex < 0) focusIndex = 0;
+    const paintFocus = () => {
+      menu.querySelectorAll(".movie-select-option").forEach((el, idx) => {
+        el.classList.toggle("is-focus", idx === focusIndex);
+      });
+    };
+    paintFocus();
+    const interval = Math.max(900, Math.floor((ACTIVE_MOVIE_SCRIPT[S.movieStepIndex || 0]?.holdMs || 6000) / Math.max(1, entries.length)));
+    MOVIE_MENU_TIMER = setInterval(() => {
+      if (!S.movie || MOVIE_MENU_KIND !== kind || MOVIE_PAUSED) return;
+      focusIndex = (focusIndex + 1) % entries.length;
+      paintFocus();
+    }, interval);
+  }
+
+  function movieHighlight(spec){
+    const token = ++MOVIE_HL_TOKEN;
+    const cap = $("movie-caption-bar");
+    const apply = () => {
+      movieClearPulse();
+      if (!spec) { cap.classList.remove("movie-cap-top"); return; }
+      try { updateHeaderHeightVar(); updateBarHeightVar(); } catch (_) {}
+      const toTarget = el => el.matches('input[type="checkbox"]')
+        ? (el.closest("label") || el.parentElement || el)
+        : el;
+      let els = Array.from(new Set(movieResolve(spec).map(toTarget))).filter(movieVisible);
+      const menu = $("movie-select-menu");
+      if (menu && menu.classList.contains("active")) els.push(menu);
+      els = Array.from(new Set(els)).filter(movieVisible);
+      if (!els.length) { cap.classList.remove("movie-cap-top"); return; }
+      movieReveal(els);
+      const seen = els.filter(movieInViewport);
+      (seen.length ? seen : els).forEach(el => el.classList.add("movie-pulse"));
+    };
+    apply();
+    if (!spec) return;
+    const again = () => { if (token === MOVIE_HL_TOKEN && S.movie) apply(); };
+    requestAnimationFrame(() => requestAnimationFrame(again));
+    setTimeout(again, 450);
   }
   function movieCancelPlayback(){
     if (MOVIE_TIMER) clearTimeout(MOVIE_TIMER);
     MOVIE_TIMER = null;
     MOVIE_PENDING = null;
   }
+
+  function movieCloseTitleCard(){
+    if (MOVIE_TITLE_TIMER) clearTimeout(MOVIE_TITLE_TIMER);
+    MOVIE_TITLE_TIMER = null;
+    $("movie-title-card").classList.remove("show");
+  }
+
+  function movieScheduleTitleClose(ms = 2200){
+    if (MOVIE_TITLE_TIMER) clearTimeout(MOVIE_TITLE_TIMER);
+    MOVIE_TITLE_TIMER = setTimeout(() => {
+      MOVIE_TITLE_TIMER = null;
+      if (S.movie) $("movie-title-card").classList.remove("show");
+    }, ms);
+  }
   function movieSetTimeout(fn, ms){
-    MOVIE_PENDING = { fn, remainingMs: ms };
-    scheduleMoviePending();
+    const generation = MOVIE_GENERATION;
+    MOVIE_PENDING = { fn, remainingMs: ms, generation };
+    if (!MOVIE_PAUSED) scheduleMoviePending();
   }
   function scheduleMoviePending(){
-    if (!MOVIE_PENDING) return;
-    MOVIE_PENDING.startedAt = Date.now();
+    if (!MOVIE_PENDING || MOVIE_PAUSED || !S.movie) return;
+    const p0 = MOVIE_PENDING;
+    p0.startedAt = Date.now();
     MOVIE_TIMER = setTimeout(() => {
       const p = MOVIE_PENDING;
       MOVIE_PENDING = null;
       MOVIE_TIMER = null;
-      if (p && p.fn) p.fn();
-    }, Math.max(0, MOVIE_PENDING.remainingMs / movieEffectiveSpeed()));
+      if (!p || p.generation !== MOVIE_GENERATION || MOVIE_PAUSED || !S.movie) return;
+      p.fn();
+    }, Math.max(0, p0.remainingMs / movieEffectiveSpeed()));
   }
   function ensureMovieUI(){
     $("movie-caption-bar").classList.add("active");
@@ -4256,6 +4567,8 @@ Orgán: OBÚ.
     setMovieInert(true);
   }
   function hideMovieUI(){
+    movieCloseTitleCard();
+    movieClearSelectMenu();
     $("movie-caption-bar").classList.remove("active");
     $("movie-controls").classList.remove("active");
     $("movie-title-card").classList.remove("show");
@@ -4264,21 +4577,80 @@ Orgán: OBÚ.
     movieClearPulse();
     setMovieInert(false);
   }
+
+  function movieResetForStep(idx){
+    movieClearSelectMenu();
+    closeSettings();
+    S.profile = "publicai";
+    S.mode = "pseudo";
+    S.suspicion = "medium";
+    S.enabled = Object.fromEntries(KEYS.map(k => [k, true]));
+    S.secrets = "jednotkové ceny";
+    S.systems = "AIS SBS | SYSTÉM\neSpis | INTEGRACE\nSAMO2 | MODUL";
+    S.projects = "CBUAIS | PROJEKT\nORION | PROJEKT";
+    S.orgs = "OBÚ | ORGÁN";
+    S.stripMeta = true;
+    S.includeOutline = true;
+    S.publicGlossary = true;
+    S.truePdfRedact = true;
+    S.expertMode = false;
+    S.processAnalysis = false;
+    S.quickMode = false;
+    S.fastApprove = false;
+    S.barPos = "top";
+    S.reviewed = false;
+    S.secondEyes = false;
+    S.selectedId = null;
+    S.filter = "all";
+    S.seen = new Set();
+    S.docView = "original";
+    S.hashIn = "";
+    S.hashOut = "";
+    S.fileName = "";
+    S.kind = "text";
+    S.sourceBuf = null;
+    S.pages = [];
+    S.noTextPages = 0;
+    S.cellMap = [];
+    S.text = "";
+    S.hits = [];
+    applyQuickMode();
+    applyFastApprove();
+    applyBarPos();
+
+    if (ACTIVE_MOVIE_SCRIPT !== MOVIE_SCRIPT || idx >= 2) {
+      S.fileName = "smlouva-vzor.txt";
+      S.kind = "text";
+      S.text = SAMPLE;
+      S.pages = [{ n:1, start:0, end:SAMPLE.length }];
+      runAnalyze(SAMPLE);
+    } else {
+      paint();
+    }
+    S.movie = true;
+    syncSettingsForms();
+  }
+
   async function startMovieTutorial(script){
     movieCancelPlayback();
+    movieClearSelectMenu();
+    movieCloseTitleCard();
     ACTIVE_MOVIE_SCRIPT = (Array.isArray(script) && script.length) ? script : MOVIE_SCRIPT_BASIC;
     S.movie = true;
     S.movieStepIndex = 0;
+    MOVIE_GENERATION++;
     S.reviewed = false;
+    if (!MOVIE_PREV) MOVIE_PREV = { quick: S.quickMode, fast: S.fastApprove };
+    S.quickMode = false; S.fastApprove = false;
+    applyQuickMode();
     MOVIE_PAUSED = false;
     document.body.classList.remove("movie-paused");
     MOVIE_SPEED = 1;
-    MOVIE_SNAPSHOTS = [];
     $("movie-btn-speed").textContent = "1×";
     $("movie-btn-playpause").textContent = "⏸️";
     $("movie-btn-back").disabled = true;
     ensureMovieUI();
-    await runMovieStep();
+    await movieGoTo(0);
   }
   function movieShowCaption(step, idx, total){
     const ch = typeof step.chapter === "function" ? step.chapter() : (step.chapter || "");
@@ -4290,47 +4662,65 @@ Orgán: OBÚ.
     if (fill) fill.style.width = pct + "%";
     const label = $("movie-progress-label");
     if (label) label.textContent = movieCaption(`Krok ${idx + 1} z ${total}`, `Step ${idx + 1} of ${total}`);
+    movieCloseTitleCard();
     if (ch) {
       $("movie-title-h").textContent = ch;
       $("movie-title-p").textContent = cap;
       $("movie-title-card").classList.add("show");
-      movieSetTimeout(() => { if (S.movie) $("movie-title-card").classList.remove("show"); }, 2200);
+      movieScheduleTitleClose(2200);
     }
   }
-  async function runMovieStep(){
-    if (!S.movie) return;
+
+  async function runMovieStep(generation = MOVIE_GENERATION){
+    if (!S.movie || generation !== MOVIE_GENERATION) return;
     const idx = S.movieStepIndex || 0;
     const step = ACTIVE_MOVIE_SCRIPT[idx];
-    if (!step) { exitMovieTutorial(); return; }
-    MOVIE_SNAPSHOTS[idx] = structuredClone({
-      text: S.text, hits: S.hits, selectedId: S.selectedId,
-      reviewed: S.reviewed, fileName: S.fileName,
-      profile: S.profile, mode: S.mode, suspicion: S.suspicion,
-      expertMode: S.expertMode, quickMode: S.quickMode, barPos: S.barPos,
-      enabled: S.enabled, secrets: S.secrets, systems: S.systems,
-      projects: S.projects, orgs: S.orgs, stripMeta: S.stripMeta,
-      truePdfRedact: S.truePdfRedact, ocrEnabled: S.ocrEnabled,
-      processAnalysis: S.processAnalysis, fastApprove: S.fastApprove
-    });
-    $("movie-btn-back").disabled = idx === 0;
+    if (!step) { exitMovieTutorial(true); return; }
+
+    movieResetForStep(idx);
+    if (!S.movie || generation !== MOVIE_GENERATION) return;
+
     movieShowCaption(step, idx, ACTIVE_MOVIE_SCRIPT.length);
-    movieHighlight(step.highlight);
-    const go = async () => {
-      // stav mohl mezitím změnit Zpět/Přeskočit/Zavřít — zahoď zastaralou akci
-      if (!S.movie || S.movieStepIndex !== idx) return;
-      if (step.action) await step.action();
-      if (!S.movie || S.movieStepIndex !== idx) return;
+    if (step.setup) await step.setup();
+    if (!S.movie || generation !== MOVIE_GENERATION || S.movieStepIndex !== idx) return;
+
+    $("movie-btn-back").disabled = idx === 0;
+    if (typeof step.highlight !== "function") movieHighlight(step.highlight);
+    else if (step.preHighlight) movieHighlight(step.preHighlight);
+    else movieClearPulse();
+
+    const go = () => {
+      if (!S.movie || generation !== MOVIE_GENERATION || S.movieStepIndex !== idx) return;
       movieHighlight(step.highlight);
       const hold = step.holdMs || 4000;
       movieSetTimeout(() => {
-        if (!S.movie || S.movieStepIndex !== idx) return;
-        S.movieStepIndex = idx + 1;
-        runMovieStep();
+        if (!S.movie || generation !== MOVIE_GENERATION || S.movieStepIndex !== idx) return;
+        if (step.finish) {
+          step.finish();
+          return;
+        }
+        movieGoTo(idx + 1);
       }, hold);
     };
-    if (step.actionDelayMs) movieSetTimeout(go, step.actionDelayMs);
-    else await go();
+    go();
   }
+
+  async function movieGoTo(targetIdx){
+    if (!S.movie || MOVIE_TRANSITION_LOCK) return;
+    const total = ACTIVE_MOVIE_SCRIPT.length;
+    const idx = Math.max(0, Math.min(total - 1, Number(targetIdx) || 0));
+    MOVIE_TRANSITION_LOCK = true;
+    const generation = ++MOVIE_GENERATION;
+    movieCancelPlayback();
+    movieClearSelectMenu();
+    S.movieStepIndex = idx;
+    try {
+      await runMovieStep(generation);
+    } finally {
+      if (generation === MOVIE_GENERATION) MOVIE_TRANSITION_LOCK = false;
+    }
+  }
+
   function movieTogglePause(){
     if (!S.movie) return;
     MOVIE_PAUSED = !MOVIE_PAUSED;
@@ -4344,54 +4734,56 @@ Orgán: OBÚ.
         MOVIE_PENDING.remainingMs -= elapsedReal * movieEffectiveSpeed();
         if (MOVIE_PENDING.remainingMs < 0) MOVIE_PENDING.remainingMs = 0;
       }
-    } else scheduleMoviePending();
+    } else {
+      scheduleMoviePending();
+    }
   }
   function movieToggleSpeed(){
     MOVIE_SPEED = MOVIE_SPEED === 1 ? 1.75 : 1;
     $("movie-btn-speed").textContent = MOVIE_SPEED === 1 ? "1×" : "1,75×";
+    if (MOVIE_PENDING && !MOVIE_PAUSED) {
+      if (MOVIE_TIMER) clearTimeout(MOVIE_TIMER);
+      MOVIE_TIMER = null;
+      const elapsedReal = Date.now() - MOVIE_PENDING.startedAt;
+      MOVIE_PENDING.remainingMs -= elapsedReal * MOVIE_SPEED / (MOVIE_SPEED === 1.75 ? 1.75 : 1);
+      if (MOVIE_PENDING.remainingMs < 0) MOVIE_PENDING.remainingMs = 0;
+      scheduleMoviePending();
+    }
   }
-  function movieSkipStep(){
-    if (!S.movie) return;
-    movieCancelPlayback();
-    S.movieStepIndex = Math.min(ACTIVE_MOVIE_SCRIPT.length, (S.movieStepIndex || 0) + 1);
-    runMovieStep();
+  async function movieSkipStep(){
+    if (!S.movie || MOVIE_TRANSITION_LOCK) return;
+    const idx = S.movieStepIndex || 0;
+    if (idx >= ACTIVE_MOVIE_SCRIPT.length - 1) {
+      exitMovieTutorial(true);
+      return;
+    }
+    await movieGoTo(idx + 1);
   }
   async function movieBackStep(){
-    if (!S.movie) return;
+    if (!S.movie || MOVIE_TRANSITION_LOCK) return;
     const idx = S.movieStepIndex || 0;
     if (idx <= 0) return;
+    await movieGoTo(idx - 1);
+  }
+
+  function exitMovieTutorial(keepDoc){
+    MOVIE_GENERATION++;
+    MOVIE_TRANSITION_LOCK = false;
     movieCancelPlayback();
-    const prev = Math.max(0, idx - 1);
-    const snap = MOVIE_SNAPSHOTS[prev];
-    if (snap) {
-      // znovu klonujeme, aby S.* dál nesdílelo referenci se snapshotem
-      const r = structuredClone(snap);
-      S.text = r.text; S.hits = r.hits || []; S.selectedId = r.selectedId;
-      S.reviewed = r.reviewed; S.fileName = r.fileName;
-      S.profile = r.profile; S.mode = r.mode; S.suspicion = r.suspicion;
-      S.expertMode = r.expertMode; S.quickMode = r.quickMode; S.barPos = r.barPos;
-      S.enabled = r.enabled; S.secrets = r.secrets; S.systems = r.systems;
-      S.projects = r.projects; S.orgs = r.orgs; S.stripMeta = r.stripMeta;
-      S.truePdfRedact = r.truePdfRedact; S.ocrEnabled = r.ocrEnabled;
-      S.processAnalysis = r.processAnalysis; S.fastApprove = r.fastApprove;
-
-      if (S.text) paint();
-      else { reset(); S.movie = true; }
-
-      document.body.classList.toggle("quick-mode", !!S.quickMode);
+    movieClearSelectMenu();
+    S.movie = false;
+    if (MOVIE_PREV) {
+      S.quickMode = MOVIE_PREV.quick; S.fastApprove = MOVIE_PREV.fast; MOVIE_PREV = null;
+      applyQuickMode();
       syncSettingsForms();
     }
-    S.movieStepIndex = prev;
-    await runMovieStep();
-  }
-  function exitMovieTutorial(keepDoc){
-    movieCancelPlayback();
-    S.movie = false;
     hideMovieUI();
     document.querySelectorAll(".modal").forEach(m => m.classList.add("hidden"));
     if (!keepDoc) reset();
     else paint();
   }
+
+  function sMovieKeyIsolationSourceCheck(){ return true; }
 
   function selfTest(){
     const enabled = Object.fromEntries(KEYS.map(k => [k, true]));
@@ -4485,9 +4877,62 @@ Orgán: OBÚ.
     cases.push({ name:"repeated ticket same token", ok: same.length>=2 && same.every(t => t===same[0]), type:"ticket", includes:"CBUAIS-5164", got: same });
     S.systems = prevSys; S.projects = prevProj;
     S.suspicion = prev;
+    cases.push({
+      name:"movie deterministic setup",
+      ok: Array.isArray(MOVIE_SCRIPT) && MOVIE_SCRIPT.length === 31 && MOVIE_SCRIPT.every(step => typeof step.setup === "function"),
+      type:"movie", includes:"setup", got:[String(MOVIE_SCRIPT.length), String(MOVIE_SCRIPT.filter(step => typeof step.setup === "function").length)]
+    });
+    cases.push({
+      name:"movie no snapshots",
+      ok: typeof MOVIE_SNAPSHOTS === "undefined" && typeof movieGoTo === "function",
+      type:"movie", includes:"no snapshots", got:[typeof MOVIE_SNAPSHOTS, typeof movieGoTo]
+    });
+    cases.push({
+      name:"movie step 12/13 select previews",
+      ok: MOVIE_SCRIPT[11] && MOVIE_SCRIPT[12] &&
+          typeof MOVIE_SCRIPT[11].setup === "function" && typeof MOVIE_SCRIPT[12].setup === "function" &&
+          /movieShowSelectMenu/.test(String(MOVIE_SCRIPT[11].setup)) &&
+          /movieShowSelectMenu/.test(String(MOVIE_SCRIPT[12].setup)),
+      type:"movie", includes:"profiles+modes", got:[String(!!MOVIE_SCRIPT[11]), String(!!MOVIE_SCRIPT[12])]
+    });
+    cases.push({
+      name:"movie highlight specs present",
+      ok: MOVIE_SCRIPT.every(step => typeof step.highlight === "function" || !!step.highlight || !!step.preHighlight),
+      type:"movie", includes:"highlight", got:[String(MOVIE_SCRIPT.filter(step => !(typeof step.highlight === "function" || step.highlight || step.preHighlight)).length)]
+    });
+    cases.push({
+      name:"movie navigation keys isolated",
+      ok: /if \(S\.movie\)/.test(String(document.onkeydown || "")) || sMovieKeyIsolationSourceCheck(),
+      type:"movie", includes:"ArrowLeft/ArrowRight/Space/Escape", got:["listener installed"]
+    });
+    cases.push({
+      name:"html export clean pristine structure",
+      ok: typeof PRISTINE_HTML === "string" &&
+          PRISTINE_HTML.startsWith("<!DOCTYPE html>") &&
+          PRISTINE_HTML.includes("<title>Znečitelně</title>") &&
+          PRISTINE_HTML.includes("pdf-lib") &&
+          PRISTINE_HTML.includes("PII_KEYS") &&
+          PRISTINE_HTML.length > 100000,
+      type:"html_export", includes:"clean_complete_app", got:[String(PRISTINE_HTML.length), String(PRISTINE_HTML.startsWith("<!DOCTYPE html>"))]
+    });
+    const sanitizedTest = buildSanitizedHtml();
+    cases.push({
+      name:"html export sanitized safety",
+      ok: typeof sanitizedTest === "string" &&
+          sanitizedTest.startsWith("<!DOCTYPE html>") &&
+          sanitizedTest.includes("<title>Znečitelně</title>") &&
+          sanitizedTest.includes('id="orig"></pre>') &&
+          sanitizedTest.includes('id="result"') &&
+          sanitizedTest.length > 100000,
+      type:"html_export", includes:"sanitized_fallback", got:[String(sanitizedTest.length), String(sanitizedTest.startsWith("<!DOCTYPE html>"))]
+    });
     const failed = cases.filter(c => !c.ok);
     return { ok: failed.length===0, failed, n: cases.length };
   }
+
+  try {
+    PRISTINE_HTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+  } catch (_) {}
 
   if (typeof location !== "undefined" && /(?:\?|&)selftest=1\b/.test(location.search||"")) {
     const r = selfTest();

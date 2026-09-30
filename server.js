@@ -8,6 +8,10 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.get(['/', '/index.html', '/znecitelne.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 app.use(express.static(__dirname));
 
 app.get('*', (req, res) => {
