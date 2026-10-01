@@ -1,0 +1,41 @@
+import { readFileSync, statSync } from "node:fs";
+
+const canonical = readFileSync("znecitelne.html", "utf8");
+const entry = readFileSync("index.html", "utf8");
+
+const failures = [];
+
+function check(condition, message) {
+  if (!condition) failures.push(message);
+}
+
+check(canonical === entry, "index.html must be an exact copy of znecitelne.html");
+check(canonical.startsWith("<!DOCTYPE html>"), "canonical app must be a complete HTML document");
+check(canonical.includes('lang="cs"'), "canonical app must declare Czech as the base language");
+check(canonical.includes("const CHANGELOG = ["), "canonical app must expose its changelog");
+check(canonical.includes("const RULES = "), "canonical app must declare its detector ruleset");
+check(canonical.includes("quickMode"), "Quick mode must remain present");
+check(canonical.includes("fastApprove"), "Fast-approve mode must remain present");
+check(canonical.includes("processAnalysis"), "Process analysis must remain present");
+check(canonical.includes("startMovieTutorial"), "Movie tutorial must remain present");
+check(canonical.includes("./lib/"), "Browser libraries must have a local/offline path");
+
+for (const asset of [
+  "./lib/fontkit.umd.min.js",
+  "./lib/pdf-lib.min.js",
+  "./lib/pdf.min.js",
+  "./lib/mammoth.browser.min.js",
+  "./lib/xlsx.full.min.js",
+  "./lib/fflate.js",
+  "./lib/tesseract.min.js",
+]) {
+  check(canonical.includes(asset), `missing local library reference: ${asset}`);
+}
+
+if (failures.length) {
+  console.error("Quality gate failed:");
+  for (const failure of failures) console.error(`- ${failure}`);
+  process.exit(1);
+}
+
+console.log(`Quality gate passed (${statSync("znecitelne.html").size} bytes canonical HTML).`);
