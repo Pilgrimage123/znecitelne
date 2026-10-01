@@ -1911,9 +1911,43 @@ Orgán: OBÚ.
     });
     return rows;
   }
+  function resolveHits(hits, { acceptedOnly = false, selectedId = null } = {}){
+    const source = (hits || []).filter(h =>
+      h &&
+      Number.isFinite(h.start) &&
+      Number.isFinite(h.end) &&
+      h.end > h.start &&
+      (!acceptedOnly || h.accept)
+    );
+    const selected = selectedId == null
+      ? null
+      : source.find(h => h.id === selectedId) || null;
+    const ordered = source.slice().sort((a, b) => {
+      if (selected) {
+        if (a === selected) return -1;
+        if (b === selected) return 1;
+      }
+      if (!!a.accept !== !!b.accept) return a.accept ? -1 : 1;
+      const lenA = a.end - a.start;
+      const lenB = b.end - b.start;
+      if (lenA !== lenB) return lenB - lenA;
+      const scoreA = Number(a.score) || 0;
+      const scoreB = Number(b.score) || 0;
+      if (scoreA !== scoreB) return scoreB - scoreA;
+      return a.start - b.start || (a.id || 0) - (b.id || 0);
+    });
+    const chosen = [];
+    for (const h of ordered) {
+      if (chosen.some(o => h.start < o.end && h.end > o.start)) continue;
+      chosen.push(h);
+    }
+    return chosen.sort((a, b) => a.start - b.start || a.end - b.end);
+  }
+  function visibleHits(hits, sel){
+    return resolveHits(hits, { acceptedOnly: false, selectedId: sel });
+  }
   function topHits(hits){
-    const accepted = hits.filter(h=>h.accept);
-    return accepted.filter(h => !accepted.some(o => o!==h && h.start>=o.start && h.end<=o.end && (o.end-o.start)>(h.end-h.start)));
+    return resolveHits(hits, { acceptedOnly: true });
   }
   function apply(text, hits, mode, lang){
     const replacer = bindReplacer(mode, lang, hits);
@@ -2969,8 +3003,7 @@ Orgán: OBÚ.
     const width = Math.max(280, Math.min(900, host.clientWidth - 16 || 700));
     if (PV && PV.buf === S.sourceBuf && PV.width === width && host.firstChild) { paintPdfVisualOverlays(); return; }
     host.innerHTML = `<p class="pv-note">${esc(i().visualNote)}</p>`;
-    pdfWorker();
-    const pdf = await pdfjsLib.getDocument({ data: S.sourceBuf.slice(0), disableStream:true, disableAutoFetch:true }).promise;
+    const pdf = await getPdfDocument(S.sourceBuf);
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const pages = [];
     for (let n = 1; n <= pdf.numPages; n++) {
@@ -3568,14 +3601,36 @@ Orgán: OBÚ.
 
   function pdfWorker(){
     if (!window.pdfjsLib) throw new Error("PDF: knihovna se nenačetla.");
-    if (window.__libLocal && window.__libLocal.pdfjs) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = "./lib/pdf.worker.min.js";
-      return;
-    }
-    if (location.protocol === "file:") {
-      throw new Error("PDF: pro offline režim chybí ./lib/pdf.worker.min.js.");
-    }
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+    if (window.__pdfWorkerReady) return window.__pdfWorkerReady;
+    window.__pdfWorkerReady = (async () => {
+      const local = "./lib/pdf.worker.min.js";
+      if (window.__libLocal && location.protocol !== "file:") {
+        try {
+          const res = await fetch(local, { method: "HEAD", cache: "no-store" });
+          if (res.ok) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = local;
+            return "local";
+          }
+        } catch (_) {}
+      }
+      if (location.protocol !== "file:") {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+        return "cdn";
+      }
+      return "disabled";
+    })();
+    return window.__pdfWorkerReady;
+  }
+  async function getPdfDocument(data){
+    const worker = await pdfWorker();
+    const options = {
+      data: data.slice(0),
+      disableStream: true,
+      disableAutoFetch: true
+    };
+    if (worker === "disabled") options.disableWorker = true;
+    return pdfjsLib.getDocument(options).promise;
   }
   function pageTextFromItems(items){
     return items.map(it => it.str||"").filter(Boolean).join(" ");
@@ -4334,8 +4389,7 @@ Orgán: OBÚ.
     context.assign(ref, PDFRawStream.of(newDict, newBytes));
   }
   async function exportPdfTrueRedact(source, hits, title, mode, lang){
-    pdfWorker();
-    const pdfjsDoc = await pdfjsLib.getDocument({ data: source.slice(0), disableStream:true, disableAutoFetch:true }).promise;
+    const pdfjsDoc = await getPdfDocument(source);
     const { PDFDocument, StandardFonts } = PDFLib;
     const doc = await PDFDocument.load(source, { updateMetadata:false });
     stampPdfMeta(doc, title);
