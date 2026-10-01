@@ -1,7 +1,7 @@
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 const canonical = readFileSync("znecitelne.html", "utf8");
-const entry = readFileSync("index.html", "utf8");
 
 const failures = [];
 
@@ -9,7 +9,6 @@ function check(condition, message) {
   if (!condition) failures.push(message);
 }
 
-check(canonical === entry, "index.html must be an exact copy of znecitelne.html");
 check(canonical.startsWith("<!DOCTYPE html>"), "canonical app must be a complete HTML document");
 check(canonical.includes('lang="cs"'), "canonical app must declare Czech as the base language");
 check(canonical.includes("const CHANGELOG = ["), "canonical app must expose its changelog");
@@ -19,6 +18,7 @@ check(canonical.includes("fastApprove"), "Fast-approve mode must remain present"
 check(canonical.includes("processAnalysis"), "Process analysis must remain present");
 check(canonical.includes("startMovieTutorial"), "Movie tutorial must remain present");
 check(canonical.includes("./lib/"), "Browser libraries must have a local/offline path");
+check(!existsSync("index.html"), "obsolete index.html must not exist");
 
 for (const asset of [
   "./lib/fontkit.umd.min.js",
@@ -30,12 +30,20 @@ for (const asset of [
   "./lib/tesseract.min.js",
 ]) {
   check(canonical.includes(asset), `missing local library reference: ${asset}`);
+  check(
+    existsSync(resolve(".", asset)),
+    `missing local runtime asset: ${asset}`
+  );
 }
+
+check(
+  !/const candidates = ["index\\.html"/.test(canonical),
+  "HTML self-export must not prefer obsolete index.html"
+);
 
 if (failures.length) {
   console.error("Quality gate failed:");
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
-
-console.log(`Quality gate passed (${statSync("znecitelne.html").size} bytes canonical HTML).`);
+console.log(`Quality gate passed (${canonical.length} characters canonical HTML).`);

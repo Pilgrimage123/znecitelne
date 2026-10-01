@@ -1,16 +1,14 @@
-import { copyFileSync, existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = resolve(".");
 const canonical = resolve(root, "znecitelne.html");
-const entry = resolve(root, "index.html");
 
 if (!existsSync(canonical)) {
   throw new Error("Missing canonical application: znecitelne.html");
 }
 
 const html = readFileSync(canonical, "utf8");
-
 const requiredMarkers = [
   'const RULES = "2026.10.01-ai24"',
   "quickMode",
@@ -31,12 +29,26 @@ for (const marker of requiredMarkers) {
   }
 }
 
-copyFileSync(canonical, entry);
+const requiredAssets = [
+  "lib/fontkit.umd.min.js",
+  "lib/pdf-lib.min.js",
+  "lib/pdf.min.js",
+  "lib/mammoth.browser.min.js",
+  "lib/xlsx.full.min.js",
+  "lib/fflate.js",
+  "lib/tesseract.min.js",
+];
 
-const output = statSync(entry).size;
-const source = statSync(canonical).size;
-if (output !== source) {
-  throw new Error("Generated entry point differs from canonical application.");
+for (const relative of requiredAssets) {
+  if (!existsSync(resolve(root, relative))) {
+    throw new Error(`Missing runtime asset: ${relative}`);
+  }
 }
 
-console.log(`Built canonical application: ${output} bytes`);
+if (existsSync(resolve(root, "index.html"))) {
+  throw new Error(
+    "index.html is obsolete. znecitelne.html is the only canonical application."
+  );
+}
+
+console.log(`Canonical application validated: ${html.length} characters`);

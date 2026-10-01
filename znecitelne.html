@@ -5013,7 +5013,7 @@ Orgán: OBÚ.
 
   async function getCleanExportHtml() {
     if (/^https?:/i.test(location.protocol)) {
-      const candidates = ["index.html", "./index.html", "/", location.pathname, location.href];
+      const candidates = ["/znecitelne.html", "./znecitelne.html", location.pathname, location.href];
       for (const url of candidates) {
         try {
           const res = await fetch(url, { cache: "no-cache" });
