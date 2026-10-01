@@ -1,0 +1,148 @@
+diff --git a/server.js b/server.js
+--- a/server.js
++++ b/server.js
+@@
+-// Existing server implementation
++import express from 'express';
++import path from 'path';
++import { fileURLToPath } from 'url';
++
++const __filename = fileURLToPath(import.meta.url);
++const __dirname = path.dirname(__filename);
++
++const app = express();
++const PORT = process.env.PORT || 3000;
++const APP_FILE = path.join(__dirname, 'znecitelne.html');
++
++app.get(['/', '/index.html', '/znecitelne.html'], (_req, res) => {
++  res.sendFile(APP_FILE);
++});
++
++app.use(express.static(__dirname));
++
++app.get('*', (_req, res) => {
++  res.sendFile(APP_FILE);
++});
++
++app.listen(PORT, '0.0.0.0', () => {
++  console.log(`Server running at http://0.0.0.0:${PORT}`);
++});
+
+diff --git a/znecitelne.html b/znecitelne.html
+--- a/znecitelne.html
++++ b/znecitelne.html
+@@
++<!--
++  Apply the following changes to the existing frontend.
++  Do not replace the whole HTML file with this patch.
++-->
+
+@@ PDF worker configuration
+- pdfjsLib.GlobalWorkerOptions.workerSrc = './lib/pdf.worker.min.js';
++ pdfWorker();
+
+@@ saved-magazine PDF loading
+- const loadingTask = pdfjsLib.getDocument({
+-   data: bytes,
+-   cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+-   cMapPacked: true
+- });
++ const loadingTask = pdfjsLib.getDocument(
++   pdfDocumentOptions({
++     data: bytes
++   })
++ );
+
+@@ XLSX export
+- const accepted = topHits(hits);
++ const accepted = effectiveHits(hits);
+
+@@ overlap resolution
++function resolveVisibleHits(hits) {
++  const ordered = (hits || [])
++    .filter(h => h && Number.isFinite(h.start) && Number.isFinite(h.end))
++    .filter(h => h.end > h.start)
++    .slice()
++    .sort((a, b) =>
++      a.start - b.start ||
++      b.end - a.end ||
++      (a.id || 0) - (b.id || 0)
++    );
++
++  const chosen = [];
++  let lastEnd = -1;
++
++  for (const h of ordered) {
++    if (h.start < lastEnd) continue;
++    chosen.push(h);
++    lastEnd = h.end;
++  }
++
++  return chosen;
++}
++
++function effectiveHits(hits) {
++  return resolveVisibleHits(
++    (hits || []).filter(h => h.accept)
++  );
++}
++
++function pdfAssetPath(relativePath) {
++  return new URL(`./lib/${relativePath}`, window.location.href).href;
++}
++
++function configurePdfJs() {
++  if (typeof pdfjsLib === 'undefined') {
++    throw new Error('PDF.js library is not loaded');
++  }
++
++  pdfWorker();
++
++  return {
++    cMapUrl: pdfAssetPath('cmaps/'),
++    cMapPacked: true
++  };
++}
++
++function pdfDocumentOptions(options = {}) {
++  return {
++    ...configurePdfJs(),
++    ...options
++  };
++}
++
++function apply(text, hits, mode, lang) {
++  const effective = effectiveHits(hits);
++  const replacer = makeReplacer(mode, lang);
++  let out = text;
++
++  for (const h of effective.slice().sort((a, b) => b.start - a.start)) {
++    out =
++      out.slice(0, h.start) +
++      replacer(h) +
++      out.slice(h.end);
++  }
++
++  return out;
++}
+
+@@ batch export cleanup
++// Around each batch item, ensure transient export state is cleared:
++try {
++  S._batchExport = true;
++  S._exportNotice = null;
++  const ok = await doExport();
++  if (!ok) failed++;
++  else {
++    item.snap.hashOut = S.hashOut || "";
++    if (S._exportNotice) item.snap.exportNotice = S._exportNotice;
++    done++;
++  }
++} catch (error) {
++  failed++;
++  console.error("Batch export failed:", item.name, error);
++} finally {
++  S._batchExport = false;
++  S._exportNotice = null;
++  S._aiPack = false;
++}

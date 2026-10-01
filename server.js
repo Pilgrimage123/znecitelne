@@ -7,15 +7,19 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const APP_FILE = path.join(__dirname, 'znecitelne.html');
 
-app.get(['/', '/index.html', '/znecitelne.html'], (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+// Application entry points.
+app.get(['/', '/index.html', '/znecitelne.html'], (_req, res) => {
+  res.sendFile(APP_FILE);
 });
 
+// Static assets: ./lib/*, metadata.json, etc.
 app.use(express.static(__dirname));
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+// Client-side fallback.
+app.get('*', (_req, res) => {
+  res.sendFile(APP_FILE);
 });
 
 app.listen(PORT, '0.0.0.0', () => {
