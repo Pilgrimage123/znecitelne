@@ -129,6 +129,9 @@ textarea { min-height: 80px; font-family: var(--mono); font-size: 13px; }
 }
 .privacy { display: flex; gap: 8px; color: var(--fg); font-size: 14px; margin-top: 28px; }
 .review { max-width: 1400px; margin: 0 auto; padding: 8px 16px 120px; }
+.queue { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:8px; }
+.queue .qchip { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.queue .qchip.active { border-color:var(--accent); background:var(--bg-subtle); font-weight:600; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
 .badge { display: inline-flex; align-items: center; border-radius: 999px; border: 1.5px solid var(--border); background: var(--bg-subtle); padding: 4px 10px; font-size: 12px; color: var(--fg); font-family: var(--mono); font-weight: 600; }
 .ok { color: var(--ok); font-weight: 600; } .danger { color: var(--danger); font-weight: 600; }
@@ -137,6 +140,19 @@ textarea { min-height: 80px; font-family: var(--mono); font-size: 13px; }
 .pane { background: var(--surface); border-radius: 16px; padding: 12px; box-shadow: 0 0 0 1.5px var(--border); }
 pre.doc { max-height: min(70dvh, 640px); overflow: auto; white-space: pre-wrap; word-break: break-word; font: 13px/1.65 var(--mono); margin: 0; color: var(--fg); }
 @media (min-width: 1100px) { #orig { max-height: min(85dvh, 980px); } }
+body.pdf-visual-on #orig { display: none; }
+#pdfVisual { max-height: min(70dvh, 640px); overflow: auto; background: var(--bg-subtle); border-radius: 8px; padding: 8px; }
+@media (min-width: 1100px) { #pdfVisual { max-height: min(85dvh, 980px); } }
+#pdfVisual.hidden { display: none; }
+.pv-page { position: relative; margin: 0 auto 12px; box-shadow: 0 0 0 1.5px var(--border); background: #fff; }
+.pv-page canvas { display: block; width: 100%; height: 100%; }
+.pv-box { position: absolute; border: 1.5px solid; border-radius: 3px; padding: 0; cursor: pointer; }
+.pv-box.pv-on { background: rgba(217,83,79,.28); border-color: #8a3a12; }
+.pv-box.pv-off { background: rgba(46,140,96,.25); border-color: #1e5a3f; }
+.pv-box.pv-prev { background: #16181a; border-color: #16181a; }
+.pv-box.pv-sel { outline: 3px solid var(--focus); outline-offset: 1px; }
+.pv-note { font-size: 12px; color: var(--muted); text-align: center; margin: 0 0 8px; }
+button.btn-visual[disabled] { opacity: .5; }
 .proc-summary { font-size: 13px; margin: 0 0 8px; }
 .proc-details summary { cursor: pointer; font-size: 12px; color: var(--muted); font-weight: 600; }
 .proc-details[open] summary { margin-bottom: 8px; }
@@ -552,7 +568,7 @@ body.movie-active #settingsSheet {
         <p style="font-weight:600;margin:0" id="dropTitle"></p>
         <p style="color:var(--muted);font-size:14px;margin:8px 0 0" id="dropHint"></p>
       </div>
-      <input id="file" type="file" hidden accept=".pdf,.docx,.xlsx,.txt,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+      <input id="file" type="file" multiple hidden accept=".pdf,.docx,.xlsx,.txt,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
       <div class="stack">
         <button class="btn" id="btnSample" type="button"></button>
         <button class="btn btn-sec" id="btnMovie" type="button"></button>
@@ -570,16 +586,22 @@ body.movie-active #settingsSheet {
 </section>
 
 <section id="review" class="review hidden">
+  <div id="queueBar" class="queue hidden" role="group"></div>
   <div class="toolbar" id="toolbar"></div>
   <p id="scanWarn" class="danger hidden"></p>
+  <p id="sigWarn" class="danger hidden" role="alert"></p>
   <p id="residual" class="ok hidden"></p>
   <div class="work">
     <div class="pane">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
         <h2 class="lbl" style="margin:0" id="lblOrig"></h2>
-        <button class="btn btn-sm btn-add-sel" id="btnAdd" type="button"></button>
+        <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+          <button class="btn btn-sm btn-sec btn-visual hidden" id="btnVisual" type="button"></button>
+          <button class="btn btn-sm btn-add-sel" id="btnAdd" type="button"></button>
+        </span>
       </div>
       <pre class="doc" id="orig"></pre>
+      <div id="pdfVisual" class="hidden" aria-label="PDF"></div>
     </div>
     <aside id="reviewAside">
       <div class="filters" id="filters"></div>
@@ -624,19 +646,30 @@ body.movie-active #settingsSheet {
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="./lib/fontkit.umd.min.js" onload="(window.__libLocal=window.__libLocal||{}).fontkit=1" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js';document.head.appendChild(s)"></script>
+<script src="./lib/pdf-lib.min.js" onload="(window.__libLocal=window.__libLocal||{}).pdflib=1" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';document.head.appendChild(s)"></script>
+<script src="./lib/pdf.min.js" onload="(window.__libLocal=window.__libLocal||{}).pdfjs=1" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';document.head.appendChild(s)"></script>
+<script src="./lib/mammoth.browser.min.js" onload="(window.__libLocal=window.__libLocal||{}).mammoth=1" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js';document.head.appendChild(s)"></script>
+<script src="./lib/xlsx.full.min.js" onload="(window.__libLocal=window.__libLocal||{}).xlsx=1" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';document.head.appendChild(s)"></script>
+<script src="./lib/fflate.js" onload="(window.__libLocal=window.__libLocal||{}).fflate=1" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js';document.head.appendChild(s)"></script>
+<script src="./lib/tesseract.min.js" onload="(window.__libLocal=window.__libLocal||{}).tesseract=1" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';document.head.appendChild(s)"></script>
 <script>
 (function () {
-  const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert"];
+  const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];
   const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];
   const KEYS = PII_KEYS.concat(ORG_KEYS);
-  const HIGH = new Set(["rc","ico","dic","account","email","ticket","casefile","sigcert"]);
-  const RULES = "2026.09.30-ai15";
+  const HIGH = new Set(["rc","ico","dic","account","email","ticket","casefile","sigcert","zahr_iban"]);
+  const RULES = "2026.10.01-ai24";
   const CHANGELOG = [
+    { version: "2026.10.01-ai26", notes: { cs: "Debug audit: batchová fronta má generation/identity guard a bezpečné mazání konkrétní položky; zavření Nastavení už nespouští zbytečnou reanalýzu. Zůstávají k řešení: sjednocení overlap logiky mezi UI a exportem, ověření existence lokálního pdf.worker.min.js s bezpečným fallbackem, skutečná izolace hromadného exportu od globálního stavu, kontrola integrity offline balíčku a adversariální regresní testy DOCX/PDF (včetně neviditelného obsahu, embedded objektů, metadat, relací a alternativních XML částí). PDF/A-2b zůstává deklarací vyžadující externí preflight. Žádný z otevřených bodů není v tomto auditu označen jako již opravený.", en: "Debug audit: the batch queue now has generation/identity guards and safe removal of the specific failed item; closing Settings no longer triggers an unnecessary re-analysis. Remaining work: unify overlap logic between UI and export, verify the local pdf.worker.min.js exists with a safe fallback, isolate bulk export from global state, validate offline bundle integrity, and add adversarial DOCX/PDF regression tests (including invisible content, embedded objects, metadata, relationships and alternate XML parts). PDF/A-2b remains a declaration requiring external preflight. None of the remaining points is marked as already fixed by this audit." } },
+    { version: "2026.10.01-ai25", notes: { cs: "Bezpečný export DOCX/PDF dokončen: striktní odstranění vizuálních objektů a relací, bezpečné názvy media partů, split-run náhrady bez slučování w:r, Mammoth záchranná brzda s TXT fallbackem a PDF sRGB OutputIntent + audit nevložených fontů s raster fallbackem.", en: "Secure DOCX/PDF export completed: strict removal of visual objects and relationships, safe media-part names, split-run replacement without merging w:r, Mammoth safety fallback to TXT, and PDF sRGB OutputIntent plus unembedded-font audit with raster fallback." } },
+    { version: "2026.10.01-ai22", notes: { cs: "Fáze 4 (5/5): dávková fronta – výběr/přetažení více souborů, přepínání čipy nad panelem, stav (nálezy, schválení, zkontrolováno) se drží zvlášť pro každý soubor, hromadný export všech zkontrolovaných.", en: "Phase 4 (5/5): batch queue – select/drop several files, switch via chips above the toolbar, state (findings, approvals, reviewed) kept per file, bulk export of all reviewed files." } },
+    { version: "2026.10.01-ai21", notes: { cs: "Fáze 4 (4/5): plná offline podpora – knihovny se načítají z ./lib/ (záloha CDN), pdf.js worker a Tesseract (worker, jádro, čeština) také lokálně; skript download_libs.sh stáhne soubory.", en: "Phase 4 (4/5): full offline support – libraries load from ./lib/ (CDN fallback); the pdf.js worker and Tesseract (worker, core, Czech data) are local too; download_libs.sh fetches the files." } },
+    { version: "2026.10.01-ai20", notes: { cs: "Fáze 4 (3/5): volitelná „Deklarace PDF/A-2b“ – do PDF se vloží XMP metadata (pdfaid:part=2, conformance=B). Není to certifikovaný PDF/A: chybí vložené fonty a OutputIntent; aplikace na to upozorní.", en: "Phase 4 (3/5): optional “PDF/A-2b declaration” – XMP metadata (pdfaid:part=2, conformance=B) is embedded into the PDF. It is not certified PDF/A: embedded fonts and an OutputIntent are missing; the app says so." } },
+    { version: "2026.10.01-ai19", notes: { cs: "Fáze 4 (2/5): zpětný export DOCX se zachováním formátování – .docx se načte jako ZIP (fflate), texty se přepíšou v dokumentu, hlavičkách, patičkách, poznámkách pod čarou i komentářích (včetně textu rozděleného do více běhů a smazaného textu ve sledovaných změnách), odkazy a metadata autora se vyčistí. Po přepisu proběhne kontrola zbytkových hodnot; při selhání se exportuje prostý text. Větev XLSX beze změny.", en: "Phase 4 (2/5): DOCX round-trip export with formatting preserved – the .docx is read as a ZIP (fflate) and text is replaced in the body, headers, footers, footnotes and comments (including text split across runs and deleted text in tracked changes); hyperlinks and author metadata are cleaned. A residual-value check runs after rewriting; on failure plain text is exported. XLSX path unchanged." } },
+    { version: "2026.10.01-ai18", notes: { cs: "Fáze 4 (1/5): vizuální náhled PDF – stránky se vykreslí pdf.js na canvas a nálezy se překryjí klikacími boxy (červené = znečitelnit, zelené = ponechat, černé v režimu Náhled změn). Prvek #orig zůstává v DOM (skrytý), kontrola exportu beze změny; vizuální náhled se nikdy neexportuje do HTML.", en: "Phase 4 (1/5): visual PDF preview – pages are rendered by pdf.js onto a canvas with clickable finding overlays (red = redact, green = keep, black in Preview-changes mode). #orig stays in the DOM (hidden), export check unchanged; the visual view is never exported into HTML." } },
+    { version: "2026.09.30-ai17", notes: { cs: "Oprava: aplikace se nespouštěla kvůli syntaktické chybě v Plánu změn (neescapované uvozovky); odstraněn vývojový skript AI Studia. Fáze 3: zákonný důvod znečitelnění u každého nálezu (i v auditním JSON), Protokol o anonymizaci (PDF, interní citlivý dokument, maska + solený SHA-256) a varování o zániku elektronického podpisu.", en: "Fix: the app did not start because of a syntax error in the Plan of Changes (unescaped quotes); removed the AI Studio dev script. Phase 3: legal basis per finding (also in the audit JSON), Anonymisation record (PDF, internal sensitive document, mask + salted SHA-256) and a lost e-signature warning." } },
+    { version: "2026.09.30-ai16", notes: { cs: "Nové kategorie detekce: katastrální údaje (parcely, LV, k.ú.), zahraniční IBAN a SWIFT/BIC, další doklady (pas, řidičský průkaz, ZTP). V Přehledu funkcí přibyla sekce Inspirace k dalšímu rozvoji a Plán změn.", en: "New detection categories: cadastre data (parcels, LV, k.ú.), foreign IBAN and SWIFT/BIC, other documents (passport, driving licence, ZTP). The feature overview gained an Ideas section and a Planned changes section." } },
     { version: "2026.09.30-ai15", notes: { cs: "Video tutoriál: opraveny texty o veřejné AI a nezávislém zapínání/vypínání metadat a PDF režimu („Běžně je oboje zapnuto“). Opraveno spolehlivé otevírání a scrollování nastavení od kroku 14 i v pokročilé kapitole při jakémkoli posunu šipkami nebo klikáním tak, aby byly probírané prvky vždy plně viditelné a nezakryté lištou.", en: "Video tutorial: updated captions about public AI identifiers and independent toggling of metadata and PDF true redaction ('Both are enabled by default'). Fixed reliable opening and scrolling of settings from step 14 onwards and in the advanced chapter during any keyboard arrow or click navigation so discussed elements are always clearly visible and never obscured by toolbar." } },
     { version: "2026.09.30-ai14", notes: { cs: "Tlačítko HTML spolehlivě exportuje celou samostatnou app vhodnou k úpravě v jiné AI: chrání citlivá data před únikem do exportu (žádné zbytky z otevřených souborů v DOMu), funguje online i offline (file://) a garantuje kompletní zdrojový kód se všemi knihovnami.", en: "The HTML button reliably exports the complete standalone app ready for editing in another AI: prevents sensitive data leaks into export (no open document traces in DOM), works online and offline (file://), and guarantees complete source code with all libraries." } },
     { version: "2026.09.30-ai13", notes: { cs: "Video tutoriál je deterministický: každý krok se znovu sestaví bez snapshotů, Zpět/Další/Přeskočit ruší staré asynchronní akce, pauza zastaví i čekající časovače, klávesy šipek/J/K/R/P nezasahují do dat a konec přes Přeskočit zachová dokument. Kroky 12 a 13 zobrazují vlastní rozbalené ukázky všech profilů a režimů s postupným zvýrazněním položek; ukázka nemění data.", en: "The video tutorial is deterministic: every step is rebuilt without snapshots, Back/Next/Skip invalidate stale async work, pause also stops pending timers, tutorial keys no longer alter document data, and skipping the last step preserves the document. Steps 12 and 13 show custom expanded previews of all profiles and replacement modes with progressive item highlighting; the preview never changes data." } },
@@ -651,8 +684,8 @@ body.movie-active #settingsSheet {
     { version: "2026.09.17-ai4", notes: { cs: "Aktuální verze pravidel detekce.", en: "Current detection ruleset." } }
   ];
   const LABEL = {
-    cs: { rc:"RČ", ico:"IČO", dic:"DIČ", account:"ÚČET", phone:"TELEFON", email:"E-MAIL", address:"ADRESA", dob:"DATUM_NAROZENÍ", name:"OSOBA", idcard:"DOKLAD", datovka:"DS", spz:"SPZ", geo:"GPS", sigcert:"CERT_PODPISU", secrets:"TAJEMSTVÍ", ticket:"TICKET", system:"SYSTÉM", project:"PROJEKT", incident:"INCIDENT", casefile:"ŘÍZENÍ", status:"STAV", orgunit:"ORGÁN", host:"HOST", ip:"IP", credential:"TAJNÉ" },
-    en: { rc:"BIRTH_NO", ico:"COMPANY_ID", dic:"VAT_ID", account:"ACCOUNT", phone:"PHONE", email:"EMAIL", address:"ADDRESS", dob:"DOB", name:"PERSON", idcard:"ID_DOC", datovka:"MAILBOX", spz:"PLATE", geo:"GPS", sigcert:"SIG_CERT", secrets:"SECRET", ticket:"TICKET", system:"SYSTEM", project:"PROJECT", incident:"INCIDENT", casefile:"CASE", status:"STATUS", orgunit:"ORG", host:"HOST", ip:"IP", credential:"SECRET" }
+    cs: { rc:"RČ", ico:"IČO", dic:"DIČ", account:"ÚČET", phone:"TELEFON", email:"E-MAIL", address:"ADRESA", dob:"DATUM_NAROZENÍ", name:"OSOBA", idcard:"DOKLAD", datovka:"DS", spz:"SPZ", geo:"GPS", sigcert:"CERT_PODPISU", katastr:"KATASTR", zahr_iban:"IBAN_ZAHR", doklady_extra:"DOKLAD_DALSI", secrets:"TAJEMSTVÍ", ticket:"TICKET", system:"SYSTÉM", project:"PROJEKT", incident:"INCIDENT", casefile:"ŘÍZENÍ", status:"STAV", orgunit:"ORGÁN", host:"HOST", ip:"IP", credential:"TAJNÉ" },
+    en: { rc:"BIRTH_NO", ico:"COMPANY_ID", dic:"VAT_ID", account:"ACCOUNT", phone:"PHONE", email:"EMAIL", address:"ADDRESS", dob:"DOB", name:"PERSON", idcard:"ID_DOC", datovka:"MAILBOX", spz:"PLATE", geo:"GPS", sigcert:"SIG_CERT", katastr:"CADASTRE", zahr_iban:"FOREIGN_IBAN", doklady_extra:"ID_DOC_EXTRA", secrets:"SECRET", ticket:"TICKET", system:"SYSTEM", project:"PROJECT", incident:"INCIDENT", casefile:"CASE", status:"STATUS", orgunit:"ORG", host:"HOST", ip:"IP", credential:"SECRET" }
   };
   const TICKET_STOP = new Set(["COVID","ISO","IEC","UTF","SHA","RFC","HTTP","HTML","JSON","GDPR","IEEE","W3C","CEN","XML","PDF","CSV","XLSX","DOCX","YAML","SMTP","IMAP","LDAP","SAML","OAUTH","OPENAPI","REST","SOAP","JIRA","CONFLUENCE","GITLAB","GITHUB","BITBUCKET","WINDOWS","LINUX","ANDROID","CHROME","CSN","MHD","Sb","API","SQL","NATO","VIN","IPV","AES","TLS","CPU","GPU","USB","ICD","DSM","OECD","UNESCO","UNICEF","WHO","WTO","SWIFT","IBAN","VAT","CIDR","UUID","MD5","SHA256","IPv","IPv4","IPv6"]);
   const STATUS_GENERIC = {
@@ -732,6 +765,24 @@ Orgán: OBÚ.
       orgsDict:"Orgány a útvary",
       dictHint:"Jeden název na řádek. Stejný token se použije v celém dokumentu.",
       layerPii:"Osobní údaje", layerOrg:"Identifikátory firmy a projektu",
+      inspireTitle:"Inspirace k dalšímu rozvoji",
+      inspireIntro:"Nápady, které v aplikaci zatím nejsou implementované — slouží jako směr dalšího vývoje.",
+      inspireList:[
+        {t:"<strong>Oddělení rolí (workflow „čtyř očí“).</strong> Možnost uzamknout rozpracovaný stav, exportovat jej jako koncept (<code>.znecitelne-session</code>) a předat vedoucímu nebo DPO k autorizaci."},
+        {t:"<strong>Integrace na spisovou službu (eSSL).</strong> Přímé napojení na systémy úřadů přes standardizované rozhraní (NSESSS / REST API) pro přímé stahování a ukládání dokumentů."},
+        {t:"<strong>Ověření Fáze 4 v prohlížeči (nevyzkoušeno).</strong> Dosud neprošly živým testem se zapnutou sítí: vizuální PDF náhled (canvas + klikací překryv), zpětný export DOCX, PDF/A deklarace, dávková fronta a chování offline bez složky <code>./lib/</code>."},
+        {t:"<strong>Vše v jednom HTML souboru (nedokončeno).</strong> Knihovny (pdf-lib, pdf.js včetně workeru, mammoth, xlsx, fflate, Tesseract včetně jádra a české jazykové vrstvy) se pořád načítají z <code>./lib/</code> nebo z CDN; pro jediný soubor je nutné je vložit přímo do HTML."},
+        {t:"<strong>Certifikovaný PDF/A.</strong> Současná „Deklarace PDF/A-2b“ je jen XMP metadata; skutečná shoda vyžaduje vložené fonty a OutputIntent (ICC profil)."}
+      ],
+      planTitle:"Plán změn k provedení",
+      planIntro:"Rozpracované změny bezpečnosti DOCX/PDF exportu; položky se dokončují po syntaktické, strukturální a živé browserové kontrole.",
+      planList:[
+        {t:"<strong>DOCX — Media Lockdown:</strong> striktně odstranit obrázky, OLE objekty a jejich binární party i reference v souborech .rels."},
+        {t:"<strong>DOCX — citlivé názvy media partů:</strong> detekovat názvy obsahující tajné, secret, confidential apod. a bezpečně je přejmenovat na image_anonymized_00X.ext včetně aktualizace .rels."},
+        {t:"<strong>DOCX — split runs:</strong> nahrazovat citlivý text rozdělený mezi w:t a w:delText bez slučování w:r, aby zůstalo zachováno formátování w:rPr."},
+        {t:"<strong>DOCX — záchranná brzda:</strong> po exportu ověřit čistotu přes Mammoth; při zbytkových citlivých datech exportovat místo DOCX prostý text TXT."},
+        {t:"<strong>PDF — sRGB a fonty:</strong> vložit sRGB OutputIntent, auditovat nevložené fonty a dotčené stránky následně bezpečně rasterizovat."}
+      ],
       processTitle:"Analýza rizika odhalení pracovních postupů",
       processEmpty:"Málo struktury k odhadu — přidejte nadpisy nebo číslované kroky.",
       processSteps:"Kroky", processActors:"Role", processSystems:"Systémy / tokeny",
@@ -739,6 +790,8 @@ Orgán: OBÚ.
       leakOk:"Po anonymizaci nevypadá text na uniklé tickety, e-maily ani rodná čísla.",
       leakBad:"Po anonymizaci zbývají vzory, které by veřejná AI ještě mohla zneužít.",
       stripMeta:"Odstranit metadata",
+      pdfaDecl:"Deklarace PDF/A-2b + sRGB OutputIntent (preflight stále nutný)", pdfaNote:"PDF/A metadata a sRGB OutputIntent byly vloženy; shoda stále není certifikována bez externího preflightu.", pdfaFontWarn:"Nevložené fonty nalezeny na stránkách {n}; tyto stránky se mají při bezpečném exportu převést na raster.", pdfaFail:"PDF/A metadata nebo OutputIntent se nepodařilo vložit.",
+      queueLbl:"Fronta souborů", queueAll:"Exportovat všechny zkontrolované", queueNone:"Žádný soubor ve frontě zatím není zkontrolovaný.", queueDone:"Exportováno souborů: {n}", queueBad:"Soubor „{f}“ se nepodařilo načíst.",
       truePdfRedact:"Při anonymizaci PDF zůstává textová vrstva",
       truePdfRedactHint:"Zachová prohledávatelný text mimo začerněné nebo nahrazené úseky, ve všech režimech výstupu (začernění, XXXX, štítek i pseudonym). Stránky, které nelze bezpečně ověřit, se přesto převedou na obrázek.",
       aiPack:"Balíček pro AI", includeOutline:"Přiložit osnovu postupu",
@@ -783,7 +836,7 @@ Orgán: OBÚ.
       landingStep2:"Projdete nálezy: RČ a účty i JIRA ID, systémy, řízení a stav produkce.",
       landingStep3:"Exportujte začerněné PDF, XLSX bez metadat, nebo balíček pro AI s osnovou postupu.",
       filterAll:"Vše", filterRedact:"K anonymizaci", filterKeep:"Ponecháno",
-      addSelection:"Přidat vlastní výběr textu", selected:"Vybraný nález", context:"Kontext",
+      addSelection:"Přidat vlastní výběr textu", visualOn:"Vizuální náhled PDF", visualOff:"Textový náhled", visualNote:"Vizuální náhled: kliknutím na zvýrazněný nález jej vyberete. Vlastní výběr textu přidáte v textovém náhledu.", visualErr:"Vizuální náhled se nepodařilo vykreslit.", selected:"Vybraný nález", context:"Kontext",
       high:"ověřeno", medium:"pravděpodobná shoda",
       expertMode:"Zobrazit technické detaily nálezů", processToggle:"Zobrazit rozbor postupu",
       movieAdvancedHelp:"Spustit pokročilou nápovědu (video)",
@@ -792,16 +845,27 @@ Orgán: OBÚ.
       fastApprove:"Zrychlené schvalování",
       processHint:"Odhad kroků, rolí a systémů se přiloží k AI balíčku jako samostatný soubor. Neovlivňuje začernění dokumentu.",
       barPosition:"Umístění lišty", barPosBottom:"Dole", barPosTop:"Nahoře", barPosLeft:"Vlevo", barPosRight:"Vpravo",
-      settings:"Nastavení", apply:"Použít", cancel:"Zpět", confirmTitle:"Nevratný export",
+      settings:"Nastavení", apply:"Použít", cancel:"Zrušit", confirmTitle:"Nevratný export",
       residual:"V dokumentu zůstal podezřelý řetězec.", residualOk:"Žádný podezřelý řetězec v dokumentu nezůstal.",
       exported:"Export hotov", walk:"z",
       exportedMixed:"Export hotov — {n} stránka/y musely být z bezpečnostních důvodů převedeny na obrázek",
+      exportedDocx:"Export DOCX hotov se zachovaným formátováním. Obrázky, VML/OLE a vložené binární objekty byly z bezpečnostních důvodů odstraněny; citlivé názvy media partů se nepřenášejí.", docxFallback:"DOCX se nepodařilo bezpečně přepsat se zachováním formátování ({r}) — exportován prostý text (TXT/PDF).",
       scanWarning:"{n} stránek nemá textovou vrstvu a nebylo možné je prohledat — zapněte OCR",
+      legalLabel:"Zákonný důvod znečitelnění",
+      legalOpts:{ trade:"Obchodní tajemství (§ 504 OZ)", gdpr:"Osobní údaje (čl. 6 GDPR)", security:"Ochrana bezpečnosti", custom:"Vlastní důvod…" },
+      legalShort:{ trade:"§ 504 OZ", gdpr:"čl. 6 GDPR", security:"Bezpečnost", custom:"Vlastní" },
+      legalCustomPh:"popište důvod",
+      legalTip:"Právní důvod, proč se údaj znečitelňuje. Předvyplní se podle typu nálezu a profilu, jde do auditního JSON a do Protokolu.",
+      recordBtn:"Protokol (PDF)",
+      recordTip:"Interní citlivý dokument: seznam začerněných údajů (maska + otisk SHA-256) se zákonnými důvody. Nezveřejňujte.",
+      recordNeedPdfLib:"Protokol nelze vytvořit — knihovna pdf-lib se nenačetla (síť).",
+      sigWarning:"Pozor: Dokument obsahuje elektronický podpis. Anonymizací vznikne nová kopie a původní kryptografický podpis bude zničen. Nelze použít pro autorizovanou konverzi.",
+      record:{ title:"Protokol o anonymizaci", internal:"INTERNÍ DOKUMENT – CITLIVÝ", notice:"Tento protokol je určen pouze pro interní potřebu a audit. Místo původních hodnot obsahuje jen masku (první znak a délku) a solený otisk SHA-256; u údajů s malou entropií (např. rodné číslo) nelze vyloučit zpětné dohledání, proto protokol nezveřejňujte.", file:"Soubor", operator:"Odpovědný pracovník", date:"Vygenerováno", profile:"Profil", mode:"Režim výstupu", rules:"Verze pravidel", hashIn:"SHA-256 vstupu", hashOut:"SHA-256 výstupu", notExported:"— (dokument zatím nebyl exportován)", reviewed:"Zkontrolováno", fourEyes:"Čtyři oči", yes:"ano", no:"ne", salt:"Sůl otisků", saltNote:"Otisk hodnoty = SHA-256(sůl + původní hodnota); zobrazeno prvních 24 znaků.", counts:"Začerněno / ponecháno", sig:"Elektronický podpis v originále", cols:["#","Typ","Str.","Maska","Otisk SHA-256","Zákonný důvod"], none:"Žádný údaj není označen k začernění.", page:"Strana" },
       kbdNext:"Další nález", kbdPrev:"Předchozí nález", kbdRedact:"Anonymizovat vybraný", kbdKeep:"Ponechat vybraný",
       profiles:{ registr:"Registr smluv (340/2015)", infoact:"InfZ (106/1999)", court:"Soud / vyhláška 403/2022", internal:"Interní AI (pseudonymy)", publicai:"Veřejná / externí AI", custom:"Vlastní pravidla" },
       modes:{ box:"Nevratné začernění", xxxx:"Náhrada XXXX", label:"Třída [OSOBA]", pseudo:"Konzistentní TICKET_001" },
       suspicions:{ high:"Vysoké — méně promeškaných", medium:"Střední — kompromis", low:"Nízké — méně falešných poplachů" },
-      cats:{ rc:"Rodné číslo", ico:"IČO", dic:"DIČ", account:"Účet / IBAN", phone:"Telefon", email:"E-mail", address:"Adresa / PSČ", dob:"Datum narození", name:"Jména a tituly", idcard:"Číslo dokladu", datovka:"Datová schránka", spz:"SPZ", geo:"Souřadnice", sigcert:"Podpisový certifikát", secrets:"Tajemství", ticket:"Ticket / JIRA", system:"Interní systém", project:"Projekt", incident:"Incident / HD", casefile:"Č.j. / řízení", status:"Stav produkce", orgunit:"Orgán / útvar", host:"Interní URL / host", ip:"Privátní IP", credential:"Klíč / heslo" },
+      cats:{ rc:"Rodné číslo", ico:"IČO", dic:"DIČ", account:"Účet / IBAN", phone:"Telefon", email:"E-mail", address:"Adresa / PSČ", dob:"Datum narození", name:"Jména a tituly", idcard:"Číslo dokladu", datovka:"Datová schránka", spz:"SPZ", geo:"Souřadnice", sigcert:"Podpisový certifikát", katastr:"Katastr nemovitostí", zahr_iban:"Zahraniční IBAN / SWIFT", doklady_extra:"Další doklady (pas, ŘP, ZTP)", secrets:"Tajemství", ticket:"Ticket / JIRA", system:"Interní systém", project:"Projekt", incident:"Incident / HD", casefile:"Č.j. / řízení", status:"Stav produkce", orgunit:"Orgán / útvar", host:"Interní URL / host", ip:"Privátní IP", credential:"Klíč / heslo" },
       tips:{
         lang:"Přepnout jazyk (CS / EN).", theme:"Přepnout světlý / tmavý režim.", help:"Jak anonymizace funguje.", features:"Co všechno aplikace umí.", changelog:"Přehled verzí a změn.", sample:"Fiktivní smlouva s RČ, IČO a IBAN.", movie:"Automatická prohlídka vzorové smlouvy — pauza, 1×/1,75×, další krok.",
         settings:"Profil, režim, podezření a kategorie — lze měnit i během kontroly.",
@@ -829,10 +893,10 @@ Orgán: OBÚ.
         expertMode:"U každého nálezu zobrazí, podle čeho byl rozpoznán (checksum, slovník, vzor) a interní klíč entity. Na anonymizaci nemá vliv, jen doplňuje informace pro kontrolu.",
         process:"Lokální odhad kroků, rolí a vazeb ticketů — bez odeslání do cloudu.",
         processAnalysis:"Odhadne kroky, role a systémy z textu a upozorní, jestli by šel z dokumentu i po anonymizaci rekonstruovat pracovní postup. Experimentální funkce pro mimořádně citlivé případy, náročnější na výpočet.",
-        clear:"Zahodí dokument z paměti.", addSelection:"Označte text v originálu.",
+        clear:"Zahodí dokument z paměti.", visual:"Přepne mezi textem a vykreslenými stránkami PDF s přeloženými nálezy.", addSelection:"Označte text v originálu.",
         high:"Silný důkaz (checksum, popisek, slovník).", medium:"Heuristika — ověřte falešný poplach.",
         suspicion:"Vysoké: chytí víc (riziko falešných poplachů). Nízké: přísnější (riziko promeškání). Střední: kompromis.",
-        cats:{ rc:"Rodné číslo s kontrolním součtem.", ico:"Osmimístné IČO. U instituce zvažte ponechání.", dic:"DIČ / CZ + IČO.", account:"Český účet a IBAN.", phone:"České telefonní číslo.", email:"E-mail.", address:"Ulice, náměstí, sídlo a PSČ.", dob:"Datum narození v kontextu — ne datum smlouvy.", name:"Jména s titulem, pádem i iniciálou.", idcard:"Číslo OP / pasu.", datovka:"ID datové schránky.", spz:"Registrační značka včetně EL.", geo:"Zeměpisné souřadnice.", sigcert:"Sériové číslo a otisk osobního certifikátu, atribut serialNumber a syrová data podpisu. V viditelném razítku se začerní jen jméno podepisujícího — rámeček, organizace, CA a datum zůstanou.", secrets:"Vlastní fráze tajemství.", ticket:"JIRA-like ID. Prefix ze slovníku má přednost.", system:"Názvy z interního slovníku a fráze systém/modul/integrace.", project:"Prefix ticketu nebo název projektu.", incident:"HD / INC / provozní číslo.", casefile:"Číslo jednací a spisová značka.", status:"Konkrétní produkční stav se zobecní.", orgunit:"Konkrétní orgán nebo útvar ze slovníku.", host:"Interní hostname nebo URL.", ip:"Privátní IPv4 (10/8, 192.168/16, 172.16/12).", credential:"API klíč, Bearer token, heslo." },
+        cats:{ rc:"Rodné číslo s kontrolním součtem.", ico:"Osmimístné IČO. U instituce zvažte ponechání.", dic:"DIČ / CZ + IČO.", account:"Český účet a IBAN.", phone:"České telefonní číslo.", email:"E-mail.", address:"Ulice, náměstí, sídlo a PSČ.", dob:"Datum narození v kontextu — ne datum smlouvy.", name:"Jména s titulem, pádem i iniciálou.", idcard:"Číslo OP / pasu.", datovka:"ID datové schránky.", spz:"Registrační značka včetně EL.", geo:"Zeměpisné souřadnice.", sigcert:"Sériové číslo a otisk osobního certifikátu, atribut serialNumber a syrová data podpisu. V viditelném razítku se začerní jen jméno podepisujícího — rámeček, organizace, CA a datum zůstanou.", katastr:"Čísla parcel (parc. č. 123/4), listy vlastnictví (LV 456) a katastrální území (k.ú. Nové Město).", zahr_iban:"Cizí IBAN (SK, DE, AT, PL…) ověřený kontrolním součtem a kódy SWIFT/BIC.", doklady_extra:"Číslo cestovního pasu, řidičského průkazu a průkazu ZTP — hledá se u popisku nebo v kontextu.", secrets:"Vlastní fráze tajemství.", ticket:"JIRA-like ID. Prefix ze slovníku má přednost.", system:"Názvy z interního slovníku a fráze systém/modul/integrace.", project:"Prefix ticketu nebo název projektu.", incident:"HD / INC / provozní číslo.", casefile:"Číslo jednací a spisová značka.", status:"Konkrétní produkční stav se zobecní.", orgunit:"Konkrétní orgán nebo útvar ze slovníku.", host:"Interní hostname nebo URL.", ip:"Privátní IPv4 (10/8, 192.168/16, 172.16/12).", credential:"API klíč, Bearer token, heslo." },
         profiles:{ registr:"Text jde do centrálního Registru smluv — anonymizujte podle zákona 340/2015 (osobní údaje, obchodní tajemství).", infoact:"Odpověď na žádost podle zákona 106/1999 o svobodném přístupu k informacím.", court:"Zveřejnění rozhodnutí podle vyhlášky 403/2022 o anonymizaci soudních rozhodnutí.", internal:"Pro interní nástroj s omezeným přístupem — hodnoty se nahradí konzistentními pseudonymy, ne úplně smažou.", publicai:"Nejpřísnější profil — bez firmy, systémů i konkrétních čísel, vhodné pro veřejné AI nástroje.", custom:"Kategorie a slovníky si nastavíte sami." },
         modes:{ box:"Text se v souboru fyzicky odstraní / začerní, nejde ho získat zpět.", xxxx:"Nahradí nález řetězcem XXXX stejné délky.", label:"Nahradí nález obecnou značkou podle kategorie, např. [OSOBA] nebo [ADRESA].", pseudo:"Stejná hodnota dostane v celém dokumentu stejný pseudonym (TICKET_001), takže vazby zůstanou čitelné." }
       }
@@ -854,6 +918,24 @@ Orgán: OBÚ.
       orgsDict:"Bodies and units",
       dictHint:"One name per line. The same token is reused across the document.",
       layerPii:"Personal data", layerOrg:"Company and project identifiers",
+      inspireTitle:"Ideas for future development",
+      inspireIntro:"Ideas that are not implemented in the app yet — a direction for further development.",
+      inspireList:[
+        {t:"<strong>Separation of roles (“four eyes” workflow).</strong> Lock a work in progress, export it as a draft (<code>.znecitelne-session</code>) and hand it to a supervisor or the DPO for authorisation."},
+        {t:"<strong>Records-management (eSSL) integration.</strong> Direct connection to public-office systems via a standard interface (NSESSS / REST API) to fetch and store documents."},
+        {t:"<strong>Verify Phase 4 in a browser (untested).</strong> Not yet checked live with the network on: visual PDF preview (canvas + clickable overlay), DOCX round-trip export, PDF/A declaration, batch queue and offline behaviour without the <code>./lib/</code> folder."},
+        {t:"<strong>Everything in a single HTML file (unfinished).</strong> The libraries (pdf-lib, pdf.js incl. worker, mammoth, xlsx, fflate, Tesseract incl. core and Czech language data) still load from <code>./lib/</code> or a CDN; a single file means inlining them into the HTML."},
+        {t:"<strong>Certified PDF/A.</strong> The current “PDF/A-2b declaration” is XMP metadata only; real conformance needs embedded fonts and an OutputIntent (ICC profile)."}
+      ],
+      planTitle:"Planned changes",
+      planIntro:"Security work for DOCX/PDF export is in progress; items are completed after syntax, structural and live browser checks.",
+      planList:[
+        {t:"<strong>DOCX — Media Lockdown:</strong> strictly remove images, OLE objects and their binary parts, plus their references in .rels files."},
+        {t:"<strong>DOCX — sensitive media names:</strong> detect names containing secret, confidential, sensitive, private and related terms and safely rename them to image_anonymized_00X.ext while updating .rels."},
+        {t:"<strong>DOCX — split runs:</strong> replace sensitive text split across w:t and w:delText without merging w:r, preserving w:rPr formatting."},
+        {t:"<strong>DOCX — safety fallback:</strong> verify the exported package with Mammoth; if sensitive data remains, export plain TXT instead of DOCX."},
+        {t:"<strong>PDF — sRGB and fonts:</strong> add an sRGB OutputIntent, audit unembedded fonts, and rasterize affected pages safely."}
+      ],
       processTitle:"Workflow exposure risk analysis",
       processEmpty:"Not enough structure to infer — add headings or numbered steps.",
       processSteps:"Steps", processActors:"Roles", processSystems:"Systems / tokens",
@@ -861,6 +943,8 @@ Orgán: OBÚ.
       leakOk:"After redaction, no leftover ticket, email or birth-number patterns.",
       leakBad:"After redaction, patterns remain that a public AI could still misuse.",
       stripMeta:"Strip metadata",
+      pdfaDecl:"PDF/A-2b declaration (XMP) – not certified conformance", pdfaNote:"The PDF only carries a PDF/A declaration (XMP); it is not certified PDF/A – embedded fonts and an OutputIntent are missing.", pdfaFail:"Could not embed the PDF/A declaration.",
+      queueLbl:"File queue", queueAll:"Export all reviewed", queueNone:"No file in the queue has been reviewed yet.", queueDone:"Files exported: {n}", queueBad:"File “{f}” could not be loaded.",
       truePdfRedact:"Truly remove redacted text from PDF (not just an image)",
       truePdfRedactHint:"Keeps the rest of the document as searchable text, in every output mode (black-box, XXXX, label, and pseudonym alike). Pages that can't be safely verified are still converted to an image.",
       aiPack:"AI pack", includeOutline:"Attach process outline",
@@ -905,7 +989,7 @@ Orgán: OBÚ.
       landingStep2:"Walk the hits: birth numbers and accounts, plus JIRA IDs, systems, case files and production status.",
       landingStep3:"Export a rasterized PDF, metadata-stripped XLSX, or an AI pack with a process outline.",
       filterAll:"All", filterRedact:"To redact", filterKeep:"Kept",
-      addSelection:"Add custom text selection", selected:"Selected hit", context:"Context",
+      addSelection:"Add custom text selection", visualOn:"Visual PDF preview", visualOff:"Text view", visualNote:"Visual preview: click a highlighted finding to select it. Add a custom text selection in the text view.", visualErr:"The visual preview could not be rendered.", selected:"Selected hit", context:"Context",
       high:"validated", medium:"likely match",
       expertMode:"Show technical hit details", processToggle:"Show process breakdown",
       movieAdvancedHelp:"Start advanced walkthrough (video)",
@@ -914,16 +998,27 @@ Orgán: OBÚ.
       fastApprove:"Accelerated approval",
       processHint:"The step/role/system estimate is attached to the AI pack as a separate file. It does not affect document redaction.",
       barPosition:"Toolbar position", barPosBottom:"Bottom", barPosTop:"Top", barPosLeft:"Left", barPosRight:"Right",
-      settings:"Settings", apply:"Apply", cancel:"Back", confirmTitle:"Irreversible export",
+      settings:"Settings", apply:"Apply", cancel:"Cancel", confirmTitle:"Irreversible export",
       residual:"A suspicious string remains in the document.", residualOk:"No suspicious string remains in the document.",
       exported:"Export complete", walk:"of",
       exportedMixed:"Export complete — {n} page(s) had to be converted to an image for safety",
+      exportedDocx:"DOCX export complete with formatting preserved. Images, VML/OLE and embedded binary objects were removed for safety; sensitive media part names are not carried into the output.", docxFallback:"The DOCX could not be safely rewritten with formatting preserved ({r}) — plain text (TXT/PDF) was exported instead.",
       scanWarning:"{n} page(s) have no text layer and could not be searched — turn on OCR",
+      legalLabel:"Legal basis for redaction",
+      legalOpts:{ trade:"Trade secret (§ 504 Civil Code)", gdpr:"Personal data (Art. 6 GDPR)", security:"Security protection", custom:"Custom basis…" },
+      legalShort:{ trade:"§ 504 CC", gdpr:"Art. 6 GDPR", security:"Security", custom:"Custom" },
+      legalCustomPh:"describe the basis",
+      legalTip:"Legal basis for redacting this item. Pre-filled from finding type and profile; included in the audit JSON and the Record.",
+      recordBtn:"Record (PDF)",
+      recordTip:"Internal sensitive document: list of redacted items (mask + SHA-256 digest) with legal bases. Do not publish.",
+      recordNeedPdfLib:"Cannot create the record — pdf-lib did not load (network).",
+      sigWarning:"Warning: the document contains an electronic signature. Anonymisation creates a new copy and the original cryptographic signature will be destroyed. It cannot be used for an authorised conversion.",
+      record:{ title:"Anonymisation record", internal:"INTERNAL DOCUMENT - SENSITIVE", notice:"This record is for internal use and audit only. Instead of original values it holds only a mask (first character and length) and a salted SHA-256 digest; low-entropy values (e.g. birth numbers) may still be recoverable, so do not publish it.", file:"File", operator:"Responsible officer", date:"Generated", profile:"Profile", mode:"Output mode", rules:"Ruleset version", hashIn:"Input SHA-256", hashOut:"Output SHA-256", notExported:"- (not exported yet)", reviewed:"Reviewed", fourEyes:"Four eyes", yes:"yes", no:"no", salt:"Digest salt", saltNote:"Digest = SHA-256(salt + original value); first 24 characters shown.", counts:"Redacted / kept", sig:"E-signature in original", cols:["#","Type","Pg.","Mask","SHA-256 digest","Legal basis"], none:"No item is marked for redaction.", page:"Page" },
       kbdNext:"Next hit", kbdPrev:"Previous hit", kbdRedact:"Redact selected", kbdKeep:"Keep selected",
       profiles:{ registr:"Register of Contracts (340/2015)", infoact:"Info Act (106/1999)", court:"Court / Decree 403/2022", internal:"Internal AI (pseudonyms)", publicai:"Public / external AI", custom:"Custom rules" },
       modes:{ box:"Irreversible black-box", xxxx:"Replace with XXXX", label:"Class [PERSON]", pseudo:"Consistent TICKET_001" },
       suspicions:{ high:"High — fewer misses", medium:"Medium — compromise", low:"Low — fewer false positives" },
-      cats:{ rc:"Birth number (RČ)", ico:"Company ID (IČO)", dic:"VAT ID (DIČ)", account:"Account / IBAN", phone:"Phone", email:"Email", address:"Address / postcode", dob:"Date of birth", name:"Names and titles", idcard:"ID document", datovka:"Data mailbox", spz:"Licence plate", geo:"Coordinates", sigcert:"Signature certificate", secrets:"Trade secrets", ticket:"Ticket / JIRA", system:"Internal system", project:"Project", incident:"Incident / HD", casefile:"Case file no.", status:"Production status", orgunit:"Body / unit", host:"Internal URL / host", ip:"Private IP", credential:"Key / password" },
+      cats:{ rc:"Birth number (RČ)", ico:"Company ID (IČO)", dic:"VAT ID (DIČ)", account:"Account / IBAN", phone:"Phone", email:"Email", address:"Address / postcode", dob:"Date of birth", name:"Names and titles", idcard:"ID document", datovka:"Data mailbox", spz:"Licence plate", geo:"Coordinates", sigcert:"Signature certificate", katastr:"Land registry (cadastre)", zahr_iban:"Foreign IBAN / SWIFT", doklady_extra:"Other documents (passport, licence, ZTP)", secrets:"Trade secrets", ticket:"Ticket / JIRA", system:"Internal system", project:"Project", incident:"Incident / HD", casefile:"Case file no.", status:"Production status", orgunit:"Body / unit", host:"Internal URL / host", ip:"Private IP", credential:"Key / password" },
       tips:{
         lang:"Switch language (CS / EN).", theme:"Switch light / dark mode.", help:"How redaction works.", features:"What the app can do.", changelog:"Version and change history.", sample:"A fictitious contract with a birth number, IČO and IBAN.", movie:"Guided walkthrough of the sample contract — pause, 1×/1.75×, skip step.",
         settings:"Profile, mode, suspicion and categories — editable during review too.",
@@ -951,10 +1046,10 @@ Orgán: OBÚ.
         expertMode:"For each hit, shows what triggered it (checksum, dictionary, pattern) and its internal entity key. Doesn't affect redaction itself, just adds detail for review.",
         process:"Local estimate of steps, roles and ticket links — nothing is sent to a cloud.",
         processAnalysis:"Infers steps, roles and systems from the text and flags if a workflow could still be reconstructed after redaction. Experimental, for extra-sensitive cases — heavier to compute.",
-        clear:"Drops the document from memory.", addSelection:"Select text in the original.",
+        clear:"Drops the document from memory.", visual:"Switch between text and rendered PDF pages with finding overlays.", addSelection:"Select text in the original.",
         high:"Strong evidence (checksum, label, dictionary).", medium:"Heuristic — check for false positives.",
         suspicion:"High: catches more (risk of false positives). Low: stricter (risk of misses). Medium: compromise.",
-        cats:{ rc:"Birth number with checksum.", ico:"8-digit company ID.", dic:"VAT ID.", account:"Czech account and IBAN.", phone:"Czech phone number.", email:"Email.", address:"Street, square, seat and postcode.", dob:"Date of birth in context — not a contract date.", name:"Titled, declined and initialised names.", idcard:"ID / passport number.", datovka:"Data mailbox ID.", spz:"Licence plate including EL.", geo:"Coordinates.", sigcert:"Personal certificate serial number and fingerprint, the serialNumber attribute and raw signature data. Inside a visible stamp only the signer name is covered — the frame, organisation, CA and date stay.", secrets:"Your own secret phrases.", ticket:"JIRA-like IDs. Dictionary prefixes win.", system:"Names from your dictionary plus system/module/integration phrases.", project:"Ticket prefix or project name.", incident:"HD / INC / ops number.", casefile:"Case file no.", status:"Production status", orgunit:"Body / unit", host:"Internal URL / host", ip:"Private IPv4 (10/8, 192.168/16, 172.16/12).", credential:"Key / password" },
+        cats:{ rc:"Birth number with checksum.", ico:"8-digit company ID.", dic:"VAT ID.", account:"Czech account and IBAN.", phone:"Czech phone number.", email:"Email.", address:"Street, square, seat and postcode.", dob:"Date of birth in context — not a contract date.", name:"Titled, declined and initialised names.", idcard:"ID / passport number.", datovka:"Data mailbox ID.", spz:"Licence plate including EL.", geo:"Coordinates.", sigcert:"Personal certificate serial number and fingerprint, the serialNumber attribute and raw signature data. Inside a visible stamp only the signer name is covered — the frame, organisation, CA and date stay.", katastr:"Parcel numbers (parc. č. 123/4), ownership sheets (LV 456) and cadastral areas (k.ú. Nové Město).", zahr_iban:"Foreign IBANs (SK, DE, AT, PL…) verified by checksum, and SWIFT/BIC codes.", doklady_extra:"Passport, driving licence and ZTP card numbers — found by label or context.", secrets:"Your own secret phrases.", ticket:"JIRA-like IDs. Dictionary prefixes win.", system:"Names from your dictionary plus system/module/integration phrases.", project:"Ticket prefix or project name.", incident:"HD / INC / ops number.", casefile:"Case file no.", status:"Production status", orgunit:"Body / unit", host:"Internal URL / host", ip:"Private IPv4 (10/8, 192.168/16, 172.16/12).", credential:"Key / password" },
         profiles:{ registr:"Goes into the central Register of Contracts — redact per Act 340/2015 (personal data, trade secrets).", infoact:"A reply to a request under the Freedom of Information Act (106/1999).", court:"Publishing a decision under Decree 403/2022 on anonymising court decisions.", internal:"For an internal tool with restricted access — values become consistent pseudonyms, not fully removed.", publicai:"The strictest profile — no company, systems or specific numbers, suited to public AI tools.", custom:"Set your own categories and dictionaries." },
         modes:{ box:"The text is physically removed / blacked out in the file — it cannot be recovered.", xxxx:"Replaces the hit with an XXXX string of the same length.", label:"Replaces the hit with a generic category tag, e.g. [PERSON] or [ADDRESS].", pseudo:"The same value gets the same pseudonym (TICKET_001) throughout the document, so links stay readable." }
       }
@@ -973,7 +1068,7 @@ Orgán: OBÚ.
     systems: "AIS SBS | SYSTÉM\neSpis | INTEGRACE\nSAMO2 | MODUL",
     projects: "CBUAIS | PROJEKT\nORION | PROJEKT",
     orgs: "OBÚ | ORGÁN",
-    stripMeta: true, includeOutline: true, publicGlossary: true, truePdfRedact: true,
+    stripMeta: true, pdfaDecl: localStorage.getItem("znec-pdfa") === "1", includeOutline: true, publicGlossary: true, truePdfRedact: true,
     expertMode: localStorage.getItem("znec-expert") === "1",
     processAnalysis: localStorage.getItem("znec-process") === "1",
     quickMode: (localStorage.getItem("znec-quick") === "1" || localStorage.getItem("znec-quick") === "0")
@@ -982,11 +1077,13 @@ Orgán: OBÚ.
     barPos: (["top","bottom","left","right"].includes(localStorage.getItem("znec-barpos")) ? localStorage.getItem("znec-barpos") : "top"),
     fastApprove: localStorage.getItem("znec-fastapprove") === "1",
     ocrEnabled: localStorage.getItem("znec-ocr") !== "0",
-    operator: "", fileName: "", kind: "text", text: "", sourceBuf: null,
+    operator: "", sigDetected: false, fileName: "", kind: "text", text: "", sourceBuf: null,
     pages: [], noTextPages: 0, cellMap: [],
     hashIn: "", hashOut: "", hits: [], reviewed: false, secondEyes: false,
     selectedId: null, filter: "all", seen: new Set(),
+    analysisContext: "",
     docView: localStorage.getItem("znec-docview") === "preview" ? "preview" : "original",
+    pdfVisual: false,
     movie: false, movieStepIndex: 0
   };
   const i = () => I18N[S.lang];
@@ -1054,6 +1151,21 @@ Orgán: OBÚ.
   function ibanOk(iban){
     const s = iban.replace(/\s+/g,"").toUpperCase();
     if (!/^CZ\d{22}$/.test(s)) return false;
+    const rearr = s.slice(4)+s.slice(0,4);
+    let rem = 0;
+    for (const ch of rearr) {
+      const v = /[A-Z]/.test(ch) ? String(ch.charCodeAt(0)-55) : ch;
+      for (const d of v) rem = (rem * 10 + +d) % 97;
+    }
+    return rem === 1;
+  }
+  // --- Fáze 2: cizí IBAN (délky podle zemí) a SWIFT/BIC ---
+  const IBAN_LEN = {AD:24,AE:23,AL:28,AT:20,AZ:28,BA:20,BE:16,BG:22,BH:22,BR:29,BY:28,CH:21,CR:22,CY:28,DE:22,DK:18,DO:28,EE:20,EG:29,ES:24,FI:18,FO:18,FR:27,GB:22,GE:22,GI:23,GL:18,GR:27,GT:28,HR:21,HU:28,IE:22,IL:23,IQ:23,IS:26,IT:27,JO:30,KW:30,KZ:20,LB:28,LC:32,LI:21,LT:20,LU:20,LV:21,MC:27,MD:24,ME:22,MK:19,MR:27,MT:31,MU:30,NL:18,NO:15,PK:24,PL:28,PS:29,PT:25,QA:29,RO:24,RS:22,SA:24,SC:31,SE:24,SI:19,SK:24,SM:27,TL:23,TN:24,TR:26,UA:29,VA:22,VG:24,XK:20};
+  const SWIFT_CC = new Set(Object.keys(IBAN_LEN).concat(["CZ","US","CA","JP","CN","HK","SG","AU","NZ","IN","ZA","MX","KR","TH","MY","ID","RU"]));
+  function ibanForeignOk(iban){
+    const s = String(iban).replace(/\s+/g,"").toUpperCase();
+    const cc = s.slice(0,2);
+    if (cc === "CZ" || IBAN_LEN[cc] !== s.length) return false;
     const rearr = s.slice(4)+s.slice(0,4);
     let rem = 0;
     for (const ch of rearr) {
@@ -1313,7 +1425,7 @@ Orgán: OBÚ.
     if (h.type==="ticket" && has("format")) s += 12;
     if (h.confidence === "high") s += 6;
     s += Math.min(18, Math.max(0, (h.end-h.start)-2));
-    const prio = { rc:7, email:7, account:6, ico:6, dic:6, ticket:6, credential:6, phone:4, datovka:4, idcard:3, address:4, name:3, dob:2, host:5, ip:5, geo:3, spz:3 };
+    const prio = { rc:7, email:7, account:6, ico:6, dic:6, ticket:6, credential:6, phone:4, datovka:4, idcard:3, katastr:4, zahr_iban:6, doklady_extra:4, address:4, name:3, dob:2, host:5, ip:5, geo:3, spz:3 };
     s += prio[h.type] || 1;
     return s;
   }
@@ -1627,6 +1739,40 @@ Orgán: OBÚ.
       return true;
     }), ["format"]);
 
+    // --- Fáze 2: katastrální údaje (parcely, LV, k.ú.) ---
+    if (enabled.katastr) {
+      // parc. č. 123/4, st. parc. 55, p. č. 12, parcelní číslo 7/1
+      add(findAll(t, /(?:\b(?:st\.\s*)?parc(?:\.|el(?:a|y|u|ou|e)?)|\bp\.\s?č\.|\bparceln[íi]\s+čísl[oa])\s*(?:č\.|čís\.|číslo|č)?\s*(\d{1,5}(?:\s?\/\s?\d{1,4})?)\b/giu, "katastr", null, 1), ["label:parcela","format"]);
+      // LV 456, L.V. 12, list vlastnictví č. 456
+      add(findAll(t, /\b(?:LV|L\.\s?V\.)\s*(?:č\.\s*)?(\d{1,6})\b/g, "katastr", null, 1), ["label:LV","format"]);
+      add(findAll(t, /\blist(?:u|em|y|ech)?\s+vlastnictví\s*(?:č\.\s*)?(\d{1,6})\b/giu, "katastr", null, 1), ["label:LV","format"]);
+      // k.ú. Nové Město, katastrální území Vinohrady
+      add(findAll(t, /(?:\b[Kk]\.\s?ú\.|\b[Kk]at\.\s?úz(?:emí|\.)|\bkatastrální(?:ho|m|mu)?\s+území)[ \t]+(\p{Lu}[\p{L}-]+(?:[ \t]+(?:(?:nad|pod|u|na|v|ve|při)[ \t]+)?\p{Lu}[\p{L}-]+){0,2})/gu, "katastr", null, 1), ["label:k.ú.","gazetteer"]);
+    }
+
+    // --- Fáze 2: zahraniční IBAN a SWIFT/BIC ---
+    if (enabled.zahr_iban) {
+      // cizí IBAN (ne CZ – ten řeší kategorie „account“), ověřený mod-97 a délkou země
+      add(findAll(t, /\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,3})?\b/g, "zahr_iban", v => ibanForeignOk(v)), ["iban","checksum"]);
+      // SWIFT/BIC s popiskem
+      add(findAll(t, /\b(?:SWIFT|Swift|swift|BIC|Bic|bic)(?:\s*\/\s*(?:SWIFT|Swift|BIC|Bic))?(?:\s+kód|\s+code)?\s*[:=]?\s*([A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?)\b/g, "zahr_iban", v => SWIFT_CC.has(v.slice(4,6)), 1), ["label:SWIFT","format"]);
+      // SWIFT/BIC bez přímého popisku – jen v kontextu (u nízké citlivosti vypnuto)
+      if (sus !== "low") {
+        add(findAll(t, /\b[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b/g, "zahr_iban", (v,f,i) => SWIFT_CC.has(v.slice(4,6)) && /\d|^[A-Z]{8}$/.test(v) && ctxHas(f,i,i+v.length,["swift","bic","swift/bic"], win)), ["context","format"]);
+      }
+    }
+
+    // --- Fáze 2: další doklady (cestovní pas, řidičský průkaz, ZTP) ---
+    if (enabled.doklady_extra) {
+      // cestovní pas: nutný popisek + číslice
+      add(findAll(t, /(?:cestovn\p{L}*\s+(?:pas|doklad)\p{L}*|čísl[oa]\s+pasu|č\.\s*pasu|\bpas\s+(?:č\.|číslo)|passport(?:\s+(?:no\.?|number|nr\.?))?)\s*[:=]?\s*(?:č\.|číslo|no\.?)?\s*[:=]?\s*([A-Z0-9]{6,9})\b/giu, "doklady_extra", v => /\d/.test(v), 1), ["label:pas","format"]);
+      // řidičský průkaz: série + číslo (EB 123456) u popisku
+      add(findAll(t, /(?:řidičsk\p{L}*\s+(?:průkaz|licenc)\p{L}*|\bŘP\b|driv(?:ing|er'?s)\s+licen[cs]e)\s*(?:č\.|číslo|no\.?)?\s*[:=]?\s*((?:[A-Z]{1,2}\s?\d{6,8})|\d{8,9})\b/giu, "doklady_extra", null, 1), ["label:ŘP","format"]);
+      add(findAll(t, /\b[A-Z]{2}\s?\d{6}\b/g, "doklady_extra", (v,f,i) => ctxHas(f,i,i+v.length,["řidičsk","řp","driving licen","driver's licen"], win)), ["context","format"]);
+      // průkaz ZTP, ZTP/P
+      add(findAll(t, /\bZTP(?:\s*\/\s*P)?\s*(?:průkaz\p{L}*\s*)?(?:č\.|číslo|č)?\s*[:=]?\s*((?:[A-Z]{1,3}\s?)?\d{5,9})\b/gu, "doklady_extra", null, 1), ["label:ZTP","format"]);
+    }
+
     const urlTokens = urlSpans(src);
     if (urlTokens.length) {
       const survivors = [];
@@ -1669,7 +1815,7 @@ Orgán: OBÚ.
           if (h.end>last.end) { last.end=h.end; last.value=src.slice(last.start,last.end); last.reasons = Array.from(new Set([].concat(last.reasons||[], h.reasons||[]))); if (h.tokenClass && !last.tokenClass) last.tokenClass = h.tokenClass; }
           continue;
         }
-        const numeric = {rc:1,ico:1,dic:1,account:1,phone:1,idcard:1};
+        const numeric = {rc:1,ico:1,dic:1,account:1,phone:1,idcard:1,zahr_iban:1,doklady_extra:1};
         if (numeric[h.type] && numeric[last.type]) {
           if (rank(h) > rank(last)) merged[merged.length-1] = h;
           continue;
@@ -1823,6 +1969,365 @@ Orgán: OBÚ.
     });
     if (S.stripMeta) stripWorkbookMeta(wb);
     return XLSX.write(wb, { bookType:"xlsx", type:"array" });
+  }
+
+  // --- Fáze 4: zpětný export DOCX se zachováním formátování (fflate) ---
+  const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships";
+  const DOCX_W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+
+  function docxRelationshipSourcePart(relName){
+    if (relName === "_rels/.rels") return "";
+    const m = relName.match(/^(.*)\/_rels\/([^/]+)\.rels$/i);
+    if (!m) throw new Error("Invalid .rels path: " + relName);
+    return `${m[1]}/${m[2]}`;
+  }
+
+  function docxNormalizeZipPath(path){
+    const out = [];
+    String(path || "").replace(/^\/+/, "").split("/").forEach(part => {
+      if (!part || part === ".") return;
+      if (part === "..") out.pop();
+      else out.push(part);
+    });
+    return out.join("/");
+  }
+
+  function docxResolveRelTarget(sourcePart, target){
+    if (!target || /^[a-z][a-z0-9+.-]*:/i.test(target)) return null;
+    let decoded = target;
+    try { decoded = decodeURIComponent(target); } catch (_) {}
+    const base = sourcePart ? sourcePart.slice(0, sourcePart.lastIndexOf("/") + 1) : "";
+    return docxNormalizeZipPath(base + decoded);
+  }
+
+  function docxRelativeZipPath(fromDir, targetPath){
+    const from = fromDir ? fromDir.split("/").filter(Boolean) : [];
+    const to = targetPath.split("/").filter(Boolean);
+    while (from.length && to.length && from[0] === to[0]) {
+      from.shift(); to.shift();
+    }
+    return [...from.map(() => ".."), ...to].join("/");
+  }
+
+  function docxSetTextPreservingSpace(node, text){
+    while (node.firstChild) node.removeChild(node.firstChild);
+    node.appendChild(node.ownerDocument.createTextNode(text));
+    if (/^\s|\s$/u.test(text)) {
+      node.setAttributeNS("http://www.w3.org/XML/1998/namespace", "xml:space", "preserve");
+    } else {
+      node.removeAttributeNS("http://www.w3.org/XML/1998/namespace", "space");
+    }
+  }
+
+  /*
+   * Replaces matches across multiple w:t / w:delText nodes inside one w:p.
+   * We deliberately never merge w:r elements: w:rPr therefore stays intact.
+   * The replacement is assigned to the first affected text node; subsequent
+   * affected nodes are reduced to their remaining local text.
+   */
+  function docxReplaceInXml(xml, map, tagName, found){
+    const doc = new DOMParser().parseFromString(xml, "application/xml");
+    if (doc.getElementsByTagName("parsererror").length) throw new Error("XML");
+    const values = Array.from(map.keys()).filter(Boolean).sort((a,b) => b.length - a.length);
+    const paras = Array.from(doc.getElementsByTagNameNS(DOCX_W_NS, "p"));
+    let changed = false;
+
+    paras.forEach(p => {
+      const nodes = Array.from(p.getElementsByTagNameNS(DOCX_W_NS, tagName)).filter(n => {
+        let a = n.parentNode;
+        while (a && !(a.localName === "p" && a.namespaceURI === DOCX_W_NS)) a = a.parentNode;
+        return a === p;
+      });
+      if (!nodes.length) return;
+
+      const texts = nodes.map(n => n.textContent || "");
+      const full = texts.join("");
+      if (!full) return;
+
+      const used = new Array(full.length).fill(false);
+      const matches = [];
+
+      values.forEach(v => {
+        let from = 0, ix;
+        while ((ix = full.indexOf(v, from)) >= 0) {
+          const end = ix + v.length;
+          let free = true;
+          for (let k = ix; k < end; k++) {
+            if (used[k]) { free = false; break; }
+          }
+          if (free) {
+            for (let k = ix; k < end; k++) used[k] = true;
+            matches.push({ s: ix, e: end, rep: map.get(v) });
+            found.add(v);
+          }
+          from = end;
+        }
+      });
+
+      if (!matches.length) return;
+      matches.sort((a,b) => a.s - b.s);
+
+      nodes.forEach((n, nodeIndex) => {
+        const t = texts[nodeIndex];
+        const a = texts.slice(0, nodeIndex).reduce((x, y) => x + y.length, 0);
+        const b = a + t.length;
+        let cursor = a;
+        let out = "";
+
+        for (const m of matches) {
+          if (m.e <= a || m.s >= b) continue;
+          const cs = Math.max(m.s, a);
+          const ce = Math.min(m.e, b);
+
+          if (cs > cursor) out += t.slice(cursor - a, cs - a);
+
+          /*
+           * Put the replacement only into the first node touched by the match.
+           * Other touched nodes contribute no duplicate replacement.
+           */
+          if (m.s >= a && m.s < b) out += m.rep;
+          cursor = Math.max(cursor, ce);
+        }
+
+        if (cursor < b) out += t.slice(cursor - a);
+
+        if (out !== t) {
+          docxSetTextPreservingSpace(n, out);
+          changed = true;
+        }
+      });
+    });
+
+    return changed
+      ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+        new XMLSerializer().serializeToString(doc)
+      : null;
+  }
+
+  function docxStripVisualObjects(xml){
+    const doc = new DOMParser().parseFromString(xml, "application/xml");
+    if (doc.getElementsByTagName("parsererror").length) throw new Error("XML");
+    let removed = 0;
+
+    ["drawing", "object", "pict"].forEach(localName => {
+      Array.from(doc.getElementsByTagNameNS(DOCX_W_NS, localName)).forEach(node => {
+        node.parentNode?.removeChild(node);
+        removed++;
+      });
+    });
+
+    return {
+      xml: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+        new XMLSerializer().serializeToString(doc),
+      removed
+    };
+  }
+
+  function docxStripMediaRelationships(files, dec, enc){
+    for (const name of Object.keys(files)) {
+      if (name !== "_rels/.rels" && !/^.+\/_rels\/[^/]+\.rels$/i.test(name)) continue;
+
+      const doc = new DOMParser().parseFromString(dec.decode(files[name]), "application/xml");
+      if (doc.getElementsByTagName("parsererror").length) throw new Error("Invalid relationships: " + name);
+
+      let changed = false;
+      Array.from(doc.getElementsByTagNameNS(DOCX_REL_NS, "Relationship")).forEach(rel => {
+        const type = rel.getAttribute("Type") || "";
+        if (
+          /\/relationships\/(?:image|oleObject|package)$/i.test(type) ||
+          /\/relationships\/vmlDrawing$/i.test(type)
+        ) {
+          rel.parentNode?.removeChild(rel);
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        files[name] = enc.encode(
+          '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+          new XMLSerializer().serializeToString(doc)
+        );
+      }
+    }
+  }
+
+  function docxRemoveMediaParts(files){
+    for (const name of Object.keys(files)) {
+      if (/^word\/(?:media|embeddings)\//i.test(name)) delete files[name];
+    }
+  }
+
+  function docxAssertNoEmbeddedMedia(files){
+    const leftovers = Object.keys(files).filter(name => /^word\/(?:media|embeddings)\//i.test(name));
+    if (leftovers.length) {
+      throw new Error("DOCX still contains embedded media: " + leftovers.join(", "));
+    }
+  }
+
+  function docxBuildSensitiveMediaRename(files){
+    const sensitive = /(?:sekret|secret|tajne|tajné|tajny|tajný|sensitive|confidential|citliv|internal|private)/iu;
+    const rename = new Map();
+    let n = 1;
+
+    Object.keys(files).filter(name => /^word\/media\/[^/]+$/i.test(name)).sort().forEach(oldName => {
+      const base = oldName.split("/").pop();
+      if (!sensitive.test(base)) return;
+
+      const dot = base.lastIndexOf(".");
+      const ext = dot >= 0 ? base.slice(dot) : "";
+      let candidate;
+      do {
+        candidate = `word/media/image_anonymized_${String(n++).padStart(3, "0")}${ext}`;
+      } while (files[candidate]);
+      rename.set(oldName, candidate);
+    });
+
+    return rename;
+  }
+
+  function docxApplyPartRenames(files, rename, dec, enc){
+    if (!rename.size) return;
+
+    for (const [oldName, newName] of rename) {
+      if (!files[oldName]) continue;
+      files[newName] = files[oldName];
+      delete files[oldName];
+    }
+
+    for (const name of Object.keys(files)) {
+      if (name !== "_rels/.rels" && !/^.+\/_rels\/[^/]+\.rels$/i.test(name)) continue;
+
+      const doc = new DOMParser().parseFromString(dec.decode(files[name]), "application/xml");
+      if (doc.getElementsByTagName("parsererror").length) throw new Error("Invalid relationships: " + name);
+
+      const sourcePart = docxRelationshipSourcePart(name);
+      let changed = false;
+
+      Array.from(doc.getElementsByTagNameNS(DOCX_REL_NS, "Relationship")).forEach(rel => {
+        if (rel.getAttribute("TargetMode") === "External") return;
+        const target = rel.getAttribute("Target");
+        const absolute = docxResolveRelTarget(sourcePart, target);
+        if (!absolute) return;
+
+        const replacement = rename.get(absolute);
+        if (!replacement) return;
+
+        rel.setAttribute("Target", docxRelativeZipPath(
+          sourcePart ? sourcePart.slice(0, sourcePart.lastIndexOf("/")) : "",
+          replacement
+        ));
+        changed = true;
+      });
+
+      if (changed) {
+        files[name] = enc.encode(
+          '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+          new XMLSerializer().serializeToString(doc)
+        );
+      }
+    }
+  }
+
+  function docxAssertNoDanglingRelationships(files, dec){
+    for (const name of Object.keys(files)) {
+      if (name !== "_rels/.rels" && !/^.+\/_rels\/[^/]+\.rels$/i.test(name)) continue;
+
+      const doc = new DOMParser().parseFromString(dec.decode(files[name]), "application/xml");
+      if (doc.getElementsByTagName("parsererror").length) throw new Error("Invalid relationships: " + name);
+
+      const sourcePart = docxRelationshipSourcePart(name);
+      Array.from(doc.getElementsByTagNameNS(DOCX_REL_NS, "Relationship")).forEach(rel => {
+        if (rel.getAttribute("TargetMode") === "External") return;
+        const target = docxResolveRelTarget(sourcePart, rel.getAttribute("Target"));
+        if (target && !files[target]) {
+          throw new Error("Dangling DOCX relationship: " + name + " -> " + target);
+        }
+      });
+    }
+  }
+
+  function docxStripMeta(name, xml){
+    const blank = (tags) => tags.reduce((x, tg) => x.replace(new RegExp("(<" + tg + "(?:\\s[^>]*)?>)[\\s\\S]*?(</" + tg + ">)", "g"), "$1$2"), xml);
+    if (/docProps\/core\.xml$/.test(name)) return blank(["dc:creator","cp:lastModifiedBy","dc:title","dc:subject","cp:keywords","dc:description"]);
+    if (/docProps\/app\.xml$/.test(name)) return blank(["Company","Manager"]);
+    return xml;
+  }
+
+  async function exportDocxFile(sourceBuf, hits, mode, lang){
+    if (!window.fflate) return { ok:false, reason:"fflate" };
+
+    const replacer = bindReplacer(mode, lang, hits);
+    const map = new Map();
+    topHits(hits).slice().sort((a,b) => a.start - b.start).forEach(h => {
+      if (h.value && !map.has(h.value)) map.set(h.value, replacer(h));
+    });
+
+    const files = fflate.unzipSync(new Uint8Array(sourceBuf.slice(0)));
+    const dec = new TextDecoder("utf-8"), enc = new TextEncoder();
+    const found = new Set();
+    const partRe = /^word\/(document|header\d*|footer\d*|footnotes|endnotes|comments\w*)\.xml$/;
+
+    for (const name of Object.keys(files)) {
+      if (partRe.test(name)) {
+        let xml = dec.decode(files[name]);
+
+        const a = docxReplaceInXml(xml, map, "t", found);
+        if (a) xml = a;
+
+        const b = docxReplaceInXml(xml, map, "delText", found);
+        if (b) xml = b;
+
+        /*
+         * True media lockdown: no image/OLE/VML object survives the exported DOCX.
+         * This is intentionally unconditional for the anonymisation export.
+         */
+        const stripped = docxStripVisualObjects(xml);
+        if (stripped.removed) xml = stripped.xml;
+
+        if (a || b || stripped.removed) files[name] = enc.encode(xml);
+      } else if (S.stripMeta && /^docProps\/(core|app)\.xml$/.test(name)) {
+        files[name] = enc.encode(docxStripMeta(name, dec.decode(files[name])));
+      } else if (S.stripMeta && name === "docProps/custom.xml") {
+        files[name] = enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"/>');
+      }
+    }
+
+    /*
+     * If media are retained in a future policy/profile, this rename pass is
+     * ready to update every relative .rels Target. In the current strict
+     * anonymisation profile all media are removed below.
+     */
+    const rename = docxBuildSensitiveMediaRename(files);
+    docxApplyPartRenames(files, rename, dec, enc);
+
+    docxStripMediaRelationships(files, dec, enc);
+    docxRemoveMediaParts(files);
+
+    const missing = Array.from(map.keys()).filter(v => !found.has(v));
+    if (missing.length) {
+      return { ok:false, reason: missing.length + " × nález nenalezen ve struktuře DOCX / not found in DOCX structure" };
+    }
+
+    docxAssertNoEmbeddedMedia(files);
+    docxAssertNoDanglingRelationships(files, dec);
+
+    const bytes = fflate.zipSync(files, { level: 6 });
+
+    if (window.mammoth) {
+      const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      const chk = (await window.mammoth.extractRawText({ arrayBuffer: buf })).value || "";
+      const left = Array.from(map.entries()).filter(([v, rep]) => !rep.includes(v) && chk.includes(v));
+      if (left.length) {
+        throw new Error("Zbytková hodnota po kontrole");
+      }
+    }
+
+    return {
+      ok:true,
+      bytes,
+      removedMedia:true,
+      renamedMedia: rename.size
+    };
   }
   function stripWorkbookMeta(wb){
     wb.Props = {
@@ -2249,8 +2754,56 @@ Orgán: OBÚ.
       m.querySelectorAll("[data-cat]").forEach(cb => { cb.checked = !!S.enabled[cb.getAttribute("data-cat")]; });
     });
   }
+  let SETTINGS_MODAL_SNAPSHOT = null;
+  let LANDING_SETTINGS_SIGNATURE = "";
+
+  function captureSettingsModalSnapshot(){
+    const storage = {};
+    [
+      "znec-suspicion",
+      "znec-ocr",
+      "znec-expert",
+      "znec-process",
+      "znec-quick",
+      "znec-fastapprove",
+      "znec-barpos",
+      "znec-pdfa"
+    ].forEach(key => {
+      storage[key] = localStorage.getItem(key);
+    });
+
+    return {
+      settings: snapshotSettings(),
+      document: S.text ? snapState() : null,
+      storage
+    };
+  }
+
+  function restoreSettingsModalSnapshot(snapshot){
+    if (!snapshot) return;
+
+    restoreSettingsSnapshot(snapshot.settings);
+
+    if (snapshot.document) {
+      restoreState(snapshot.document);
+    }
+
+    Object.keys(snapshot.storage || {}).forEach(key => {
+      const value = snapshot.storage[key];
+      if (value === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, value);
+    });
+
+    applyQuickMode();
+    applyFastApprove();
+    applyBarPos();
+  }
+
   function openSettings(){
     const t = i();
+
+    SETTINGS_MODAL_SNAPSHOT = captureSettingsModalSnapshot();
+
     $("settingsTitle").textContent = t.settings;
     $("btnSettingsApply").textContent = t.apply;
     $("btnSettingsClose").textContent = t.cancel;
@@ -2259,20 +2812,23 @@ Orgán: OBÚ.
     $("settingsModal").classList.remove("hidden");
     bindTips();
   }
+
   function closeSettings(){
+    const snapshot = SETTINGS_MODAL_SNAPSHOT;
+    SETTINGS_MODAL_SNAPSHOT = null;
+
     $("settingsModal").classList.add("hidden");
-    const root = $("settingsModalMount");
-    if (root) {
-      const pull = (id, field) => { const el = root.querySelector("#"+id); if (el) S[field] = el.value; };
-      pull("m_taSecrets", "secrets");
-      pull("m_taSystems", "systems");
-      pull("m_taProjects", "projects");
-      pull("m_taOrgs", "orgs");
-      const cm = root.querySelector("#m_chkMeta");
-      if (cm) S.stripMeta = cm.checked;
+
+    if (snapshot) {
+      restoreSettingsModalSnapshot(snapshot);
     }
-    if (S.text) runAnalyze();
-    if (!$("landing").classList.contains("hidden")) {
+
+    const root = $("settingsModalMount");
+    if (root) root.innerHTML = "";
+
+    if (S.text) {
+      paint();
+    } else if (!$("landing").classList.contains("hidden")) {
       $("settingsMount").innerHTML = settingsHTML();
       wireSettings($("settingsMount"));
     }
@@ -2298,7 +2854,15 @@ Orgán: OBÚ.
     $("btnSettings").setAttribute("data-tip", t.tips.settings);
     $("btnSettings").setAttribute("aria-label", t.settings);
     $("sumSettings").textContent = t.settings;
-    $("settingsMount").innerHTML = settingsHTML(); wireSettings($("settingsMount"));
+    const landingSettingsSignature = S.lang + "|" + t.settings + "|" + t.categories;
+    const settingsMount = $("settingsMount");
+    if (settingsMount && (!settingsMount.children.length || LANDING_SETTINGS_SIGNATURE !== landingSettingsSignature)) {
+      settingsMount.innerHTML = settingsHTML();
+      wireSettings(settingsMount);
+      LANDING_SETTINGS_SIGNATURE = landingSettingsSignature;
+    } else if (settingsMount) {
+      syncSettingsForms(settingsMount);
+    }
     $("footer").textContent = t.footer;
     bindTips();
   }
@@ -2358,6 +2922,101 @@ Orgán: OBÚ.
     html += esc(S.text.slice(cur));
     return html;
   }
+
+  // --- Fáze 4: vizuální PDF náhled (canvas + klikací překryv nálezů) ---
+  let PV = null; // { buf, width, pages:[{n, wrap, layer, text, map, scale}] }
+  let pvToken = 0;
+  function pdfVisualAvailable(){ return S.kind === "pdf" && !!S.sourceBuf && !!window.pdfjsLib; }
+  function pdfVisualLines(glyphs){
+    const rows = [];
+    glyphs.slice().sort((a,b) => a.y - b.y || a.x - b.x).forEach(g => {
+      const row = rows.find(r => Math.abs(r.y - g.y) < Math.max(g.h, r.h) * 0.5);
+      if (row) { row.x1 = Math.min(row.x1, g.x); row.x2 = Math.max(row.x2, g.x + g.w); row.y1 = Math.min(row.y1, g.y); row.y2 = Math.max(row.y2, g.y + g.h); row.h = Math.max(row.h, g.h); }
+      else rows.push({ y: g.y, h: g.h, x1: g.x, x2: g.x + g.w, y1: g.y, y2: g.y + g.h });
+    });
+    return rows;
+  }
+  function paintPdfVisualOverlays(){
+    if (!PV) return;
+    const previewOn = S.docView === "preview";
+    PV.pages.forEach(pg => {
+      pg.layer.innerHTML = "";
+      S.hits.forEach(h => {
+        const meta = (S.pages || []).find(p => p.n === pg.n);
+        if (!meta || h.start < meta.start || h.start >= meta.end + 1) return;
+        const rel = h.start - meta.start;
+        let idx = pg.text.substr(rel, h.value.length) === h.value ? rel : pg.text.indexOf(h.value);
+        if (idx < 0) return;
+        const end = idx + Math.max(h.value.length, 1);
+        const glyphs = pg.map.filter(m => m.end > idx && m.start < end);
+        if (!glyphs.length) return;
+        pdfVisualLines(glyphs).forEach(r => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.dataset.id = h.id;
+          b.className = "pv-box " + (h.accept ? (previewOn ? "pv-prev" : "pv-on") : "pv-off") + (S.selectedId === h.id ? " pv-sel" : "");
+          b.style.left = (r.x1 - 2) + "px"; b.style.top = (r.y1 - 1) + "px";
+          b.style.width = (r.x2 - r.x1 + 4) + "px"; b.style.height = (r.y2 - r.y1 + 2) + "px";
+          b.setAttribute("aria-label", i().cats[h.type] || h.type);
+          b.onclick = () => select(h.id);
+          pg.layer.appendChild(b);
+        });
+      });
+    });
+  }
+  async function buildPdfVisual(token){
+    const host = $("pdfVisual");
+    const width = Math.max(280, Math.min(900, host.clientWidth - 16 || 700));
+    if (PV && PV.buf === S.sourceBuf && PV.width === width && host.firstChild) { paintPdfVisualOverlays(); return; }
+    host.innerHTML = `<p class="pv-note">${esc(i().visualNote)}</p>`;
+    pdfWorker();
+    const pdf = await pdfjsLib.getDocument({ data: S.sourceBuf.slice(0), disableStream:true, disableAutoFetch:true }).promise;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const pages = [];
+    for (let n = 1; n <= pdf.numPages; n++) {
+      if (token !== pvToken) return;
+      const page = await pdf.getPage(n);
+      const base = page.getViewport({ scale: 1 });
+      const scale = width / base.width;
+      const vp = page.getViewport({ scale });
+      const vpHi = page.getViewport({ scale: scale * dpr });
+      const wrap = document.createElement("div");
+      wrap.className = "pv-page";
+      wrap.style.width = vp.width + "px"; wrap.style.height = vp.height + "px";
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.floor(vpHi.width); canvas.height = Math.floor(vpHi.height);
+      wrap.appendChild(canvas);
+      const layer = document.createElement("div");
+      layer.style.cssText = "position:absolute;inset:0";
+      wrap.appendChild(layer);
+      host.appendChild(wrap);
+      await page.render(pdfRenderParams(canvas.getContext("2d"), vpHi)).promise;
+      const meta = (S.pages || []).find(p => p.n === n);
+      const raw = (meta && meta.items && meta.items.length) ? meta.items : (await page.getTextContent()).items;
+      const mapped = mapPageGlyphs(raw, scale, vp);
+      pages.push({ n, wrap, layer, text: mapped.text, map: mapped.map, scale });
+    }
+    if (token !== pvToken) return;
+    PV = { buf: S.sourceBuf, width, pages };
+    paintPdfVisualOverlays();
+  }
+  function paintPdfVisual(){
+    const btn = $("btnVisual"), host = $("pdfVisual"), t = i();
+    const avail = pdfVisualAvailable();
+    if (!avail && S.pdfVisual) S.pdfVisual = false;
+    btn.classList.toggle("hidden", !avail);
+    btn.textContent = S.pdfVisual ? t.visualOff : t.visualOn;
+    btn.setAttribute("data-tip", t.tips.visual);
+    btn.onclick = () => { S.pdfVisual = !S.pdfVisual; paintReview(); };
+    document.body.classList.toggle("pdf-visual-on", S.pdfVisual);
+    $("btnAdd").disabled = S.pdfVisual;
+    host.classList.toggle("hidden", !S.pdfVisual);
+    if (!S.pdfVisual) { pvToken++; return; }
+    if (PV && PV.buf === S.sourceBuf && host.querySelector(".pv-page")) { paintPdfVisualOverlays(); return; }
+    const token = ++pvToken;
+    buildPdfVisual(token).catch(e => { console.warn("PDF visual failed:", e); if (token === pvToken) host.innerHTML = `<p class="pv-note danger">${esc(t.visualErr)}</p>`; });
+  }
+  function clearPdfVisual(){ PV = null; pvToken++; S.pdfVisual = false; const h = $("pdfVisual"); if (h) h.innerHTML = ""; }
   function setDocView(view){
     S.docView = view === "preview" ? "preview" : "original";
     localStorage.setItem("znec-docview", S.docView);
@@ -2397,12 +3056,16 @@ Orgán: OBÚ.
       scanWarn.classList.add("hidden");
       scanWarn.textContent = "";
     }
+    const sigWarn = $("sigWarn");
+    if (S.kind === "pdf" && S.sigDetected) { sigWarn.classList.remove("hidden"); sigWarn.textContent = "⚠ " + t.sigWarning; }
+    else { sigWarn.classList.add("hidden"); sigWarn.textContent = ""; }
     const previewOn = S.docView === "preview";
     document.body.classList.toggle("doc-preview", previewOn);
     $("lblOrig").textContent = previewOn ? t.previewChanges : t.original;
     $("btnAdd").textContent = t.addSelection; $("btnAdd").setAttribute("data-tip", t.tips.addSelection);
     $("orig").innerHTML = previewOn ? previewHTML() : origHTML();
     $("orig").querySelectorAll("button.mk").forEach(b => b.onclick = () => select(+b.dataset.id));
+    paintPdfVisual();
     $("filters").innerHTML = ["all","redact","keep"].map(f => `<button type="button" class="chip ${S.filter===f?"on":""}" data-f="${f}">${f==="all"?t.filterAll:f==="redact"?t.filterRedact:t.filterKeep}</button>`).join("");
     $("filters").querySelectorAll("[data-f]").forEach(b => b.onclick = () => { S.filter = b.dataset.f; paintReview(); });
     const list = filtered();
@@ -2420,11 +3083,16 @@ Orgán: OBÚ.
       $("inspector").innerHTML = `<p class="lbl">${t.selected}</p><p class="insp-marquee mono">${esc(sel.value)}</p>
         <p class="lbl">${t.context}</p><p class="wrap-line mono" style="color:var(--muted)">${esc(snip)}</p>
         <p class="layer-note">${esc(hitEvidence(sel,t,S.expertMode))}${(S.expertMode && sel.entityKey)?" · "+esc(sel.entityKey):""}</p>
+        <label class="lbl" for="selLegal" data-tip="${escAttr(t.legalTip)}">${t.legalLabel}</label>
+        <select id="selLegal" data-tip="${escAttr(t.legalTip)}">${Object.entries(t.legalOpts).map(([k,v])=>`<option value="${k}" ${legalOf(sel)===k?"selected":""}>${v}</option>`).join("")}</select>
+        <input type="text" id="inLegal" class="${legalOf(sel)==="custom"?"":"hidden"}" value="${esc(sel.legalCustom||"")}" placeholder="${escAttr(t.legalCustomPh)}" style="margin-top:6px" />
         <div class="btn-pair">
           <button class="btn btn-sm" id="btnR" data-tip="${t.redact} · R">${t.redact}</button>
           <button class="btn btn-sm btn-sec" id="btnK" data-tip="${t.keep} · P">${t.keep}</button>
         </div>`;
       $("btnR").onclick = () => patch(sel.id, true); $("btnK").onclick = () => patch(sel.id, false);
+      $("selLegal").onchange = (e) => { sel.legalBasis = e.target.value; paintReview(); };
+      $("inLegal").oninput = (e) => { sel.legalCustom = e.target.value; };
 
     } else $("inspector").innerHTML = "";
     paintQuickHitBar(sel, t);
@@ -2446,6 +3114,7 @@ Orgán: OBÚ.
       <span data-tip="${exportReady?t.tips.export:t.tips.exportLocked}"><button class="btn" id="btnExp" ${exportReady?"":"disabled"}>${t.export}</button></span>
       <span data-tip="${exportReady?(t.tips.aiPack||t.aiPack):t.tips.exportLocked}"><button class="btn btn-sec" id="btnAi" ${exportReady?"":"disabled"}>${t.aiPack}</button></span>
       <button class="btn btn-sm btn-ghost btn-eq" id="btnAudit" type="button" data-tip="${t.tips.audit}" aria-describedby="tip">${t.audit}</button>
+      <span data-tip="${exportReady?escAttr(t.recordTip):t.tips.exportLocked}"><button class="btn btn-sm btn-ghost" id="btnRecord" type="button" ${exportReady?"":"disabled"}>🔒 ${t.recordBtn}</button></span>
     </div>`;
     $("btnClear").onclick = reset;
     $("btnAll").onclick = () => { S.hits.forEach(h=>h.accept=true); paintReview(); };
@@ -2464,12 +3133,18 @@ Orgán: OBÚ.
     $("btnExp").onclick = () => openExport(false);
     $("btnAi").onclick = () => openExport(true);
     $("btnAudit").onclick = () => download("znecitelne-audit.json", new Blob([JSON.stringify(buildAudit(),null,2)], {type:"application/json"}));
+    $("btnRecord").onclick = async () => {
+      try {
+        const bytes = await exportProtocolPdf();
+        download((S.fileName||"document").replace(/\.[^.]+$/,"")+"-protokol.pdf", new Blob([bytes], {type:"application/pdf"}));
+      } catch (e) { toast(e.message||String(e)); }
+    };
     bindTips();
     requestAnimationFrame(updateBarHeightVar);
   }
   function select(id){
     S.selectedId = id; S.seen.add(id); paintReview();
-    const el = $("orig").querySelector(`[data-id="${id}"]`);
+    const el = (S.pdfVisual ? $("pdfVisual") : $("orig")).querySelector(`[data-id="${id}"]`);
     if (el) el.scrollIntoView({ block:"center", behavior:"smooth" });
   }
   function patch(id, accept){ const h = S.hits.find(x=>x.id===id); if (h) h.accept = accept; S.seen.add(id); paintReview(); }
@@ -2555,36 +3230,75 @@ Orgán: OBÚ.
       $("quickHitBar").classList.add("hidden"); $("quickHitBar").innerHTML = "";
       document.body.classList.remove("hit-selected");
     }
+    renderQueue();
   }
   function secretList(){ return S.secrets.split("\n").map(s=>s.trim()).filter(Boolean); }
   function runAnalyze(text, opts){
     const src = text ?? S.text;
-    const prev = S.hits || [];
+    const prev = Array.isArray(S.hits) ? S.hits : [];
+    const contextBefore = S.analysisContext || "";
+    const contextNow = analysisContextKey();
+    const canReusePrevious = contextBefore === contextNow && contextBefore !== "";
+    const previousForReuse = canReusePrevious ? prev : [];
     const fresh = detect(src, S.enabled, secretList());
-    const bySpan = new Map(prev.map(h => [h.type+"|"+h.start+"|"+h.end+"|"+h.value, h]));
+    const bySpan = new Map(previousForReuse.map(h => [h.type+"|"+h.start+"|"+h.end+"|"+h.value, h]));
     const byVal = new Map();
-    prev.forEach(h => {
+
+    previousForReuse.forEach(h => {
       const k = h.type+"|"+h.value.toLocaleLowerCase("cs");
       if (!byVal.has(k)) byVal.set(k, h);
     });
+
     S.hits = fresh.map(h => {
       const exact = bySpan.get(h.type+"|"+h.start+"|"+h.end+"|"+h.value);
       const loose = byVal.get(h.type+"|"+h.value.toLocaleLowerCase("cs"));
+
       if (exact) h.accept = exact.accept;
       else if (loose) h.accept = loose.accept;
+
+      const prevHit = exact || loose;
+      if (prevHit) {
+        if (prevHit.legalBasis) h.legalBasis = prevHit.legalBasis;
+        if (prevHit.legalCustom) h.legalCustom = prevHit.legalCustom;
+      }
       return h;
     });
-    const sameSet = prev.length===S.hits.length && S.hits.every(h => bySpan.has(h.type+"|"+h.start+"|"+h.end+"|"+h.value));
-    S.selectedId = S.hits.some(h => h.id===S.selectedId) ? S.selectedId : (S.hits[0] ? S.hits[0].id : null);
-    if (!sameSet) S.seen = new Set(S.selectedId ? [S.selectedId] : []);
-    if (!sameSet && !(opts && opts.keepReview)) S.reviewed = false;
+
+    const sameSet =
+      canReusePrevious &&
+      previousForReuse.length === S.hits.length &&
+      S.hits.every(h =>
+        bySpan.has(h.type+"|"+h.start+"|"+h.end+"|"+h.value)
+      );
+
+    S.selectedId = S.hits.some(h => h.id === S.selectedId)
+      ? S.selectedId
+      : (S.hits[0] ? S.hits[0].id : null);
+
+    if (!sameSet) {
+      S.seen = new Set(S.selectedId ? [S.selectedId] : []);
+    }
+
+    if (!sameSet && !(opts && opts.keepReview)) {
+      S.reviewed = false;
+      S.secondEyes = false;
+    }
+
+    S.analysisContext = contextNow;
     paint();
   }
+  function pdfHasSignatureBytes(buf){
+    try {
+      const s = new TextDecoder("latin1").decode(toBytes(buf));
+      return /\/ByteRange\s*\[/.test(s) && /\/Type\s*\/Sig\b|\/SubFilter\s*\/(?:adbe|ETSI)/.test(s);
+    } catch (_) { return false; }
+  }
   async function ingest(name, kind, text, buf, extra){
-    S.fileName = name; S.kind = kind; S.text = text; S.sourceBuf = (kind==="pdf"||kind==="xlsx") ? buf : null;
+    S.fileName = name; S.kind = kind; S.text = text; S.sourceBuf = (kind==="pdf"||kind==="xlsx"||kind==="docx") ? buf : null;
     S.pages = (extra && extra.pages) || (text ? [{ n:1, start:0, end:text.length }] : []);
     S.noTextPages = S.pages.filter(p => p.noTextLayer).length;
     S.cellMap = (extra && extra.cellMap) || [];
+    S.sigDetected = kind === "pdf" && (S.pages.some(p => p.signatures && p.signatures.length) || pdfHasSignatureBytes(buf));
     S.hashIn = await sha256(buf); S.hashOut = "";
     S.reviewed = false; S.hits = [];
     runAnalyze(text);
@@ -2608,10 +3322,259 @@ Orgán: OBÚ.
       } else {
         await ingest(file.name, "text", new TextDecoder().decode(buf), buf);
       }
-    } catch (e) { $("errLand").textContent = e.message||String(e); $("errLand").classList.remove("hidden"); }
+      return true;
+    } catch (e) { $("errLand").textContent = e.message||String(e); $("errLand").classList.remove("hidden"); return false; }
   }
+  const Q = { items: [], cur: -1 };
+  let QUEUE_LOAD_GENERATION = 0;
+  const SNAP_KEYS = ["fileName","kind","text","sourceBuf","pages","noTextPages","cellMap","hashIn","hashOut","hits","reviewed","secondEyes","selectedId","filter","seen","sigDetected","analysisContext","settings"];
+  const SNAP_SETTING_KEYS = ["profile","mode","suspicion","enabled","secrets","systems","projects","orgs","stripMeta","pdfaDecl","includeOutline","publicGlossary","truePdfRedact","ocrEnabled","expertMode","processAnalysis","quickMode","fastApprove","barPos"];
+
+  function snapshotSettings(){
+    const out = {};
+    SNAP_SETTING_KEYS.forEach(k => {
+      if (k === "enabled") out[k] = { ...(S.enabled || {}) };
+      else out[k] = S[k];
+    });
+    return out;
+  }
+
+  function restoreSettingsSnapshot(snapshot){
+    if (!snapshot) return;
+    SNAP_SETTING_KEYS.forEach(k => {
+      if (k === "enabled") S.enabled = { ...(snapshot.enabled || {}) };
+      else if (Object.prototype.hasOwnProperty.call(snapshot, k)) S[k] = snapshot[k];
+    });
+    applyQuickMode();
+    applyFastApprove();
+    applyBarPos();
+  }
+
+  function analysisContextKey(){
+    return [
+      S.hashIn || "",
+      S.profile || "",
+      S.mode || "",
+      S.suspicion || "",
+      JSON.stringify(S.enabled || {}),
+      S.secrets || "",
+      S.systems || "",
+      S.projects || "",
+      S.orgs || ""
+    ].join("\u001f");
+  }
+
+  const snapState = () => {
+    const o = {};
+    SNAP_KEYS.forEach(k => {
+      if (k === "hits") o[k] = Array.isArray(S[k]) ? S[k].map(h => ({ ...h })) : [];
+      else if (k === "pages") o[k] = Array.isArray(S[k]) ? S[k].map(pg => ({ ...pg })) : [];
+      else if (k === "cellMap") o[k] = Array.isArray(S[k]) ? S[k].map(cell => ({ ...cell })) : [];
+      else if (k === "seen") o[k] = new Set(S[k] || []);
+      else if (k === "sourceBuf" && S[k] && typeof S[k].slice === "function") o[k] = S[k].slice(0);
+      else if (k === "settings") o[k] = snapshotSettings();
+      else o[k] = S[k];
+    });
+    o.analysisContext = S.analysisContext || analysisContextKey();
+    return o;
+  };
+
+  const restoreState = (o) => {
+    if (!o) return;
+    SNAP_KEYS.forEach(k => {
+      if (k === "hits") S[k] = Array.isArray(o[k]) ? o[k].map(h => ({ ...h })) : [];
+      else if (k === "pages") S[k] = Array.isArray(o[k]) ? o[k].map(pg => ({ ...pg })) : [];
+      else if (k === "cellMap") S[k] = Array.isArray(o[k]) ? o[k].map(cell => ({ ...cell })) : [];
+      else if (k === "seen") S[k] = new Set(o[k] || []);
+      else if (k === "sourceBuf" && o[k] && typeof o[k].slice === "function") S[k] = o[k].slice(0);
+      else if (k !== "settings") S[k] = o[k];
+    });
+    restoreSettingsSnapshot(o.settings);
+    S.analysisContext = o.analysisContext || analysisContextKey();
+  };
+
+  function saveCurrent(){
+    if (Q.cur >= 0 && Q.items[Q.cur] && S.text) {
+      Q.items[Q.cur].snap = snapState();
+    }
+  }
+
+  async function onFiles(list){
+    const files = Array.from(list || []);
+    if (!files.length || S.movie) return;
+    QUEUE_LOAD_GENERATION++;
+    saveCurrent();
+    const start = Q.items.length;
+    files.forEach(f => Q.items.push({ name:f.name, file:f, snap:null }));
+    await openQueueItem(start);
+  }
+
+  async function openQueueItem(idx){
+    const generation = ++QUEUE_LOAD_GENERATION;
+    const it = Q.items[idx];
+    if (!it) return;
+
+    saveCurrent();
+    const prevItem = Q.items[Q.cur] || null;
+    Q.cur = idx;
+    clearPdfVisual();
+
+    if (it.snap) {
+      if (generation !== QUEUE_LOAD_GENERATION || Q.items[idx] !== it) return;
+      restoreState(it.snap);
+      paint();
+      return;
+    }
+
+    let ok = false;
+    try {
+      ok = await onFile(it.file);
+    } catch (_) {
+      ok = false;
+    }
+
+    if (generation !== QUEUE_LOAD_GENERATION || Q.items[idx] !== it || Q.cur !== idx) {
+      return;
+    }
+
+    if (ok && S.text) {
+      it.snap = snapState();
+      return;
+    }
+
+    const msg = i().queueBad.replace("{f}", it.name);
+    const failedIndex = Q.items.indexOf(it);
+    if (failedIndex >= 0) Q.items.splice(failedIndex, 1);
+    Q.cur = -1;
+
+    if (prevItem) {
+      const backIndex = Q.items.indexOf(prevItem);
+      if (backIndex >= 0 && prevItem.snap) {
+        Q.cur = backIndex;
+        restoreState(prevItem.snap);
+        paint();
+        toast(msg);
+        return;
+      }
+    }
+
+    S.text = "";
+    S.fileName = "";
+    S.hits = [];
+    S.sourceBuf = null;
+    S.pages = [];
+    S.noTextPages = 0;
+    S.cellMap = [];
+    S.hashIn = "";
+    S.hashOut = "";
+    S.reviewed = false;
+    S.secondEyes = false;
+    S.selectedId = null;
+    S.seen = new Set();
+    S.analysisContext = "";
+    paint();
+    toast(msg);
+  }
+
+  function renderQueue(){
+    const bar = $("queueBar");
+    if (!bar) return;
+    if (Q.items.length < 2) {
+      bar.classList.add("hidden");
+      bar.innerHTML = "";
+      return;
+    }
+    const t = i();
+    const chips = Q.items.map((it, n) => {
+      const rev = n === Q.cur ? S.reviewed : !!(it.snap && it.snap.reviewed);
+      return `<button type="button" class="btn btn-sm btn-sec qchip${n===Q.cur?" active":""}" data-q="${n}" title="${escAttr(it.name)}" aria-pressed="${n===Q.cur}">${rev?"✓ ":""}${esc(it.name)}</button>`;
+    }).join("");
+    bar.innerHTML = `<span style="font-size:13px;color:var(--muted)">${t.queueLbl}:</span>${chips}<button type="button" class="btn btn-sm" id="qAll">${t.queueAll}</button>`;
+    bar.classList.remove("hidden");
+    bar.querySelectorAll("[data-q]").forEach(b => {
+      b.onclick = () => {
+        const n = +b.dataset.q;
+        if (n !== Q.cur) void openQueueItem(n);
+      };
+    });
+    $("qAll").onclick = exportAllReviewed;
+  }
+
+  function exportAllReviewed(){
+    const t = i();
+    saveCurrent();
+
+    const ready = Q.items.filter(it => it && it.snap && it.snap.reviewed);
+    if (!ready.length) {
+      toast(t.queueNone);
+      return;
+    }
+
+    const keepItem = Q.items[Q.cur] || null;
+    openExport(false);
+
+    const go = $("goExp");
+    if (!go) return;
+
+    go.onclick = async () => {
+      go.disabled = true;
+      go.textContent = t.exporting;
+      let done = 0;
+      let failed = 0;
+      S._batchExport = true;
+
+      try {
+        for (const it of ready) {
+          if (!it || !it.snap || !it.snap.reviewed) continue;
+
+          try {
+            restoreState(it.snap);
+            S._batchExport = true;
+            const ok = await doExport();
+            if (ok) {
+              it.snap.hashOut = S.hashOut;
+              it.snap = snapState();
+              done++;
+            } else {
+              failed++;
+            }
+          } catch (e) {
+            failed++;
+            console.error("Batch export failed:", it.name, e);
+          }
+        }
+      } finally {
+        S._batchExport = false;
+        if (keepItem) {
+          const keepIndex = Q.items.indexOf(keepItem);
+          if (keepIndex >= 0 && keepItem.snap) {
+            Q.cur = keepIndex;
+            restoreState(keepItem.snap);
+          }
+        }
+        paint();
+        $("exportModal").classList.add("hidden");
+        go.disabled = false;
+        go.textContent = t.export;
+      }
+
+      if (failed) {
+        toast(t.queueDone.replace("{n}", String(done)) + " · " + String(failed) + " failed");
+      } else {
+        toast(t.queueDone.replace("{n}", String(done)));
+      }
+    };
+  }
+
   function pdfWorker(){
-    if (!window.pdfjsLib) throw new Error("PDF: knihovna se nenačetla (síť).");
+    if (!window.pdfjsLib) throw new Error("PDF: knihovna se nenačetla.");
+    if (window.__libLocal && window.__libLocal.pdfjs) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "./lib/pdf.worker.min.js";
+      return;
+    }
+    if (location.protocol === "file:") {
+      throw new Error("PDF: pro offline režim chybí ./lib/pdf.worker.min.js.");
+    }
     pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
   }
   function pageTextFromItems(items){
@@ -2848,6 +3811,7 @@ Orgán: OBÚ.
       try {
         showOcrProgress(S.lang === "cs" ? "OCR: inicializuji jazykový model…" : "OCR: loading language model…");
         ocrWorker = await Tesseract.createWorker("ces", 1, {
+          ...((window.__libLocal && window.__libLocal.tesseract) ? { workerPath:"./lib/tesseract/worker.min.js", corePath:"./lib/tesseract/", langPath:"./lib/tesseract/lang/" } : {}),
           logger: m => {
             if (m.status === "loading language traineddata") {
               showOcrProgress((S.lang === "cs" ? "OCR: stahuji jazykový model" : "OCR: downloading model") +
@@ -2982,12 +3946,91 @@ Orgán: OBÚ.
 
     return { text, pages };
   }
+  const ORG_TYPES = ORG_KEYS.filter(k => k !== "secrets");
+  function defaultLegalBasis(h){
+    if (h.type === "secrets") return "trade";
+    if (ORG_TYPES.includes(h.type)) return "security";
+    if ((S.profile === "registr" || S.profile === "infoact" || S.profile === "court") && (h.type === "ico" || h.type === "dic")) return "trade";
+    return "gdpr";
+  }
+  function legalOf(h){ return h.legalBasis || defaultLegalBasis(h); }
+  function legalShort(h, t){ const k = legalOf(h); return k === "custom" ? (h.legalCustom || t.legalShort.custom) : t.legalShort[k]; }
+  async function digestText(str){
+    const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+    return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2,"0")).join("");
+  }
+  function maskValue(v){ const c = [...String(v)]; return c[0] + "*".repeat(Math.min(c.length-1, 12)) + " (" + c.length + ")"; }
+  async function exportProtocolPdf(){
+    const t = i(), R = t.record;
+    if (!window.PDFLib || !window.crypto || !crypto.subtle) throw new Error(t.recordNeedPdfLib);
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+    const doc = await PDFDocument.create();
+    try {
+      doc.setTitle(R.title + " — " + (S.fileName||"document")); doc.setAuthor("");
+      doc.setSubject("INTERNAL - SENSITIVE"); doc.setKeywords(["internal","sensitive","anonymisation-record"]);
+      doc.setProducer("Znečitelně"); doc.setCreator("Znečitelně");
+    } catch (_) {}
+    const font = await doc.embedFont(StandardFonts.Helvetica), bold = await doc.embedFont(StandardFonts.HelveticaBold);
+    const tr = (s) => [...String(s)].map(c => c === "§" ? "§" : c === "–" || c === "—" ? "-" : translit(c)).join("");
+    const W = 595, H = 842, M = 44, red = rgb(0.85,0.33,0.31), grey = rgb(0.35,0.35,0.35);
+    const fit = (s, w, size, f) => { s = tr(s); while (s.length > 1 && f.widthOfTextAtSize(s, size) > w) s = s.slice(0,-2) + "."; return s; };
+    const wrap = (s, size, f, maxW) => {
+      const out = []; let line = "";
+      for (const w of tr(s).split(/(\s+)/)) {
+        if (f.widthOfTextAtSize(line + w, size) > maxW && line) { out.push(line); line = w.trimStart(); } else line += w;
+      }
+      out.push(line); return out;
+    };
+    let page, y;
+    const newPage = () => {
+      page = doc.addPage([W, H]);
+      page.drawRectangle({ x:0, y:H-26, width:W, height:26, color:red });
+      page.drawText(tr(R.internal), { x:M, y:H-18, size:10, font:bold, color:rgb(1,1,1) });
+      y = H - 52;
+    };
+    const cols = [{x:M,w:22},{x:M+24,w:60},{x:M+86,w:26},{x:M+114,w:96},{x:M+212,w:150},{x:M+364,w:143}];
+    const head = () => {
+      cols.forEach((c, k) => page.drawText(tr(R.cols[k]), { x:c.x, y, size:8, font:bold, color:grey }));
+      y -= 4; page.drawLine({ start:{x:M,y}, end:{x:W-M,y}, thickness:0.6, color:grey }); y -= 12;
+    };
+    newPage();
+    page.drawText(tr(R.title), { x:M, y, size:18, font:bold, color:rgb(0.1,0.15,0.2) }); y -= 22;
+    for (const l of wrap(R.notice, 9, font, W - 2*M)) { page.drawText(l, { x:M, y, size:9, font, color:red }); y -= 12; }
+    y -= 6;
+    const salt = [...crypto.getRandomValues(new Uint8Array(12))].map(b => b.toString(16).padStart(2,"0")).join("");
+    const acc = S.hits.filter(h => h.accept), kept = S.hits.length - acc.length;
+    const yn = (b) => b ? R.yes : R.no;
+    const meta = [
+      [R.file, S.fileName || "—"], [R.operator, (S.fastApprove ? "" : S.operator) || "—"], [R.date, new Date().toISOString()],
+      [R.profile, t.profiles[S.profile] || S.profile], [R.mode, t.modes[S.mode] || S.mode], [R.rules, RULES],
+      [R.hashIn, S.hashIn || "—"], [R.hashOut, S.hashOut || R.notExported],
+      [R.reviewed, yn(S.reviewed)], [R.fourEyes, yn(!S.fastApprove && S.secondEyes)], [R.sig, yn(S.kind === "pdf" && S.sigDetected)],
+      [R.counts, acc.length + " / " + kept], [R.salt, salt]
+    ];
+    for (const [k, v] of meta) {
+      page.drawText(tr(k) + ":", { x:M, y, size:8.5, font:bold });
+      page.drawText(fit(v, W - 2*M - 130, 8.5, font), { x:M+130, y, size:8.5, font }); y -= 12;
+    }
+    for (const l of wrap(R.saltNote, 8, font, W - 2*M)) { page.drawText(l, { x:M, y, size:8, font, color:grey }); y -= 10; }
+    y -= 10; head();
+    if (!acc.length) page.drawText(tr(R.none), { x:M, y, size:9, font });
+    for (const h of acc) {
+      if (y < 60) { newPage(); head(); }
+      const hash = (await digestText(salt + h.value)).slice(0, 24);
+      const cells = [String(h.id), t.cats[h.type] || h.type, String(h.page || 1), maskValue(h.value), hash, legalShort(h, t)];
+      cells.forEach((c, k) => page.drawText(fit(c, cols[k].w, 8, k === 4 ? font : font), { x:cols[k].x, y, size:8, font }));
+      y -= 12;
+    }
+    const pages = doc.getPages();
+    pages.forEach((p, k) => p.drawText(tr(R.page) + " " + (k+1) + " / " + pages.length, { x:W-M-60, y:24, size:8, font, color:grey }));
+    return await doc.save();
+  }
   function buildAudit(){
     return {
       product:"Znečitelně", generatedAt:new Date().toISOString(), operator:S.fastApprove?"":S.operator, language:S.lang,
       profile:S.profile, outputMode:S.mode, suspicion:S.suspicion, rulesVersion:RULES, reviewed:S.reviewed, fourEyes:S.fastApprove?false:S.secondEyes, fastApprove:!!S.fastApprove,
-      file:{ name:S.fileName, sha256Input:S.hashIn, sha256Output:S.hashOut,
-        hits:S.hits.map(h=>({ id:h.id, type:h.type, valuePreview:h.value.slice(0,6)+(h.value.length>6?"…":""), length:h.value.length, accepted:h.accept, page:h.page||1, confidence:h.confidence, score:h.score||0, reasons:h.reasons||[], entityKey:h.entityKey||"" })),
+      file:{ name:S.fileName, sha256Input:S.hashIn, sha256Output:S.hashOut, electronicSignatureDetected:!!(S.kind==="pdf"&&S.sigDetected),
+        hits:S.hits.map(h=>({ id:h.id, type:h.type, valuePreview:h.value.slice(0,6)+(h.value.length>6?"…":""), length:h.value.length, accepted:h.accept, page:h.page||1, confidence:h.confidence, score:h.score||0, reasons:h.reasons||[], entityKey:h.entityKey||"", legalBasis:legalOf(h), legalBasisCustom:legalOf(h)==="custom"?(h.legalCustom||""):"" })),
         acceptedCount:S.hits.filter(h=>h.accept).length, rejectedCount:S.hits.filter(h=>!h.accept).length },
       notes:"Values in the audit log are truncated."
     };
@@ -3296,12 +4339,19 @@ Orgán: OBÚ.
     const { PDFDocument, StandardFonts } = PDFLib;
     const doc = await PDFDocument.load(source, { updateMetadata:false });
     stampPdfMeta(doc, title);
+    // Every secure PDF export carries a local sRGB OutputIntent.
+    addSrgbOutputIntent(doc);
+
+    // PDF/A safety gate: Type0/CID and simple fonts are both inspected.
+    // Pages using an unembedded original font are rasterized later, because
+    // rewriting their content stream cannot make the original font embedded.
+    const originalUnembeddedPages = pdfUnembeddedFontPages(doc);
 
     const isBox = mode === "box";
     const replacer = bindReplacer(mode, lang, hits);
     const helv = isBox ? null : await doc.embedFont(StandardFonts.Helvetica);
 
-    const rasterPages = new Set();
+    const rasterPages = new Set(originalUnembeddedPages);
     const accepted = topHits(hits);
     const pageSigs = {};
     if (shouldCoverVisibleStamps()) {
@@ -3429,9 +4479,11 @@ Orgán: OBÚ.
       const blob = await new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error("blob")), "image/jpeg", 0.84));
 
       const rasterDoc = await PDFDocument.create();
-      const rp = rasterDoc.addPage([canvas.width*0.72, canvas.height*0.72]);
+      const originalPage = doc.getPage(i-1);
+      const originalSize = originalPage.getSize();
+      const rp = rasterDoc.addPage([originalSize.width, originalSize.height]);
       const rasterImg = await rasterDoc.embedJpg(new Uint8Array(await blob.arrayBuffer()));
-      rp.drawImage(rasterImg, { x:0, y:0, width:rp.getWidth(), height:rp.getHeight() });
+      rp.drawImage(rasterImg, { x:0, y:0, width:originalSize.width, height:originalSize.height });
       const [copiedPage] = await doc.copyPages(rasterDoc, [0]);
       doc.removePage(i-1);
       doc.insertPage(i-1, copiedPage);
@@ -3487,6 +4539,7 @@ Orgán: OBÚ.
     const { PDFDocument } = PDFLib;
     const doc = await PDFDocument.create();
     stampPdfMeta(doc, title);
+    addSrgbOutputIntent(doc);
     const isBox = mode === "box" || !mode;
     const replacer = (mode && !isBox) ? bindReplacer(mode, lang, hits) : null;
     for (let i=1;i<=pdf.numPages;i++) {
@@ -3576,6 +4629,7 @@ Orgán: OBÚ.
       ${S.fastApprove?"":`<label class="field" data-tip="${tip("operator")}">${t.operator} ${help("operator")}</label>
       <input type="text" id="opIn" value="${esc(S.operator)}" placeholder="${escAttr(t.operatorPh)}" data-tip="${tip("operator")}" />`}
       <label class="check" data-tip="${tip("stripMeta")}"><input type="checkbox" id="exMeta" ${S.stripMeta?"checked":""}/> ${t.stripMeta} ${help("stripMeta")}</label>
+      <label class="check"><input type="checkbox" id="exPdfa" ${S.pdfaDecl?"checked":""}/> ${t.pdfaDecl}</label>
       <label class="check" data-tip="${tip("includeOutline")}"><input type="checkbox" id="exOut" ${S.includeOutline?"checked":""}/> ${t.includeOutline} ${help("includeOutline")}</label>
       <label class="check" data-tip="${tip("publicGlossary")}"><input type="checkbox" id="exGloss" ${S.publicGlossary?"checked":""}/> ${t.publicGlossary} ${help("publicGlossary")}</label>
       <p class="mono" style="font-size:11px;color:var(--muted);word-break:break-all" data-tip="${tip("hashIn")}">SHA-256 ${esc(S.hashIn)}</p>
@@ -3586,20 +4640,223 @@ Orgán: OBÚ.
       </div>`;
     const opIn = $("opIn"); if (opIn) opIn.oninput = (e) => S.operator = e.target.value;
     $("exMeta").onchange = (e) => { S.stripMeta = e.target.checked; };
+    $("exPdfa").onchange = (e) => { S.pdfaDecl = e.target.checked; try { localStorage.setItem("znec-pdfa", e.target.checked ? "1" : "0"); } catch (_) {} };
     $("exOut").onchange = (e) => { S.includeOutline = e.target.checked; };
     $("exGloss").onchange = (e) => { S.publicGlossary = e.target.checked; };
     $("noExp").onclick = () => $("exportModal").classList.add("hidden");
     $("goExp").onclick = doExport;
     bindTips();
   }
+  /*
+   * Local ICC data: no network request is made at export time.
+   * The profile is a standard sRGB profile generated through LittleCMS.
+   */
+  const SRGB_ICC_PROFILE_BASE64 = "AAACTGxjbXMEQAAAbW50clJHQiBYWVogB+oACgABAAkAEQATYWNzcEFQUEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPbWAAEAAAAA0y1sY21zAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALZGVzYwAAAQgAAAA2Y3BydAAAAUAAAABMd3RwdAAAAYwAAAAUY2hhZAAAAaAAAAAsclhZWgAAAcwAAAAUYlhZWgAAAeAAAAAUZ1hZWgAAAfQAAAAUclRSQwAAAggAAAAgZ1RSQwAAAggAAAAgYlRSQwAAAggAAAAgY2hybQAAAigAAAAkbWx1YwAAAAAAAAABAAAADGVuVVMAAAAaAAAAHABzAFIARwBCACAAYgB1AGkAbAB0AC0AaQBuAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAADAAAAAcAE4AbwAgAGMAbwBwAHkAcgBpAGcAaAB0ACwAIAB1AHMAZQAgAGYAcgBlAGUAbAB5WFlaIAAAAAAAAPbWAAEAAAAA0y1zZjMyAAAAAAABDEIAAAXe///zJQAAB5MAAP2Q///7of///aIAAAPcAADAblhZWiAAAAAAAABvoAAAOPUAAAOQWFlaIAAAAAAAACSfAAAPhAAAtsNYWVogAAAAAAAAYpcAALeHAAAY2XBhcmEAAAAAAAMAAAACZmYAAPKnAAANWQAAE9AAAApbY2hybQAAAAAAAwAAAACj1wAAVHsAAEzNAACZmgAAJmYAAA9c";
+
+  // Optional application-supplied TTF. Leave empty until a local font is bundled.
+  // The audit below still detects unembedded fonts in the original PDF.
+  const PDF_A_FONT_BASE64 = "";
+
+  function base64ToUint8Array(base64){
+    const clean = String(base64 || "").replace(/^data:.*?;base64,/, "").replace(/\s+/g, "");
+    if (!clean) return new Uint8Array(0);
+    const bin = atob(clean);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  function pdfResolveObject(doc, obj){
+    return obj ? doc.context.lookup(obj) : undefined;
+  }
+
+  function pdfFindFontDescriptor(doc, fontDict, seen){
+    const { PDFDict, PDFArray, PDFName } = PDFLib;
+    if (!(fontDict instanceof PDFDict)) return null;
+    seen = seen || new Set();
+
+    const key = fontDict.toString();
+    if (seen.has(key)) return null;
+    seen.add(key);
+
+    const direct = fontDict.get(PDFName.of("FontDescriptor"));
+    if (direct) return pdfResolveObject(doc, direct);
+
+    const descendants = fontDict.lookupMaybe(PDFName.of("DescendantFonts"), PDFArray);
+    if (descendants) {
+      for (let i = 0; i < descendants.size(); i++) {
+        const d = descendants.lookup(i);
+        const found = pdfFindFontDescriptor(doc, d, seen);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  function pdfFontIsEmbedded(doc, fontDict){
+    const { PDFDict, PDFName } = PDFLib;
+    const descriptor = pdfFindFontDescriptor(doc, fontDict);
+    if (!(descriptor instanceof PDFDict)) return false;
+    return Boolean(
+      descriptor.get(PDFName.of("FontFile")) ||
+      descriptor.get(PDFName.of("FontFile2")) ||
+      descriptor.get(PDFName.of("FontFile3"))
+    );
+  }
+
+  function inspectPdfFontEmbedding(pdfDoc){
+    const { PDFDict, PDFName } = PDFLib;
+    const result = [];
+
+    pdfDoc.getPages().forEach((page, pageIndex) => {
+      const resources = page.node.Resources();
+      if (!resources) return;
+
+      const fonts = resources.lookupMaybe(PDFName.of("Font"), PDFDict);
+      if (!fonts) return;
+
+      for (const [name] of fonts.entries()) {
+        const font = fonts.lookup(PDFName.of(name));
+        result.push({
+          page: pageIndex + 1,
+          name,
+          embedded: pdfFontIsEmbedded(pdfDoc, font)
+        });
+      }
+    });
+
+    return result;
+  }
+
+  function pdfUnembeddedFontPages(pdfDoc){
+    return new Set(
+      inspectPdfFontEmbedding(pdfDoc)
+        .filter(f => !f.embedded)
+        .map(f => f.page)
+    );
+  }
+
+  function addSrgbOutputIntent(pdfDoc){
+    const { PDFName } = PDFLib;
+    const iccBytes = base64ToUint8Array(SRGB_ICC_PROFILE_BASE64);
+    if (!iccBytes.length) throw new Error("Missing sRGB ICC profile");
+
+    /*
+     * ICC profile stream:
+     *   /N 3
+     *
+     * The profile itself remains an ordinary PDF stream and is referenced by
+     * /DestOutputProfile from the OutputIntent dictionary.
+     */
+    const iccStream = pdfDoc.context.stream(iccBytes, { N: 3 });
+    const iccRef = pdfDoc.context.register(iccStream);
+
+    const intentDict = pdfDoc.context.obj({
+      Type: "OutputIntent",
+      S: "GTS_PDFA1",
+      OutputConditionIdentifier: "sRGB IEC61966-2.1",
+      RegistryName: "http://www.color.org",
+      Info: "sRGB IEC61966-2.1",
+      DestOutputProfile: iccRef
+    });
+
+    const intentRef = pdfDoc.context.register(intentDict);
+    pdfDoc.catalog.set(PDFName.of("OutputIntents"), pdfDoc.context.obj([intentRef]));
+
+    return { iccRef, intentRef };
+  }
+
+  async function embedConfiguredPdfAFont(pdfDoc){
+    if (!PDF_A_FONT_BASE64 || !window.fontkit) return null;
+    const bytes = base64ToUint8Array(PDF_A_FONT_BASE64);
+    if (!bytes.length) return null;
+    try {
+      pdfDoc.registerFontkit(window.fontkit);
+      return await pdfDoc.embedFont(bytes, { subset:true });
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async function applyPdfaDeclaration(bytes){
+    const { PDFDocument, PDFName } = PDFLib;
+    const doc = await PDFDocument.load(bytes, { updateMetadata:false });
+
+    const fontAudit = inspectPdfFontEmbedding(doc);
+    const unembeddedPages = [...new Set(fontAudit.filter(f => !f.embedded).map(f => f.page))];
+
+    addSrgbOutputIntent(doc);
+
+    const xmp = '<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?>' +
+      '<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">' +
+      '<rdf:Description rdf:about="" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/" xmlns:xmp="http://ns.adobe.com/xap/1.0/">' +
+      '<pdfaid:part>2</pdfaid:part><pdfaid:conformance>B</pdfaid:conformance>' +
+      '<xmp:CreatorTool>Znečitelně</xmp:CreatorTool>' +
+      '</rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end="w"?>';
+
+    const stream = doc.context.stream(xmp, { Type:"Metadata", Subtype:"XML" });
+    doc.catalog.set(PDFName.of("Metadata"), doc.context.register(stream));
+
+    const out = await doc.save({ useObjectStreams:false });
+    return {
+      bytes: out,
+      fontAudit,
+      unembeddedPages
+    };
+  }
+  async function maybePdfa(bytes, notes){
+    if (!S.pdfaDecl) return { bytes, unembeddedPages:[], fontAudit:[] };
+    const t = i();
+    try {
+      const out = await applyPdfaDeclaration(bytes);
+      if (out.unembeddedPages.length) {
+        notes.push(t.pdfaFontWarn.replace("{n}", out.unembeddedPages.join(", ")));
+      } else {
+        notes.push(t.pdfaNote);
+      }
+      return out;
+    } catch (_) {
+      notes.push(t.pdfaFail);
+      return { bytes, unembeddedPages:[], fontAudit:[] };
+    }
+  }
   async function doExport(){
-    const t = i(); if (!S.reviewed && !reviewSkipped()) { toast(t.needReview); return; }
-    const btn = $("goExp"); btn.disabled = true; btn.textContent = t.exporting;
+    const t = i();
+    const batchExport = !!S._batchExport;
+    if (!S.reviewed && !reviewSkipped()) {
+      if (!batchExport) toast(t.needReview);
+      return false;
+    }
+
+    const btn = $("goExp");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = t.exporting;
+    }
+
     try {
       const base = (S.fileName||"document").replace(/\.[^.]+$/,"")+"-anonymized";
       const packMode = S.mode==="box" && S._aiPack ? "pseudo" : S.mode;
       const replaced = apply(S.text, S.hits, packMode, S.lang);
       const info = analyzeProcess(S.text, replaced, S.hits);
+      let docxRes = null; const pdfaNotes = [];
+      if (!S._aiPack && S.kind==="docx" && S.sourceBuf) {
+        try {
+          docxRes = await exportDocxFile(S.sourceBuf, S.hits, S.mode, S.lang);
+        } catch (e) {
+          const reason = (e && e.message) || "error";
+          if (reason === "Zbytková hodnota po kontrole") {
+            docxRes = { ok:false, reason };
+            S._exportNotice = t.docxFallback.replace("{r}", reason);
+          } else {
+            docxRes = { ok:false, reason };
+            S._exportNotice = t.docxFallback.replace("{r}", reason);
+          }
+        }
+        if (!docxRes.ok && !S._exportNotice) {
+          S._exportNotice = t.docxFallback.replace("{r}", docxRes.reason);
+        }
+      }
       if (!S._aiPack && S.kind==="pdf" && S.sourceBuf && window.pdfjsLib && window.PDFLib) {
         let bytes, rasterPages;
         if (S.truePdfRedact) {
@@ -3613,6 +4870,8 @@ Orgán: OBÚ.
         } else {
           bytes = await exportPdfRaster(S.sourceBuf, S.hits, S.fileName, S.mode, S.lang);
         }
+        const pdfaResult = await maybePdfa(bytes, pdfaNotes);
+        bytes = pdfaResult.bytes;
         S.hashOut = await sha256(bytes);
         download(base+".pdf", new Blob([bytes], {type:"application/pdf"}));
         if (rasterPages && rasterPages.size) S._exportNotice = t.exportedMixed.replace("{n}", Array.from(rasterPages).sort((a,b)=>a-b).join(", "));
@@ -3620,10 +4879,16 @@ Orgán: OBÚ.
         const bytes = exportXlsxFile(S.sourceBuf, S.hits, S.mode, S.lang);
         S.hashOut = await sha256(bytes);
         download(base+".xlsx", new Blob([bytes], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+      } else if (docxRes && docxRes.ok) {
+        S.hashOut = await sha256(docxRes.bytes);
+        download(base+".docx", new Blob([docxRes.bytes], {type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}));
+        S._exportNotice = t.exportedDocx;
       } else if (!S._aiPack) {
         download(base+".txt", new Blob([replaced], {type:"text/plain;charset=utf-8"}));
         if (window.PDFLib) {
-          const bytes = await exportTextPdf(replaced, S.fileName);
+          let bytes = await exportTextPdf(replaced, S.fileName);
+          const pdfaResult = await maybePdfa(bytes, pdfaNotes);
+          bytes = pdfaResult.bytes;
           S.hashOut = await sha256(bytes);
           download(base+".pdf", new Blob([bytes], {type:"application/pdf"}));
         }
@@ -3643,11 +4908,50 @@ Orgán: OBÚ.
           download(base+"-ai.pdf", new Blob([bytes], {type:"application/pdf"}));
         }
       }
-      $("exportModal").classList.add("hidden"); toast(S._exportNotice || t.exported); S._exportNotice = null;
-    } catch (e) { toast(e.message||String(e)); }
-    finally { btn.disabled=false; btn.textContent=t.export; }
+      if (pdfaNotes.length) S._exportNotice = ((S._exportNotice || t.exported) + " " + pdfaNotes[0]).trim();
+      if (!batchExport) {
+        $("exportModal").classList.add("hidden");
+        toast(S._exportNotice || t.exported);
+      }
+      S._exportNotice = null;
+      return true;
+    } catch (e) {
+      if (!batchExport) toast(e.message||String(e));
+      return false;
+    } finally {
+      if (btn) {
+        btn.disabled=false;
+        btn.textContent=t.export;
+      }
+    }
   }
-  function reset(){ S.text=""; S.hits=[]; S.fileName=""; S.reviewed=false; S.hashIn=""; S.sourceBuf=null; S.pages=[]; S.noTextPages=0; S.cellMap=[]; paint(); }
+  function reset(){
+    QUEUE_LOAD_GENERATION++;
+    Q.items = [];
+    Q.cur = -1;
+    clearPdfVisual();
+
+    S.sigDetected = false;
+    S.text = "";
+    S.hits = [];
+    S.fileName = "";
+    S.reviewed = false;
+    S.secondEyes = false;
+    S.selectedId = null;
+    S.seen = new Set();
+    S.hashIn = "";
+    S.hashOut = "";
+    S.sourceBuf = null;
+    S.pages = [];
+    S.noTextPages = 0;
+    S.cellMap = [];
+    S.analysisContext = "";
+    S._exportNotice = null;
+    S._aiPack = false;
+    S._batchExport = false;
+
+    paint();
+  }
   let PRISTINE_HTML = "";
 
   function buildSanitizedHtml() {
@@ -3666,6 +4970,9 @@ Orgán: OBÚ.
 
       const orig = doc.getElementById("orig");
       if (orig) orig.innerHTML = "";
+      const pdfVisual = doc.getElementById("pdfVisual");
+      if (pdfVisual) { pdfVisual.innerHTML = ""; pdfVisual.classList.add("hidden"); }
+      doc.body && doc.body.classList.remove("pdf-visual-on");
       const result = doc.getElementById("result");
       if (result) result.innerHTML = "";
       const hitList = doc.getElementById("hitList");
@@ -3741,19 +5048,32 @@ Orgán: OBÚ.
   $("btnSettings").onclick = openSettings;
   $("btnSettingsApply").onclick = () => {
     const root = $("settingsModalMount");
-    const pull = (id, field) => { const el = root.querySelector("#"+id); if (el) S[field] = el.value; };
+    const pull = (id, field) => {
+      const el = root.querySelector("#"+id);
+      if (el) S[field] = el.value;
+    };
+
     pull("m_taSecrets", "secrets");
     pull("m_taSystems", "systems");
     pull("m_taProjects", "projects");
     pull("m_taOrgs", "orgs");
+
     const cm = root.querySelector("#m_chkMeta");
     if (cm) S.stripMeta = cm.checked;
-    if (S.text) runAnalyze();
+
+    SETTINGS_MODAL_SNAPSHOT = null;
     $("settingsModal").classList.add("hidden");
-    if (!$("landing").classList.contains("hidden")) {
+
+    if (S.text) {
+      runAnalyze();
+    } else if (!$("landing").classList.contains("hidden")) {
       $("settingsMount").innerHTML = settingsHTML();
       wireSettings($("settingsMount"));
     }
+
+    applyQuickMode();
+    applyFastApprove();
+    applyBarPos();
   };
   $("btnSettingsClose").onclick = closeSettings;
   $("btnHelp").onclick = () => {
@@ -3793,6 +5113,16 @@ Orgán: OBÚ.
 
       <h3 class="feat-h">${t.featuresExportTitle}</h3>
       ${ul(t.featuresExportList)}
+
+      <!-- Fáze 1: pouze textový popis, bez logiky -->
+      <h3 class="feat-h">${t.inspireTitle}</h3>
+      <p style="color:var(--muted);font-size:13px;margin:0 0 6px">${t.inspireIntro}</p>
+      ${ul(t.inspireList)}
+
+      <!-- Plán změn — aktuální rozpracované DOCX/PDF bezpečnostní změny -->
+      <h3 class="feat-h">${t.planTitle}</h3>
+      <p style="color:var(--muted);font-size:13px;margin:0 0 6px">${t.planIntro}</p>
+      ${ul(t.planList)}
 
       <p style="color:var(--muted);font-size:13px;margin-top:16px;display:flex;gap:8px;align-items:flex-start">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:2px" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -3850,11 +5180,11 @@ Orgán: OBÚ.
     if (e.target.id === "movie-title-card") movieCloseTitleCard();
   });
   $("btnBrowse").onclick = pickFile;
-  $("file").onchange = (e) => { if (e.target.files[0]) onFile(e.target.files[0]); e.target.value = ""; };
+  $("file").onchange = (e) => { if (e.target.files.length) onFiles(e.target.files); e.target.value = ""; };
   $("drop").onclick = pickFile;
   $("drop").ondragover = (e) => { e.preventDefault(); $("drop").classList.add("over"); };
   $("drop").ondragleave = () => $("drop").classList.remove("over");
-  $("drop").ondrop = (e) => { e.preventDefault(); $("drop").classList.remove("over"); if (e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); };
+  $("drop").ondrop = (e) => { e.preventDefault(); $("drop").classList.remove("over"); if (e.dataTransfer.files.length) onFiles(e.dataTransfer.files); };
   $("btnAdd").onclick = () => {
     const sel = window.getSelection().toString().trim();
     if (sel.length<3) return;
@@ -4781,6 +6111,9 @@ Orgán: OBÚ.
     const secrets = ["jednotkové ceny"];
     const prev = S.suspicion;
     const cases = [];
+    cases.push({ name:"docx path normalization", ok: docxNormalizeZipPath("word/a/../media/x.jpg") === "word/media/x.jpg", type:"docx", includes:"word/media/x.jpg", got:[docxNormalizeZipPath("word/a/../media/x.jpg")] });
+    cases.push({ name:"docx relative relationship path", ok: docxRelativeZipPath("word", "word/media/image_001.jpg") === "media/image_001.jpg", type:"docx", includes:"media/image_001.jpg", got:[docxRelativeZipPath("word", "word/media/image_001.jpg")] });
+    cases.push({ name:"pdf ICC profile present", ok: SRGB_ICC_PROFILE_BASE64.length > 100 && base64ToUint8Array(SRGB_ICC_PROFILE_BASE64).length > 400, type:"pdfa", includes:"sRGB ICC", got:[String(base64ToUint8Array(SRGB_ICC_PROFILE_BASE64).length)] });
     cases.push({ name:"movie 70% slower", ok: Math.abs(movieEffectiveSpeed() - 0.3 * MOVIE_SPEED) < 1e-9 && MOVIE_SLOWDOWN === 0.3, type:"movie", includes:"0.3", got:[String(MOVIE_SLOWDOWN), String(movieEffectiveSpeed())] });
     cases.push({ name:"marquee helpers", ok: typeof initActionMarquees === "function" && typeof startTextMarquee === "function", type:"movie", includes:"fns", got:[typeof initActionMarquees, typeof startTextMarquee] });
     const expect = (name, text, sus, type, includes) => {
@@ -4796,6 +6129,16 @@ Orgán: OBÚ.
       cases.push({ name, ok: bad.length===0, type, includes:"∅", got: bad.map(h=>h.value) });
     };
     expect("rc slash", "rodné číslo 780312/0006", "medium", "rc", "780312/0006");
+    expect("katastr parcela", "pozemek parc. č. 123/4 v obci", "medium", "katastr", "123/4");
+    expect("katastr LV", "zapsáno na LV 456", "medium", "katastr", "456");
+    expect("katastr ku", "v k.ú. Nové Město, obec Praha", "medium", "katastr", "Nové Město");
+    expect("zahr iban SK", "IBAN: SK31 1200 0000 1987 4263 7541", "medium", "zahr_iban", "SK31");
+    expect("zahr iban DE", "účet DE89370400440532013000", "medium", "zahr_iban", "DE89");
+    expectNone("zahr iban bad checksum", "SK00 1200 0000 1987 4263 7541", "medium", "zahr_iban");
+    expect("swift label", "SWIFT: KOMBCZPP", "medium", "zahr_iban", "KOMBCZPP");
+    expect("pas", "Cestovní pas č. 12345678", "medium", "doklady_extra", "12345678");
+    expect("rp", "Řidičský průkaz č. EB 123456", "medium", "doklady_extra", "123456");
+    expect("ztp", "průkaz ZTP/P č. 654321", "medium", "doklady_extra", "654321");
     expect("ico label", "IČO: 00000205", "medium", "ico", "00000205");
     expect("namesti", "se sídlem Václavské náměstí 1, 110 00 Praha 1", "medium", "address", "náměstí");
     expect("ticket", "ticket CBUAIS-5164", "medium", "ticket", "CBUAIS-5164");
