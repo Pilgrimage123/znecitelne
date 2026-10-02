@@ -3893,7 +3893,7 @@ Orgán: OBÚ.
       try {
         showOcrProgress(S.lang === "cs" ? "OCR: inicializuji jazykový model…" : "OCR: loading language model…");
         ocrWorker = await Tesseract.createWorker("ces", 1, {
-          ...((window.__libLocal && window.__libLocal.tesseract) ? { workerPath:"./lib/tesseract/worker.min.js", corePath:"./lib/tesseract/", langPath:"./lib/tesseract/lang/" } : {}),
+          ...((window.__libLocal && window.__libLocal.tesseract) ? { workerPath:"./lib/tesseract/worker.min.js", corePath:"./lib/tesseract/core/", langPath:"./lib/tesseract/lang/" } : {}),
           logger: m => {
             if (m.status === "loading language traineddata") {
               showOcrProgress((S.lang === "cs" ? "OCR: stahuji jazykový model" : "OCR: downloading model") +
