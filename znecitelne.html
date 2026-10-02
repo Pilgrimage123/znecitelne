@@ -661,6 +661,7 @@ body.movie-active #settingsSheet {
   const HIGH = new Set(["rc","ico","dic","account","email","ticket","casefile","sigcert","zahr_iban"]);
   const RULES = "2026.10.02-ai27";
   const CHANGELOG = [
+    { version: "2026.10.02-ai28", notes: { cs: "Debug patch: exportní tokenizace používá stejný efektivní overlap resolver jako UI, batch export zachovává pouze výsledek exportu místo přepsání celého snapshotu a PDF načtení čeká na inicializaci workeru. Přidán regresní self-test pro překrývající se nálezy.", en: "Debug patch: export tokenization uses the same effective overlap resolver as the UI, bulk export preserves only the export result instead of replacing the whole snapshot, and PDF loading waits for worker initialization. Added an overlap regression self-test." } },
     { version: "2026.10.02-ai27", notes: { cs: "Debug/harmony: sjednocena volba efektivních nálezů pro UI a export, hromadný export izoluje dočasný stav každé položky, PDF worker má bezpečný fallback pro file:// a quality gate ověřuje konzistenci verze pravidel. Offline knihovny zůstávají povinnou součástí distribuce; PDF/A-2b je nadále pouze deklarace vyžadující externí preflight.", en: "Debug/harmony: unified effective-hit selection for UI and export, bulk export isolates transient state per item, the PDF worker has a safe file:// fallback, and the quality gate verifies detector-version consistency. Offline libraries remain mandatory distribution assets; PDF/A-2b remains only a declaration requiring external preflight." } },
     { version: "2026.10.01-ai26", notes: { cs: "Debug audit: batchová fronta má generation/identity guard a bezpečné mazání konkrétní položky; zavření Nastavení už nespouští zbytečnou reanalýzu. Zůstávají k řešení: sjednocení overlap logiky mezi UI a exportem, ověření existence lokálního pdf.worker.min.js s bezpečným fallbackem, skutečná izolace hromadného exportu od globálního stavu, kontrola integrity offline balíčku a adversariální regresní testy DOCX/PDF (včetně neviditelného obsahu, embedded objektů, metadat, relací a alternativních XML částí). PDF/A-2b zůstává deklarací vyžadující externí preflight. Žádný z otevřených bodů není v tomto auditu označen jako již opravený.", en: "Debug audit: the batch queue now has generation/identity guards and safe removal of the specific failed item; closing Settings no longer triggers an unnecessary re-analysis. Remaining work: unify overlap logic between UI and export, verify the local pdf.worker.min.js exists with a safe fallback, isolate bulk export from global state, validate offline bundle integrity, and add adversarial DOCX/PDF regression tests (including invisible content, embedded objects, metadata, relationships and alternate XML parts). PDF/A-2b remains a declaration requiring external preflight. None of the remaining points is marked as already fixed by this audit." } },
     { version: "2026.10.01-ai25", notes: { cs: "Bezpečný export DOCX/PDF dokončen: striktní odstranění vizuálních objektů a relací, bezpečné názvy media partů, split-run náhrady bez slučování w:r, Mammoth záchranná brzda s TXT fallbackem a PDF sRGB OutputIntent + audit nevložených fontů s raster fallbackem.", en: "Secure DOCX/PDF export completed: strict removal of visual objects and relationships, safe media-part names, split-run replacement without merging w:r, Mammoth safety fallback to TXT, and PDF sRGB OutputIntent plus unembedded-font audit with raster fallback." } },
@@ -1892,7 +1893,7 @@ Orgán: OBÚ.
   }
   function bindReplacer(mode, lang, hits){
     const replacer = makeReplacer(mode, lang);
-    (hits||[]).filter(h => h && h.accept).slice()
+    topHits(hits).slice()
       .sort((a,b) => a.start-b.start || (a.id||0)-(b.id||0))
       .forEach(h => { replacer(h); });
     return replacer;
@@ -1901,7 +1902,7 @@ Orgán: OBÚ.
     const replacer = bindReplacer(mode, lang, hits);
     const rows = [];
     const seen = new Set();
-    hits.filter(h => h.accept).forEach(h => {
+    topHits(hits).forEach(h => {
       const token = replacer(h);
       const k = h.type+"|"+h.value.toLocaleLowerCase("cs");
       if (seen.has(k)) return;
@@ -3556,10 +3557,8 @@ Orgán: OBÚ.
             S._aiPack = false;
             const ok = await doExport();
             if (ok) {
-              it.snap.hashOut = S.hashOut;
-              const exportedState = snapState();
-              exportedState.hashOut = S.hashOut;
-              it.snap = exportedState;
+              const exportedHash = S.hashOut;
+              it.snap = { ...it.snap, hashOut: exportedHash };
               done++;
             } else {
               failed++;
@@ -3853,8 +3852,7 @@ Orgán: OBÚ.
     return !S.enabled || S.enabled.sigcert !== false;
   }
   async function extractPdf(data){
-    pdfWorker();
-    const pdf = await pdfjsLib.getDocument({ data: data.slice(0), disableStream:true, disableAutoFetch:true }).promise;
+    const pdf = await getPdfDocument(data);
     const pages = [];
     let text = "";
 
@@ -4585,8 +4583,7 @@ Orgán: OBÚ.
     } catch (e) { console.warn("stripPdfSignatureFields", e); }
   }
   async function exportPdfRaster(source, hits, title, mode, lang){
-    pdfWorker();
-    const pdf = await pdfjsLib.getDocument({ data: source.slice(0), disableStream:true, disableAutoFetch:true }).promise;
+    const pdf = await getPdfDocument(source);
     const { PDFDocument } = PDFLib;
     const doc = await PDFDocument.create();
     stampPdfMeta(doc, title);
@@ -6212,6 +6209,23 @@ Orgán: OBÚ.
     expectNone("sig ca name kept", "Certifikát vydal: PostSignum Qualified Certification Authority", "high", "name");
     expectNone("sig level kept", "Typ podpisu: Kvalifikovaný elektronický podpis", "high", "name");
     cases.push({ name:"signature annot helper", ok: isSignatureAnnot({ fieldType:"Sig", rect:[0,0,100,40] }) && !isSignatureAnnot({ fieldType:"Tx", subtype:"Widget" }), type:"sigcert", includes:"annot", got:["ok"] });
+    const overlapHits = [
+      { id:1, start:0, end:12, value:"Jan Novák", type:"name", accept:true, score:0.9, entityKey:"name|jan" },
+      { id:2, start:4, end:7, value:"Nov", type:"name", accept:true, score:0.99, entityKey:"name|nov" },
+      { id:3, start:20, end:24, value:"CBUA", type:"ticket", accept:true, score:0.5, entityKey:"ticket|cbua" }
+    ];
+    const overlapResolved = topHits(overlapHits);
+    const overlapOut = apply("Jan Novák .... CBUA", overlapHits, "pseudo", "cs");
+    cases.push({
+      name:"overlap resolver is shared by replacement",
+      ok: overlapResolved.length === 2 &&
+          overlapResolved[0].id === 1 &&
+          overlapResolved[1].id === 3 &&
+          !overlapOut.includes("Nov"),
+      type:"overlap",
+      includes:"topHits",
+      got:[overlapResolved.map(h => h.id).join(","), overlapOut]
+    });
     S.suspicion = "medium";
     const prevSys = S.systems, prevProj = S.projects;
     S.systems = "AIS SBS | SYSTÉM\neSpis | INTEGRACE\nSAMO2 | MODUL";
