@@ -35,6 +35,10 @@ check(
   metadata.capabilities?.length === 0,
   "metadata must not declare undeclared capabilities"
 );
+check(
+  !canonical.includes("https://cdn.jsdelivr.net/npm/pdfjs-dist"),
+  "PDF.js worker must not silently fall back to a CDN"
+);
 check(canonical.includes("./lib/"), "Browser libraries must have a local/offline path");
 check(!existsSync("index.html"), "obsolete index.html must not exist");
 
