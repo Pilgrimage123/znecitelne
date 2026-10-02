@@ -16,7 +16,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
       - run: npm install --package-lock-only --ignore-scripts
       - run: npm ci
       - run: npm run build
