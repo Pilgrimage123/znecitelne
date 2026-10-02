@@ -2,6 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const canonical = readFileSync("znecitelne.html", "utf8");
+const server = readFileSync("server.js", "utf8");
+const metadata = JSON.parse(readFileSync("metadata.json", "utf8"));
 
 const failures = [];
 
@@ -25,6 +27,14 @@ check(
   (canonical.match(/function resolveHits\s*\(/g) || []).length === 1,
   "resolveHits must have exactly one canonical implementation"
 );
+check(
+  server.includes("if (path.extname(req.path))"),
+  "server must not return the SPA shell for missing file-like assets"
+);
+check(
+  metadata.capabilities?.length === 0,
+  "metadata must not declare undeclared capabilities"
+);
 check(canonical.includes("./lib/"), "Browser libraries must have a local/offline path");
 check(!existsSync("index.html"), "obsolete index.html must not exist");
 
@@ -36,6 +46,16 @@ for (const asset of [
   "./lib/xlsx.full.min.js",
   "./lib/fflate.js",
   "./lib/tesseract.min.js",
+  "./lib/tesseract/worker.min.js",
+  "./lib/tesseract/core/tesseract-core.wasm.js",
+  "./lib/tesseract/core/tesseract-core-simd.wasm.js",
+  "./lib/tesseract/core/tesseract-core-lstm.wasm.js",
+  "./lib/tesseract/core/tesseract-core-simd-lstm.wasm.js",
+  "./lib/tesseract/core/tesseract-core.wasm",
+  "./lib/tesseract/core/tesseract-core-simd.wasm",
+  "./lib/tesseract/core/tesseract-core-lstm.wasm",
+  "./lib/tesseract/core/tesseract-core-simd-lstm.wasm",
+  "./lib/tesseract/lang/ces.traineddata.gz",
 ]) {
   check(canonical.includes(asset), `missing local library reference: ${asset}`);
   check(
