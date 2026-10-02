@@ -34,6 +34,16 @@ for (const asset of [
   "./lib/xlsx.full.min.js",
   "./lib/fflate.js",
   "./lib/tesseract.min.js",
+  "./lib/tesseract/worker.min.js",
+  "./lib/tesseract/core/tesseract-core.wasm.js",
+  "./lib/tesseract/core/tesseract-core-simd.wasm.js",
+  "./lib/tesseract/core/tesseract-core-lstm.wasm.js",
+  "./lib/tesseract/core/tesseract-core-simd-lstm.wasm.js",
+  "./lib/tesseract/core/tesseract-core.wasm",
+  "./lib/tesseract/core/tesseract-core-simd.wasm",
+  "./lib/tesseract/core/tesseract-core-lstm.wasm",
+  "./lib/tesseract/core/tesseract-core-simd-lstm.wasm",
+  "./lib/tesseract/lang/ces.traineddata.gz",
 ]) {
   check(canonical.includes(asset), `missing local library reference: ${asset}`);
   check(
