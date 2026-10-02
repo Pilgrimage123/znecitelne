@@ -19,7 +19,7 @@ The canonical implementation is intentionally kept as a standalone HTML applicat
 ## Development
 
 ```bash
-npm ci
+npm install
 npm run build
 npm test
 npm start
@@ -40,7 +40,7 @@ npm run build
 npm test
 ```
 
-The build fails if an obsolete `index.html` appears or if required local runtime assets are missing.
+The build fails if an obsolete `index.html` appears or if required local runtime assets are missing. Populate the bundle with `bash scripts/download_libs.sh` before expecting the offline gate to pass.
 
 ## Important product invariant
 
@@ -65,3 +65,5 @@ The repository quality gate currently checks:
 - absence of the obsolete HTML entry point
 
 The application's own browser self-tests remain part of the product and should be expanded with adversarial DOCX/PDF fixtures as the next testing step.
+
+The repository does not currently commit `package-lock.json`; use `npm install` rather than `npm ci` until a lockfile is deliberately added.
