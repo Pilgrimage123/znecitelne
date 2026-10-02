@@ -6,10 +6,14 @@ if [[ ! -f znecitelne.html ]]; then
   exit 1
 fi
 
-cp znecitelne.html index.html
+if [[ -e index.html ]]; then
+  echo "index.html is obsolete and must be removed; znecitelne.html is canonical." >&2
+  exit 1
+fi
+
 node build.js
 node test.js
 
 echo
-echo "Canonical upgrade applied."
-echo "Review: git diff -- index.html package.json README.md build.js test.js .github/workflows/quality.yml"
+echo "Canonical application validated."
+echo "No secondary index.html entry point is generated."
