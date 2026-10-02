@@ -25,10 +25,14 @@ app.get('/index.html', (_req, res) => {
 });
 
 // Static assets: ./lib/*, metadata.json, etc.
-app.use(express.static(__dirname));
+// Missing assets must remain real 404s; otherwise the SPA fallback can
+// return znecitelne.html with HTTP 200 and fool runtime asset probes.
+app.use(express.static(__dirname, { fallthrough: true }));
 
-// Client-side fallback for application routes.
-app.get('*', (_req, res) => {
+// Client-side fallback for application routes only.  Do not serve the
+// application shell for missing file-like assets.
+app.get('*', (req, res, next) => {
+  if (path.extname(req.path)) return res.status(404).type('text/plain').send('Not found');
   res.sendFile(APP_FILE);
 });
 

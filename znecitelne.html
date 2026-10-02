@@ -661,7 +661,7 @@ body.movie-active #settingsSheet {
   const HIGH = new Set(["rc","ico","dic","account","email","ticket","casefile","sigcert","zahr_iban"]);
   const RULES = "2026.10.01-ai24";
   const CHANGELOG = [
-    { version: "2026.10.01-ai26", notes: { cs: "Debug audit: batchová fronta má generation/identity guard a bezpečné mazání konkrétní položky; zavření Nastavení už nespouští zbytečnou reanalýzu. Zůstávají k řešení: sjednocení overlap logiky mezi UI a exportem, ověření existence lokálního pdf.worker.min.js s bezpečným fallbackem, skutečná izolace hromadného exportu od globálního stavu, kontrola integrity offline balíčku a adversariální regresní testy DOCX/PDF (včetně neviditelného obsahu, embedded objektů, metadat, relací a alternativních XML částí). PDF/A-2b zůstává deklarací vyžadující externí preflight. Žádný z otevřených bodů není v tomto auditu označen jako již opravený.", en: "Debug audit: the batch queue now has generation/identity guards and safe removal of the specific failed item; closing Settings no longer triggers an unnecessary re-analysis. Remaining work: unify overlap logic between UI and export, verify the local pdf.worker.min.js exists with a safe fallback, isolate bulk export from global state, validate offline bundle integrity, and add adversarial DOCX/PDF regression tests (including invisible content, embedded objects, metadata, relationships and alternate XML parts). PDF/A-2b remains a declaration requiring external preflight. None of the remaining points is marked as already fixed by this audit." } },
+    { version: "2026.10.01-ai26", notes: { cs: "Debug audit: sjednocena overlap logika UI/exportu, lokální PDF worker je ověřován podle Content-Type a server nevrací SPA shell pro chybějící soubory; DOCX export čistí externí odkazy, media a relace a XLSX export nepropaguje identifikační metadata. Zůstává k řešení: doplnění skutečného offline runtime balíčku (včetně OCR workeru, core a českých dat), pinovaný package-lock a provedení adversariálních regresních testů. PDF/A-2b zůstává deklarací vyžadující externí preflight.", en: "Debug audit: the batch queue now has generation/identity guards and safe removal of the specific failed item; closing Settings no longer triggers an unnecessary re-analysis. Remaining work: unify overlap logic between UI and export, verify the local pdf.worker.min.js exists with a safe fallback, isolate bulk export from global state, validate offline bundle integrity, and add adversarial DOCX/PDF regression tests (including invisible content, embedded objects, metadata, relationships and alternate XML parts). PDF/A-2b remains a declaration requiring external preflight. None of the remaining points is marked as already fixed by this audit." } },
     { version: "2026.10.01-ai25", notes: { cs: "Bezpečný export DOCX/PDF dokončen: striktní odstranění vizuálních objektů a relací, bezpečné názvy media partů, split-run náhrady bez slučování w:r, Mammoth záchranná brzda s TXT fallbackem a PDF sRGB OutputIntent + audit nevložených fontů s raster fallbackem.", en: "Secure DOCX/PDF export completed: strict removal of visual objects and relationships, safe media-part names, split-run replacement without merging w:r, Mammoth safety fallback to TXT, and PDF sRGB OutputIntent plus unembedded-font audit with raster fallback." } },
     { version: "2026.10.01-ai22", notes: { cs: "Fáze 4 (5/5): dávková fronta – výběr/přetažení více souborů, přepínání čipy nad panelem, stav (nálezy, schválení, zkontrolováno) se drží zvlášť pro každý soubor, hromadný export všech zkontrolovaných.", en: "Phase 4 (5/5): batch queue – select/drop several files, switch via chips above the toolbar, state (findings, approvals, reviewed) kept per file, bulk export of all reviewed files." } },
     { version: "2026.10.01-ai21", notes: { cs: "Fáze 4 (4/5): plná offline podpora – knihovny se načítají z ./lib/ (záloha CDN), pdf.js worker a Tesseract (worker, jádro, čeština) také lokálně; skript download_libs.sh stáhne soubory.", en: "Phase 4 (4/5): full offline support – libraries load from ./lib/ (CDN fallback); the pdf.js worker and Tesseract (worker, core, Czech data) are local too; download_libs.sh fetches the files." } },
@@ -2185,6 +2185,40 @@ Orgán: OBÚ.
     }
   }
 
+  function docxStripExternalRelationships(files, dec, enc){
+    const R_NS = DOCX_REL_NS;
+    const W_NS = DOCX_W_NS;
+    const R_ID = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+    for (const name of Object.keys(files)) {
+      if (name !== "_rels/.rels" && !/^.+\/_rels\/[^/]+\.rels$/i.test(name)) continue;
+      const doc = new DOMParser().parseFromString(dec.decode(files[name]), "application/xml");
+      if (doc.getElementsByTagName("parsererror").length) throw new Error("Invalid relationships: " + name);
+      const externalIds = new Set();
+      Array.from(doc.getElementsByTagNameNS(R_NS, "Relationship")).forEach(rel => {
+        if (rel.getAttribute("TargetMode") === "External") {
+          externalIds.add(rel.getAttribute("Id"));
+          rel.parentNode?.removeChild(rel);
+        }
+      });
+      if (!externalIds.size) continue;
+      files[name] = enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + new XMLSerializer().serializeToString(doc));
+      const sourcePart = docxRelationshipSourcePart(name);
+      if (!sourcePart) continue;
+      const part = files[sourcePart];
+      if (!part || !/\.xml$/i.test(sourcePart)) continue;
+      const partDoc = new DOMParser().parseFromString(dec.decode(part), "application/xml");
+      if (partDoc.getElementsByTagName("parsererror").length) throw new Error("Invalid XML: " + sourcePart);
+      let changed = false;
+      Array.from(partDoc.getElementsByTagNameNS(W_NS, "hyperlink")).forEach(node => {
+        const rid = node.getAttributeNS(R_ID, "id") || node.getAttribute("r:id");
+        if (!externalIds.has(rid)) return;
+        node.parentNode?.removeChild(node);
+        changed = true;
+      });
+      if (changed) files[sourcePart] = enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + new XMLSerializer().serializeToString(partDoc));
+    }
+  }
+
   function docxRemoveMediaParts(files){
     for (const name of Object.keys(files)) {
       if (/^word\/(?:media|embeddings)\//i.test(name)) delete files[name];
@@ -2335,6 +2369,7 @@ Orgán: OBÚ.
     docxApplyPartRenames(files, rename, dec, enc);
 
     docxStripMediaRelationships(files, dec, enc);
+    docxStripExternalRelationships(files, dec, enc);
     docxRemoveMediaParts(files);
 
     const missing = Array.from(map.keys()).filter(v => !found.has(v));
@@ -2374,7 +2409,7 @@ Orgán: OBÚ.
       CreatedDate: new Date(0),
       ModifiedDate: new Date(0),
       Keywords: "",
-      Comments: "Znečitelně — metadata stripped"
+      Comments: ""
     };
     wb.Custprops = {};
     if (wb.Workbook && wb.Workbook.WBProps) {
@@ -2901,15 +2936,6 @@ Orgán: OBÚ.
     bindTips();
   }
 
-  function visibleHits(hits, sel){
-    const ordered = [...hits].sort((a,b) => a.id===sel?-1:b.id===sel?1:a.start-b.start);
-    const taken = []; const chosen = [];
-    for (const h of ordered) {
-      if (taken.some(([s,e]) => h.start < e && h.end > s)) continue;
-      taken.push([h.start,h.end]); chosen.push(h);
-    }
-    return chosen.sort((a,b)=>a.start-b.start);
-  }
   function esc(s){
     const amp = "&" + "amp;";
     const lt = "&" + "lt;";
@@ -3607,7 +3633,8 @@ Orgán: OBÚ.
       if (window.__libLocal && location.protocol !== "file:") {
         try {
           const res = await fetch(local, { method: "HEAD", cache: "no-store" });
-          if (res.ok) {
+          const type = (res.headers.get("content-type") || "").toLowerCase();
+          if (res.ok && (type.includes("javascript") || type.includes("ecmascript"))) {
             pdfjsLib.GlobalWorkerOptions.workerSrc = local;
             return "local";
           }
@@ -3866,7 +3893,7 @@ Orgán: OBÚ.
       try {
         showOcrProgress(S.lang === "cs" ? "OCR: inicializuji jazykový model…" : "OCR: loading language model…");
         ocrWorker = await Tesseract.createWorker("ces", 1, {
-          ...((window.__libLocal && window.__libLocal.tesseract) ? { workerPath:"./lib/tesseract/worker.min.js", corePath:"./lib/tesseract/", langPath:"./lib/tesseract/lang/" } : {}),
+          ...((window.__libLocal && window.__libLocal.tesseract) ? { workerPath:"./lib/tesseract/worker.min.js", corePath:"./lib/tesseract/core/", langPath:"./lib/tesseract/lang/" } : {}),
           logger: m => {
             if (m.status === "loading language traineddata") {
               showOcrProgress((S.lang === "cs" ? "OCR: stahuji jazykový model" : "OCR: downloading model") +
@@ -4919,7 +4946,12 @@ Orgán: OBÚ.
             bytes = result.bytes;
             rasterPages = result.rasterPages;
           } catch (e) {
+            // Secure structural redaction can fail on PDFs whose content streams
+            // cannot be safely rewritten. Raster export is the safe fallback,
+            // but the downgrade must be visible to the operator.
             bytes = await exportPdfRaster(S.sourceBuf, S.hits, S.fileName, S.mode, S.lang);
+            const reason = (e && e.message) || "neznámá chyba";
+            S._exportNotice = "Strukturální PDF anonymizace nebyla použita; výstup byl převeden na raster. Důvod: " + reason;
           }
         } else {
           bytes = await exportPdfRaster(S.sourceBuf, S.hits, S.fileName, S.mode, S.lang);

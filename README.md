@@ -48,7 +48,9 @@ Do not introduce a second HTML application during refactors. New functionality b
 
 ## Current security/privacy direction
 
-The application prefers local `./lib/*` browser dependencies. The canonical HTML still contains compatibility fallbacks for environments where those assets are unavailable; removing those fallbacks should be treated as a deliberate product/security change and verified against the offline distribution.
+The application prefers local `./lib/*` browser dependencies.
+
+To populate the pinned offline bundle, run `bash scripts/download_libs.sh`. The script downloads the exact browser-library versions referenced by the canonical HTML, including the pdf.js worker and the complete Tesseract.js v5.1.1 worker/core/Czech trained-data set. The canonical HTML still contains compatibility fallbacks for environments where those assets are unavailable; removing those fallbacks should be treated as a deliberate product/security change and verified against the offline distribution.
 
 ## Testing
 
