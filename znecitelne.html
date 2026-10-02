@@ -3598,7 +3598,8 @@ Orgán: OBÚ.
       if (window.__libLocal && location.protocol !== "file:") {
         try {
           const res = await fetch(local, { method: "HEAD", cache: "no-store" });
-          if (res.ok) {
+          const type = (res.headers.get("content-type") || "").toLowerCase();
+          if (res.ok && (type.includes("javascript") || type.includes("ecmascript"))) {
             pdfjsLib.GlobalWorkerOptions.workerSrc = local;
             return "local";
           }
