@@ -25,10 +25,15 @@ app.get('/index.html', (_req, res) => {
 });
 
 // Static assets: ./lib/*, metadata.json, etc.
-app.use(express.static(__dirname));
+// Missing file-like assets must remain real 404s. Otherwise the SPA shell
+// can be returned with HTTP 200 and fool runtime asset probes.
+app.use(express.static(__dirname, { fallthrough: true }));
 
-// Client-side fallback for application routes.
-app.get('*', (_req, res) => {
+// Client-side fallback for application routes only.
+app.get('*', (req, res) => {
+  if (path.extname(req.path)) {
+    return res.status(404).type('text/plain').send('Not found');
+  }
   res.sendFile(APP_FILE);
 });
 
