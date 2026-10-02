@@ -4383,165 +4383,36 @@ Orgán: OBÚ.
     newDict.delete(PDFName.of("Filter"));
     context.assign(ref, PDFRawStream.of(newDict, newBytes));
   }
-  async function exportPdfTrueRedact(source, hits, title, mode, lang){
-    const pdfjsDoc = await getPdfDocument(source);
-    const { PDFDocument, StandardFonts } = PDFLib;
-    const doc = await PDFDocument.load(source, { updateMetadata:false });
-    stampPdfMeta(doc, title);
-    // Every secure PDF export carries a local sRGB OutputIntent.
-    addSrgbOutputIntent(doc);
-
-    // PDF/A safety gate: Type0/CID and simple fonts are both inspected.
-    // Pages using an unembedded original font are rasterized later, because
-    // rewriting their content stream cannot make the original font embedded.
-    const originalUnembeddedPages = pdfUnembeddedFontPages(doc);
-
-    const isBox = mode === "box";
-    const replacer = bindReplacer(mode, lang, hits);
-    const helv = isBox ? null : await doc.embedFont(StandardFonts.Helvetica);
-
-    const rasterPages = new Set(originalUnembeddedPages);
-    const accepted = topHits(hits);
-    const pageSigs = {};
-    if (shouldCoverVisibleStamps()) {
-      for (let i=1;i<=pdfjsDoc.numPages;i++) {
-        const pjsPage = await pdfjsDoc.getPage(i);
-        const fromAnnot = await pageSignatureMeta(pjsPage);
-        const stored = ((S.pages||[]).find(p => p.n===i) || {}).signatures || [];
-        const byKey = new Map();
-        fromAnnot.concat(stored).forEach(s => {
-          if (!s || !s.rect) return;
-          const key = s.rect.join(",");
-          const prev = byKey.get(key);
-          if (!prev) { byKey.set(key, Object.assign({}, s)); return; }
-          if (s.nameRects && s.nameRects.length) prev.nameRects = s.nameRects;
-          if (s.signer) prev.signer = s.signer;
-          if (s.text && !prev.text) prev.text = s.text;
-        });
-        const list = Array.from(byKey.values());
-        pageSigs[i] = list;
-        if (list.length) rasterPages.add(i);
-      }
+  function assertSecurePdfBytes(bytes){
+    const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    const ascii = new TextDecoder("latin1").decode(u8);
+    const forbidden = ["/AcroForm", "/Sig", "/EmbeddedFiles", "/JavaScript", "/JS"];
+    const found = forbidden.filter(token => ascii.includes(token));
+    if (found.length) {
+      throw new Error("PDF security preflight failed: "+found.join(", "));
     }
-
-    for (let i=1;i<=pdfjsDoc.numPages;i++) {
-      const pageHits = accepted.filter(h => (h.page || pageOf(h.start)) === i);
-      if (!pageHits.length && !(pageSigs[i]||[]).length) continue;
-      if ((pageSigs[i]||[]).length && !pageHits.length) { rasterPages.add(i); continue; }
-      const targets = Array.from(new Set(pageHits.map(h=>h.value).filter(Boolean)));
-
-      const pdfLibPage = doc.getPage(i-1);
-      const { PDFName } = PDFLib;
-      const resourcesRef = pdfLibPage.node.get(PDFName.of("Resources"));
-      const resourcesDict = resourcesRef ? doc.context.lookup(resourcesRef) : null;
-      const contentInfo = resourcesDict ? getPageContentStream(doc.context, pdfLibPage.node) : null;
-
-      if (!contentInfo) { rasterPages.add(i); continue; }
-
-      const result = redactPageContentBytes(contentInfo.decoded, resourcesDict, doc.context, targets);
-      writePageContentStream(doc.context, contentInfo.ref, contentInfo.streamObj, result.bytes);
-
-      if (result.unmatched.length) rasterPages.add(i);
-
-      const pjsPage = await pdfjsDoc.getPage(i);
-      const pageMeta = (S.pages||[]).find(p => p.n===i);
-      const rawItems = (pageMeta && pageMeta.items && pageMeta.items.length) ? pageMeta.items : (await pjsPage.getTextContent()).items;
-      const vp = pjsPage.getViewport({ scale: 1 });
-      const mapped = mapPageGlyphs(rawItems, 1, vp);
-      const { text, map } = mapped;
-      const { rgb } = PDFLib;
-      const pageSize = pdfLibPage.getSize();
-      pageHits.forEach(hit => {
-        let idx = text.indexOf(hit.value);
-        if (idx < 0) return;
-        const end = idx + Math.max(hit.value.length, 1);
-        const glyphs = map.filter(m => m.end>idx && m.start<end);
-        if (!glyphs.length) return;
-        const minX = Math.min(...glyphs.map(m=>m.x));
-        const maxX = Math.max(...glyphs.map(m=>m.x+m.w));
-        const maxH = Math.max(...glyphs.map(m=>m.h));
-        const minYTop = Math.min(...glyphs.map(m=>m.y));
-        const boxH = Math.max(maxH,8)+4;
-        const yFromTop = minYTop-2;
-        const yPdf = pageSize.height - yFromTop - boxH;
-        const boxW = Math.max(maxX-minX,6)+4;
-        if (isBox) {
-          pdfLibPage.drawRectangle({ x: minX-2, y: yPdf, width: boxW, height: boxH, color: rgb(0.086,0.094,0.102) });
-          return;
-        }
-        const token = replacer(hit);
-        let size = Math.max(6, Math.min(boxH*0.72, 13));
-        let tokenW = helv.widthOfTextAtSize(token, size);
-        while (tokenW > boxW*3 && size > 6) { size -= 1; tokenW = helv.widthOfTextAtSize(token, size); }
-        pdfLibPage.drawRectangle({ x: minX-2, y: yPdf, width: Math.max(boxW, tokenW+4), height: boxH, color: rgb(1,1,1) });
-        pdfLibPage.drawText(token, { x: minX, y: yPdf+boxH*0.22, size, font: helv, color: rgb(0,0,0) });
-      });
+    const eof = (ascii.match(/%%EOF/g)||[]).length;
+    if (eof !== 1) {
+      throw new Error("PDF security preflight failed: expected one %%EOF, got "+eof);
     }
-
-    if (S.stripMeta) {
-      try { doc.catalog.delete(PDFLib.PDFName.of("Metadata")); } catch(_) {}
-    }
-
-    for (const pageNum of rasterPages) {
-      const i = pageNum;
-      const pjsPage = await pdfjsDoc.getPage(i);
-      const scale = 1.7; const vp = pjsPage.getViewport({ scale });
-      const canvas = document.createElement("canvas"); canvas.width=vp.width; canvas.height=vp.height;
-      const ctx = canvas.getContext("2d");
-      await pjsPage.render(pdfRenderParams(ctx, vp)).promise;
-      const pageMeta = (S.pages||[]).find(p => p.n===i);
-      const rawItems = (pageMeta && pageMeta.items && pageMeta.items.length) ? pageMeta.items : (await pjsPage.getTextContent()).items;
-      const mapped = mapPageGlyphs(rawItems, scale, vp);
-      const { text, map } = mapped;
-      accepted.filter(h => (h.page || pageOf(h.start)) === i).forEach(hit => {
-        let idx = text.indexOf(hit.value);
-        if (idx < 0) return;
-        const end = idx + Math.max(hit.value.length, 1);
-        const glyphs = map.filter(m => m.end>idx && m.start<end);
-        if (!glyphs.length) return;
-        const minX = Math.min(...glyphs.map(m=>m.x));
-        const maxX = Math.max(...glyphs.map(m=>m.x+m.w));
-        const maxH = Math.max(...glyphs.map(m=>m.h));
-        const minY = Math.min(...glyphs.map(m=>m.y));
-        const boxW = Math.max(maxX-minX,6)+4, boxH = Math.max(maxH,8)+4;
-        if (isBox) {
-          ctx.fillStyle = "#16181d";
-          ctx.fillRect(minX-2, minY-2, boxW, boxH);
-          return;
-        }
-        const token = replacer(hit);
-        let size = Math.max(8, Math.min(boxH*scale*0.6, 15*scale));
-        ctx.font = size+"px sans-serif";
-        let tokenW = ctx.measureText(token).width;
-        while (tokenW > boxW*3 && size > 8) { size -= 1; ctx.font = size+"px sans-serif"; tokenW = ctx.measureText(token).width; }
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(minX-2, minY-2, Math.max(boxW, tokenW+4), boxH);
-        ctx.fillStyle = "#0c0c0c";
-        ctx.textBaseline = "top";
-        ctx.fillText(token, minX, minY-2+boxH*0.14);
-      });
-      if (shouldCoverVisibleStamps()) {
-        const sigs = pageSigs[i] || pageMeta && pageMeta.signatures || [];
-        const inferred = inferStampRectsFromItems(rawItems, vp, scale);
-        coverStampsOnCanvas(ctx, vp, sigs, inferred, mode, lang);
-      }
-      const blob = await new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error("blob")), "image/jpeg", 0.84));
-
-      const rasterDoc = await PDFDocument.create();
-      const originalPage = doc.getPage(i-1);
-      const originalSize = originalPage.getSize();
-      const rp = rasterDoc.addPage([originalSize.width, originalSize.height]);
-      const rasterImg = await rasterDoc.embedJpg(new Uint8Array(await blob.arrayBuffer()));
-      rp.drawImage(rasterImg, { x:0, y:0, width:originalSize.width, height:originalSize.height });
-      const [copiedPage] = await doc.copyPages(rasterDoc, [0]);
-      doc.removePage(i-1);
-      doc.insertPage(i-1, copiedPage);
-    }
-
-    stripPdfSignatureFields(doc);
-    const bytes = await doc.save({ useObjectStreams:false });
-    return { bytes, rasterPages };
+    return bytes;
   }
+
+  /*
+   * SECURITY INVARIANT:
+   * Secure export must never be derived from PDFDocument.load(source).
+   * pdf-lib can retain source objects which are no longer reachable from the
+   * page tree. Replacing pages and deleting annotations therefore does not
+   * prove irreversible removal of source content/signatures.
+   *
+   * Keep this API stable, but fail closed to the isolated raster constructor
+   * until a future true-redaction implementation has an object-level proof.
+   */
+  async function exportPdfTrueRedact(source, hits, title, mode, lang){
+    const bytes = await exportPdfRaster(source, hits, title, mode, lang);
+    return { bytes: assertSecurePdfBytes(bytes), rasterPages: new Set() };
+  }
+
   function stripPdfSignatureFields(doc){
     try {
       const { PDFName, PDFArray, PDFDict } = PDFLib;
@@ -4651,7 +4522,7 @@ Orgán: OBÚ.
       const p = doc.addPage([canvas.width*0.72, canvas.height*0.72]);
       p.drawImage(img, { x:0, y:0, width:p.getWidth(), height:p.getHeight() });
     }
-    return await doc.save({ useObjectStreams:false });
+    return assertSecurePdfBytes(await doc.save({ useObjectStreams:false }));
   }
   function openExport(aiPack){
     const t = i();
