@@ -7,6 +7,8 @@ const metadata = JSON.parse(readFileSync("metadata.json", "utf8"));
 
 const failures = [];
 
+function htmlSourceIncludes(fragment) { return canonical.includes(fragment); }
+
 function check(condition, message) {
   if (!condition) failures.push(message);
 }
@@ -35,6 +37,34 @@ check(
   canonical.includes("function topHits(hits){") && canonical.includes("return effectiveHits(hits);"),
   "topHits must use the canonical effective-hit resolver"
 );
+check(
+  htmlSourceIncludes("function assertSecurePdfBytes(bytes)"),
+  "PDF exports must have a security preflight"
+);
+check(
+  htmlSourceIncludes('"/AcroForm"') &&
+  htmlSourceIncludes('"/Sig"') &&
+  htmlSourceIncludes('"/EmbeddedFiles"') &&
+  htmlSourceIncludes('"/JavaScript"'),
+  "PDF security preflight must reject form/signature/embedded-code surfaces"
+);
+check(
+  htmlSourceIncludes("expected one %%EOF"),
+  "PDF security preflight must reject multiple PDF revisions"
+);
+check(
+  htmlSourceIncludes("async function exportPdfTrueRedact") &&
+  htmlSourceIncludes("const bytes = await exportPdfRaster(source, hits, title, mode, lang);"),
+  "true-redact release path must fail closed to isolated raster export"
+);
+const trueRedactBody = canonical.match(
+  /async function exportPdfTrueRedact[\s\S]*?\n  \\}\n  function stripPdfSignatureFields/
+)?.[0] || "";
+check(
+  !trueRedactBody.includes("PDFDocument.load(source"),
+  "true-redact release path must not load the source PDF with PDFDocument.load"
+);
+
 check(
   server.includes("if (path.extname(req.path))"),
   "server must not return the SPA shell for missing file-like assets"
