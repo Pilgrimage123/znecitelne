@@ -14,7 +14,7 @@ check(canonical.includes('lang="cs"'), "canonical app must declare Czech as the 
 check(canonical.includes("const CHANGELOG = ["), "canonical app must expose its changelog");
 check(canonical.includes("const RULES = "), "canonical app must declare its detector ruleset");
 check(canonical.includes("quickMode"), "Quick mode must remain present");
-check(canonical.includes("fastApprove"), "Fast-approve mode must remain present");
+check(canonical.includes("fastApprove"), "Fast-Approve mode must remain present");
 check(canonical.includes("processAnalysis"), "Process analysis must remain present");
 check(canonical.includes("startMovieTutorial"), "Movie tutorial must remain present");
 check(canonical.includes("./lib/"), "Browser libraries must have a local/offline path");
@@ -28,6 +28,7 @@ for (const asset of [
   "./lib/xlsx.full.min.js",
   "./lib/fflate.js",
   "./lib/tesseract.min.js",
+  "./lib/pdf.worker.min.js",
 ]) {
   check(canonical.includes(asset), `missing local library reference: ${asset}`);
   check(
@@ -41,9 +42,25 @@ check(
   "HTML self-export must not prefer obsolete index.html"
 );
 
+check(
+  !canonical.includes("cp znecitelne.html index.html"),
+  "canonical application must not describe index.html generation"
+);
+
+check(
+  !canonical.includes("https://cdn.jsdelivr.net/npm/pdfjs-dist"),
+  "PDF.js must not silently depend on jsDelivr"
+);
+
+check(
+  !canonical.includes("cdnjs.cloudflare.com"),
+  "browser runtime must not silently depend on CDN assets"
+);
+
 if (failures.length) {
   console.error("Quality gate failed:");
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
+
 console.log(`Quality gate passed (${canonical.length} characters canonical HTML).`);

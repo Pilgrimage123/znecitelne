@@ -3604,21 +3604,20 @@ Orgán: OBÚ.
     if (window.__pdfWorkerReady) return window.__pdfWorkerReady;
     window.__pdfWorkerReady = (async () => {
       const local = "./lib/pdf.worker.min.js";
-      if (window.__libLocal && location.protocol !== "file:") {
-        try {
-          const res = await fetch(local, { method: "HEAD", cache: "no-store" });
-          if (res.ok) {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = local;
-            return "local";
-          }
-        } catch (_) {}
+      try {
+        const res = await fetch(local, { method: "HEAD", cache: "no-store" });
+        const type = (res.headers.get("content-type") || "").toLowerCase();
+        if (!res.ok || !(type.includes("javascript") || type.includes("ecmascript"))) {
+          throw new Error("PDF offline support is incomplete: missing or invalid local PDF worker.");
+        }
+      } catch (error) {
+        const message = error && error.message
+          ? error.message
+          : "PDF offline support is incomplete: local PDF worker is unavailable.";
+        throw new Error(message);
       }
-      if (location.protocol !== "file:") {
-        pdfjsLib.GlobalWorkerOptions.workerSrc =
-          "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
-        return "cdn";
-      }
-      return "disabled";
+      pdfjsLib.GlobalWorkerOptions.workerSrc = local;
+      return "local";
     })();
     return window.__pdfWorkerReady;
   }

@@ -1,14 +1,12 @@
 # Canonical implementation upgrade
 
-This repository has two generations of the application.
+This repository has one canonical browser application:
 
-The newer `znecitelne.html` is the source of truth for behavior. This upgrade makes that relationship explicit:
-
-1. `znecitelne.html` remains canonical.
-2. `index.html` is generated from it.
-3. `npm run build` synchronizes the entry point.
-4. `npm test` prevents accidental divergence.
-5. GitHub Actions runs the build and quality gate.
+- `znecitelne.html` is the source of truth.
+- `index.html` is obsolete and must not exist.
+- `npm run build` validates the canonical application and its runtime assets.
+- `npm test` validates repository invariants.
+- GitHub Actions runs the same quality gates.
 
 ## Apply
 
@@ -19,11 +17,36 @@ npm run build
 npm test
 ```
 
-Then commit the resulting `index.html` together with:
+Then review:
 
-- `build.js`
-- `test.js`
-- `.github/workflows/quality.yml`
-- `README.md`
+```bash
+git diff -- znecitelne.html build.js test.js package.json README.md .github/workflows/quality.yml
+```
 
-Do not manually maintain different implementations in `index.html` and `znecitelne.html`.
+Do not create or commit `index.html`.
+
+Do not maintain a second browser implementation.
+
+## Canonical rule
+
+All application behavior changes belong in:
+
+`znecitelne.html`
+
+Supporting runtime libraries belong under:
+
+`lib/`
+
+Server behavior belongs in:
+
+`server.js`
+
+Build validation belongs in:
+
+`build.js`
+
+Repository quality checks belong in:
+
+`test.js`
+
+This removes the stale “generated entry point” model documented by the prior upgrade guide.
