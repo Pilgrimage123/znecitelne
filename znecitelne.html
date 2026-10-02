@@ -659,8 +659,9 @@ body.movie-active #settingsSheet {
   const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];
   const KEYS = PII_KEYS.concat(ORG_KEYS);
   const HIGH = new Set(["rc","ico","dic","account","email","ticket","casefile","sigcert","zahr_iban"]);
-  const RULES = "2026.10.01-ai24";
+  const RULES = "2026.10.02-ai27";
   const CHANGELOG = [
+    { version: "2026.10.02-ai27", notes: { cs: "Debug/harmony: sjednocena volba efektivních nálezů pro UI a export, hromadný export izoluje dočasný stav každé položky, PDF worker má bezpečný fallback pro file:// a quality gate ověřuje konzistenci verze pravidel. Offline knihovny zůstávají povinnou součástí distribuce; PDF/A-2b je nadále pouze deklarace vyžadující externí preflight.", en: "Debug/harmony: unified effective-hit selection for UI and export, bulk export isolates transient state per item, the PDF worker has a safe file:// fallback, and the quality gate verifies detector-version consistency. Offline libraries remain mandatory distribution assets; PDF/A-2b remains only a declaration requiring external preflight." } },
     { version: "2026.10.01-ai26", notes: { cs: "Debug audit: batchová fronta má generation/identity guard a bezpečné mazání konkrétní položky; zavření Nastavení už nespouští zbytečnou reanalýzu. Zůstávají k řešení: sjednocení overlap logiky mezi UI a exportem, ověření existence lokálního pdf.worker.min.js s bezpečným fallbackem, skutečná izolace hromadného exportu od globálního stavu, kontrola integrity offline balíčku a adversariální regresní testy DOCX/PDF (včetně neviditelného obsahu, embedded objektů, metadat, relací a alternativních XML částí). PDF/A-2b zůstává deklarací vyžadující externí preflight. Žádný z otevřených bodů není v tomto auditu označen jako již opravený.", en: "Debug audit: the batch queue now has generation/identity guards and safe removal of the specific failed item; closing Settings no longer triggers an unnecessary re-analysis. Remaining work: unify overlap logic between UI and export, verify the local pdf.worker.min.js exists with a safe fallback, isolate bulk export from global state, validate offline bundle integrity, and add adversarial DOCX/PDF regression tests (including invisible content, embedded objects, metadata, relationships and alternate XML parts). PDF/A-2b remains a declaration requiring external preflight. None of the remaining points is marked as already fixed by this audit." } },
     { version: "2026.10.01-ai25", notes: { cs: "Bezpečný export DOCX/PDF dokončen: striktní odstranění vizuálních objektů a relací, bezpečné názvy media partů, split-run náhrady bez slučování w:r, Mammoth záchranná brzda s TXT fallbackem a PDF sRGB OutputIntent + audit nevložených fontů s raster fallbackem.", en: "Secure DOCX/PDF export completed: strict removal of visual objects and relationships, safe media-part names, split-run replacement without merging w:r, Mammoth safety fallback to TXT, and PDF sRGB OutputIntent plus unembedded-font audit with raster fallback." } },
     { version: "2026.10.01-ai22", notes: { cs: "Fáze 4 (5/5): dávková fronta – výběr/přetažení více souborů, přepínání čipy nad panelem, stav (nálezy, schválení, zkontrolováno) se drží zvlášť pro každý soubor, hromadný export všech zkontrolovaných.", en: "Phase 4 (5/5): batch queue – select/drop several files, switch via chips above the toolbar, state (findings, approvals, reviewed) kept per file, bulk export of all reviewed files." } },
@@ -1911,7 +1912,7 @@ Orgán: OBÚ.
     });
     return rows;
   }
-  function resolveHits(hits, { acceptedOnly = false, selectedId = null } = {}){
+  function resolveHits(hits, { acceptedOnly = false } = {}){
     const source = (hits || []).filter(h =>
       h &&
       Number.isFinite(h.start) &&
@@ -1919,14 +1920,7 @@ Orgán: OBÚ.
       h.end > h.start &&
       (!acceptedOnly || h.accept)
     );
-    const selected = selectedId == null
-      ? null
-      : source.find(h => h.id === selectedId) || null;
     const ordered = source.slice().sort((a, b) => {
-      if (selected) {
-        if (a === selected) return -1;
-        if (b === selected) return 1;
-      }
       if (!!a.accept !== !!b.accept) return a.accept ? -1 : 1;
       const lenA = a.end - a.start;
       const lenB = b.end - b.start;
@@ -1943,11 +1937,14 @@ Orgán: OBÚ.
     }
     return chosen.sort((a, b) => a.start - b.start || a.end - b.end);
   }
-  function visibleHits(hits, sel){
-    return resolveHits(hits, { acceptedOnly: false, selectedId: sel });
+  function effectiveHits(hits){
+    return resolveHits(hits, { acceptedOnly: true });
+  }
+  function visibleHits(hits, _sel){
+    return resolveHits(hits, { acceptedOnly: false });
   }
   function topHits(hits){
-    return resolveHits(hits, { acceptedOnly: true });
+    return effectiveHits(hits);
   }
   function apply(text, hits, mode, lang){
     const replacer = bindReplacer(mode, lang, hits);
@@ -3545,19 +3542,24 @@ Orgán: OBÚ.
       go.textContent = t.exporting;
       let done = 0;
       let failed = 0;
+      const batchReturnState = snapState();
       S._batchExport = true;
-
       try {
         for (const it of ready) {
           if (!it || !it.snap || !it.snap.reviewed) continue;
-
+          let itemReturnState = null;
           try {
+            itemReturnState = snapState();
             restoreState(it.snap);
             S._batchExport = true;
+            S._exportNotice = null;
+            S._aiPack = false;
             const ok = await doExport();
             if (ok) {
               it.snap.hashOut = S.hashOut;
-              it.snap = snapState();
+              const exportedState = snapState();
+              exportedState.hashOut = S.hashOut;
+              it.snap = exportedState;
               done++;
             } else {
               failed++;
@@ -3565,10 +3567,16 @@ Orgán: OBÚ.
           } catch (e) {
             failed++;
             console.error("Batch export failed:", it.name, e);
+          } finally {
+            S._exportNotice = null;
+            S._aiPack = false;
+            S._batchExport = true;
+            if (itemReturnState) restoreState(itemReturnState);
           }
         }
       } finally {
         S._batchExport = false;
+        restoreState(batchReturnState);
         if (keepItem) {
           const keepIndex = Q.items.indexOf(keepItem);
           if (keepIndex >= 0 && keepItem.snap) {
@@ -3581,7 +3589,6 @@ Orgán: OBÚ.
         go.disabled = false;
         go.textContent = t.export;
       }
-
       if (failed) {
         toast(t.queueDone.replace("{n}", String(done)) + " · " + String(failed) + " failed");
       } else {
@@ -3602,13 +3609,10 @@ Orgán: OBÚ.
         const res = await fetch(local, { method: "HEAD", cache: "no-store" });
         const type = (res.headers.get("content-type") || "").toLowerCase();
         if (!res.ok || !(type.includes("javascript") || type.includes("ecmascript"))) {
-          throw new Error("PDF offline support is incomplete: missing or invalid local PDF worker.");
+          return "disabled";
         }
-      } catch (error) {
-        const message = error && error.message
-          ? error.message
-          : "PDF offline support is incomplete: local PDF worker is unavailable.";
-        throw new Error(message);
+      } catch (_) {
+        return "disabled";
       }
       pdfjsLib.GlobalWorkerOptions.workerSrc = local;
       return "local";

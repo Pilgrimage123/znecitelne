@@ -28,6 +28,14 @@ check(
   "resolveHits must have exactly one canonical implementation"
 );
 check(
+  (canonical.match(/function effectiveHits\s*\(/g) || []).length === 1,
+  "effectiveHits must have exactly one canonical implementation"
+);
+check(
+  canonical.includes("function topHits(hits){") && canonical.includes("return effectiveHits(hits);"),
+  "topHits must use the canonical effective-hit resolver"
+);
+check(
   server.includes("if (path.extname(req.path))"),
   "server must not return the SPA shell for missing file-like assets"
 );
@@ -46,6 +54,7 @@ for (const asset of [
   "./lib/fontkit.umd.min.js",
   "./lib/pdf-lib.min.js",
   "./lib/pdf.min.js",
+  "./lib/pdf.worker.min.js",
   "./lib/mammoth.browser.min.js",
   "./lib/xlsx.full.min.js",
   "./lib/fflate.js",

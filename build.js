@@ -10,7 +10,7 @@ if (!existsSync(canonical)) {
 
 const html = readFileSync(canonical, "utf8");
 const requiredMarkers = [
-  'const RULES = "2026.10.01-ai24"',
+  'const RULES = "2026.10.02-ai27"',
   "quickMode",
   "fastApprove",
   "processAnalysis",
@@ -18,6 +18,7 @@ const requiredMarkers = [
   "startMovieTutorial",
   "./lib/pdf-lib.min.js",
   "./lib/pdf.min.js",
+  "./lib/pdf.worker.min.js",
   "./lib/mammoth.browser.min.js",
   "./lib/xlsx.full.min.js",
   "./lib/tesseract.min.js",
@@ -43,6 +44,7 @@ const requiredAssets = [
   "lib/fontkit.umd.min.js",
   "lib/pdf-lib.min.js",
   "lib/pdf.min.js",
+  "lib/pdf.worker.min.js",
   "lib/mammoth.browser.min.js",
   "lib/xlsx.full.min.js",
   "lib/fflate.js",
