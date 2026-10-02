@@ -2901,15 +2901,6 @@ Orgán: OBÚ.
     bindTips();
   }
 
-  function visibleHits(hits, sel){
-    const ordered = [...hits].sort((a,b) => a.id===sel?-1:b.id===sel?1:a.start-b.start);
-    const taken = []; const chosen = [];
-    for (const h of ordered) {
-      if (taken.some(([s,e]) => h.start < e && h.end > s)) continue;
-      taken.push([h.start,h.end]); chosen.push(h);
-    }
-    return chosen.sort((a,b)=>a.start-b.start);
-  }
   function esc(s){
     const amp = "&" + "amp;";
     const lt = "&" + "lt;";
