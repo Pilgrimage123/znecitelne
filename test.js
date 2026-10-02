@@ -17,6 +17,14 @@ check(canonical.includes("quickMode"), "Quick mode must remain present");
 check(canonical.includes("fastApprove"), "Fast-approve mode must remain present");
 check(canonical.includes("processAnalysis"), "Process analysis must remain present");
 check(canonical.includes("startMovieTutorial"), "Movie tutorial must remain present");
+check(
+  (canonical.match(/function visibleHits\s*\(/g) || []).length === 1,
+  "visibleHits must have exactly one canonical implementation"
+);
+check(
+  (canonical.match(/function resolveHits\s*\(/g) || []).length === 1,
+  "resolveHits must have exactly one canonical implementation"
+);
 check(canonical.includes("./lib/"), "Browser libraries must have a local/offline path");
 check(!existsSync("index.html"), "obsolete index.html must not exist");
 
