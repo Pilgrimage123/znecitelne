@@ -2185,6 +2185,40 @@ Orgán: OBÚ.
     }
   }
 
+  function docxStripExternalRelationships(files, dec, enc){
+    const R_NS = DOCX_REL_NS;
+    const W_NS = DOCX_W_NS;
+    const R_ID = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+    for (const name of Object.keys(files)) {
+      if (name !== "_rels/.rels" && !/^.+\/_rels\/[^/]+\.rels$/i.test(name)) continue;
+      const doc = new DOMParser().parseFromString(dec.decode(files[name]), "application/xml");
+      if (doc.getElementsByTagName("parsererror").length) throw new Error("Invalid relationships: " + name);
+      const externalIds = new Set();
+      Array.from(doc.getElementsByTagNameNS(R_NS, "Relationship")).forEach(rel => {
+        if (rel.getAttribute("TargetMode") === "External") {
+          externalIds.add(rel.getAttribute("Id"));
+          rel.parentNode?.removeChild(rel);
+        }
+      });
+      if (!externalIds.size) continue;
+      files[name] = enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + new XMLSerializer().serializeToString(doc));
+      const sourcePart = docxRelationshipSourcePart(name);
+      if (!sourcePart) continue;
+      const part = files[sourcePart];
+      if (!part || !/\.xml$/i.test(sourcePart)) continue;
+      const partDoc = new DOMParser().parseFromString(dec.decode(part), "application/xml");
+      if (partDoc.getElementsByTagName("parsererror").length) throw new Error("Invalid XML: " + sourcePart);
+      let changed = false;
+      Array.from(partDoc.getElementsByTagNameNS(W_NS, "hyperlink")).forEach(node => {
+        const rid = node.getAttributeNS(R_ID, "id") || node.getAttribute("r:id");
+        if (!externalIds.has(rid)) return;
+        node.parentNode?.removeChild(node);
+        changed = true;
+      });
+      if (changed) files[sourcePart] = enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + new XMLSerializer().serializeToString(partDoc));
+    }
+  }
+
   function docxRemoveMediaParts(files){
     for (const name of Object.keys(files)) {
       if (/^word\/(?:media|embeddings)\//i.test(name)) delete files[name];
@@ -2335,6 +2369,7 @@ Orgán: OBÚ.
     docxApplyPartRenames(files, rename, dec, enc);
 
     docxStripMediaRelationships(files, dec, enc);
+    docxStripExternalRelationships(files, dec, enc);
     docxRemoveMediaParts(files);
 
     const missing = Array.from(map.keys()).filter(v => !found.has(v));
@@ -2374,7 +2409,7 @@ Orgán: OBÚ.
       CreatedDate: new Date(0),
       ModifiedDate: new Date(0),
       Keywords: "",
-      Comments: "Znečitelně — metadata stripped"
+      Comments: ""
     };
     wb.Custprops = {};
     if (wb.Workbook && wb.Workbook.WBProps) {
