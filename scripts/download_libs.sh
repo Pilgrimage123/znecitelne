@@ -12,6 +12,9 @@ mkdir -p "${LIB}" "${OCR}" "${CORE}" "${LANG}"
 download() {
   local url="$1"
   local dest="$2"
+  if [[ -s "${dest}" ]]; then
+    return 0
+  fi
   echo "GET ${url}"
   curl --fail --location --retry 3 --retry-all-errors --silent --show-error --output "${dest}.tmp" "${url}"
   mv "${dest}.tmp" "${dest}"

@@ -648,11 +648,32 @@ body.movie-active #settingsSheet {
 
 <script src="./lib/fontkit.umd.min.js" onload="(window.__libLocal=window.__libLocal||{}).fontkit=1" onerror="this.dataset.loadError='1'"></script>
 <script src="./lib/pdf-lib.min.js" onload="(window.__libLocal=window.__libLocal||{}).pdflib=1" onerror="this.dataset.loadError='1'"></script>
+<script src="./lib/pdf.worker.min.js" onload="(window.__libLocal=window.__libLocal||{}).pdfworker=1" onerror="this.dataset.loadError='1'"></script>
 <script src="./lib/pdf.min.js" onload="(window.__libLocal=window.__libLocal||{}).pdfjs=1" onerror="this.dataset.loadError='1'"></script>
 <script src="./lib/mammoth.browser.min.js" onload="(window.__libLocal=window.__libLocal||{}).mammoth=1" onerror="this.dataset.loadError='1'"></script>
 <script src="./lib/xlsx.full.min.js" onload="(window.__libLocal=window.__libLocal||{}).xlsx=1" onerror="this.dataset.loadError='1'"></script>
 <script src="./lib/fflate.js" onload="(window.__libLocal=window.__libLocal||{}).fflate=1" onerror="this.dataset.loadError='1'"></script>
 <script src="./lib/tesseract.min.js" onload="(window.__libLocal=window.__libLocal||{}).tesseract=1" onerror="this.dataset.loadError='1'"></script>
+<!-- Offline runtime assets:
+  ./lib/fontkit.umd.min.js
+  ./lib/pdf-lib.min.js
+  ./lib/pdf.min.js
+  ./lib/pdf.worker.min.js
+  ./lib/mammoth.browser.min.js
+  ./lib/xlsx.full.min.js
+  ./lib/fflate.js
+  ./lib/tesseract.min.js
+  ./lib/tesseract/worker.min.js
+  ./lib/tesseract/core/tesseract-core.wasm.js
+  ./lib/tesseract/core/tesseract-core-simd.wasm.js
+  ./lib/tesseract/core/tesseract-core-lstm.wasm.js
+  ./lib/tesseract/core/tesseract-core-simd-lstm.wasm.js
+  ./lib/tesseract/core/tesseract-core.wasm
+  ./lib/tesseract/core/tesseract-core-simd.wasm
+  ./lib/tesseract/core/tesseract-core-lstm.wasm
+  ./lib/tesseract/core/tesseract-core-simd-lstm.wasm
+  ./lib/tesseract/lang/ces.traineddata.gz
+-->
 <script>
 (function () {
   const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];
@@ -3601,31 +3622,21 @@ Orgán: OBÚ.
     if (window.__pdfWorkerReady) return window.__pdfWorkerReady;
     window.__pdfWorkerReady = (async () => {
       const local = "./lib/pdf.worker.min.js";
-      if (location.protocol === "file:") {
-        return "disabled";
-      }
       try {
-        const res = await fetch(local, { method: "HEAD", cache: "no-store" });
-        const type = (res.headers.get("content-type") || "").toLowerCase();
-        if (!res.ok || !(type.includes("javascript") || type.includes("ecmascript"))) {
-          return "disabled";
-        }
-      } catch (_) {
-        return "disabled";
-      }
-      pdfjsLib.GlobalWorkerOptions.workerSrc = local;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = local;
+      } catch (_) {}
       return "local";
     })();
     return window.__pdfWorkerReady;
   }
   async function getPdfDocument(data){
-    const worker = await pdfWorker();
+    await pdfWorker();
+    const bytes = (data instanceof Uint8Array) ? data : new Uint8Array(data.slice ? data.slice(0) : data);
     const options = {
-      data: data.slice(0),
+      data: bytes,
       disableStream: true,
       disableAutoFetch: true
     };
-    if (worker === "disabled") options.disableWorker = true;
     return pdfjsLib.getDocument(options).promise;
   }
   function pageTextFromItems(items){
@@ -3861,7 +3872,7 @@ Orgán: OBÚ.
       try {
         showOcrProgress(S.lang === "cs" ? "OCR: inicializuji jazykový model…" : "OCR: loading language model…");
         ocrWorker = await Tesseract.createWorker("ces", 1, {
-          ...((window.__libLocal && window.__libLocal.tesseract) ? { workerPath:"./lib/tesseract/worker.min.js", corePath:"./lib/tesseract/", langPath:"./lib/tesseract/lang/" } : {}),
+          ...((window.__libLocal && window.__libLocal.tesseract) ? { workerPath:"./lib/tesseract/worker.min.js", corePath:"./lib/tesseract/core/", langPath:"./lib/tesseract/lang/" } : {}),
           logger: m => {
             if (m.status === "loading language traineddata") {
               showOcrProgress((S.lang === "cs" ? "OCR: stahuji jazykový model" : "OCR: downloading model") +

@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "node server.js",
-    "start": "node server.js",
+    "prebuild": "bash scripts/download_libs.sh",
     "build": "node build.js",
+    "start": "node server.js",
     "test": "node test.js"
   },
   "dependencies": {

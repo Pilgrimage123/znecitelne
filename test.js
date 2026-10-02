@@ -108,7 +108,7 @@ for (const asset of [
 }
 
 check(
-  !/const candidates = ["index\\.html"/.test(canonical),
+  !/const candidates = \["index\\.html"/.test(canonical),
   "HTML self-export must not prefer obsolete index.html"
 );
 
