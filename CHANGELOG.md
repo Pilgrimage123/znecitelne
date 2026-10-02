@@ -1,4 +1,10 @@
 # Changelog
+## 2026-10-02
+
+- PDF: added a secure Unicode text-layer export using a bundled Noto Sans font.
+- PDF: the generated text layer contains only anonymized text and is verified by reopening the output with PDF.js before export is accepted.
+- PDF: if the Unicode text layer cannot be created or verified, the app falls back to the isolated raster PDF and explicitly warns that the output is not searchable/copyable.
+
 
 ## 2026-10-02
 

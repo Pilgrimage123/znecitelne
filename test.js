@@ -99,6 +99,7 @@ for (const asset of [
   "./lib/tesseract/core/tesseract-core-lstm.wasm",
   "./lib/tesseract/core/tesseract-core-simd-lstm.wasm",
   "./lib/tesseract/lang/ces.traineddata.gz",
+  "./lib/NotoSans-Regular.ttf",
 ]) {
   check(canonical.includes(asset), `missing local library reference: ${asset}`);
   check(
@@ -110,6 +111,27 @@ for (const asset of [
 check(
   !/const candidates = \["index\\.html"/.test(canonical),
   "HTML self-export must not prefer obsolete index.html"
+);
+
+check(
+  canonical.includes('const PDF_TEXT_FONT_URL = "./lib/NotoSans-Regular.ttf";'),
+  "PDF text layer must use a bundled local Unicode font"
+);
+check(
+  canonical.includes("async function exportPdfWithTextLayer"),
+  "PDF export must have a dedicated Unicode text-layer path"
+);
+check(
+  canonical.includes("async function verifyPdfTextLayer"),
+  "PDF text layer must be verified after serialization"
+);
+check(
+  canonical.includes('pdfExportMode = "RASTER_FALLBACK"'),
+  "PDF export must expose an explicit raster fallback state"
+);
+check(
+  canonical.includes("exportedRasterFallback"),
+  "raster fallback must be explicitly communicated to the user"
 );
 
 if (failures.length) {

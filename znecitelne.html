@@ -871,6 +871,8 @@ Orgán: OBÚ.
       settings:"Nastavení", apply:"Použít", cancel:"Zrušit", confirmTitle:"Nevratný export",
       residual:"V dokumentu zůstal podezřelý řetězec.", residualOk:"Žádný podezřelý řetězec v dokumentu nezůstal.",
       exported:"Export hotov", walk:"z",
+      exportedTextLayer:"Export hotov — PDF obsahuje ověřenou českou textovou vrstvu",
+      exportedRasterFallback:"⚠ PDF bylo vytvořeno pouze jako obrázek. Českou textovou vrstvu se nepodařilo bezpečně vytvořit nebo ověřit; PDF proto není vyhledávatelné ani textově kopírovatelné.",
       exportedMixed:"Export hotov — {n} stránka/y musely být z bezpečnostních důvodů převedeny na obrázek",
       exportedDocx:"Export DOCX hotov se zachovaným formátováním. Obrázky, VML/OLE a vložené binární objekty byly z bezpečnostních důvodů odstraněny; citlivé názvy media partů se nepřenášejí.", docxFallback:"DOCX se nepodařilo bezpečně přepsat se zachováním formátování ({r}) — exportován prostý text (TXT/PDF).",
       scanWarning:"{n} stránek nemá textovou vrstvu a nebylo možné je prohledat — zapněte OCR",
@@ -1024,6 +1026,8 @@ Orgán: OBÚ.
       settings:"Settings", apply:"Apply", cancel:"Cancel", confirmTitle:"Irreversible export",
       residual:"A suspicious string remains in the document.", residualOk:"No suspicious string remains in the document.",
       exported:"Export complete", walk:"of",
+      exportedTextLayer:"Export complete — PDF contains a verified Czech text layer",
+      exportedRasterFallback:"⚠ PDF was created as an image only. The Czech text layer could not be created or verified safely; the PDF is therefore not searchable or text-copyable.",
       exportedMixed:"Export complete — {n} page(s) had to be converted to an image for safety",
       exportedDocx:"DOCX export complete with formatting preserved. Images, VML/OLE and embedded binary objects were removed for safety; sensitive media part names are not carried into the output.", docxFallback:"The DOCX could not be safely rewritten with formatting preserved ({r}) — plain text (TXT/PDF) was exported instead.",
       scanWarning:"{n} page(s) have no text layer and could not be searched — turn on OCR",
@@ -4464,6 +4468,233 @@ Orgán: OBÚ.
       });
     } catch (e) { console.warn("stripPdfSignatureFields", e); }
   }
+  const PDF_TEXT_FONT_URL = "./lib/NotoSans-Regular.ttf";
+  const PDF_TEXT_LAYER_FALLBACK = "[ZNEČITELNĚNO]";
+  let pdfTextFontPromise = null;
+
+  async function getPdfTextFontBytes(){
+    if (!pdfTextFontPromise) {
+      pdfTextFontPromise = fetch(PDF_TEXT_FONT_URL, { cache:"force-cache" })
+        .then(async res => {
+          if (!res.ok) throw new Error("Chybí lokální český Unicode PDF font.");
+          const bytes = new Uint8Array(await res.arrayBuffer());
+          if (bytes.length < 10000) throw new Error("Lokální PDF font je neplatný.");
+          return bytes;
+        });
+    }
+    return pdfTextFontPromise;
+  }
+
+  async function embedPdfTextLayerFont(doc){
+    if (!window.fontkit) throw new Error("PDF fontkit není načten.");
+    const bytes = await getPdfTextFontBytes();
+    doc.registerFontkit(window.fontkit);
+    return doc.embedFont(bytes, { subset:true });
+  }
+
+  function pageHitRanges(mappedText, mappedMap, pageMeta, hits, pageNumber){
+    const ranges = [];
+    const seen = new Set();
+    for (const hit of topHits(hits).filter(h => (h.page || pageOf(h.start)) === pageNumber)) {
+      let idx = -1;
+      if (pageMeta && hit.start >= pageMeta.start && hit.end <= pageMeta.end) {
+        idx = hit.start - pageMeta.start;
+        if (mappedText.slice(idx, idx + hit.value.length) !== hit.value) idx = -1;
+      }
+      if (idx < 0) idx = mappedText.indexOf(hit.value);
+      if (idx < 0) {
+        const compact = String(hit.value || "").replace(/\s+/g, " ").trim();
+        idx = compact ? mappedText.indexOf(compact) : -1;
+      }
+      if (idx < 0) continue;
+      const key = hit.id || `${idx}:${hit.value}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      ranges.push({
+        start: idx,
+        end: idx + Math.max(String(hit.value || "").length, 1),
+        hit
+      });
+    }
+    return ranges.sort((a,b) => a.start - b.start || a.end - b.end);
+  }
+
+  function buildPdfTextRuns(mapped, pageMeta, hits, pageNumber, mode, lang, font){
+    const ranges = pageHitRanges(mapped.text, mapped.map, pageMeta, hits, pageNumber);
+    const replacer = (mode && mode !== "box") ? bindReplacer(mode, lang, hits) : null;
+    const emitted = new Set();
+    const runs = [];
+
+    for (const item of mapped.map) {
+      const overlaps = ranges.filter(r => r.end > item.start && r.start < item.end);
+      if (!overlaps.length) {
+        runs.push({ text:item.str, x:item.x, y:item.y, h:item.h, w:item.w });
+        continue;
+      }
+
+      let cursor = item.start;
+      for (const range of overlaps) {
+        const cutStart = Math.max(range.start, item.start);
+        const cutEnd = Math.min(range.end, item.end);
+        if (cutStart > cursor) {
+          const localStart = cursor - item.start;
+          const localEnd = cutStart - item.start;
+          runs.push({
+            text:item.str.slice(localStart, localEnd),
+            x:item.x + item.w * (localStart / Math.max(item.str.length, 1)),
+            y:item.y, h:item.h,
+            w:item.w * ((localEnd-localStart) / Math.max(item.str.length, 1))
+          });
+        }
+
+        const id = range.hit.id || `${range.start}:${range.end}`;
+        if (!emitted.has(id) && cutStart <= range.start) {
+          emitted.add(id);
+          const token = replacer ? replacer(range.hit) : PDF_TEXT_LAYER_FALLBACK;
+          const localStart = Math.max(0, range.start - item.start);
+          runs.push({
+            text:String(token),
+            x:item.x + item.w * (localStart / Math.max(item.str.length, 1)),
+            y:item.y, h:item.h,
+            w:item.w * Math.max((cutEnd-cutStart) / Math.max(item.str.length, 1), .1)
+          });
+        }
+        cursor = Math.max(cursor, cutEnd);
+      }
+
+      if (cursor < item.end) {
+        const localStart = cursor - item.start;
+        runs.push({
+          text:item.str.slice(localStart),
+          x:item.x + item.w * (localStart / Math.max(item.str.length, 1)),
+          y:item.y, h:item.h,
+          w:item.w * ((item.end-cursor) / Math.max(item.str.length, 1))
+        });
+      }
+    }
+
+    return runs.filter(r => String(r.text || "").length && /\S/u.test(r.text));
+  }
+
+  function drawPdfTextRun(page, font, run, pageHeight, scale){
+    const text = String(run.text || "");
+    if (!text.trim()) return;
+    const size = Math.max(4, Math.min(72, (run.h || 10) * .72));
+    const x = run.x * .72;
+    const y = pageHeight - (run.y + run.h) * .72;
+    page.drawText(text, {
+      x, y, size, font,
+      opacity: 0,
+      maxWidth: Math.max(1, run.w * .72 + 12)
+    });
+  }
+
+  async function verifyPdfTextLayer(bytes, hits){
+    const pdf = await getPdfDocument(bytes);
+    const originals = topHits(hits)
+      .map(h => String(h.value || "").trim())
+      .filter(v => v.length >= 3);
+    const leaks = [];
+
+    for (let pageNo=1; pageNo<=pdf.numPages; pageNo++) {
+      const page = await pdf.getPage(pageNo);
+      const content = await page.getTextContent();
+      const text = content.items.map(x => x.str || "").join(" ");
+      for (const value of originals) {
+        if (text.includes(value)) leaks.push({ page:pageNo, value });
+      }
+    }
+    if (leaks.length) {
+      throw new Error("Textová vrstva obsahuje zbytkovou anonymizovanou hodnotu.");
+    }
+    return { ok:true };
+  }
+
+  async function exportPdfWithTextLayer(source, hits, title, mode, lang){
+    const pdf = await getPdfDocument(source);
+    const { PDFDocument } = PDFLib;
+    const doc = await PDFDocument.create();
+    stampPdfMeta(doc, title);
+    addSrgbOutputIntent(doc);
+    const textFont = await embedPdfTextLayerFont(doc);
+    const isBox = mode === "box" || !mode;
+    const replacer = (mode && !isBox) ? bindReplacer(mode, lang, hits) : null;
+
+    for (let i=1; i<=pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const scale = 1.7;
+      const vp = page.getViewport({ scale });
+      const canvas = document.createElement("canvas");
+      canvas.width = vp.width;
+      canvas.height = vp.height;
+      const ctx = canvas.getContext("2d");
+      await page.render(pdfRenderParams(ctx, vp)).promise;
+      const pageMeta = (S.pages||[]).find(p => p.n===i);
+      const rawItems = (pageMeta && pageMeta.items && pageMeta.items.length)
+        ? pageMeta.items : (await page.getTextContent()).items;
+      const mapped = mapPageGlyphs(rawItems, scale, vp);
+
+      for (const hit of topHits(hits).filter(h => (h.page || pageOf(h.start)) === i)) {
+        let idx = pageMeta && hit.start >= pageMeta.start && hit.end <= pageMeta.end
+          ? hit.start - pageMeta.start : -1;
+        if (idx < 0 || mapped.text.slice(idx, idx + hit.value.length) !== hit.value) idx = mapped.text.indexOf(hit.value);
+        if (idx < 0) {
+          const compact = hit.value.replace(/\s+/g, " ").trim();
+          idx = mapped.text.indexOf(compact);
+        }
+        if (idx < 0) continue;
+        const end = idx + Math.max(hit.value.length, 1);
+        const glyphs = mapped.map.filter(m => m.end > idx && m.start < end);
+        if (!glyphs.length) continue;
+        const minX = Math.min(...glyphs.map(m=>m.x));
+        const maxX = Math.max(...glyphs.map(m=>m.x+m.w));
+        const minY = Math.min(...glyphs.map(m=>m.y));
+        const maxH = Math.max(...glyphs.map(m=>m.h));
+        const boxW = Math.max(maxX-minX,6)+4;
+        const boxH = Math.max(maxH,8)+4;
+        if (isBox) {
+          ctx.fillStyle = "#16181d";
+          ctx.fillRect(minX-2, minY-2, boxW, boxH);
+        } else {
+          const token = replacer(hit);
+          let size = Math.max(8, Math.min(boxH*scale*.6, 15*scale));
+          ctx.font = size+"px sans-serif";
+          let tokenW = ctx.measureText(token).width;
+          while (tokenW > boxW*3 && size > 8) {
+            size -= 1;
+            ctx.font = size+"px sans-serif";
+            tokenW = ctx.measureText(token).width;
+          }
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(minX-2, minY-2, Math.max(boxW, tokenW+4), boxH);
+          ctx.fillStyle = "#0c0c0c";
+          ctx.textBaseline = "top";
+          ctx.fillText(token, minX, minY-2+boxH*.14);
+        }
+      }
+
+      if (shouldCoverVisibleStamps()) {
+        const sigs = (pageMeta && pageMeta.signatures) || await pageSignatureMeta(page);
+        const inferred = inferStampRectsFromItems(rawItems, vp, scale);
+        coverStampsOnCanvas(ctx, vp, sigs, inferred, mode, lang);
+      }
+
+      const blob = await new Promise((res,rej) =>
+        canvas.toBlob(b => b ? res(b) : rej(new Error("blob")), "image/jpeg", .84)
+      );
+      const img = await doc.embedJpg(new Uint8Array(await blob.arrayBuffer()));
+      const p = doc.addPage([canvas.width*.72, canvas.height*.72]);
+      p.drawImage(img, { x:0, y:0, width:p.getWidth(), height:p.getHeight() });
+
+      const runs = buildPdfTextRuns(mapped, pageMeta, hits, i, mode, lang, textFont);
+      for (const run of runs) drawPdfTextRun(p, textFont, run, p.getHeight(), scale);
+    }
+
+    const bytes = assertSecurePdfBytes(await doc.save({ useObjectStreams:false }));
+    await verifyPdfTextLayer(bytes, hits);
+    return bytes;
+  }
+
   async function exportPdfRaster(source, hits, title, mode, lang){
     const pdf = await getPdfDocument(source);
     const { PDFDocument } = PDFLib;
@@ -4788,22 +5019,22 @@ Orgán: OBÚ.
         }
       }
       if (!S._aiPack && S.kind==="pdf" && S.sourceBuf && window.pdfjsLib && window.PDFLib) {
-        let bytes, rasterPages;
-        if (S.truePdfRedact) {
-          try {
-            const result = await exportPdfTrueRedact(S.sourceBuf, S.hits, S.fileName, S.mode, S.lang);
-            bytes = result.bytes;
-            rasterPages = result.rasterPages;
-          } catch (e) {
-            bytes = await exportPdfRaster(S.sourceBuf, S.hits, S.fileName, S.mode, S.lang);
-          }
-        } else {
+        let bytes, rasterPages = new Set(), pdfExportMode = "TEXT_LAYER_OK";
+        try {
+          bytes = await exportPdfWithTextLayer(S.sourceBuf, S.hits, S.fileName, S.mode, S.lang);
+          S._exportNotice = t.exportedTextLayer;
+        } catch (textLayerError) {
+          console.warn("Secure Unicode PDF text-layer export failed; using raster fallback.", textLayerError);
           bytes = await exportPdfRaster(S.sourceBuf, S.hits, S.fileName, S.mode, S.lang);
+          pdfExportMode = "RASTER_FALLBACK";
+          S._exportNotice = t.exportedRasterFallback;
         }
+        assertSecurePdfBytes(bytes);
         const pdfaResult = await maybePdfa(bytes, pdfaNotes);
         bytes = pdfaResult.bytes;
         S.hashOut = await sha256(bytes);
         download(base+".pdf", new Blob([bytes], {type:"application/pdf"}));
+        S._pdfExportMode = pdfExportMode;
         if (rasterPages && rasterPages.size) S._exportNotice = t.exportedMixed.replace("{n}", Array.from(rasterPages).sort((a,b)=>a-b).join(", "));
       } else if (!S._aiPack && S.kind==="xlsx" && S.sourceBuf && window.XLSX) {
         const bytes = exportXlsxFile(S.sourceBuf, S.hits, S.mode, S.lang);
