@@ -4911,7 +4911,12 @@ Orgán: OBÚ.
             bytes = result.bytes;
             rasterPages = result.rasterPages;
           } catch (e) {
+            // Secure structural redaction can fail on PDFs whose content streams
+            // cannot be safely rewritten. Raster export is the safe fallback,
+            // but the downgrade must be visible to the operator.
             bytes = await exportPdfRaster(S.sourceBuf, S.hits, S.fileName, S.mode, S.lang);
+            const reason = (e && e.message) || "neznámá chyba";
+            S._exportNotice = "Strukturální PDF anonymizace nebyla použita; výstup byl převeden na raster. Důvod: " + reason;
           }
         } else {
           bytes = await exportPdfRaster(S.sourceBuf, S.hits, S.fileName, S.mode, S.lang);
