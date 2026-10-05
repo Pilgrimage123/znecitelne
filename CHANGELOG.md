@@ -2,6 +2,14 @@
 
 ## 2026-10-05
 
+- Ošetření specifik Microsoft Wordu, české abecedy, diakritiky a interpunkce (ai31):
+  - **DOCX split-runs a speciální elementy:** Rozšířen parser a nahrazovač v XML o zachování a obsluhu `<w:tab/>`, `<w:noBreakHyphen/>`, `<w:softHyphen/>` a `<w:br/>`. Anonymizace rozdělených řetězců funguje spolehlivě i při výskytu pevných spojovníků a tabulátorů.
+  - **Normalizace pevných mezer a české typografie:** Zavedeno dvoufázové vyhledávání (přesná shoda + normalizovaná shoda) v DOCX exportu řešící pevné mezery (`\u00A0`), české uvozovky (`„`, `“`, `‚`, `‘`, `»`, `«`) a pomlčky (`–`, `—`, `‑`, `−`), čímž se předchází zbytečnému selhání exportu („nález nenalezen ve struktuře DOCX“).
+  - **Unicode NFC normalizace:** Všechny textové vstupy (DOCX, PDF, XLSX, TXT) jsou při načtení normalizovány do NFC, což zabraňuje selhání detektorů na rozložených diakritických znacích (NFD).
+  - **Oprava regexů pro českou diakritiku:** Nahrazeno `[\w]` za `[\p{L}\p{N}]` u systémů a modulů (`systém Pošta`, `aplikace Účetnictví`, `modul Měření`).
+  - **Rozpoznávání českých příjmení a skloňování:** Doplněno rozpoznávání adjektivních příjmení (`-ný/-ná`, `-lý/-lá`, `-tý/-tá`, `-vý/-vá` a pády `-ného/-nému/-ným/-ných`) a maskulin na `-a`, `-eš`, `-oš`, `-il`, `-ál` (`Černý`, `Svoboda`, `Novotná`, `Veselý`, `Kučera`, `Procházka`, `Růžička`, `Pospíšil`, `Beneš`, `Mareš`, `Král`).
+  - **Post-nominální tituly:** Detekce celých jmen rozšířena o tituly za jménem s čárkou (`, Ph.D.`, `, MBA`, `, CSc.`, `, DiS.`, `, MPA`).
+
 - Audit souladu s metodikou nevratnosti a úplnosti začernění (porovnání se specifikací „Co upravit“):
   - **A.1 (Nový dokument, nevratnost):** NASAZENO. PDF export je stavěn striktně z čistého `PDFDocument.create()` vkládáním rastrových obrázků stran (`embedJpg`). Původní `copyPages` a mutace načteného PDF jsou zakázány; `exportPdfTrueRedact` bezpečně selhává do izolovaného rastrového konstruktoru (`assertSecurePdfBytes`).
   - **A.2 (Podpisová pole a certifikáty):** ROZPRACOVÁNO. Systém identifikuje podpisové anotace i razítka (`pageSignatureMeta`), v současnosti však zakrývá přednostně detekované jméno. Pro úplnou eliminaci nepřímé identifikace (sériové číslo certifikátu) je zařazeno celoplošné začernění celého obdélníku razítka / vypnutí vykreslování podpisových polí.

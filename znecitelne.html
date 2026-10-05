@@ -682,6 +682,7 @@ body.movie-active #settingsSheet {
   const HIGH = new Set(["rc","ico","dic","account","email","ticket","casefile","sigcert","zahr_iban"]);
   const RULES = "2026.10.02-ai27";
   const CHANGELOG = [
+    { version: "2026.10.05-ai31", notes: { cs: "Ošetření specifik Microsoft Wordu, české abecedy, diakritiky a interpunkce: DOCX export podporuje split runs napříč <w:r> i speciálními elementy (<w:tab/>, <w:noBreakHyphen/>), zavedena normalizace pevných mezer (\\u00A0), českých uvozovek („ “, ‚ ‘) a pomlček, opravena detekce systémů a modulů s českou diakritikou (\\p{L} namísto \\w), a rozšířeno rozpoznávání českých příjmení (Černý, Svoboda, Novotná, Veselý, Kučera, Procházka, Růžička, Pospíšil) i post-nominálních titulů (, Ph.D., , MBA).", en: "Support for Microsoft Word specifics, Czech alphabet, diacritics, and punctuation: DOCX export handles split runs across <w:r> and special elements (<w:tab/>, <w:noBreakHyphen/>), introduces normalization for non-breaking spaces (\\u00A0), Czech quotation marks („ “, ‚ ‘) and dashes, fixes system/module regexes for Czech letters (\\p{L} instead of \\w), and expands Czech surname recognition (Černý, Svoboda, Novotná, Veselý, Kučera, Procházka, Růžička, Pospíšil) and post-nominal degrees (, Ph.D., , MBA)." } },
     { version: "2026.10.05-ai30", notes: { cs: "Ochrana sousedních řádků při redakci: obdélníky se počítají z přesných obrysů slov (quads) bez line-height přesahu, aplikováno svislé zúžení (vertical inset) chránící diakritiku a sousední řádky („Termín…“, „o činnosti…“), a před exportem je zavedeno porovnání textu před/po s výpisem odstraněných slov ke schválení.", en: "Adjacent line protection during redaction: bounding boxes derived from exact word quads without line-height overflow, vertical inset applied to protect diacritics and neighbouring rows, and pre-export text diff introduced showing removed words for operator approval." } },
     { version: "2026.10.05-ai29", notes: { cs: "Audit souladu s metodikou nevratnosti a úplnosti začernění (Co upravit): potvrzeno sestavování nového PDF (PDFDocument.create bez copyPages) a preflight nepovolených struktur. V plánu zaevidováno plné začernění podpisových polí včetně certifikátů, rozšíření detekce celých jmen s post-nominálními tituly, ošetření zalomení řádků a kmenové skloňování.", en: "Compliance audit (Planned fixes): confirmed new PDF generation (PDFDocument.create without copyPages) and forbidden structure preflight. Documented backlog for complete signature stamp blanking including certificates, post-nominal name titles, multiline wrapping, and stem inflection." } },
     { version: "2026.10.02-ai28", notes: { cs: "Debug patch: exportní tokenizace používá stejný efektivní overlap resolver jako UI, batch export zachovává pouze výsledek exportu místo přepsání celého snapshotu a PDF načtení čeká na inicializaci workeru. Přidán regresní self-test pro překrývající se nálezy.", en: "Debug patch: export tokenization uses the same effective overlap resolver as the UI, bulk export preserves only the export result instead of replacing the whole snapshot, and PDF loading waits for worker initialization. Added an overlap regression self-test." } },
@@ -1226,13 +1227,16 @@ Orgán: OBÚ.
     return rem === 1;
   }
   function stripTitle(token){
-    return String(token||"").replace(/[.,;:()]/g,"").trim();
+    return String(token||"").replace(/[.,;:()„“”‚‘’»«"']/gu,"").trim();
   }
   function stemNamePart(token){
     const t = stripTitle(token).toLocaleLowerCase("cs");
     if (NAMES.has(t)) return t;
     if (/ov(?:á|ou|é|ých|ými|ým)$/u.test(t)) return t.replace(/ov(?:á|ou|é|ých|ými|ým)$/u, "");
-    const decl = t.replace(/(?:ovi|ovým|ovými|ových|ové|ovým|ama|ami|ách|ům|em|ou|u)$/u, "");
+    if (/(?:n|l|t|v|m|ch|sk|ck)(?:ého|ému|ým|ném|ných|nými)$/u.test(t)) {
+      return t.replace(/(?:ého|ému|ým|ném|ných|nými)$/u, "ý");
+    }
+    const decl = t.replace(/(?:ovi|ovým|ovými|ových|ové|ama|ami|ách|ům|em|ou|u)$/u, "");
     if (decl !== t && decl.length >= 3) {
       if (/ov$/u.test(decl) && decl.length >= 4) return decl.replace(/ov$/u, "");
       return decl;
@@ -1240,6 +1244,7 @@ Orgán: OBÚ.
     if (/ová$/u.test(t)) return t.replace(/ová$/u, "");
     return t;
   }
+  const RE_CZECH_SURNAMES = /(?:ová|ský|cká|cký|ek|ík|ák|ář|íř|ec|áč|ič|ný|ná|lý|lá|tý|tá|vý|vá|chý|chá|mý|má|eš|oš|uš|iš|il|ál|el|ů|íl|ír|ka|da|ra|la|ta|va)$/iu;
   function looksName(token){
     if (!token) return false;
     const t = stripTitle(token);
@@ -1249,8 +1254,7 @@ Orgán: OBÚ.
     if (/^\p{Lu}\.$/u.test(t)) return true;
     const stem = stemNamePart(t);
     if (NAMES.has(stem)) return true;
-    return /ová$|ský$|cká$|cký$|ek$|ák$|ář$|íř$|ec$|áč$|ič$/i.test(t)
-      || /ová$|ský$|cký$|ek$|ák$|ář$|ec$/i.test(stem);
+    return RE_CZECH_SURNAMES.test(t) || RE_CZECH_SURNAMES.test(stem);
   }
   function nameKey(value){
     const parts = String(value||"").split(/\s+/).map(stripTitle).filter(Boolean)
@@ -1367,7 +1371,7 @@ Orgán: OBÚ.
     return /(?:v\s+\p{Ll}+\s+dne|\bdne\b|uzavřen|uzavrena|podeps|platnost|vyhotoven|vystaven)/u.test(c);
   }
   function makeWork(text){
-    const src = String(text ?? "");
+    const src = String(text ?? "").normalize("NFC");
     let work = "";
     const toSrc = [];
     for (let i = 0; i < src.length; i++) {
@@ -1375,7 +1379,9 @@ Orgán: OBÚ.
       if (c===0x00AD || c===0x200B || c===0x200C || c===0x200D || c===0x2060 || c===0xFEFF) continue;
       let ch = src[i];
       if (c===0x00A0 || c===0x202F || c===0x2007 || c===0x2009 || c===0x200A) ch = " ";
-      else if (c===0x2013 || c===0x2014 || c===0x2212) ch = "-";
+      else if (c===0x2013 || c===0x2014 || c===0x2212 || c===0x2010 || c===0x2011 || c===0x2012 || c===0x2015 || c===0xFE58 || c===0xFE63 || c===0xFF0D) ch = "-";
+      else if (c===0x201E || c===0x201C || c===0x201D || c===0x00AB || c===0x00BB) ch = '"';
+      else if (c===0x201A || c===0x2018 || c===0x2019) ch = "'";
       work += ch;
       toSrc.push(i);
     }
@@ -1434,8 +1440,8 @@ Orgán: OBÚ.
   function trimHitValue(h, src){
     if (h.type === "host") return trimUrlValue(h, src);
     let v = h.value, s = h.start, e = h.end;
-    while (e>s && /[.,;:)\]\s]/.test(src[e-1]||"")) e--;
-    while (s<e && /[(\[\s]/.test(src[s]||"")) s++;
+    while (e>s && /[.,;:)\]\s“”’‘»"']/.test(src[e-1]||"")) e--;
+    while (s<e && /[(\[\s„‚«"']/.test(src[s]||"")) s++;
     if (e<=s) return h;
     h.start = s; h.end = e; h.value = src.slice(s,e);
     return h;
@@ -1680,18 +1686,21 @@ Orgán: OBÚ.
     }
     if (enabled.name) {
       const title = TITLES.join("|");
-      add(findAll(t, new RegExp("(?<![\\p{L}\\p{N}])(?:"+title+")\\.?,?\\s+(?:(?:"+title+")\\.?,?\\s+)*\\p{Lu}\\p{Ll}+(?:\\s+\\p{Lu}\\p{Ll}+){0,3}(?!\\s+(?:"+title+")\\b)","gui"), "name"), ["titled"]);
+      const postTitles = "Ph\\.?D\\.?|CSc\\.?|DrSc\\.?|DiS\\.?|MBA|LL\\.?M\\.?|MPA|DSc\\.?|Th\\.?D\\.?";
+      add(findAll(t, new RegExp("(?<![\\p{L}\\p{N}])(?:"+title+")\\.?,?\\s+(?:(?:"+title+")\\.?,?\\s+)*(?:(?!(?:"+title+")\\b)\\p{Lu}\\p{Ll}+)(?:[ \\t]+(?:(?!(?:"+title+")\\b)\\p{Lu}\\p{Ll}+)){0,3}(?:\\s*,\\s*(?:"+postTitles+"))?(?!\\s+(?:"+title+")\\b)","gui"), "name"), ["titled"]);
       add(findAll(t, /(?<![\p{L}\p{N}])\p{Lu}\.\s+\p{Lu}\p{Ll}{2,}(?![\p{L}\p{N}])/gu, "name", v => looksName(v.split(/\s+/).pop()||"")), ["initials"]);
       add(findAll(t, /(?<![\p{L}\p{N}])\p{Lu}\p{Ll}{2,}(?:ová|á)\s+roz\.\s+\p{Lu}\p{Ll}{2,}/gu, "name"), ["format","label:roz"]);
       add(findAll(t, /(?<![\p{L}\p{N}])\p{Lu}\p{Ll}{3,}(?:ovi|em|ové)(?![\p{L}\p{N}])/gu, "name", v => looksName(v)), ["declined"]);
-      add(findAll(t, /(?<![\p{L}\p{N}])\p{Lu}\p{Ll}{2,}\s+\p{Lu}\p{Ll}{2,}(?![\p{L}\p{N}])/gu, "name", v => {
-        const p = v.split(/\s+/);
+      const roleWords = new Set(["v","dne","na","pro","při","the","this","zástupce","ředitel","ředitelka","objednatel","zhotovitel","jednatel","jednatelka","předseda","předsedkyně","místopředseda","starosta","starostka","primátor","primátorka","ministr","ministryně","náměstek","náměstkyně","kupující","prodávající","žalobce","žalovaná","žalovaný","dlužník","věřitel","správce","vlastník","žadatel"]);
+      add(findAll(t, new RegExp("(?<![\\p{L}\\p{N}])\\p{Lu}\\p{Ll}{2,}\\s+\\p{Lu}\\p{Ll}{2,}(?:\\s*,\\s*(?:"+postTitles+"))?(?![\\p{L}\\p{N}])", "gu"), "name", (v) => {
+        const clean = v.replace(/,.*$/, "").trim();
+        const p = clean.split(/\s+/);
         const first = (p[0]||"").toLocaleLowerCase("cs");
         const second = p[1]||"";
-        if (["V","Dne","Na","Pro","Při","The","This"].includes(p[0])) return false;
-        if (sus === "low") return NAMES.has(first) && looksName(second);
+        if (roleWords.has(first)) return false;
+        if (sus === "low") return (NAMES.has(first) || looksName(p[0])) && looksName(second);
         if (sus === "high") return (NAMES.has(first) || looksName(p[0])) && looksName(second);
-        return NAMES.has(first) || looksName(second);
+        return NAMES.has(first) || looksName(p[0]) || looksName(second);
       }).map(h => {
         h.reasons = ["format"];
         return h;
@@ -1735,7 +1744,7 @@ Orgán: OBÚ.
     };
     if (enabled.system) {
       dictPush(S.systems, "system");
-      add(findAll(t, /(?:systém|system|aplikace|modul|rozhraní|integrace|platforma)\s+[A-ZÁ-Ž0-9][\w./-]{1,32}/giu, "system", (v,f,i) => {
+      add(findAll(t, /(?:systém|system|aplikace|modul|rozhraní|integrace|platforma)\s+[\p{L}\p{N}][\p{L}\p{N}./-]{1,32}/giu, "system", (v,f,i) => {
         const name = v.replace(/^(?:systém|system|aplikace|modul|rozhraní|integrace|platforma)\s+/i, "");
         const dictNames = parseDict(S.systems).map(d => d.name.toLocaleLowerCase("cs"));
         if (dictNames.some(n => n && (name.toLocaleLowerCase("cs")===n || n.includes(name.toLocaleLowerCase("cs"))))) return false;
@@ -2093,16 +2102,37 @@ Orgán: OBÚ.
   function docxSetTextPreservingSpace(node, text){
     while (node.firstChild) node.removeChild(node.firstChild);
     node.appendChild(node.ownerDocument.createTextNode(text));
-    if (/^\s|\s$/u.test(text)) {
+    if (/^\s|\s$/u.test(text) || /\s{2,}/u.test(text)) {
       node.setAttributeNS("http://www.w3.org/XML/1998/namespace", "xml:space", "preserve");
     } else {
       node.removeAttributeNS("http://www.w3.org/XML/1998/namespace", "space");
+      node.removeAttribute("xml:space");
     }
+  }
+
+  function docxMakeWork(text){
+    const src = String(text ?? "").normalize("NFC");
+    let work = "";
+    const toSrc = [];
+    for (let i = 0; i < src.length; i++) {
+      const c = src.charCodeAt(i);
+      if (c===0x00AD || c===0x200B || c===0x200C || c===0x200D || c===0x2060 || c===0xFEFF) continue;
+      let ch = src[i];
+      if (c===0x00A0 || c===0x202F || c===0x2007 || c===0x2009 || c===0x200A) ch = " ";
+      else if (c===0x2013 || c===0x2014 || c===0x2212 || c===0x2010 || c===0x2011 || c===0x2012 || c===0x2015 || c===0xFE58 || c===0xFE63 || c===0xFF0D) ch = "-";
+      else if (c===0x201E || c===0x201C || c===0x201D || c===0x00AB || c===0x00BB) ch = '"';
+      else if (c===0x201A || c===0x2018 || c===0x2019) ch = "'";
+      work += ch;
+      toSrc.push(i);
+    }
+    return { src, work, toSrc };
   }
 
   /*
    * Replaces matches across multiple w:t / w:delText nodes inside one w:p.
    * We deliberately never merge w:r elements: w:rPr therefore stays intact.
+   * Supports split runs, non-breaking spaces (\u00A0), non-breaking hyphens,
+   * tabs (\t), soft breaks, and Czech typographical punctuation and quotes.
    * The replacement is assigned to the first affected text node; subsequent
    * affected nodes are reduced to their remaining local text.
    */
@@ -2114,14 +2144,27 @@ Orgán: OBÚ.
     let changed = false;
 
     paras.forEach(p => {
-      const nodes = Array.from(p.getElementsByTagNameNS(DOCX_W_NS, tagName)).filter(n => {
+      const nodes = Array.from(p.getElementsByTagNameNS(DOCX_W_NS, "*")).filter(n => {
         let a = n.parentNode;
         while (a && !(a.localName === "p" && a.namespaceURI === DOCX_W_NS)) a = a.parentNode;
-        return a === p;
+        if (a !== p) return false;
+        const name = n.localName;
+        return name === tagName || name === "tab" || name === "noBreakHyphen" || name === "br";
       });
       if (!nodes.length) return;
 
-      const texts = nodes.map(n => n.textContent || "");
+      const texts = nodes.map(n => {
+        const name = n.localName;
+        if (name === tagName) {
+          const t = (n.textContent || "").normalize("NFC");
+          if (n.textContent !== t) n.textContent = t;
+          return t;
+        }
+        if (name === "tab") return "\t";
+        if (name === "noBreakHyphen") return "\u2011";
+        if (name === "br" && !n.getAttributeNS(DOCX_W_NS, "type")) return "\n";
+        return "";
+      });
       const full = texts.join("");
       if (!full) return;
 
@@ -2129,6 +2172,7 @@ Orgán: OBÚ.
       const matches = [];
 
       values.forEach(v => {
+        // Pass 1: exact matching
         let from = 0, ix;
         while ((ix = full.indexOf(v, from)) >= 0) {
           const end = ix + v.length;
@@ -2143,12 +2187,35 @@ Orgán: OBÚ.
           }
           from = end;
         }
+
+        // Pass 2: normalized matching (handling Czech quotes „ “, non-breaking space \u00A0, non-breaking hyphen, and NFC)
+        const { work: fullWork, toSrc: fullToSrc } = docxMakeWork(full);
+        const vWork = docxMakeWork(v).work;
+        if (vWork && fullWork) {
+          let wFrom = 0, wIx;
+          while ((wIx = fullWork.indexOf(vWork, wFrom)) >= 0) {
+            const wEnd = wIx + vWork.length;
+            const origStart = fullToSrc[wIx];
+            const origEnd = fullToSrc[wEnd - 1] + 1;
+            let free = true;
+            for (let k = origStart; k < origEnd; k++) {
+              if (used[k]) { free = false; break; }
+            }
+            if (free) {
+              for (let k = origStart; k < origEnd; k++) used[k] = true;
+              matches.push({ s: origStart, e: origEnd, rep: map.get(v) });
+              found.add(v);
+            }
+            wFrom = wEnd;
+          }
+        }
       });
 
       if (!matches.length) return;
       matches.sort((a,b) => a.s - b.s);
 
       nodes.forEach((n, nodeIndex) => {
+        const isText = n.localName === tagName;
         const t = texts[nodeIndex];
         const a = texts.slice(0, nodeIndex).reduce((x, y) => x + y.length, 0);
         const b = a + t.length;
@@ -2163,17 +2230,24 @@ Orgán: OBÚ.
           if (cs > cursor) out += t.slice(cursor - a, cs - a);
 
           /*
-           * Put the replacement only into the first node touched by the match.
+           * Put the replacement only into the first text node touched by the match.
            * Other touched nodes contribute no duplicate replacement.
            */
-          if (m.s >= a && m.s < b) out += m.rep;
+          if (m.s >= a && m.s < b) {
+            if (isText) out += m.rep;
+          }
           cursor = Math.max(cursor, ce);
         }
 
         if (cursor < b) out += t.slice(cursor - a);
 
-        if (out !== t) {
-          docxSetTextPreservingSpace(n, out);
+        if (isText) {
+          if (out !== t) {
+            docxSetTextPreservingSpace(n, out);
+            changed = true;
+          }
+        } else if (cursor >= b && out === "") {
+          n.parentNode?.removeChild(n);
           changed = true;
         }
       });
@@ -3387,14 +3461,15 @@ Orgán: OBÚ.
     } catch (_) { return false; }
   }
   async function ingest(name, kind, text, buf, extra){
-    S.fileName = name; S.kind = kind; S.text = text; S.sourceBuf = (kind==="pdf"||kind==="xlsx"||kind==="docx") ? buf : null;
-    S.pages = (extra && extra.pages) || (text ? [{ n:1, start:0, end:text.length }] : []);
+    const cleanText = String(text || "").normalize("NFC");
+    S.fileName = name; S.kind = kind; S.text = cleanText; S.sourceBuf = (kind==="pdf"||kind==="xlsx"||kind==="docx") ? buf : null;
+    S.pages = (extra && extra.pages) || (cleanText ? [{ n:1, start:0, end:cleanText.length }] : []);
     S.noTextPages = S.pages.filter(p => p.noTextLayer).length;
     S.cellMap = (extra && extra.cellMap) || [];
     S.sigDetected = kind === "pdf" && (S.pages.some(p => p.signatures && p.signatures.length) || pdfHasSignatureBytes(buf));
     S.hashIn = await sha256(buf); S.hashOut = "";
     S.reviewed = false; S.hits = [];
-    runAnalyze(text);
+    runAnalyze(cleanText);
   }
   async function onFile(file){
     $("errLand").classList.add("hidden");
@@ -6174,6 +6249,14 @@ Orgán: OBÚ.
     const cases = [];
     cases.push({ name:"docx path normalization", ok: docxNormalizeZipPath("word/a/../media/x.jpg") === "word/media/x.jpg", type:"docx", includes:"word/media/x.jpg", got:[docxNormalizeZipPath("word/a/../media/x.jpg")] });
     cases.push({ name:"docx relative relationship path", ok: docxRelativeZipPath("word", "word/media/image_001.jpg") === "media/image_001.jpg", type:"docx", includes:"media/image_001.jpg", got:[docxRelativeZipPath("word", "word/media/image_001.jpg")] });
+    const dWork = docxMakeWork("„Jan\u00A0Novák–Dvořák“");
+    cases.push({
+      name: "docx normalized matching helpers",
+      ok: dWork.work === "\"Jan Novák-Dvořák\"" && dWork.toSrc.length === dWork.work.length,
+      type: "docx",
+      includes: "\"Jan Novák-Dvořák\"",
+      got: [dWork.work]
+    });
     cases.push({ name:"pdf ICC profile present", ok: SRGB_ICC_PROFILE_BASE64.length > 100 && base64ToUint8Array(SRGB_ICC_PROFILE_BASE64).length > 400, type:"pdfa", includes:"sRGB ICC", got:[String(base64ToUint8Array(SRGB_ICC_PROFILE_BASE64).length)] });
     cases.push({ name:"movie 70% slower", ok: Math.abs(movieEffectiveSpeed() - 0.3 * MOVIE_SPEED) < 1e-9 && MOVIE_SLOWDOWN === 0.3, type:"movie", includes:"0.3", got:[String(MOVIE_SLOWDOWN), String(movieEffectiveSpeed())] });
     cases.push({ name:"marquee helpers", ok: typeof initActionMarquees === "function" && typeof startTextMarquee === "function", type:"movie", includes:"fns", got:[typeof initActionMarquees, typeof startTextMarquee] });
@@ -6204,6 +6287,12 @@ Orgán: OBÚ.
     expect("namesti", "se sídlem Václavské náměstí 1, 110 00 Praha 1", "medium", "address", "náměstí");
     expect("ticket", "ticket CBUAIS-5164", "medium", "ticket", "CBUAIS-5164");
     expect("declined", "sešli jsme se s Novákem.", "medium", "name", "Novákem");
+    expect("czech surname cerny", "sešel se s Janem Černým.", "medium", "name", "Černým");
+    expect("czech surname svoboda", "jednání vedl Petr Svoboda.", "medium", "name", "Petr Svoboda");
+    expect("czech surname novotna", "podepsala Jana Novotná.", "medium", "name", "Jana Novotná");
+    expect("czech post-nominal title", "kontakt: Ing. Petr Svoboda, MBA schválil plán", "medium", "name", "Petr Svoboda, MBA");
+    expect("czech quote name", "zástupce „Jan Novák“ podepsal", "medium", "name", "Jan Novák");
+    expect("czech system diacritics", "aplikace Účetnictví a systém Pošta", "medium", "system", "Pošta");
     expect("initials", "podepsal J. Novák", "medium", "name", "J. Novák");
     expect("ip", "server 10.12.8.4 uvnitř", "medium", "ip", "10.12.8.4");
     expect("host", "viz https://ais.internal/ticket/1", "medium", "host", "ais.internal");
