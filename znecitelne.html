@@ -1725,7 +1725,7 @@ Orgán: OBÚ.
     if (enabled.incident) add(findAll(t, /\b(?:HD|INC|CHG|REQ|RITM|PRB)\s*[-:]?\s*\d{3,7}\b/gi, "incident"), ["format"]);
     if (enabled.casefile) {
       add(findAll(t, /\b(?:č\.?\s*j\.?|čj\.?|sp\.?\s*zn\.?)\s*[A-Z0-9Á-Ž][A-Z0-9Á-Ž./\s-]{4,40}/gi, "casefile"), ["label:č.j."]);
-      add(findAll(t, /\b[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]{2,8}\s+\d{3,6}\/\d{4}\b/g, "casefile", (v,f,i) => {
+      add(findAll(t, /(?<![\p{L}\p{N}])[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]{2,8}\s+\d{3,6}\/\d{4}(?![\p{L}\p{N}])/gu, "casefile", (v,f,i) => {
         if (/^(?:ZÁKON|VYHL|NAŘ)\b/i.test(v)) return false;
         if (sus === "low") return ctxHas(f,i,i+v.length,["řízení","rizeni","spis","č.j","čj","sbs"], win);
         return true;
@@ -1827,7 +1827,7 @@ Orgán: OBÚ.
       // cestovní pas: nutný popisek + číslice
       add(findAll(t, /(?:cestovn\p{L}*\s+(?:pas|doklad)\p{L}*|čísl[oa]\s+pasu|č\.\s*pasu|\bpas\s+(?:č\.|číslo)|passport(?:\s+(?:no\.?|number|nr\.?))?)\s*[:=]?\s*(?:č\.|číslo|no\.?)?\s*[:=]?\s*([A-Z0-9]{6,9})\b/giu, "doklady_extra", v => /\d/.test(v), 1), ["label:pas","format"]);
       // řidičský průkaz: série + číslo (EB 123456) u popisku
-      add(findAll(t, /(?:řidičsk\p{L}*\s+(?:průkaz|licenc)\p{L}*|\bŘP\b|driv(?:ing|er'?s)\s+licen[cs]e)\s*(?:č\.|číslo|no\.?)?\s*[:=]?\s*((?:[A-Z]{1,2}\s?\d{6,8})|\d{8,9})\b/giu, "doklady_extra", null, 1), ["label:ŘP","format"]);
+      add(findAll(t, /(?:řidičsk\p{L}*\s+(?:průkaz|licenc)\p{L}*|(?<![\p{L}\p{N}])ŘP(?![\p{L}\p{N}])|driv(?:ing|er'?s)\s+licen[cs]e)\s*(?:č\.|číslo|no\.?)?\s*[:=]?\s*((?:[A-Z]{1,2}\s?\d{6,8})|\d{8,9})\b/giu, "doklady_extra", null, 1), ["label:ŘP","format"]);
       add(findAll(t, /\b[A-Z]{2}\s?\d{6}\b/g, "doklady_extra", (v,f,i) => ctxHas(f,i,i+v.length,["řidičsk","řp","driving licen","driver's licen"], win)), ["context","format"]);
       // průkaz ZTP, ZTP/P
       add(findAll(t, /\bZTP(?:\s*\/\s*P)?\s*(?:průkaz\p{L}*\s*)?(?:č\.|číslo|č)?\s*[:=]?\s*((?:[A-Z]{1,3}\s?)?\d{5,9})\b/gu, "doklady_extra", null, 1), ["label:ZTP","format"]);
@@ -2149,7 +2149,7 @@ Orgán: OBÚ.
         while (a && !(a.localName === "p" && a.namespaceURI === DOCX_W_NS)) a = a.parentNode;
         if (a !== p) return false;
         const name = n.localName;
-        return name === tagName || name === "tab" || name === "noBreakHyphen" || name === "br";
+        return name === tagName || name === "tab" || name === "noBreakHyphen" || name === "softHyphen" || name === "br";
       });
       if (!nodes.length) return;
 
@@ -2162,6 +2162,7 @@ Orgán: OBÚ.
         }
         if (name === "tab") return "\t";
         if (name === "noBreakHyphen") return "\u2011";
+        if (name === "softHyphen") return "\u00AD";
         if (name === "br" && !n.getAttributeNS(DOCX_W_NS, "type")) return "\n";
         return "";
       });
@@ -2170,6 +2171,7 @@ Orgán: OBÚ.
 
       const used = new Array(full.length).fill(false);
       const matches = [];
+      const { work: fullWork, toSrc: fullToSrc } = docxMakeWork(full);
 
       values.forEach(v => {
         // Pass 1: exact matching
@@ -2188,8 +2190,7 @@ Orgán: OBÚ.
           from = end;
         }
 
-        // Pass 2: normalized matching (handling Czech quotes „ “, non-breaking space \u00A0, non-breaking hyphen, and NFC)
-        const { work: fullWork, toSrc: fullToSrc } = docxMakeWork(full);
+        // Pass 2: normalized matching (handling Czech quotes „ “, non-breaking space \u00A0, non-breaking hyphen, soft hyphen, and NFC)
         const vWork = docxMakeWork(v).work;
         if (vWork && fullWork) {
           let wFrom = 0, wIx;
@@ -2233,8 +2234,9 @@ Orgán: OBÚ.
            * Put the replacement only into the first text node touched by the match.
            * Other touched nodes contribute no duplicate replacement.
            */
-          if (m.s >= a && m.s < b) {
-            if (isText) out += m.rep;
+          if (isText && !m._emitted) {
+            out += m.rep;
+            m._emitted = true;
           }
           cursor = Math.max(cursor, ce);
         }
@@ -6257,6 +6259,14 @@ Orgán: OBÚ.
       includes: "\"Jan Novák-Dvořák\"",
       got: [dWork.work]
     });
+    const dSoft = docxMakeWork("Václav\u00ADské");
+    cases.push({
+      name: "docx soft hyphen work strip",
+      ok: dSoft.work === "Václavské" && dSoft.src === "Václav\u00ADské",
+      type: "docx",
+      includes: "Václavské",
+      got: [dSoft.work]
+    });
     cases.push({ name:"pdf ICC profile present", ok: SRGB_ICC_PROFILE_BASE64.length > 100 && base64ToUint8Array(SRGB_ICC_PROFILE_BASE64).length > 400, type:"pdfa", includes:"sRGB ICC", got:[String(base64ToUint8Array(SRGB_ICC_PROFILE_BASE64).length)] });
     cases.push({ name:"movie 70% slower", ok: Math.abs(movieEffectiveSpeed() - 0.3 * MOVIE_SPEED) < 1e-9 && MOVIE_SLOWDOWN === 0.3, type:"movie", includes:"0.3", got:[String(MOVIE_SLOWDOWN), String(movieEffectiveSpeed())] });
     cases.push({ name:"marquee helpers", ok: typeof initActionMarquees === "function" && typeof startTextMarquee === "function", type:"movie", includes:"fns", got:[typeof initActionMarquees, typeof startTextMarquee] });
@@ -6282,6 +6292,8 @@ Orgán: OBÚ.
     expect("swift label", "SWIFT: KOMBCZPP", "medium", "zahr_iban", "KOMBCZPP");
     expect("pas", "Cestovní pas č. 12345678", "medium", "doklady_extra", "12345678");
     expect("rp", "Řidičský průkaz č. EB 123456", "medium", "doklady_extra", "123456");
+    expect("rp space", "předložil ŘP č. EB 123456", "medium", "doklady_extra", "123456");
+    expect("casefile czech start", "spis ČTÚ 123/2024 v řízení", "medium", "casefile", "ČTÚ 123/2024");
     expect("ztp", "průkaz ZTP/P č. 654321", "medium", "doklady_extra", "654321");
     expect("ico label", "IČO: 00000205", "medium", "ico", "00000205");
     expect("namesti", "se sídlem Václavské náměstí 1, 110 00 Praha 1", "medium", "address", "náměstí");
