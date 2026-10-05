@@ -66,6 +66,15 @@ check(
 );
 
 check(
+  htmlSourceIncludes("function pdfWordQuads(glyphs)"),
+  "PDF redaction must calculate exact word quads with vertical inset to protect adjacent lines"
+);
+check(
+  htmlSourceIncludes("function getRedactionDiff(") && htmlSourceIncludes("diffRemovedTitle"),
+  "application must provide text comparison diff before/after redaction with removed words for approval"
+);
+
+check(
   server.includes("if (path.extname(req.path))"),
   "server must not return the SPA shell for missing file-like assets"
 );

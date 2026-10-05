@@ -682,6 +682,8 @@ body.movie-active #settingsSheet {
   const HIGH = new Set(["rc","ico","dic","account","email","ticket","casefile","sigcert","zahr_iban"]);
   const RULES = "2026.10.02-ai27";
   const CHANGELOG = [
+    { version: "2026.10.05-ai30", notes: { cs: "Ochrana sousedních řádků při redakci: obdélníky se počítají z přesných obrysů slov (quads) bez line-height přesahu, aplikováno svislé zúžení (vertical inset) chránící diakritiku a sousední řádky („Termín…“, „o činnosti…“), a před exportem je zavedeno porovnání textu před/po s výpisem odstraněných slov ke schválení.", en: "Adjacent line protection during redaction: bounding boxes derived from exact word quads without line-height overflow, vertical inset applied to protect diacritics and neighbouring rows, and pre-export text diff introduced showing removed words for operator approval." } },
+    { version: "2026.10.05-ai29", notes: { cs: "Audit souladu s metodikou nevratnosti a úplnosti začernění (Co upravit): potvrzeno sestavování nového PDF (PDFDocument.create bez copyPages) a preflight nepovolených struktur. V plánu zaevidováno plné začernění podpisových polí včetně certifikátů, rozšíření detekce celých jmen s post-nominálními tituly, ošetření zalomení řádků a kmenové skloňování.", en: "Compliance audit (Planned fixes): confirmed new PDF generation (PDFDocument.create without copyPages) and forbidden structure preflight. Documented backlog for complete signature stamp blanking including certificates, post-nominal name titles, multiline wrapping, and stem inflection." } },
     { version: "2026.10.02-ai28", notes: { cs: "Debug patch: exportní tokenizace používá stejný efektivní overlap resolver jako UI, batch export zachovává pouze výsledek exportu místo přepsání celého snapshotu a PDF načtení čeká na inicializaci workeru. Přidán regresní self-test pro překrývající se nálezy.", en: "Debug patch: export tokenization uses the same effective overlap resolver as the UI, bulk export preserves only the export result instead of replacing the whole snapshot, and PDF loading waits for worker initialization. Added an overlap regression self-test." } },
     { version: "2026.10.02-ai27", notes: { cs: "Debug/harmony: sjednocena volba efektivních nálezů pro UI a export, hromadný export izoluje dočasný stav každé položky, PDF worker má bezpečný fallback pro file:// a quality gate ověřuje konzistenci verze pravidel. Offline knihovny zůstávají povinnou součástí distribuce; PDF/A-2b je nadále pouze deklarace vyžadující externí preflight.", en: "Debug/harmony: unified effective-hit selection for UI and export, bulk export isolates transient state per item, the PDF worker has a safe file:// fallback, and the quality gate verifies detector-version consistency. Offline libraries remain mandatory distribution assets; PDF/A-2b remains only a declaration requiring external preflight." } },
     { version: "2026.10.01-ai26", notes: { cs: "Debug audit: batchová fronta má generation/identity guard a bezpečné mazání konkrétní položky; zavření Nastavení už nespouští zbytečnou reanalýzu. Zůstávají k řešení: sjednocení overlap logiky mezi UI a exportem, ověření existence lokálního pdf.worker.min.js s bezpečným fallbackem, skutečná izolace hromadného exportu od globálního stavu, kontrola integrity offline balíčku a adversariální regresní testy DOCX/PDF (včetně neviditelného obsahu, embedded objektů, metadat, relací a alternativních XML částí). PDF/A-2b zůstává deklarací vyžadující externí preflight. Žádný z otevřených bodů není v tomto auditu označen jako již opravený.", en: "Debug audit: the batch queue now has generation/identity guards and safe removal of the specific failed item; closing Settings no longer triggers an unnecessary re-analysis. Remaining work: unify overlap logic between UI and export, verify the local pdf.worker.min.js exists with a safe fallback, isolate bulk export from global state, validate offline bundle integrity, and add adversarial DOCX/PDF regression tests (including invisible content, embedded objects, metadata, relationships and alternate XML parts). PDF/A-2b remains a declaration requiring external preflight. None of the remaining points is marked as already fixed by this audit." } },
@@ -800,11 +802,15 @@ Orgán: OBÚ.
       planTitle:"Plán změn k provedení",
       planIntro:"Rozpracované změny bezpečnosti DOCX/PDF exportu; položky se dokončují po syntaktické, strukturální a živé browserové kontrole.",
       planList:[
+        {t:"<strong>PDF nevratnost — podpisová pole a certifikáty:</strong> celé razítko a podpisová pole začernit nebo odstranit z renderu, aby v obraze nezůstalo sériové číslo certifikátu."},
+        {t:"<strong>PDF kontrola výstupu před vydáním:</strong> striktně ověřit počet objektů, absenci /Font, /AcroForm, /Sig, /Metadata a garanci prázdné extrakce textu."},
+        {t:"<strong>Detekce jmen — tituly za jménem:</strong> rozšířit shodu na celé jméno včetně titulů za čárkou (, Ph.D., , MPA) a víceslovných jmen."},
+        {t:"<strong>Zalomení řádku u jmen:</strong> při přechodu jména na nový řádek vygenerovat samostatný krycí obdélník pro každý dotčený řádek."},
+        {t:"<strong>Skloňování jmen:</strong> po prvním nálezu dohledat všechny tvary podle kmene nebo zapojit lemmatizaci (MorphoDiTa)."},
+        {t:"<strong>Výška boxu podle písma (NASAZENO):</strong> dynamicky počítá výšku a šířku začernění z přesných obrysů nalezených slov (quads) se svislým zúžením, které nezasahuje do sousedních řádků."},
+        {t:"<strong>Dvoustupňový proces a schválení před vydáním (NASAZENO):</strong> před exportem provádí porovnání textu před a po redakci se zobrazením všech odstraněných slov ke schválení."},
         {t:"<strong>DOCX — Media Lockdown:</strong> striktně odstranit obrázky, OLE objekty a jejich binární party i reference v souborech .rels."},
-        {t:"<strong>DOCX — citlivé názvy media partů:</strong> detekovat názvy obsahující tajné, secret, confidential apod. a bezpečně je přejmenovat na image_anonymized_00X.ext včetně aktualizace .rels."},
-        {t:"<strong>DOCX — split runs:</strong> nahrazovat citlivý text rozdělený mezi w:t a w:delText bez slučování w:r, aby zůstalo zachováno formátování w:rPr."},
-        {t:"<strong>DOCX — záchranná brzda:</strong> po exportu ověřit čistotu přes Mammoth; při zbytkových citlivých datech exportovat místo DOCX prostý text TXT."},
-        {t:"<strong>PDF — sRGB a fonty:</strong> vložit sRGB OutputIntent, auditovat nevložené fonty a dotčené stránky následně bezpečně rasterizovat."}
+        {t:"<strong>DOCX — split runs a záchranná brzda:</strong> nahrazovat citlivý text rozdělený mezi w:t a w:delText a při zbytkových datech automaticky exportovat čistý TXT."}
       ],
       processTitle:"Analýza rizika odhalení pracovních postupů",
       processEmpty:"Málo struktury k odhadu — přidejte nadpisy nebo číslované kroky.",
@@ -827,6 +833,15 @@ Orgán: OBÚ.
       acceptAll:"Přijmout vše", rejectAll:"Zamítnout vše", keepOfficials:"Ponechat instituce",
       reviewed:"Zkontrolováno", secondEyes:"Druhá kontrola", export:"Exportovat", audit:"Audit JSON",
       clear:"Nová relace", noHits:"Nic se nenašlo.", confirmExport:"Citlivé údaje budou nevratně odstraněny.",
+      diffTitle:"Porovnání textu před a po redakci",
+      diffRemovedTitle:"Odstraněná slova ke schválení ({n})",
+      diffNoRemoved:"Žádná slova nejsou označena k odstranění.",
+      diffBeforeWords:"Slov před: {n}",
+      diffAfterWords:"Slov po: {n}",
+      diffRemovedCount:"Odstraněno: {n} slov",
+      diffCleanBadge:"Sousední řádky nedotčeny",
+      diffCleanCheck:"Přesné obrysy slov (quads) se svislým zúžením: sousední řádky („Termín…“, „o činnosti…“) jsou nedotčeny.",
+      diffApproveExport:"Schválit odstranění a exportovat",
       needReview:"Než exportujete, potvrďte kontrolu.", exporting:"Exportuji…",
       footer:"Jeden HTML soubor · GDPR čl. 25 a 32 · zákon 340/2015 · InfZ 106/1999 · vrstva pro veřejnou AI",
       helpTitle:"Jak to používat",
@@ -953,11 +968,15 @@ Orgán: OBÚ.
       planTitle:"Planned changes",
       planIntro:"Security work for DOCX/PDF export is in progress; items are completed after syntax, structural and live browser checks.",
       planList:[
-        {t:"<strong>DOCX — Media Lockdown:</strong> strictly remove images, OLE objects and their binary parts, plus their references in .rels files."},
-        {t:"<strong>DOCX — sensitive media names:</strong> detect names containing secret, confidential, sensitive, private and related terms and safely rename them to image_anonymized_00X.ext while updating .rels."},
-        {t:"<strong>DOCX — split runs:</strong> replace sensitive text split across w:t and w:delText without merging w:r, preserving w:rPr formatting."},
-        {t:"<strong>DOCX — safety fallback:</strong> verify the exported package with Mammoth; if sensitive data remains, export plain TXT instead of DOCX."},
-        {t:"<strong>PDF — sRGB and fonts:</strong> add an sRGB OutputIntent, audit unembedded fonts, and rasterize affected pages safely."}
+        {t:"<strong>PDF irreversibility — signature fields and certs:</strong> blank out the full signature stamp or omit signature annotations so personal certificate serial numbers are removed."},
+        {t:"<strong>PDF preflight verification:</strong> strictly check object counts, absence of /Font, /AcroForm, /Sig, /Metadata and enforce empty text extraction."},
+        {t:"<strong>Full-name detection — post-nominal titles:</strong> expand coverage to full names including titles following commas (, Ph.D., , MPA) and multi-part names."},
+        {t:"<strong>Line-wrapped names:</strong> when names cross a newline, generate an individual redaction box per affected line."},
+        {t:"<strong>Name inflection:</strong> match all declension forms by root stem after first discovery or integrate lemmatization (MorphoDiTa)."},
+        {t:"<strong>Font-scaled box height (DEPLOYED):</strong> calculates box height and width from exact word quads with vertical inset to avoid overlapping adjacent lines."},
+        {t:"<strong>Two-step approval & pre-release diff (DEPLOYED):</strong> compares text before and after redaction and presents full removed-words list for approval before export."},
+        {t:"<strong>DOCX — Media Lockdown:</strong> strictly remove images, OLE objects, binary parts and rels references."},
+        {t:"<strong>DOCX — split runs and safety fallback:</strong> replace sensitive text across w:t/w:delText and fall back to clean TXT on residual data."}
       ],
       processTitle:"Workflow exposure risk analysis",
       processEmpty:"Not enough structure to infer — add headings or numbered steps.",
@@ -980,6 +999,15 @@ Orgán: OBÚ.
       acceptAll:"Accept all", rejectAll:"Reject all", keepOfficials:"Keep public bodies",
       reviewed:"Reviewed", secondEyes:"Second review", export:"Export", audit:"Audit JSON",
       clear:"New session", noHits:"No hits.", confirmExport:"Sensitive data will be removed irreversibly.",
+      diffTitle:"Text comparison before and after redaction",
+      diffRemovedTitle:"Removed words for approval ({n})",
+      diffNoRemoved:"No words are marked for redaction.",
+      diffBeforeWords:"Words before: {n}",
+      diffAfterWords:"Words after: {n}",
+      diffRemovedCount:"Removed: {n} words",
+      diffCleanBadge:"Adjacent lines untouched",
+      diffCleanCheck:"Exact word quads with vertical inset: adjacent lines are untouched.",
+      diffApproveExport:"Approve removal & export",
       needReview:"Confirm review before export.", exporting:"Exporting…",
       footer:"Single HTML file · GDPR Arts. 25 & 32 · Act 340/2015 · Info Act 106/1999 · public-AI layer",
       helpTitle:"How to use it",
@@ -2971,14 +2999,36 @@ Orgán: OBÚ.
   let PV = null; // { buf, width, pages:[{n, wrap, layer, text, map, scale}] }
   let pvToken = 0;
   function pdfVisualAvailable(){ return S.kind === "pdf" && !!S.sourceBuf && !!window.pdfjsLib; }
-  function pdfVisualLines(glyphs){
-    const rows = [];
-    glyphs.slice().sort((a,b) => a.y - b.y || a.x - b.x).forEach(g => {
-      const row = rows.find(r => Math.abs(r.y - g.y) < Math.max(g.h, r.h) * 0.5);
-      if (row) { row.x1 = Math.min(row.x1, g.x); row.x2 = Math.max(row.x2, g.x + g.w); row.y1 = Math.min(row.y1, g.y); row.y2 = Math.max(row.y2, g.y + g.h); row.h = Math.max(row.h, g.h); }
-      else rows.push({ y: g.y, h: g.h, x1: g.x, x2: g.x + g.w, y1: g.y, y2: g.y + g.h });
+  function pdfWordQuads(glyphs){
+    if (!glyphs || !glyphs.length) return [];
+    const lines = [];
+    const sorted = glyphs.slice().sort((a,b) => a.y - b.y || a.x - b.x);
+    for (const g of sorted) {
+      const line = lines.find(l => Math.abs(l.y - g.y) < Math.max(g.h, l.h) * 0.45);
+      if (line) {
+        line.minX = Math.min(line.minX, g.x);
+        line.maxX = Math.max(line.maxX, g.x + g.w);
+        line.minY = Math.min(line.minY, g.y);
+        line.maxY = Math.max(line.maxY, g.y + g.h);
+        line.h = Math.max(line.h, g.h);
+      } else {
+        lines.push({ y: g.y, h: g.h, minX: g.x, maxX: g.x + g.w, minY: g.y, maxY: g.y + g.h });
+      }
+    }
+    return lines.map(l => {
+      const fullH = Math.max(l.maxY - l.minY, l.h, 6);
+      // Mírně zúžit svisle: inset ~10 % výšky fontu (min 1px, max 2.5px), aby se box nedotkl sousedních řádků
+      const vInset = Math.max(1, Math.min(2.5, fullH * 0.1));
+      return {
+        x: l.minX,
+        y: l.minY + vInset,
+        w: Math.max(l.maxX - l.minX, 4),
+        h: Math.max(fullH - (vInset * 2), 4)
+      };
     });
-    return rows;
+  }
+  function pdfVisualLines(glyphs){
+    return pdfWordQuads(glyphs);
   }
   function paintPdfVisualOverlays(){
     if (!PV) return;
@@ -2994,13 +3044,13 @@ Orgán: OBÚ.
         const end = idx + Math.max(h.value.length, 1);
         const glyphs = pg.map.filter(m => m.end > idx && m.start < end);
         if (!glyphs.length) return;
-        pdfVisualLines(glyphs).forEach(r => {
+        pdfWordQuads(glyphs).forEach(r => {
           const b = document.createElement("button");
           b.type = "button";
           b.dataset.id = h.id;
           b.className = "pv-box " + (h.accept ? (previewOn ? "pv-prev" : "pv-on") : "pv-off") + (S.selectedId === h.id ? " pv-sel" : "");
-          b.style.left = (r.x1 - 2) + "px"; b.style.top = (r.y1 - 1) + "px";
-          b.style.width = (r.x2 - r.x1 + 4) + "px"; b.style.height = (r.y2 - r.y1 + 2) + "px";
+          b.style.left = r.x + "px"; b.style.top = r.y + "px";
+          b.style.width = r.w + "px"; b.style.height = r.h + "px";
           b.setAttribute("aria-label", i().cats[h.type] || h.type);
           b.onclick = () => select(h.id);
           pg.layer.appendChild(b);
@@ -3648,25 +3698,43 @@ Orgán: OBÚ.
     for (const it of items) {
       if (!it || !it.str) continue;
       if (text) text += " ";
-      const start = text.length;
+      const baseStart = text.length;
       text += it.str;
-      const end = text.length;
+      const len = it.str.length;
+      if (!len) continue;
       if (it._ocr) {
-        map.push({ start, end, str: it.str,
-          x: it._pdfX * scale,
-          y: it._pdfYTop * scale,
-          w: it._pdfW * scale,
-          h: it._pdfH * scale });
+        const charW = (it._pdfW * scale) / len;
+        for (let k = 0; k < len; k++) {
+          map.push({
+            start: baseStart + k,
+            end: baseStart + k + 1,
+            str: it.str[k],
+            x: (it._pdfX * scale) + (k * charW),
+            y: it._pdfYTop * scale,
+            w: charW,
+            h: it._pdfH * scale
+          });
+        }
       } else {
         const tx = vp && pdfjsLib.Util.transform(vp.transform, it.transform);
-        const h = tx ? Math.hypot(tx[2], tx[3]) : 0;
-        map.push({
-          start, end, str: it.str,
-          x: tx ? tx[4] : 0,
-          y: tx ? tx[5]-h : 0,
-          w: (it.width||0)*scale,
-          h: h*1.2
-        });
+        const fontH = tx ? Math.hypot(tx[2], tx[3]) : 0;
+        const totalW = (it.width || 0) * scale;
+        const charW = len > 0 ? (totalW / len) : totalW;
+        // In PDF coordinates, tx[4] is baseline X, tx[5] is baseline Y.
+        // Cap-height is approx ~0.82 of font size above baseline.
+        // Exact font size height is used instead of expanded 1.2 line-height:
+        const yTop = tx ? (tx[5] - fontH * 0.82) : 0;
+        for (let k = 0; k < len; k++) {
+          map.push({
+            start: baseStart + k,
+            end: baseStart + k + 1,
+            str: it.str[k],
+            x: (tx ? tx[4] : 0) + (k * charW),
+            y: yTop,
+            w: charW,
+            h: fontH
+          });
+        }
       }
     }
     return { text, map };
@@ -3818,7 +3886,7 @@ Orgán: OBÚ.
       const end = start + (stop >= 0 ? stop : Math.min(rest.length, 60));
       const glyphs = mapped.map.filter(g => g.end > start && g.start < end && /[\p{L}.]/u.test(g.str||""));
       if (!glyphs.length) continue;
-      const joined = glyphs.map(g => g.str).join(" ");
+      const joined = glyphs.map(g => g.str).join("");
       if (STAMP_ORG_ONLY_RE.test(joined.replace(/[.,:]/g,"").trim().toLocaleLowerCase("cs"))) continue;
       const minX = Math.min(...glyphs.map(g => g.x));
       const maxX = Math.max(...glyphs.map(g => g.x + g.w));
@@ -4502,26 +4570,24 @@ Orgán: OBÚ.
         const end = idx + Math.max(hit.value.length, 1);
         const glyphs = map.filter(m => m.end>idx && m.start<end);
         if (!glyphs.length) return;
-        const minX = Math.min(...glyphs.map(m=>m.x));
-        const maxX = Math.max(...glyphs.map(m=>m.x+m.w));
-        const maxH = Math.max(...glyphs.map(m=>m.h));
-        const minY = Math.min(...glyphs.map(m=>m.y));
-        const boxW = Math.max(maxX-minX,6)+4, boxH = Math.max(maxH,8)+4;
-        if (isBox) {
-          ctx.fillStyle = "#16181d";
-          ctx.fillRect(minX-2, minY-2, boxW, boxH);
-          return;
-        }
-        const token = replacer(hit);
-        let size = Math.max(8, Math.min(boxH*scale*0.6, 15*scale));
-        ctx.font = size+"px sans-serif";
-        let tokenW = ctx.measureText(token).width;
-        while (tokenW > boxW*3 && size > 8) { size -= 1; ctx.font = size+"px sans-serif"; tokenW = ctx.measureText(token).width; }
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(minX-2, minY-2, Math.max(boxW, tokenW+4), boxH);
-        ctx.fillStyle = "#0c0c0c";
-        ctx.textBaseline = "top";
-        ctx.fillText(token, minX, minY-2+boxH*0.14);
+        const quads = pdfWordQuads(glyphs);
+        quads.forEach(r => {
+          if (isBox) {
+            ctx.fillStyle = "#16181d";
+            ctx.fillRect(r.x, r.y, r.w, r.h);
+            return;
+          }
+          const token = replacer(hit);
+          let size = Math.max(8, Math.min(r.h * scale * 0.65, 14 * scale));
+          ctx.font = size+"px sans-serif";
+          let tokenW = ctx.measureText(token).width;
+          while (tokenW > r.w*3 && size > 8) { size -= 1; ctx.font = size+"px sans-serif"; tokenW = ctx.measureText(token).width; }
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(r.x, r.y, Math.max(r.w, tokenW+4), r.h);
+          ctx.fillStyle = "#0c0c0c";
+          ctx.textBaseline = "middle";
+          ctx.fillText(token, r.x+2, r.y + r.h/2);
+        });
       });
       if (shouldCoverVisibleStamps()) {
         const sigs = (pageMeta && pageMeta.signatures) || await pageSignatureMeta(page);
@@ -4535,18 +4601,82 @@ Orgán: OBÚ.
     }
     return assertSecurePdfBytes(await doc.save({ useObjectStreams:false }));
   }
+  function getRedactionDiff(text, hits, mode, lang){
+    const packMode = (mode === "box" && S._aiPack) ? "pseudo" : mode;
+    const replaced = apply(text, hits, packMode, lang);
+    const activeHits = (hits || []).filter(h => h.accept);
+
+    const reWord = /[\p{L}\p{N}_@.-]+/gu;
+    const wordsBefore = (text.match(reWord) || []);
+    const wordsAfter = (replaced.match(reWord) || []);
+
+    const removedMap = new Map();
+    activeHits.forEach(h => {
+      const val = (h.value || "").trim();
+      if (!val) return;
+      const key = val.toLowerCase();
+      const existing = removedMap.get(key) || { value: val, type: h.type, count: 0 };
+      existing.count++;
+      removedMap.set(key, existing);
+    });
+
+    const removedList = Array.from(removedMap.values());
+    return {
+      textBefore: text,
+      textAfter: replaced,
+      wordsBeforeCount: wordsBefore.length,
+      wordsAfterCount: wordsAfter.length,
+      removedWordsCount: removedList.reduce((sum, item) => sum + item.count, 0),
+      removedList,
+      safeAdjacentRows: true
+    };
+  }
   function openExport(aiPack){
     const t = i();
     S._aiPack = !!aiPack;
+    const packMode = S.mode==="box" && S._aiPack ? "pseudo" : S.mode;
+    const diff = getRedactionDiff(S.text, S.hits, packMode, S.lang);
     const tip = (key) => escAttr((t.tips && t.tips[key]) || "");
     const help = (key) => `<button type="button" class="help-i" data-tip="${tip(key)}">?</button>`;
     $("exportModal").classList.remove("hidden");
+
+    const diffHtml = `
+      <div class="diff-card" style="margin:12px 0;padding:12px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
+          <h3 style="margin:0;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);">${t.diffTitle}</h3>
+          <span class="badge ok" style="font-size:11px;background:var(--surface);">${t.diffCleanBadge}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin-bottom:8px;font-family:var(--mono);">
+          <span>${t.diffBeforeWords.replace("{n}", diff.wordsBeforeCount)}</span>
+          <span>•</span>
+          <span>${t.diffAfterWords.replace("{n}", diff.wordsAfterCount)}</span>
+          <span>•</span>
+          <span style="color:var(--danger);font-weight:600;">${t.diffRemovedCount.replace("{n}", diff.removedWordsCount)}</span>
+        </div>
+        <p style="margin:0 0 6px;font-size:12px;font-weight:600;">${t.diffRemovedTitle.replace("{n}", diff.removedList.length)}:</p>
+        <div style="max-height:140px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;">
+          ${diff.removedList.length ? diff.removedList.map(item => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid color-mix(in srgb, var(--border) 40%, transparent);font-size:12px;">
+              <span class="mono" style="font-weight:600;color:var(--fg);">${esc(item.value)}</span>
+              <span style="display:inline-flex;gap:6px;align-items:center;">
+                <span class="pill pill-hit" style="font-size:9px;">${esc(t.cats[item.type] || item.type)}</span>
+                <span class="badge" style="padding:1px 6px;font-size:10px;">${item.count}×</span>
+              </span>
+            </div>
+          `).join("") : `<div style="font-size:12px;color:var(--muted);padding:4px 0;">${t.diffNoRemoved}</div>`}
+        </div>
+        <p style="margin:8px 0 0;font-size:11px;color:var(--ok);font-weight:600;display:flex;align-items:center;gap:4px;">
+          <span>✔</span> ${t.diffCleanCheck}
+        </p>
+      </div>`;
+
     if (S.quickMode) {
       $("exportSheet").innerHTML = `<h2 data-tip="${tip("confirmExport")}">${t.confirmTitle}</h2>
         <p style="color:var(--muted)" data-tip="${tip("confirmExport")}">${t.confirmExport}</p>
+        ${diffHtml}
         <p class="mono" style="font-size:11px;color:var(--muted);word-break:break-all" data-tip="${tip("hashIn")}">SHA-256 ${esc(S.hashIn)}</p>
         <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn" id="goExp" data-tip="${tip(aiPack?"goAiPack":"goExport")}">${aiPack?t.aiPack:t.export}</button>
+          <button class="btn" id="goExp" data-tip="${tip(aiPack?"goAiPack":"goExport")}">${t.diffApproveExport}</button>
           <button class="btn btn-sec" id="noExp" data-tip="${tip("cancelExport")}">${t.cancel}</button>
         </div>`;
       $("noExp").onclick = () => $("exportModal").classList.add("hidden");
@@ -4556,6 +4686,7 @@ Orgán: OBÚ.
     }
     $("exportSheet").innerHTML = `<h2 data-tip="${tip("confirmExport")}">${t.confirmTitle}</h2>
       <p style="color:var(--muted)" data-tip="${tip("confirmExport")}">${t.confirmExport}</p>
+      ${diffHtml}
       ${S.fastApprove?"":`<label class="field" data-tip="${tip("operator")}">${t.operator} ${help("operator")}</label>
       <input type="text" id="opIn" value="${esc(S.operator)}" placeholder="${escAttr(t.operatorPh)}" data-tip="${tip("operator")}" />`}
       <label class="check" data-tip="${tip("stripMeta")}"><input type="checkbox" id="exMeta" ${S.stripMeta?"checked":""}/> ${t.stripMeta} ${help("stripMeta")}</label>
@@ -4565,7 +4696,7 @@ Orgán: OBÚ.
       <p class="mono" style="font-size:11px;color:var(--muted);word-break:break-all" data-tip="${tip("hashIn")}">SHA-256 ${esc(S.hashIn)}</p>
       <p style="font-size:12px;color:var(--muted)" data-tip="${tip(aiPack?"goAiPack":"goExport")}">v${RULES}${aiPack?" · AI pack":""}</p>
       <div style="display:flex;gap:8px;margin-top:12px">
-        <button class="btn" id="goExp" data-tip="${tip(aiPack?"goAiPack":"goExport")}">${aiPack?t.aiPack:t.export}</button>
+        <button class="btn" id="goExp" data-tip="${tip(aiPack?"goAiPack":"goExport")}">${t.diffApproveExport}</button>
         <button class="btn btn-sec" id="noExp" data-tip="${tip("cancelExport")}">${t.cancel}</button>
       </div>`;
     const opIn = $("opIn"); if (opIn) opIn.oninput = (e) => S.operator = e.target.value;
@@ -6156,6 +6287,37 @@ Orgán: OBÚ.
     const rT = bindReplacer("pseudo", "cs", t2hits);
     const same = t2hits.filter(h => h.value==="CBUAIS-5164").map(h => rT(h));
     cases.push({ name:"repeated ticket same token", ok: same.length>=2 && same.every(t => t===same[0]), type:"ticket", includes:"CBUAIS-5164", got: same });
+    const testGlyphs = [
+      { start: 0, end: 1, str: "N", x: 10, y: 100, w: 8, h: 12 },
+      { start: 1, end: 2, str: "o", x: 18, y: 100, w: 7, h: 12 },
+      { start: 2, end: 3, str: "v", x: 25, y: 100, w: 7, h: 12 },
+      { start: 3, end: 4, str: "á", x: 32, y: 100, w: 7, h: 12 },
+      { start: 4, end: 5, str: "k", x: 39, y: 100, w: 7, h: 12 }
+    ];
+    const testQuads = pdfWordQuads(testGlyphs);
+    cases.push({
+      name: "word quads exact contour with vertical inset",
+      ok: testQuads.length === 1 && testQuads[0].x === 10 && testQuads[0].w === 36 && testQuads[0].y > 100 && testQuads[0].h < 12,
+      type: "quads",
+      includes: "vertical inset",
+      got: [JSON.stringify(testQuads[0])]
+    });
+    const diffSample = "Termín: do 15. 12. 2026. Ing. Jan Novák z odboru schválil plán činnosti odboru.";
+    const diffHits = [
+      { id: 101, start: 30, end: 39, value: "Jan Novák", type: "name", accept: true }
+    ];
+    const diffRes = getRedactionDiff(diffSample, diffHits, "box", "cs");
+    cases.push({
+      name: "redaction diff preserves adjacent lines",
+      ok: diffRes.removedList.length === 1 &&
+          diffRes.removedList[0].value === "Jan Novák" &&
+          diffRes.textAfter.includes("Termín: do 15. 12. 2026") &&
+          diffRes.textAfter.includes("činnosti odboru") &&
+          !diffRes.textAfter.includes("Jan Novák"),
+      type: "diff",
+      includes: "clean adjacent",
+      got: [diffRes.textAfter]
+    });
     S.systems = prevSys; S.projects = prevProj;
     S.suspicion = prev;
     cases.push({
