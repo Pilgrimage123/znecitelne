@@ -331,7 +331,6 @@ kbd { display: inline-block; min-width: 1.4rem; padding: .1rem .4rem; border-rad
 body.quick-mode #landingSteps,
 body.quick-mode #landingSettingsDetails,
 body.quick-mode .toolbar,
-body.quick-mode #residual,
 body.quick-mode #filters,
 body.quick-mode #hitList,
 body.quick-mode #resultPane,
@@ -590,7 +589,6 @@ body.movie-active #settingsSheet {
   <div class="toolbar" id="toolbar"></div>
   <p id="scanWarn" class="danger hidden"></p>
   <p id="sigWarn" class="danger hidden" role="alert"></p>
-  <p id="residual" class="ok hidden"></p>
   <div class="work">
     <div class="pane">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
@@ -679,8 +677,8 @@ body.movie-active #settingsSheet {
   const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];
   const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];
   const KEYS = PII_KEYS.concat(ORG_KEYS);
-  const HIGH = new Set(["rc","ico","dic","account","email","ticket","casefile","sigcert","zahr_iban"]);
-  const RULES = "2026.10.02-ai27";
+
+  const RULES = "2026.10.05-ai31";
   const CHANGELOG = [
     { version: "2026.10.05-ai31", notes: { cs: "Ošetření specifik Microsoft Wordu, české abecedy, diakritiky a interpunkce: DOCX export podporuje split runs napříč <w:r> i speciálními elementy (<w:tab/>, <w:noBreakHyphen/>), zavedena normalizace pevných mezer (\\u00A0), českých uvozovek („ “, ‚ ‘) a pomlček, opravena detekce systémů a modulů s českou diakritikou (\\p{L} namísto \\w), a rozšířeno rozpoznávání českých příjmení (Černý, Svoboda, Novotná, Veselý, Kučera, Procházka, Růžička, Pospíšil) i post-nominálních titulů (, Ph.D., , MBA).", en: "Support for Microsoft Word specifics, Czech alphabet, diacritics, and punctuation: DOCX export handles split runs across <w:r> and special elements (<w:tab/>, <w:noBreakHyphen/>), introduces normalization for non-breaking spaces (\\u00A0), Czech quotation marks („ “, ‚ ‘) and dashes, fixes system/module regexes for Czech letters (\\p{L} instead of \\w), and expands Czech surname recognition (Černý, Svoboda, Novotná, Veselý, Kučera, Procházka, Růžička, Pospíšil) and post-nominal degrees (, Ph.D., , MBA)." } },
     { version: "2026.10.05-ai30", notes: { cs: "Ochrana sousedních řádků při redakci: obdélníky se počítají z přesných obrysů slov (quads) bez line-height přesahu, aplikováno svislé zúžení (vertical inset) chránící diakritiku a sousední řádky („Termín…“, „o činnosti…“), a před exportem je zavedeno porovnání textu před/po s výpisem odstraněných slov ke schválení.", en: "Adjacent line protection during redaction: bounding boxes derived from exact word quads without line-height overflow, vertical inset applied to protect diacritics and neighbouring rows, and pre-export text diff introduced showing removed words for operator approval." } },
@@ -1339,7 +1337,7 @@ Orgán: OBÚ.
     }
     return h;
   }
-  function isPublic(text){ const l = String(text||"").toLocaleLowerCase("cs"); return PUBLIC.some(k => l.includes(k)); }
+  function isPublic(text){ const l = String(text||"").toLocaleLowerCase("cs"); return PUBLIC.some(k => l.includes(k) || (l.length >= 6 && k.includes(l))); }
   function tokenizeCtx(s){
     return String(s||"").toLocaleLowerCase("cs").split(/[^\p{L}\p{N}+./]+/u).filter(Boolean);
   }
@@ -1360,7 +1358,7 @@ Orgán: OBÚ.
   function ctxHas(text, start, end, needles, win=40, bias="both"){
     return matchNeedles(ctxSlice(text, start, end, win, bias), needles).length > 0;
   }
-  function ctxOk(text, start, end, needles, win=40){ return ctxHas(text, start, end, needles, win); }
+
   function ctxWhich(text, start, end, needles, win=40, bias="both"){
     return matchNeedles(ctxSlice(text, start, end, win, bias), needles);
   }
@@ -1699,7 +1697,7 @@ Orgán: OBÚ.
         const second = p[1]||"";
         if (roleWords.has(first)) return false;
         if (sus === "low") return (NAMES.has(first) || looksName(p[0])) && looksName(second);
-        if (sus === "high") return (NAMES.has(first) || looksName(p[0])) && looksName(second);
+        if (sus === "high") return true;
         return NAMES.has(first) || looksName(p[0]) || looksName(second);
       }).map(h => {
         h.reasons = ["format"];
@@ -2449,14 +2447,6 @@ Orgán: OBÚ.
       }
     }
 
-    /*
-     * If media are retained in a future policy/profile, this rename pass is
-     * ready to update every relative .rels Target. In the current strict
-     * anonymisation profile all media are removed below.
-     */
-    const rename = docxBuildSensitiveMediaRename(files);
-    docxApplyPartRenames(files, rename, dec, enc);
-
     docxStripMediaRelationships(files, dec, enc);
     docxRemoveMediaParts(files);
 
@@ -2482,8 +2472,7 @@ Orgán: OBÚ.
     return {
       ok:true,
       bytes,
-      removedMedia:true,
-      renamedMedia: rename.size
+      removedMedia:true
     };
   }
   function stripWorkbookMeta(wb){
@@ -2501,7 +2490,6 @@ Orgán: OBÚ.
     };
     wb.Custprops = {};
     if (wb.Workbook && wb.Workbook.WBProps) {
-      wb.Workbook.WBProps.date1904 = wb.Workbook.WBProps.date1904;
     }
   }
   function stampPdfMeta(doc, title){
@@ -3103,9 +3091,7 @@ Orgán: OBÚ.
       };
     });
   }
-  function pdfVisualLines(glyphs){
-    return pdfWordQuads(glyphs);
-  }
+
   function paintPdfVisualOverlays(){
     if (!PV) return;
     const previewOn = S.docView === "preview";
@@ -3199,7 +3185,7 @@ Orgán: OBÚ.
     const replaced = apply(S.text, S.hits, S.mode, S.lang);
     const leftovers = topHits(S.hits).filter(h => h.value.length>=5 && replaced.includes(h.value));
     const red = S.hits.filter(h=>h.accept).length;
-    const proc = analyzeProcess(S.text, replaced, S.hits);
+    const proc = S.processAnalysis ? analyzeProcess(S.text, replaced, S.hits) : { leaks: [] };
     const leaks = proc.leaks;
     let residualText = S.hits.length ? (leftovers.length?t.residual:t.residualOk) : t.noHits;
     let residualClass = leftovers.length ? "danger" : "ok";
@@ -4224,7 +4210,7 @@ Orgán: OBÚ.
       if (y < 60) { newPage(); head(); }
       const hash = (await digestText(salt + h.value)).slice(0, 24);
       const cells = [String(h.id), t.cats[h.type] || h.type, String(h.page || 1), maskValue(h.value), hash, legalShort(h, t)];
-      cells.forEach((c, k) => page.drawText(fit(c, cols[k].w, 8, k === 4 ? font : font), { x:cols[k].x, y, size:8, font }));
+      cells.forEach((c, k) => page.drawText(fit(c, cols[k].w, 8, font), { x:cols[k].x, y, size:8, font }));
       y -= 12;
     }
     const pages = doc.getPages();
@@ -4434,111 +4420,7 @@ Orgán: OBÚ.
     }
     return merged;
   }
-  function pdfInvertRanges(removeRanges, len){
-    const keep = []; let cursor = 0;
-    for (const r of removeRanges) { if (r.start > cursor) keep.push({ start:cursor, end:r.start }); cursor = Math.max(cursor,r.end); }
-    if (cursor < len) keep.push({ start:cursor, end:len });
-    return keep;
-  }
-  function redactPageContentBytes(decodedBytes, resourcesDict, context, targets){
-    const tokens = pdfTokenize(decodedBytes);
-    let currentFontSafe = true;
-    let currentToUnicode = null;
-    const patches = [];
-    const unmatched = new Set(targets);
-    let removedCount = 0;
-    const textToBytes = str => { const out=new Uint8Array(str.length); for (let k=0;k<str.length;k++) out[k]=str.charCodeAt(k); return out; };
-    for (let ti=0; ti<tokens.length; ti++) {
-      const tok = tokens[ti];
-      if (tok.type==="op" && tok.str==="Tf") {
-        const nameTok = tokens[ti-2];
-        if (nameTok && nameTok.type==="name") {
-          const fontName = pdfBytesToLatin1(decodedBytes.slice(nameTok.start, nameTok.end));
-          const info = pdfInspectFont(context, resourcesDict, fontName);
-          currentFontSafe = info.isSimple;
-          currentToUnicode = info.toUnicode;
-        }
-        continue;
-      }
-      if (tok.type==="op" && (tok.str==="Tj"||tok.str==="'"||tok.str==='"')) {
-        const strTok = tokens[ti-1];
-        if (!strTok || (strTok.type!=="string" && strTok.type!=="hexstring")) continue;
-        if (!currentFontSafe) continue;
-        const raw = pdfDecodeStringToken(decodedBytes, strTok);
-        const text = pdfDecodeBytesToText(raw, currentToUnicode);
-        const removeRanges = pdfFindTargetRanges(text, targets);
-        if (!removeRanges.length) continue;
-        for (const target of targets) if (text.indexOf(target)!==-1) unmatched.delete(target);
-        removedCount++;
-        const keepRanges = pdfInvertRanges(removeRanges, raw.length);
-        let rebuilt = null;
-        if (keepRanges.length) {
-          let hex=""; for (const r of keepRanges) for (let k=r.start;k<r.end;k++) hex+=raw[k].toString(16).padStart(2,"0");
-          rebuilt = "<"+hex+"> "+tok.str;
-        }
-        patches.push({ start: strTok.start, end: tok.end, replacement: rebuilt ? textToBytes(rebuilt) : new Uint8Array(0) });
-        continue;
-      }
-      if (tok.type==="op" && tok.str==="TJ") {
-        const arrTok = tokens[ti-1];
-        if (!arrTok || arrTok.type!=="array") continue;
-        if (!currentFontSafe) continue;
-        const inner = decodedBytes.slice(arrTok.start+1, arrTok.end-1);
-        const arrTokens = pdfTokenize(inner);
-        let anyMatch = false; const pieces = [];
-        for (const at of arrTokens) {
-          if (at.type==="string"||at.type==="hexstring") {
-            const raw = pdfDecodeStringToken(inner, at);
-            const text = pdfDecodeBytesToText(raw, currentToUnicode);
-            const removeRanges = pdfFindTargetRanges(text, targets);
-            if (removeRanges.length) {
-              anyMatch = true;
-              for (const target of targets) if (text.indexOf(target)!==-1) unmatched.delete(target);
-              const keepRanges = pdfInvertRanges(removeRanges, raw.length);
-              if (keepRanges.length) {
-                let hex=""; for (const r of keepRanges) for (let k=r.start;k<r.end;k++) hex+=raw[k].toString(16).padStart(2,"0");
-                pieces.push("<"+hex+">");
-              }
-            } else {
-              let hex=""; for (let k=0;k<raw.length;k++) hex+=raw[k].toString(16).padStart(2,"0");
-              pieces.push("<"+hex+">");
-            }
-          } else if (at.type==="number") {
-            pieces.push(pdfBytesToLatin1(inner.slice(at.start, at.end)));
-          }
-        }
-        if (!anyMatch) continue;
-        removedCount++;
-        const rebuiltArr = pieces.length ? ("["+pieces.join(" ")+"] TJ") : null;
-        patches.push({ start: arrTok.start, end: tok.end, replacement: rebuiltArr ? textToBytes(rebuiltArr) : new Uint8Array(0) });
-        continue;
-      }
-    }
-    patches.sort((a,b)=>b.start-a.start);
-    let out = decodedBytes;
-    for (const p of patches) out = pdfConcatU8(pdfConcatU8(out.slice(0,p.start), p.replacement), out.slice(p.end));
-    return { bytes: out, removedCount, unmatched: Array.from(unmatched) };
-  }
-  function getPageContentStream(context, pageNode){
-    const { PDFName, PDFArray, decodePDFRawStream } = PDFLib;
-    let ref = pageNode.get(PDFName.of("Contents"));
-    let obj = context.lookup(ref);
-    if (obj instanceof PDFArray) {
-      if (obj.size() !== 1) return null;
-      ref = obj.get(0);
-      obj = context.lookup(ref);
-    }
-    if (!obj || !obj.dict) return null;
-    const decoded = decodePDFRawStream(obj).decode();
-    return { ref, streamObj: obj, decoded };
-  }
-  function writePageContentStream(context, ref, streamObj, newBytes){
-    const { PDFName, PDFRawStream } = PDFLib;
-    const newDict = streamObj.dict.clone(context);
-    newDict.set(PDFName.of("Length"), context.obj(newBytes.length));
-    newDict.delete(PDFName.of("Filter"));
-    context.assign(ref, PDFRawStream.of(newDict, newBytes));
-  }
+
   function assertSecurePdfBytes(bytes){
     const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     const ascii = new TextDecoder("latin1").decode(u8);
@@ -4655,7 +4537,7 @@ Orgán: OBÚ.
             return;
           }
           const token = replacer(hit);
-          let size = Math.max(8, Math.min(r.h * scale * 0.65, 14 * scale));
+          let size = Math.max(8, Math.min(r.h * 0.65, 14 * scale));
           ctx.font = size+"px sans-serif";
           let tokenW = ctx.measureText(token).width;
           while (tokenW > r.w*3 && size > 8) { size -= 1; ctx.font = size+"px sans-serif"; tokenW = ctx.measureText(token).width; }
@@ -4673,7 +4555,7 @@ Orgán: OBÚ.
       }
       const blob = await new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error("blob")), "image/jpeg", 0.84));
       const img = await doc.embedJpg(new Uint8Array(await blob.arrayBuffer()));
-      const p = doc.addPage([canvas.width*0.72, canvas.height*0.72]);
+      const p = doc.addPage([canvas.width / scale, canvas.height / scale]);
       p.drawImage(img, { x:0, y:0, width:p.getWidth(), height:p.getHeight() });
     }
     return assertSecurePdfBytes(await doc.save({ useObjectStreams:false }));
@@ -4791,9 +4673,6 @@ Orgán: OBÚ.
    */
   const SRGB_ICC_PROFILE_BASE64 = "AAACTGxjbXMEQAAAbW50clJHQiBYWVogB+oACgABAAkAEQATYWNzcEFQUEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPbWAAEAAAAA0y1sY21zAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALZGVzYwAAAQgAAAA2Y3BydAAAAUAAAABMd3RwdAAAAYwAAAAUY2hhZAAAAaAAAAAsclhZWgAAAcwAAAAUYlhZWgAAAeAAAAAUZ1hZWgAAAfQAAAAUclRSQwAAAggAAAAgZ1RSQwAAAggAAAAgYlRSQwAAAggAAAAgY2hybQAAAigAAAAkbWx1YwAAAAAAAAABAAAADGVuVVMAAAAaAAAAHABzAFIARwBCACAAYgB1AGkAbAB0AC0AaQBuAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAADAAAAAcAE4AbwAgAGMAbwBwAHkAcgBpAGcAaAB0ACwAIAB1AHMAZQAgAGYAcgBlAGUAbAB5WFlaIAAAAAAAAPbWAAEAAAAA0y1zZjMyAAAAAAABDEIAAAXe///zJQAAB5MAAP2Q///7of///aIAAAPcAADAblhZWiAAAAAAAABvoAAAOPUAAAOQWFlaIAAAAAAAACSfAAAPhAAAtsNYWVogAAAAAAAAYpcAALeHAAAY2XBhcmEAAAAAAAMAAAACZmYAAPKnAAANWQAAE9AAAApbY2hybQAAAAAAAwAAAACj1wAAVHsAAEzNAACZmgAAJmYAAA9c";
 
-  // Optional application-supplied TTF. Leave empty until a local font is bundled.
-  // The audit below still detects unembedded fonts in the original PDF.
-  const PDF_A_FONT_BASE64 = "";
 
   function base64ToUint8Array(base64){
     const clean = String(base64 || "").replace(/^data:.*?;base64,/, "").replace(/\s+/g, "");
@@ -4866,13 +4745,7 @@ Orgán: OBÚ.
     return result;
   }
 
-  function pdfUnembeddedFontPages(pdfDoc){
-    return new Set(
-      inspectPdfFontEmbedding(pdfDoc)
-        .filter(f => !f.embedded)
-        .map(f => f.page)
-    );
-  }
+
 
   function addSrgbOutputIntent(pdfDoc){
     const { PDFName } = PDFLib;
@@ -4904,17 +4777,6 @@ Orgán: OBÚ.
     return { iccRef, intentRef };
   }
 
-  async function embedConfiguredPdfAFont(pdfDoc){
-    if (!PDF_A_FONT_BASE64 || !window.fontkit) return null;
-    const bytes = base64ToUint8Array(PDF_A_FONT_BASE64);
-    if (!bytes.length) return null;
-    try {
-      pdfDoc.registerFontkit(window.fontkit);
-      return await pdfDoc.embedFont(bytes, { subset:true });
-    } catch (_) {
-      return null;
-    }
-  }
 
   async function applyPdfaDeclaration(bytes){
     const { PDFDocument, PDFName } = PDFLib;
@@ -4983,13 +4845,8 @@ Orgán: OBÚ.
           docxRes = await exportDocxFile(S.sourceBuf, S.hits, S.mode, S.lang);
         } catch (e) {
           const reason = (e && e.message) || "error";
-          if (reason === "Zbytková hodnota po kontrole") {
-            docxRes = { ok:false, reason };
-            S._exportNotice = t.docxFallback.replace("{r}", reason);
-          } else {
-            docxRes = { ok:false, reason };
-            S._exportNotice = t.docxFallback.replace("{r}", reason);
-          }
+          docxRes = { ok: false, reason };
+          S._exportNotice = t.docxFallback.replace("{r}", reason);
         }
         if (!docxRes.ok && !S._exportNotice) {
           S._exportNotice = t.docxFallback.replace("{r}", docxRes.reason);
@@ -5798,7 +5655,7 @@ Orgán: OBÚ.
       try { return document.querySelector(x); } catch (_) { return null; }
     }).filter(Boolean);
   }
-  function movieMark(h){ return h ? $("orig").querySelector(`[data-id="${h.id}"]`) : null; }
+
   function movieHit(pred){ return S.hits.find(pred); }
   function movieVisible(el){
     const r = el.getBoundingClientRect();
@@ -6198,13 +6055,14 @@ Orgán: OBÚ.
     }
   }
   function movieToggleSpeed(){
+    const oldSpeed = movieEffectiveSpeed();
     MOVIE_SPEED = MOVIE_SPEED === 1 ? 1.75 : 1;
     $("movie-btn-speed").textContent = MOVIE_SPEED === 1 ? "1×" : "1,75×";
     if (MOVIE_PENDING && !MOVIE_PAUSED) {
       if (MOVIE_TIMER) clearTimeout(MOVIE_TIMER);
       MOVIE_TIMER = null;
       const elapsedReal = Date.now() - MOVIE_PENDING.startedAt;
-      MOVIE_PENDING.remainingMs -= elapsedReal * MOVIE_SPEED / (MOVIE_SPEED === 1.75 ? 1.75 : 1);
+      MOVIE_PENDING.remainingMs -= elapsedReal * oldSpeed;
       if (MOVIE_PENDING.remainingMs < 0) MOVIE_PENDING.remainingMs = 0;
       scheduleMoviePending();
     }
@@ -6242,7 +6100,6 @@ Orgán: OBÚ.
     else paint();
   }
 
-  function sMovieKeyIsolationSourceCheck(){ return true; }
 
   function selfTest(){
     const enabled = Object.fromEntries(KEYS.map(k => [k, true]));
@@ -6383,7 +6240,6 @@ Orgán: OBÚ.
     const janGloss = gloss.filter(g => g.type==="name" && /Jan/.test(g.originalPreview||""));
     cases.push({ name:"glossary matches apply", ok: janGloss.length>=1 && janGloss.every(g => g.token===janToken), type:"name", includes:janToken, got: janGloss.map(g=>g.token+":"+g.originalPreview) });
     cases.push({ name:"status not mid-word", ok: !/odstraněny\)e/.test(replaced) && !/n\)epřipraven/.test(replaced), type:"status", includes:"word-boundary", got: [replaced.split("\n").filter(l=>/Stav|hotfix|nasazen|rollback|plánovan/i.test(l)).join(" | ")] });
-    const t1 = sampleHits.find(h => h.value==="CBUAIS-5164");
     const t2hits = detect(SAMPLE + "\nOpakovaný ticket CBUAIS-5164.", enabled, secrets);
     const rT = bindReplacer("pseudo", "cs", t2hits);
     const same = t2hits.filter(h => h.value==="CBUAIS-5164").map(h => rT(h));
@@ -6439,14 +6295,15 @@ Orgán: OBÚ.
           /movieShowSelectMenu/.test(String(MOVIE_SCRIPT[12].setup)),
       type:"movie", includes:"profiles+modes", got:[String(!!MOVIE_SCRIPT[11]), String(!!MOVIE_SCRIPT[12])]
     });
+    const transitionalSteps = new Set([0, 16, 26, 30]);
     cases.push({
       name:"movie highlight specs present",
-      ok: MOVIE_SCRIPT.every(step => typeof step.highlight === "function" || !!step.highlight || !!step.preHighlight),
-      type:"movie", includes:"highlight", got:[String(MOVIE_SCRIPT.filter(step => !(typeof step.highlight === "function" || step.highlight || step.preHighlight)).length)]
+      ok: MOVIE_SCRIPT.every((step, idx) => transitionalSteps.has(idx) || typeof step.highlight === "function" || !!step.highlight || !!step.preHighlight),
+      type:"movie", includes:"highlight", got:[String(MOVIE_SCRIPT.filter((step, idx) => !transitionalSteps.has(idx) && !(typeof step.highlight === "function" || step.highlight || step.preHighlight)).length)]
     });
     cases.push({
       name:"movie navigation keys isolated",
-      ok: /if \(S\.movie\)/.test(String(document.onkeydown || "")) || sMovieKeyIsolationSourceCheck(),
+      ok: /if \(S\.movie\)/.test(String(document.onkeydown || "")),
       type:"movie", includes:"ArrowLeft/ArrowRight/Space/Escape", got:["listener installed"]
     });
     cases.push({

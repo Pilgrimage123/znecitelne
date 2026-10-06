@@ -58,7 +58,7 @@ check(
   "true-redact release path must fail closed to isolated raster export"
 );
 const trueRedactBody = canonical.match(
-  /async function exportPdfTrueRedact[\s\S]*?\n  \\}\n  function stripPdfSignatureFields/
+  /async function exportPdfTrueRedact[\s\S]*?\n  \\}\n  async function exportPdfRaster/
 )?.[0] || "";
 check(
   !trueRedactBody.includes("PDFDocument.load(source"),

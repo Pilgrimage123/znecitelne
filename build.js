@@ -10,7 +10,7 @@ if (!existsSync(canonical)) {
 
 const html = readFileSync(canonical, "utf8");
 const requiredMarkers = [
-  'const RULES = "2026.10.02-ai27"',
+  'const RULES = "2026.10.05-ai31"',
   "quickMode",
   "fastApprove",
   "processAnalysis",
