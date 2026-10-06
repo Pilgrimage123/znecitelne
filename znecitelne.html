@@ -825,7 +825,7 @@ Orgán: OBÚ.
       leakBad:"Po anonymizaci zbývají vzory, které by veřejná AI ještě mohla zneužít.",
       stripMeta:"Odstranit metadata",
       pdfaDecl:"Deklarace PDF/A-2b + sRGB OutputIntent (preflight stále nutný)", pdfaNote:"PDF/A metadata a sRGB OutputIntent byly vloženy; shoda stále není certifikována bez externího preflightu.", pdfaFontWarn:"Nevložené fonty nalezeny na stránkách {n}; tyto stránky se mají při bezpečném exportu převést na raster.", pdfaFail:"PDF/A metadata nebo OutputIntent se nepodařilo vložit.",
-      queueLbl:"Fronta souborů", queueAll:"Exportovat všechny zkontrolované", queueNone:"Žádný soubor ve frontě zatím není zkontrolovaný.", queueDone:"Exportováno souborů: {n}", queueBad:"Soubor „{f}“ se nepodařilo načíst.", queueRemove:"Odebrat z fronty", errPdfPassword:"PDF je chráněno heslem. Před zpracováním heslo odstraňte.", errPdfInvalid:"Soubor PDF je poškozený nebo neúplný.", errFileEmpty:"Soubor „{f}“ je prázdný (0 B).", errFileBinary:"Soubor „{f}“ je v nepodporovaném binárním formátu.", errDocOld:"Starší formát .doc (Word 97-2003) uložte prosím jako .docx nebo .pdf.", errImageNeedOcr:"Zpracování obrázku (skenu) vyžaduje zapnutí OCR v nastavení.",
+      queueLbl:"Fronta souborů", queueAll:"Exportovat všechny zkontrolované", queueNone:"Žádný soubor ve frontě zatím není zkontrolovaný.", queueDone:"Exportováno souborů: {n}", queueBad:"Soubor „{f}“ se nepodařilo načíst.", queueRemove:"Odebrat z fronty", errPdfPassword:"PDF je chráněno heslem. Před zpracováním heslo odstraňte.", errPdfInvalid:"Soubor PDF je poškozený nebo neúplný.", errFileEmpty:"Soubor „{f}“ je prázdný (0 B).", errFileTooLarge:"Soubor „{f}“ je příliš velký (maximum je 100 MB).", errFileBinary:"Soubor „{f}“ je v nepodporovaném binárním formátu.", errDocOld:"Starší formát .doc (Word 97-2003) uložte prosím jako .docx nebo .pdf.", errImageNeedOcr:"Zpracování obrázku (skenu) vyžaduje zapnutí OCR v nastavení.",
       truePdfRedact:"Při anonymizaci PDF zůstává textová vrstva",
       truePdfRedactHint:"Zachová prohledávatelný text mimo začerněné nebo nahrazené úseky, ve všech režimech výstupu (začernění, XXXX, štítek i pseudonym). Stránky, které nelze bezpečně ověřit, se přesto převedou na obrázek.",
       morphBtn:"Skloňování: dohledat všechny pády v textu",
@@ -995,7 +995,7 @@ Orgán: OBÚ.
       leakBad:"After redaction, patterns remain that a public AI could still misuse.",
       stripMeta:"Strip metadata",
       pdfaDecl:"PDF/A-2b declaration (XMP) – not certified conformance", pdfaNote:"The PDF only carries a PDF/A declaration (XMP); it is not certified PDF/A – embedded fonts and an OutputIntent are missing.", pdfaFail:"Could not embed the PDF/A declaration.",
-      queueLbl:"File queue", queueAll:"Export all reviewed", queueNone:"No file in the queue has been reviewed yet.", queueDone:"Files exported: {n}", queueBad:"File “{f}” could not be loaded.", queueRemove:"Remove from queue", errPdfPassword:"PDF is password-protected. Please remove the password before processing.", errPdfInvalid:"PDF file is damaged or incomplete.", errFileEmpty:"File “{f}” is empty (0 bytes).", errFileBinary:"File “{f}” is in an unsupported binary format.", errDocOld:"Legacy .doc format (Word 97-2003) should be saved as .docx or .pdf.", errImageNeedOcr:"Image processing (scans) requires OCR enabled in settings.",
+      queueLbl:"File queue", queueAll:"Export all reviewed", queueNone:"No file in the queue has been reviewed yet.", queueDone:"Files exported: {n}", queueBad:"File “{f}” could not be loaded.", queueRemove:"Remove from queue", errPdfPassword:"PDF is password-protected. Please remove the password before processing.", errPdfInvalid:"PDF file is damaged or incomplete.", errFileEmpty:"File “{f}” is empty (0 bytes).", errFileTooLarge:"File “{f}” is too large (maximum is 100 MB).", errFileBinary:"File “{f}” is in an unsupported binary format.", errDocOld:"Legacy .doc format (Word 97-2003) should be saved as .docx or .pdf.", errImageNeedOcr:"Image processing (scans) requires OCR enabled in settings.",
       truePdfRedact:"Truly remove redacted text from PDF (not just an image)",
       truePdfRedactHint:"Keeps the rest of the document as searchable text, in every output mode (black-box, XXXX, label, and pseudonym alike). Pages that can't be safely verified are still converted to an image.",
       morphBtn:"Declension: find all cases in text",
@@ -3346,7 +3346,17 @@ Orgán: OBÚ.
     const token = ++pvToken;
     buildPdfVisual(token).catch(e => { console.warn("PDF visual failed:", e); if (token === pvToken) host.innerHTML = `<p class="pv-note danger">${esc(t.visualErr)}</p>`; });
   }
-  function clearPdfVisual(){ PV = null; pvToken++; S.pdfVisual = false; const h = $("pdfVisual"); if (h) h.innerHTML = ""; }
+  function clearPdfVisual(){
+    PV = null;
+    pvToken++;
+    S.pdfVisual = false;
+    document.body.classList.remove("pdf-visual-on");
+    const h = $("pdfVisual");
+    if (h) {
+      h.innerHTML = "";
+      h.classList.add("hidden");
+    }
+  }
   function setDocView(view){
     S.docView = view === "preview" ? "preview" : "original";
     localStorage.setItem("znec-docview", S.docView);
@@ -3657,6 +3667,18 @@ Orgán: OBÚ.
     if (u8.length >= 2 && u8[0] === 0xFE && u8[1] === 0xFF) {
       return new TextDecoder("utf-16be").decode(u8.subarray(2));
     }
+    if (u8.length >= 4) {
+      const checkLen = Math.min(u8.length - (u8.length % 2), 256);
+      let zeroOdds = 0;
+      for (let i = 1; i < checkLen; i += 2) {
+        if (u8[i] === 0) zeroOdds++;
+      }
+      if (zeroOdds / (checkLen / 2) > 0.8) {
+        try {
+          return new TextDecoder("utf-16le").decode(u8);
+        } catch (_) {}
+      }
+    }
     try {
       return new TextDecoder("utf-8", { fatal: true }).decode(u8);
     } catch (_) {}
@@ -3672,8 +3694,18 @@ Orgán: OBÚ.
 
   function isBinaryBuffer(buf){
     const u8 = toBytes(buf);
+    if (!u8 || !u8.length) return false;
+    if (u8.length >= 3 && u8[0] === 0xEF && u8[1] === 0xBB && u8[2] === 0xBF) return false;
+    if (u8.length >= 2 && ((u8[0] === 0xFF && u8[1] === 0xFE) || (u8[0] === 0xFE && u8[1] === 0xFF))) return false;
+    if (u8.length >= 4) {
+      const checkLen = Math.min(u8.length - (u8.length % 2), 256);
+      let zeroOdds = 0;
+      for (let i = 1; i < checkLen; i += 2) {
+        if (u8[i] === 0) zeroOdds++;
+      }
+      if (zeroOdds / (checkLen / 2) > 0.8) return false;
+    }
     const limit = Math.min(u8.length, 8000);
-    if (!limit) return false;
     let ctrl = 0;
     for (let i = 0; i < limit; i++) {
       const b = u8[i];
@@ -3685,7 +3717,17 @@ Orgán: OBÚ.
 
   function extractRtfText(rtfStr){
     let s = String(rtfStr || "");
+    s = s.replace(/\{\\\*[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/gi, "");
     s = s.replace(/\{\\(?:fonttbl|colortbl|stylesheet|info|pict)[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/gi, "");
+    s = s.replace(/\\bullet\b/gi, "•")
+         .replace(/\\endash\b/gi, "–")
+         .replace(/\\emdash\b/gi, "—")
+         .replace(/\\ldblquote\b/gi, "„")
+         .replace(/\\rdblquote\b/gi, "“")
+         .replace(/\\lquote\b/gi, "‘")
+         .replace(/\\rquote\b/gi, "’")
+         .replace(/\\~/g, "\u00A0")
+         .replace(/\\_/g, "\u2011");
     s = s.replace(/\\par\b/gi, "\n").replace(/\\line\b/gi, "\n").replace(/\\tab\b/gi, "\t");
     s = s.replace(/\\u(-?\d+)[^\\{}]?/g, (_, c) => {
       let n = parseInt(c, 10);
@@ -3718,8 +3760,25 @@ Orgán: OBÚ.
     if (!content) throw new Error("Neplatný ODT: chybí content.xml");
     const xml = new TextDecoder("utf-8").decode(content);
     const doc = new DOMParser().parseFromString(xml, "application/xml");
-    const paras = Array.from(doc.getElementsByTagNameNS("*", "p"));
-    return paras.map(p => (p.textContent || "").trim()).filter(Boolean).join("\n\n");
+    if (doc.getElementsByTagName("parsererror").length) throw new Error("Chyba XML v ODT");
+    const elements = Array.from(doc.getElementsByTagNameNS("*", "*")).filter(n => {
+      const name = n.localName;
+      return name === "p" || name === "h";
+    });
+    return elements.map(el => {
+      const parts = Array.from(el.childNodes).map(n => {
+        if (n.nodeType === 3) return n.nodeValue || "";
+        const name = n.localName;
+        if (name === "tab") return "\t";
+        if (name === "line-break") return "\n";
+        if (name === "s") {
+          const count = parseInt(n.getAttributeNS("*", "c") || n.getAttribute("text:c") || "1", 10);
+          return " ".repeat(Math.max(1, count));
+        }
+        return n.textContent || "";
+      });
+      return parts.join("").trim();
+    }).filter(Boolean).join("\n\n");
   }
 
   function extractDocxTextWithFflate(buf){
@@ -3728,26 +3787,43 @@ Orgán: OBÚ.
     const files = fflate.unzipSync(u8);
     const docEntry = files["word/document.xml"];
     if (!docEntry) throw new Error("Neplatný DOCX: chybí word/document.xml");
-    const xml = new TextDecoder("utf-8").decode(docEntry);
-    const doc = new DOMParser().parseFromString(xml, "application/xml");
-    if (doc.getElementsByTagName("parsererror").length) throw new Error("Chyba XML v DOCX");
-    const paras = Array.from(doc.getElementsByTagNameNS(DOCX_W_NS, "p"));
-    const lines = paras.map(p => {
-      const texts = Array.from(p.getElementsByTagNameNS(DOCX_W_NS, "*")).filter(n => {
-        const name = n.localName;
-        return name === "t" || name === "tab" || name === "noBreakHyphen" || name === "softHyphen" || name === "br";
-      }).map(n => {
-        const name = n.localName;
-        if (name === "t") return n.textContent || "";
-        if (name === "tab") return "\t";
-        if (name === "noBreakHyphen") return "\u2011";
-        if (name === "softHyphen") return "\u00AD";
-        if (name === "br") return "\n";
-        return "";
-      });
-      return texts.join("");
+
+    function parseDocxXml(entryBytes){
+      if (!entryBytes) return "";
+      const xml = new TextDecoder("utf-8").decode(entryBytes);
+      const doc = new DOMParser().parseFromString(xml, "application/xml");
+      if (doc.getElementsByTagName("parsererror").length) return "";
+      const paras = Array.from(doc.getElementsByTagNameNS(DOCX_W_NS, "p"));
+      return paras.map(p => {
+        const texts = Array.from(p.getElementsByTagNameNS(DOCX_W_NS, "*")).filter(n => {
+          const name = n.localName;
+          return name === "t" || name === "tab" || name === "noBreakHyphen" || name === "softHyphen" || name === "br";
+        }).map(n => {
+          const name = n.localName;
+          if (name === "t") return n.textContent || "";
+          if (name === "tab") return "\t";
+          if (name === "noBreakHyphen") return "\u2011";
+          if (name === "softHyphen") return "\u00AD";
+          if (name === "br") return "\n";
+          return "";
+        });
+        return texts.join("");
+      }).join("\n");
+    }
+
+    const sections = [];
+    Object.keys(files).filter(k => /^word\/header\d*\.xml$/i.test(k)).sort().forEach(k => {
+      const t = parseDocxXml(files[k]).trim();
+      if (t) sections.push(t);
     });
-    return lines.join("\n");
+    const body = parseDocxXml(docEntry);
+    if (body) sections.push(body);
+    Object.keys(files).filter(k => /^word\/(footnotes|endnotes|footer\d*)\.xml$/i.test(k)).sort().forEach(k => {
+      const t = parseDocxXml(files[k]).trim();
+      if (t) sections.push(t);
+    });
+
+    return sections.join("\n\n");
   }
 
   function isImageFile(name, type){
@@ -3756,7 +3832,7 @@ Orgán: OBÚ.
   }
 
   async function handleImageFile(file, buf){
-    if (!S.ocrEnabled && !window.Tesseract) {
+    if (!S.ocrEnabled || !window.Tesseract) {
       throw new Error(i().errImageNeedOcr);
     }
     const t = S.lang;
@@ -3865,6 +3941,9 @@ Orgán: OBÚ.
       if (!file || file.size === 0) {
         throw new Error(i().errFileEmpty.replace("{f}", file ? file.name : ""));
       }
+      if (file.size > 100 * 1024 * 1024) {
+        throw new Error(i().errFileTooLarge.replace("{f}", file.name));
+      }
       const buf = await file.arrayBuffer();
       const n = (file.name || "").toLowerCase();
 
@@ -3946,6 +4025,7 @@ Orgán: OBÚ.
     applyQuickMode();
     applyFastApprove();
     applyBarPos();
+    syncSettingsForms();
   }
 
   function analysisContextKey(){
@@ -4062,6 +4142,12 @@ Orgán: OBÚ.
     if (failedIndex >= 0) Q.items.splice(failedIndex, 1);
     Q.cur = -1;
 
+    if (Q.items.length > 0) {
+      const nextIdx = Math.min(Math.max(0, failedIndex), Q.items.length - 1);
+      await openQueueItem(nextIdx);
+      return;
+    }
+
     if (prevItem) {
       const backIndex = Q.items.indexOf(prevItem);
       if (backIndex >= 0 && prevItem.snap) {
@@ -4072,21 +4158,7 @@ Orgán: OBÚ.
       }
     }
 
-    S.text = "";
-    S.fileName = "";
-    S.hits = [];
-    S.sourceBuf = null;
-    S.pages = [];
-    S.noTextPages = 0;
-    S.cellMap = [];
-    S.hashIn = "";
-    S.hashOut = "";
-    S.reviewed = false;
-    S.secondEyes = false;
-    S.selectedId = null;
-    S.seen = new Set();
-    S.analysisContext = "";
-    paint();
+    reset();
   }
 
   function renderQueue(){
@@ -4208,7 +4280,9 @@ Orgán: OBÚ.
   }
   async function getPdfDocument(data){
     await pdfWorker();
-    const bytes = (data instanceof Uint8Array) ? data : new Uint8Array(data.slice ? data.slice(0) : data);
+    const bytes = (data instanceof Uint8Array)
+      ? new Uint8Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength))
+      : new Uint8Array(data.slice ? data.slice(0) : data);
     const options = {
       data: bytes,
       disableStream: true,
@@ -5730,15 +5804,26 @@ Orgán: OBÚ.
     if (e.target.id === "movie-title-card") movieCloseTitleCard();
   });
 
+  function isIgnoredSystemFile(name){
+    if (!name) return true;
+    const base = name.split("/").pop().split("\\").pop();
+    return base.startsWith("~$") || base.startsWith("._") || base === ".DS_Store" || base === "Thumbs.db" || base === "desktop.ini";
+  }
+
   async function collectFilesFromDataTransfer(dt){
     if (!dt) return [];
     const items = dt.items;
-    if (!items || !items.length) return Array.from(dt.files || []);
+    if (!items || !items.length) {
+      return Array.from(dt.files || []).filter(f => !isIgnoredSystemFile(f.name));
+    }
     const files = [];
     async function scanEntry(entry){
       if (!entry) return;
       if (entry.isFile) {
-        return new Promise(res => entry.file(f => { if (f) files.push(f); res(); }, () => res()));
+        return new Promise(res => entry.file(f => {
+          if (f && !isIgnoredSystemFile(f.name)) files.push(f);
+          res();
+        }, () => res()));
       }
       if (entry.isDirectory) {
         const reader = entry.createReader();
@@ -5761,10 +5846,10 @@ Orgán: OBÚ.
         if (entry) { promises.push(scanEntry(entry)); continue; }
       }
       const f = it.getAsFile ? it.getAsFile() : null;
-      if (f) files.push(f);
+      if (f && !isIgnoredSystemFile(f.name)) files.push(f);
     }
     if (promises.length) await Promise.all(promises);
-    return files.length ? files : Array.from(dt.files || []);
+    return files.length ? files : Array.from(dt.files || []).filter(f => !isIgnoredSystemFile(f.name));
   }
 
   $("btnBrowse").onclick = pickFile;
@@ -5774,6 +5859,7 @@ Orgán: OBÚ.
   $("drop").ondragleave = () => $("drop").classList.remove("over");
   $("drop").ondrop = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     $("drop").classList.remove("over");
     const files = await collectFilesFromDataTransfer(e.dataTransfer);
     if (files.length) onFiles(files);
@@ -6939,19 +7025,30 @@ Orgán: OBÚ.
       got: [decodeTextBuffer(new Uint8Array([0xef, 0xbb, 0xbf, 0x41, 0x68, 0x6f, 0x6a]))]
     });
     cases.push({
+      name: "text decoding utf16le with bom",
+      ok: decodeTextBuffer(new Uint8Array([0xff, 0xfe, 0x41, 0x00, 0x68, 0x00, 0x6f, 0x00, 0x6a, 0x00])) === "Ahoj",
+      type: "encoding",
+      includes: "Ahoj",
+      got: [decodeTextBuffer(new Uint8Array([0xff, 0xfe, 0x41, 0x00, 0x68, 0x00, 0x6f, 0x00, 0x6a, 0x00]))]
+    });
+    cases.push({
       name: "binary buffer detection",
-      ok: isBinaryBuffer(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0x01])) && !isBinaryBuffer(new Uint8Array([0x41, 0x68, 0x6f, 0x6a])),
+      ok: isBinaryBuffer(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0x01])) &&
+          !isBinaryBuffer(new Uint8Array([0x41, 0x68, 0x6f, 0x6a])) &&
+          !isBinaryBuffer(new Uint8Array([0xff, 0xfe, 0x41, 0x00, 0x68, 0x00])),
       type: "binary-detect",
       includes: "true/false",
       got: [String(isBinaryBuffer(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0x01])))]
     });
     cases.push({
       name: "rtf text extraction with czech diacritics",
-      ok: extractRtfText("{\\rtf1\\ansi\\ansicpg1250\\pard Smlouva o d\\'edle.\\par Objednatel: Jan Nov\\'e1k\\par}").includes("Smlouva o díle.") &&
-          extractRtfText("{\\rtf1\\ansi\\ansicpg1250\\pard Smlouva o d\\'edle.\\par Objednatel: Jan Nov\\'e1k\\par}").includes("Jan Novák"),
+      ok: extractRtfText("{\\rtf1\\ansi\\ansicpg1250{\\*\\generator App}\\pard Smlouva o d\\'edle.\\par \\ldblquote Objednatel\\rdblquote : Jan Nov\\'e1k\\bullet Hotovo\\par}").includes("Smlouva o díle.") &&
+          extractRtfText("{\\rtf1\\ansi\\ansicpg1250{\\*\\generator App}\\pard Smlouva o d\\'edle.\\par \\ldblquote Objednatel\\rdblquote : Jan Nov\\'e1k\\bullet Hotovo\\par}").includes("Jan Novák") &&
+          extractRtfText("{\\rtf1\\ansi\\ansicpg1250{\\*\\generator App}\\pard Smlouva o d\\'edle.\\par \\ldblquote Objednatel\\rdblquote : Jan Nov\\'e1k\\bullet Hotovo\\par}").includes("„Objednatel“") &&
+          !extractRtfText("{\\rtf1\\ansi\\ansicpg1250{\\*\\generator App}\\pard Smlouva o d\\'edle.\\par \\ldblquote Objednatel\\rdblquote : Jan Nov\\'e1k\\bullet Hotovo\\par}").includes("generator"),
       type: "rtf-extract",
       includes: "Smlouva o díle.",
-      got: [extractRtfText("{\\rtf1\\ansi\\ansicpg1250\\pard Smlouva o d\\'edle.\\par Objednatel: Jan Nov\\'e1k\\par}")]
+      got: [extractRtfText("{\\rtf1\\ansi\\ansicpg1250{\\*\\generator App}\\pard Smlouva o d\\'edle.\\par \\ldblquote Objednatel\\rdblquote : Jan Nov\\'e1k\\bullet Hotovo\\par}")]
     });
     cases.push({
       name: "image file recognition",

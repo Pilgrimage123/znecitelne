@@ -107,6 +107,22 @@ check(
   htmlSourceIncludes("function handleImageFile("),
   "application must support image files with OCR"
 );
+check(
+  htmlSourceIncludes("document.body.classList.remove(\"pdf-visual-on\")"),
+  "clearPdfVisual must remove pdf-visual-on from document.body"
+);
+check(
+  htmlSourceIncludes("isIgnoredSystemFile"),
+  "directory file collection must filter out temporary lock and OS metadata files"
+);
+check(
+  htmlSourceIncludes("utf-16le"),
+  "text decoding must support UTF-16 LE"
+);
+check(
+  htmlSourceIncludes("errFileTooLarge"),
+  "file loader must guard against oversized files"
+);
 
 check(
   server.includes("if (path.extname(req.path))"),
