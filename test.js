@@ -73,6 +73,40 @@ check(
   htmlSourceIncludes("function getRedactionDiff(") && htmlSourceIncludes("diffRemovedTitle"),
   "application must provide text comparison diff before/after redaction with removed words for approval"
 );
+check(
+  htmlSourceIncludes("function generateCzechNameForms(") &&
+  htmlSourceIncludes("function expandCzechNameMorphology("),
+  "application must provide Czech name morphology generation and case expansion"
+);
+check(
+  htmlSourceIncludes("function verifySanitizedPdfText("),
+  "PDF export must verify sanitized text layer with zero leaked sensitive words"
+);
+check(
+  htmlSourceIncludes("function decodeTextBuffer(") &&
+  htmlSourceIncludes("windows-1250"),
+  "application must decode non-UTF-8 Czech texts in Windows-1250"
+);
+check(
+  htmlSourceIncludes("function isBinaryBuffer("),
+  "application must guard against raw binary buffers"
+);
+check(
+  htmlSourceIncludes("function extractRtfText("),
+  "application must support RTF text extraction"
+);
+check(
+  htmlSourceIncludes("function removeQueueItem("),
+  "queue must allow removing items"
+);
+check(
+  htmlSourceIncludes("function collectFilesFromDataTransfer("),
+  "application must support recursive directory drag and drop"
+);
+check(
+  htmlSourceIncludes("function handleImageFile("),
+  "application must support image files with OCR"
+);
 
 check(
   server.includes("if (path.extname(req.path))"),

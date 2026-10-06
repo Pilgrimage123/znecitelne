@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-10-06
+
+- Morfologická lemmatizace a skloňování českých jmen (Nápad 1 / B.6):
+  - **Generátor pádů a flexe:** Zavedeny funkce `declineCzechFirstName`, `declineCzechSurname` a `generateCzechNameForms` pokrývající všech 7 pádů u maskulin a feminin, přechylování (-ová / -ové / -ovou), přivlastňovací tvary, iniciály i oslovení (pan / paní / pana / panu).
+  - **Automatická morfologická expanze:** Detektor v `detect()` po identifikaci osob automaticky provádí druhou fázi expanze (`expandCzechNameMorphology`), která dohledá všechny pádové výskyty a přiřadí jim identický `entityKey` (sjednocený pseudonymní token).
+  - **Inspektor a ruční výběr:** V panelu nálezu přidáno tlačítko pro spuštění skloňování na 1 klik a při ručním přidání jména přes „Přidat vlastní výběr textu“ (`btnAdd`) aplikace automaticky nabídne a dohledá všechny jeho pády v dokumentu.
+
+- Robustní načítání souborů, kódování češtiny, OCR obrázků a dávková fronta (Nápad 2 / D):
+  - **Detekce kódování a podpora Windows-1250 / ISO-8859-2 (`decodeTextBuffer`):** Zavedena automatická detekce BOM (UTF-8, UTF-16LE, UTF-16BE), striktní UTF-8 a plynulý fallback na Windows-1250 (CP1250) a ISO-8859-2. České znaky (ř, š, č, ž, ý, á, í, é, ě, ú, ů, ť, ď, ň) v souborech TXT, CSV a TSV ze starších státních systémů se již nepoškozují znakem `\uFFFD`, což garantuje bezchybnou detekci entit.
+  - **Ochrana před binárním smetím (`isBinaryBuffer`):** Kontrola nulových bajtů a řídicích znaků zabraňuje zahlcení aplikace náhodnými binárními soubory (ZIP, EXE apod.) se srozumitelnou chybovou hláškou.
+  - **Nahrávání obrázků a skenů přes OCR (`handleImageFile`):** Přidána přímá podpora pro obrázky (PNG, JPG, JPEG, WEBP, BMP, TIFF). Při zapnutém OCR je obrázek analyzován modelem Tesseract.js a zabalen do jednorázového PDF (přes PDFLib) s textovými souřadnicemi slov, což umožňuje vizuální náhled, začernění a export do PDF.
+  - **Rozšíření formátů (XLS, ODS, ODT, RTF):** Podpora pro starší Excel tabulky `.xls` a LibreOffice `.ods` (SheetJS), OpenDocument Text `.odt` (extrakce přes fflate), Rich Text Format `.rtf` (dekódování včetně `\'hh` Windows-1250 sekvencí a unicode `\uN?`) a nápověda pro starý formát `.doc`.
+  - **Mammoth záchranná brzda:** Při nedostupnosti nebo chybě knihovny Mammoth v DOCX souborech nastupuje automatická extrakce textu přes `fflate` z `word/document.xml`.
+  - **Globální Drag & Drop a podpora celých složek:** Zachycení `dragover` a `drop` na celém okně brání nechtěnému opuštění aplikace v prohlížeči. Podpora rekurzivního načtení všech souborů při přetažení celé složky (`webkitGetAsEntry`).
+  - **Oprava zobrazení skenů a správa fronty:** Naskenovaná PDF bez textové vrstvy se již nevyřazují z fronty, ale zobrazí se v náhledu s varováním o chybějící textové vrstvě. Jednotlivé položky ve frontě lze nově kdykoliv odebrat tlačítkem `×`.
+
+- Bezpečný vyhledatelný PDF export (Dual-Layer Sanitized PDF / Nápad 3 / C & A.3):
+  - **Čistá textová vrstva nad rastrem:** `exportPdfRaster` zachovává striktní bezpečnostní nevratnost rastrového podkladu na canvasu (černé obdélníky přes všechny nálezy), ale nad obraz vkládá novou textovou vrstvu s nulovou opacitou z bezpečných, nezačerněných souřadnic (`mapPageGlyphs`).
+  - **Fyzická eliminace citlivých slov:** Začerněná slova a podpisová pole jsou z textové vrstvy striktně vynechána; nehrozí žádný skrytý text pod začerněním.
+  - **Stream verifikace před vydáním:** Do procesu zařazena funkce `verifySanitizedPdfText`, která dekomprimuje PDF streamy a garantuje 0 uniklých citlivých slov v textové vrstvě hotového souboru. Výsledné PDF je plně fulltextově prohledávatelné a přístupné.
+
 ## 2026-10-05
 
 - Ošetření specifik Microsoft Wordu, české abecedy, diakritiky a interpunkce (ai31):

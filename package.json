@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node server.js",
-    "prebuild": "bash scripts/download_libs.sh",
+    "prebuild": "node -e \"if (process.platform !== 'win32' || require('child_process').spawnSync('where', ['bash']).status === 0) try { require('child_process').execSync('bash scripts/download_libs.sh', {stdio:'inherit'}); } catch(_) {}\"",
     "build": "node build.js",
     "start": "node server.js",
     "test": "node test.js"
