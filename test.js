@@ -123,6 +123,10 @@ check(
   htmlSourceIncludes("errFileTooLarge"),
   "file loader must guard against oversized files"
 );
+check(
+  htmlSourceIncludes('id="residual"') && !htmlSourceIncludes('$("residual").className ='),
+  "residual element must exist in markup and be guarded against null references in paintReview"
+);
 
 check(
   server.includes("if (path.extname(req.path))"),

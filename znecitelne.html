@@ -591,6 +591,7 @@ body.movie-active #settingsSheet {
 <section id="review" class="review hidden">
   <div id="queueBar" class="queue hidden" role="group"></div>
   <div class="toolbar" id="toolbar"></div>
+  <p id="residual" class="ok hidden"></p>
   <p id="scanWarn" class="danger hidden"></p>
   <p id="sigWarn" class="danger hidden" role="alert"></p>
   <div class="work">
@@ -3386,8 +3387,11 @@ Orgán: OBÚ.
       <span class="badge">${S.hits.length-red} ${t.kept}</span>
       <span class="badge">${S.seen.size} ${t.walk} ${S.hits.length}</span>
       <button class="btn btn-sm btn-sec" id="btnClear" data-tip="${t.tips.clear}">${t.clear}</button>`;
-    $("residual").className = residualClass + " hidden";
-    $("residual").textContent = residualText;
+    const residualEl = $("residual");
+    if (residualEl) {
+      residualEl.className = residualClass + " hidden";
+      residualEl.textContent = residualText;
+    }
     const scanWarn = $("scanWarn");
     if (S.noTextPages) {
       scanWarn.classList.remove("hidden");
