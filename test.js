@@ -140,6 +140,19 @@ check(
   htmlSourceIncludes("async function getOcrWorker()"),
   "PDF text extractor must lazily initialize OCR worker only when needed"
 );
+check(
+  htmlSourceIncludes('pdfaFontWarn:"Nevložené fonty') &&
+  htmlSourceIncludes('pdfaFontWarn:"Unembedded fonts'),
+  "PDF/A font warning localization must exist in both Czech and English"
+);
+check(
+  htmlSourceIncludes("\\ldblquote\\b ?") && htmlSourceIncludes("\\par\\b ?"),
+  "RTF extraction must discard trailing control word delimiter spaces"
+);
+check(
+  htmlSourceIncludes("document.onkeydown = (e) =>"),
+  "movie navigation keys must be isolated via document.onkeydown"
+);
 
 check(
   server.includes("if (path.extname(req.path))"),

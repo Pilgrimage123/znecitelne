@@ -571,7 +571,7 @@ body.movie-active #settingsSheet {
         <p style="font-weight:600;margin:0" id="dropTitle"></p>
         <p style="color:var(--muted);font-size:14px;margin:8px 0 0" id="dropHint"></p>
       </div>
-      <input id="file" type="file" multiple hidden accept=".pdf,.docx,.xlsx,.xls,.ods,.odt,.rtf,.txt,.csv,.tsv,.json,.xml,.html,.htm,.md,.png,.jpg,.jpeg,.webp,.bmp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.oasis.opendocument.spreadsheet,text/plain,text/csv,image/*" />
+      <input id="file" type="file" multiple hidden accept=".pdf,.docx,.xlsx,.xls,.ods,.odt,.rtf,.txt,.csv,.tsv,.json,.xml,.html,.htm,.md,.png,.jpg,.jpeg,.webp,.bmp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.text,application/rtf,text/rtf,text/plain,text/csv,image/*" />
       <div class="stack">
         <button class="btn" id="btnSample" type="button"></button>
         <button class="btn btn-sec" id="btnMovie" type="button"></button>
@@ -995,7 +995,7 @@ Orgán: OBÚ.
       leakOk:"After redaction, no leftover ticket, email or birth-number patterns.",
       leakBad:"After redaction, patterns remain that a public AI could still misuse.",
       stripMeta:"Strip metadata",
-      pdfaDecl:"PDF/A-2b declaration (XMP) – not certified conformance", pdfaNote:"The PDF only carries a PDF/A declaration (XMP); it is not certified PDF/A – embedded fonts and an OutputIntent are missing.", pdfaFail:"Could not embed the PDF/A declaration.",
+      pdfaDecl:"PDF/A-2b declaration (XMP) – not certified conformance", pdfaNote:"The PDF only carries a PDF/A declaration (XMP); it is not certified PDF/A – embedded fonts and an OutputIntent are missing.", pdfaFontWarn:"Unembedded fonts found on page(s) {n}; these pages should be converted to raster for secure export.", pdfaFail:"Could not embed the PDF/A declaration.",
       queueLbl:"File queue", queueAll:"Export all reviewed", queueNone:"No file in the queue has been reviewed yet.", queueDone:"Files exported: {n}", queueBad:"File “{f}” could not be loaded.", queueRemove:"Remove from queue", errPdfPassword:"PDF is password-protected. Please remove the password before processing.", errPdfInvalid:"PDF file is damaged or incomplete.", errFileEmpty:"File “{f}” is empty (0 bytes).", errFileTooLarge:"File “{f}” is too large (maximum is 100 MB).", errFileBinary:"File “{f}” is in an unsupported binary format.", errDocOld:"Legacy .doc format (Word 97-2003) should be saved as .docx or .pdf.", errImageNeedOcr:"Image processing (scans) requires OCR enabled in settings.",
       truePdfRedact:"Truly remove redacted text from PDF (not just an image)",
       truePdfRedactHint:"Keeps the rest of the document as searchable text, in every output mode (black-box, XXXX, label, and pseudonym alike). Pages that can't be safely verified are still converted to an image.",
@@ -2249,7 +2249,7 @@ Orgán: OBÚ.
 
   function docxNormalizeZipPath(path){
     const out = [];
-    String(path || "").replace(/^\/+/, "").split("/").forEach(part => {
+    String(path || "").replace(/\\/g, "/").replace(/^\/+/, "").split("/").forEach(part => {
       if (!part || part === ".") return;
       if (part === "..") out.pop();
       else out.push(part);
@@ -2462,12 +2462,14 @@ Orgán: OBÚ.
       const doc = new DOMParser().parseFromString(dec.decode(files[name]), "application/xml");
       if (doc.getElementsByTagName("parsererror").length) throw new Error("Invalid relationships: " + name);
 
+      const sourcePart = docxRelationshipSourcePart(name);
       let changed = false;
       Array.from(doc.getElementsByTagNameNS(DOCX_REL_NS, "Relationship")).forEach(rel => {
         const type = rel.getAttribute("Type") || "";
+        const target = docxResolveRelTarget(sourcePart, rel.getAttribute("Target"));
         if (
-          /\/relationships\/(?:image|oleObject|package)$/i.test(type) ||
-          /\/relationships\/vmlDrawing$/i.test(type)
+          /\/relationships\/(?:image|oleObject|package|vmlDrawing|audio|video)$/i.test(type) ||
+          (target && /^word\/(?:media|embeddings)\//i.test(target))
         ) {
           rel.parentNode?.removeChild(rel);
           changed = true;
@@ -2595,9 +2597,16 @@ Orgán: OBÚ.
     });
 
     const files = fflate.unzipSync(new Uint8Array(sourceBuf.slice(0)));
+    for (const k of Object.keys(files)) {
+      const norm = k.replace(/\\/g, "/");
+      if (norm !== k) {
+        files[norm] = files[k];
+        delete files[k];
+      }
+    }
     const dec = new TextDecoder("utf-8"), enc = new TextEncoder();
     const found = new Set();
-    const partRe = /^word\/(document|header\d*|footer\d*|footnotes|endnotes|comments\w*)\.xml$/;
+    const partRe = /^word\/(document|header\d*|footer\d*|footnotes|endnotes|comments\w*)\.xml$/i;
 
     for (const name of Object.keys(files)) {
       if (partRe.test(name)) {
@@ -3304,7 +3313,7 @@ Orgán: OBÚ.
         const meta = (S.pages || []).find(p => p.n === pg.n);
         if (!meta || h.start < meta.start || h.start >= meta.end + 1) return;
         const rel = h.start - meta.start;
-        let idx = pg.text.substr(rel, h.value.length) === h.value ? rel : pg.text.indexOf(h.value);
+        let idx = pg.text.slice(rel, rel + h.value.length) === h.value ? rel : pg.text.indexOf(h.value);
         if (idx < 0) return;
         const end = idx + Math.max(h.value.length, 1);
         const glyphs = pg.map.filter(m => m.end > idx && m.start < end);
@@ -3757,19 +3766,37 @@ Orgán: OBÚ.
   }
 
   function extractRtfText(rtfStr){
-    let s = String(rtfStr || "");
-    s = s.replace(/\{\\\*[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/gi, "");
-    s = s.replace(/\{\\(?:fonttbl|colortbl|stylesheet|info|pict)[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/gi, "");
-    s = s.replace(/\\bullet\b/gi, "•")
-         .replace(/\\endash\b/gi, "–")
-         .replace(/\\emdash\b/gi, "—")
-         .replace(/\\ldblquote\b/gi, "„")
-         .replace(/\\rdblquote\b/gi, "“")
-         .replace(/\\lquote\b/gi, "‘")
-         .replace(/\\rquote\b/gi, "’")
+    let raw = String(rtfStr || "");
+    let s = "";
+    let i = 0;
+    while (i < raw.length) {
+      if (raw[i] === "{" && raw[i + 1] === "\\") {
+        const rest = raw.slice(i + 2);
+        if (/^(\*|(?:fonttbl|colortbl|stylesheet|info|pict)\b)/i.test(rest)) {
+          let depth = 1;
+          i += 2;
+          while (i < raw.length && depth > 0) {
+            if (raw[i] === "\\") { i += 2; continue; }
+            if (raw[i] === "{") depth++;
+            else if (raw[i] === "}") depth--;
+            i++;
+          }
+          continue;
+        }
+      }
+      s += raw[i];
+      i++;
+    }
+    s = s.replace(/\\bullet\b ?/gi, "•")
+         .replace(/\\endash\b ?/gi, "–")
+         .replace(/\\emdash\b ?/gi, "—")
+         .replace(/\\ldblquote\b ?/gi, "„")
+         .replace(/\\rdblquote\b ?/gi, "“")
+         .replace(/\\lquote\b ?/gi, "‘")
+         .replace(/\\rquote\b ?/gi, "’")
          .replace(/\\~/g, "\u00A0")
          .replace(/\\_/g, "\u2011");
-    s = s.replace(/\\par\b/gi, "\n").replace(/\\line\b/gi, "\n").replace(/\\tab\b/gi, "\t");
+    s = s.replace(/\\par\b ?/gi, "\n").replace(/\\line\b ?/gi, "\n").replace(/\\tab\b ?/gi, "\t");
     s = s.replace(/\\u(-?\d+)[^\\{}]?/g, (_, c) => {
       let n = parseInt(c, 10);
       if (n < 0) n += 65536;
@@ -3787,8 +3814,10 @@ Orgán: OBÚ.
       }
     });
     s = s.replace(/\\([a-zA-Z]+)-?\d* ?/g, "");
+    s = s.replace(/\\\\/g, "\uE000").replace(/\\\{/g, "\uE001").replace(/\\\}/g, "\uE002");
     s = s.replace(/\\([\\{}~])/g, "$1");
     s = s.replace(/[{}]/g, "");
+    s = s.replace(/\uE001/g, "{").replace(/\uE002/g, "}").replace(/\uE000/g, "\\");
     s = s.replace(/\\/g, "");
     return s.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
   }
@@ -4062,7 +4091,18 @@ Orgán: OBÚ.
               await ingest(file.name, "text", text, buf);
               return true;
             }
-          } catch (_) {}
+            const hasWbXml = Object.keys(files).some(k => k.replace(/\\/g, "/").toLowerCase() === "xl/workbook.xml");
+            if (hasWbXml) {
+              const extracted = await extractXlsx(buf);
+              if (!extracted || !extracted.text || !extracted.text.trim()) throw new Error(i().errFileEmpty.replace("{f}", file.name));
+              await ingest(file.name, "xlsx", extracted.text, buf, { cellMap: extracted.cellMap });
+              return true;
+            }
+          } catch (zipErr) {
+            if (zipErr && zipErr.message && (zipErr.message.includes(file.name) || zipErr.message === i().errFileEmpty.replace("{f}", file.name))) {
+              throw zipErr;
+            }
+          }
         }
         if (isBinaryBuffer(buf)) {
           throw new Error(i().errFileBinary.replace("{f}", file.name));
@@ -4768,8 +4808,9 @@ Orgán: OBÚ.
 
         const noTextLayer = isScan && (!activeWorker || !finalItems.some(it => it.str && it.str.trim()));
 
-        const chunk = "\n\n--- "+i+" ---\n"+body;
-        const start = text.length + (body ? chunk.indexOf(body) : chunk.length);
+        const chunkPrefix = "\n\n--- "+i+" ---\n";
+        const chunk = chunkPrefix + body;
+        const start = text.length + (body ? chunkPrefix.length : chunk.length);
         text += chunk;
         pages.push({ n:i, start, end: start+body.length, body, items: finalItems, noTextLayer, signatures });
       }
@@ -6007,7 +6048,7 @@ Orgán: OBÚ.
     }
     paintReview();
   };
-    document.addEventListener("keydown", (e) => {
+  document.onkeydown = (e) => {
     if (S.movie) {
       const k = e.key;
       if (["ArrowLeft","ArrowRight"," ","Escape","Esc","j","J","k","K","r","R","p","P","ArrowUp","ArrowDown"].includes(k)) {
@@ -6021,15 +6062,24 @@ Orgán: OBÚ.
       else if (k === "Escape" || k === "Esc") exitMovieTutorial(true);
       return;
     }
+    const openModal = document.querySelector(".modal:not(.hidden)");
+    if (openModal) {
+      if (e.key === "Escape" || e.key === "Esc") {
+        if (openModal.id === "settingsModal") closeSettings();
+        else openModal.classList.add("hidden");
+      }
+      return;
+    }
     const tag = (e.target.tagName||"");
     if (tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
     if (e.metaKey||e.ctrlKey||e.altKey||!S.text) return;
     const list = filtered();
-    if (e.key==="j"||e.key==="J"||e.key==="ArrowDown") { e.preventDefault(); const idx=list.findIndex(h=>h.id===S.selectedId); const n=list[(idx<0?0:idx+1)%list.length]; if(n) select(n.id); }
-    else if (e.key==="k"||e.key==="K"||e.key==="ArrowUp") { e.preventDefault(); const idx=list.findIndex(h=>h.id===S.selectedId); const n=list[(idx<0?0:idx-1+list.length)%list.length]; if(n) select(n.id); }
+    if (!list.length) return;
+    if (e.key==="j"||e.key==="J"||e.key==="ArrowDown") { e.preventDefault(); selectNextHit(); }
+    else if (e.key==="k"||e.key==="K"||e.key==="ArrowUp") { e.preventDefault(); selectPrevHit(); }
     else if ((e.key==="r"||e.key==="R") && S.selectedId) patch(S.selectedId, true);
     else if ((e.key==="p"||e.key==="P") && S.selectedId) patch(S.selectedId, false);
-  });
+  };
   window.addEventListener("resize", () => {
     initActionMarquees(document);
     updateHeaderHeightVar();
