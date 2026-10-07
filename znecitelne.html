@@ -2210,7 +2210,8 @@ Orgán: OBÚ.
   }
   async function extractXlsx(buf){
     if (!window.XLSX) throw new Error("XLSX: knihovna se nenačetla (síť).");
-    return xlsxToText(XLSX.read(buf, { type:"array" }));
+    const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+    return xlsxToText(XLSX.read(u8, { type:"array" }));
   }
   function exportXlsxFile(sourceBuf, hits, mode, lang){
     const wb = XLSX.read(sourceBuf.slice(0), { type:"array" });
@@ -2797,29 +2798,48 @@ Orgán: OBÚ.
     return lines.join("\n");
   }
   async function sha256(buf){
-    const u8 = toBytes(buf);
-    const copy = u8.buffer.slice(u8.byteOffset, u8.byteOffset+u8.byteLength);
-    const h = await crypto.subtle.digest("SHA-256", copy);
-    return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
+    try {
+      const u8 = toBytes(buf);
+      if (typeof crypto !== "undefined" && crypto.subtle && typeof crypto.subtle.digest === "function") {
+        const copy = u8.buffer.slice(u8.byteOffset, u8.byteOffset+u8.byteLength);
+        const h = await crypto.subtle.digest("SHA-256", copy);
+        return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
+      }
+    } catch (_) {}
+    return "0000000000000000000000000000000000000000000000000000000000000000";
   }
   function download(name, blob){
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
-  function toast(msg){ const t=$("toast"); t.textContent=msg; t.style.display="block"; setTimeout(()=>t.style.display="none", 2400); }
+  function toast(msg){
+    const t = $("toast");
+    if (!t) return;
+    t.textContent = String(msg || "");
+    t.style.display = "block";
+    setTimeout(() => { if (t) t.style.display = "none"; }, 2400);
+  }
   let _ocrProgressTimer = null;
   function showOcrProgress(msg) {
     if (_ocrProgressTimer) { clearTimeout(_ocrProgressTimer); _ocrProgressTimer = null; }
-    const t = $("toast"); t.textContent = msg; t.style.display = "block";
+    const t = $("toast");
+    if (!t) return;
+    t.textContent = String(msg || "");
+    t.style.display = "block";
   }
   function hideOcrProgress() {
-    _ocrProgressTimer = setTimeout(() => { $("toast").style.display = "none"; _ocrProgressTimer = null; }, 800);
+    _ocrProgressTimer = setTimeout(() => {
+      const t = $("toast");
+      if (t) t.style.display = "none";
+      _ocrProgressTimer = null;
+    }, 800);
   }
   let tipTimer = null;
   let tipAnchor = null;
   const TIP_DELAY_MS = 350;
   function positionTip(el){
     const box = $("tip");
+    if (!box) return;
     box.style.left = "0px";
     box.style.top = "0px";
     const r = el.getBoundingClientRect();
@@ -2947,7 +2967,8 @@ Orgán: OBÚ.
   function wireSettings(root, prefix){
     const p = prefix || "";
     const q = (id) => root.querySelector("#"+p+id);
-    q("selProfile").onchange = (e) => {
+    const selProf = q("selProfile");
+    if (selProf) selProf.onchange = (e) => {
       applyProfile(e.target.value);
       root.querySelectorAll("[data-cat]").forEach(cb => { cb.checked = S.enabled[cb.getAttribute("data-cat")]; });
       const sm = q("selMode"); if (sm) sm.value = S.mode;
@@ -2955,8 +2976,10 @@ Orgán: OBÚ.
       else paintLanding();
       syncSettingsForms(root);
     };
-    q("selMode").onchange = (e) => { S.mode = e.target.value; if (S.text) paintReview(); syncSettingsForms(root); };
-    q("selSuspicion").onchange = (e) => {
+    const selMode = q("selMode");
+    if (selMode) selMode.onchange = (e) => { S.mode = e.target.value; if (S.text) paintReview(); syncSettingsForms(root); };
+    const selSusp = q("selSuspicion");
+    if (selSusp) selSusp.onchange = (e) => {
       S.suspicion = e.target.value;
       localStorage.setItem("znec-suspicion", S.suspicion);
       if (S.text) runAnalyze();
@@ -3157,24 +3180,26 @@ Orgán: OBÚ.
 
   function paintLanding(){
     const t = i();
-    $("title").textContent = t.name; $("tagline").textContent = t.tagline;
-    $("lead").textContent = t.landingLead;
-    $("s1").textContent = t.landingStep1; $("s2").textContent = t.landingStep2; $("s3").textContent = t.landingStep3;
-    $("privacy").textContent = t.privacy; $("dropTitle").textContent = t.drop; $("dropHint").textContent = S.ocrEnabled ? t.dropHintOcr : t.dropHint;
-    $("btnSample").textContent = t.trySample; $("btnSample").setAttribute("data-tip", t.tips.sample);
-    $("btnMovie").textContent = t.movieTutorial; $("btnMovie").setAttribute("data-tip", t.tips.movie);
-    $("btnBrowse").textContent = t.browse; $("btnBrowse").setAttribute("data-tip", t.tips.browse);
-    $("lblNewFile").textContent = t.newFile;
-    $("btnNewFile").setAttribute("data-tip", t.tips.newFile);
-    $("btnHtml").textContent = "HTML"; $("btnHtml").setAttribute("data-tip", t.tips.html);
-    $("btnLang").textContent = S.lang==="cs"?"EN":"CS"; $("btnLang").setAttribute("data-tip", t.tips.lang);
+    const setT = (id, txt) => { const el = $(id); if (el) el.textContent = txt; };
+    const setTip = (id, tip) => { const el = $(id); if (el) el.setAttribute("data-tip", tip); };
+    setT("title", t.name); setT("tagline", t.tagline);
+    setT("lead", t.landingLead);
+    setT("s1", t.landingStep1); setT("s2", t.landingStep2); setT("s3", t.landingStep3);
+    setT("privacy", t.privacy); setT("dropTitle", t.drop); setT("dropHint", S.ocrEnabled ? t.dropHintOcr : t.dropHint);
+    setT("btnSample", t.trySample); setTip("btnSample", t.tips.sample);
+    setT("btnMovie", t.movieTutorial); setTip("btnMovie", t.tips.movie);
+    setT("btnBrowse", t.browse); setTip("btnBrowse", t.tips.browse);
+    setT("lblNewFile", t.newFile);
+    setTip("btnNewFile", t.tips.newFile);
+    setT("btnHtml", "HTML"); setTip("btnHtml", t.tips.html);
+    setT("btnLang", S.lang==="cs"?"EN":"CS"); setTip("btnLang", t.tips.lang);
     applyTheme();
-    $("btnHelp").setAttribute("data-tip", t.tips.help);
-    $("btnFeatures").textContent = t.featuresBtn; $("btnFeatures").setAttribute("data-tip", t.tips.features);
-    $("btnChangelog").textContent = t.changelogBtn; $("btnChangelog").setAttribute("data-tip", t.tips.changelog);
-    $("btnSettings").setAttribute("data-tip", t.tips.settings);
-    $("btnSettings").setAttribute("aria-label", t.settings);
-    $("sumSettings").textContent = t.settings;
+    setTip("btnHelp", t.tips.help);
+    setT("btnFeatures", t.featuresBtn); setTip("btnFeatures", t.tips.features);
+    setT("btnChangelog", t.changelogBtn); setTip("btnChangelog", t.tips.changelog);
+    setTip("btnSettings", t.tips.settings);
+    const bs = $("btnSettings"); if (bs) bs.setAttribute("aria-label", t.settings);
+    setT("sumSettings", t.settings);
     const landingSettingsSignature = S.lang + "|" + t.settings + "|" + t.categories;
     const settingsMount = $("settingsMount");
     if (settingsMount && (!settingsMount.children.length || LANDING_SETTINGS_SIGNATURE !== landingSettingsSignature)) {
@@ -3207,7 +3232,8 @@ Orgán: OBÚ.
     vis.forEach(h => {
       if (h.start > cur) html += esc(S.text.slice(cur, h.start));
       const cls = "mk " + (h.accept?"mk-on":"mk-off") + (S.selectedId===h.id?" mk-sel":"");
-      const tip = t.cats[h.type]+" · "+hitEvidence(h, t, true);
+      const catName = (t.cats && t.cats[h.type]) || (LABEL[S.lang] && LABEL[S.lang][h.type]) || h.type;
+      const tip = catName+" · "+hitEvidence(h, t, true);
       html += `<button type="button" class="${cls}" data-id="${h.id}" data-tip="${esc(tip)}">${esc(S.text.slice(h.start,h.end))}</button>`;
       cur = h.end;
     });
@@ -3221,7 +3247,8 @@ Orgán: OBÚ.
     let html = ""; let cur = 0;
     vis.forEach(h => {
       if (h.start > cur) html += esc(S.text.slice(cur, h.start));
-      const tip = t.cats[h.type]+" · "+hitEvidence(h, t, true);
+      const catName = (t.cats && t.cats[h.type]) || (LABEL[S.lang] && LABEL[S.lang][h.type]) || h.type;
+      const tip = catName+" · "+hitEvidence(h, t, true);
       if (h.accept) {
         const cls = "mk mk-preview" + (S.selectedId===h.id?" mk-sel":"");
         html += `<button type="button" class="${cls}" data-id="${h.id}" data-tip="${esc(tip)}">${esc(replacer(h))}</button>`;
@@ -3298,6 +3325,7 @@ Orgán: OBÚ.
   }
   async function buildPdfVisual(token){
     const host = $("pdfVisual");
+    if (!host) return;
     const width = Math.max(280, Math.min(900, host.clientWidth - 16 || 700));
     if (PV && PV.buf === S.sourceBuf && PV.width === width && host.firstChild) { paintPdfVisualOverlays(); return; }
     host.innerHTML = `<p class="pv-note">${esc(i().visualNote)}</p>`;
@@ -3335,17 +3363,22 @@ Orgán: OBÚ.
     const btn = $("btnVisual"), host = $("pdfVisual"), t = i();
     const avail = pdfVisualAvailable();
     if (!avail && S.pdfVisual) S.pdfVisual = false;
-    btn.classList.toggle("hidden", !avail);
-    btn.textContent = S.pdfVisual ? t.visualOff : t.visualOn;
-    btn.setAttribute("data-tip", t.tips.visual);
-    btn.onclick = () => { S.pdfVisual = !S.pdfVisual; paintReview(); };
+    if (btn) {
+      btn.classList.toggle("hidden", !avail);
+      btn.textContent = S.pdfVisual ? t.visualOff : t.visualOn;
+      btn.setAttribute("data-tip", t.tips.visual);
+      btn.onclick = () => { S.pdfVisual = !S.pdfVisual; paintReview(); };
+    }
     document.body.classList.toggle("pdf-visual-on", S.pdfVisual);
-    $("btnAdd").disabled = S.pdfVisual;
-    host.classList.toggle("hidden", !S.pdfVisual);
-    if (!S.pdfVisual) { pvToken++; return; }
-    if (PV && PV.buf === S.sourceBuf && host.querySelector(".pv-page")) { paintPdfVisualOverlays(); return; }
-    const token = ++pvToken;
-    buildPdfVisual(token).catch(e => { console.warn("PDF visual failed:", e); if (token === pvToken) host.innerHTML = `<p class="pv-note danger">${esc(t.visualErr)}</p>`; });
+    const btnAdd = $("btnAdd");
+    if (btnAdd) btnAdd.disabled = S.pdfVisual;
+    if (host) {
+      host.classList.toggle("hidden", !S.pdfVisual);
+      if (!S.pdfVisual) { pvToken++; return; }
+      if (PV && PV.buf === S.sourceBuf && host.querySelector(".pv-page")) { paintPdfVisualOverlays(); return; }
+      const token = ++pvToken;
+      buildPdfVisual(token).catch(e => { console.warn("PDF visual failed:", e); if (token === pvToken) host.innerHTML = `<p class="pv-note danger">${esc(t.visualErr)}</p>`; });
+    }
   }
   function clearPdfVisual(){
     PV = null;
@@ -3413,11 +3446,14 @@ Orgán: OBÚ.
     $("filters").innerHTML = ["all","redact","keep"].map(f => `<button type="button" class="chip ${S.filter===f?"on":""}" data-f="${f}">${f==="all"?t.filterAll:f==="redact"?t.filterRedact:t.filterKeep}</button>`).join("");
     $("filters").querySelectorAll("[data-f]").forEach(b => b.onclick = () => { S.filter = b.dataset.f; paintReview(); });
     const list = filtered();
-    $("hitList").innerHTML = list.map(h => `<button type="button" class="hit ${S.selectedId===h.id?"sel":""}" data-id="${h.id}">
+    $("hitList").innerHTML = list.map(h => {
+      const catName = (t.cats && t.cats[h.type]) || (LABEL[S.lang] && LABEL[S.lang][h.type]) || h.type;
+      return `<button type="button" class="hit ${S.selectedId===h.id?"sel":""}" data-id="${h.id}">
       <span class="mono" style="width:24px;color:var(--muted)">${h.id}</span>
-      <span style="flex:1;min-width:0"><span class="wrap-line" style="font-size:12px;color:var(--muted)">${t.cats[h.type]} · ${hitEvidence(h,t,S.expertMode)}</span><span class="hit-value mono">${esc(h.value)}</span></span>
+      <span style="flex:1;min-width:0"><span class="wrap-line" style="font-size:12px;color:var(--muted)">${catName} · ${hitEvidence(h,t,S.expertMode)}</span><span class="hit-value mono">${esc(h.value)}</span></span>
       <span class="pill ${h.accept?"pill-hit":"pill-ok"}"><span class="pill-label">${h.accept?t.redact:t.keep}</span><span class="pill-ghost" aria-hidden="true">${h.accept?t.keep:t.redact}</span></span>
-    </button>`).join("");
+    </button>`;
+    }).join("");
     $("hitList").querySelectorAll(".hit").forEach(b => b.onclick = () => select(+b.dataset.id));
 
     const sel = S.hits.find(h => h.id===S.selectedId);
@@ -3521,9 +3557,10 @@ Orgán: OBÚ.
     if (!box) return;
     document.body.classList.toggle("hit-selected", !!(S.quickMode && sel));
     if (!S.quickMode || !sel) { box.classList.add("hidden"); box.innerHTML = ""; return; }
+    const catName = (t.cats && t.cats[sel.type]) || (LABEL[S.lang] && LABEL[S.lang][sel.type]) || sel.type;
     box.classList.remove("hidden");
     box.innerHTML = `<div class="qh-inner">
-      <div class="qh-val"><span class="qh-label">${esc(t.cats[sel.type])}</span><span class="qh-text">${esc(sel.value)}</span></div>
+      <div class="qh-val"><span class="qh-label">${esc(catName)}</span><span class="qh-text">${esc(sel.value)}</span></div>
       <div class="qh-actions">
         <button class="btn btn-sm" id="qhR" data-tip="${t.redact} · R">${t.redact}</button>
         <button class="btn btn-sm btn-sec" id="qhK" data-tip="${t.keep} · P">${t.keep}</button>
@@ -3789,7 +3826,8 @@ Orgán: OBÚ.
     if (!window.fflate) throw new Error("fflate není k dispozici");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
     const files = fflate.unzipSync(u8);
-    const docEntry = files["word/document.xml"];
+    const docKey = Object.keys(files).find(k => k.replace(/\\/g, "/").toLowerCase() === "word/document.xml");
+    const docEntry = docKey ? files[docKey] : null;
     if (!docEntry) throw new Error("Neplatný DOCX: chybí word/document.xml");
 
     function parseDocxXml(entryBytes){
@@ -3816,13 +3854,13 @@ Orgán: OBÚ.
     }
 
     const sections = [];
-    Object.keys(files).filter(k => /^word\/header\d*\.xml$/i.test(k)).sort().forEach(k => {
+    Object.keys(files).filter(k => /^word\/header\d*\.xml$/i.test(k.replace(/\\/g, "/"))).sort().forEach(k => {
       const t = parseDocxXml(files[k]).trim();
       if (t) sections.push(t);
     });
     const body = parseDocxXml(docEntry);
     if (body) sections.push(body);
-    Object.keys(files).filter(k => /^word\/(footnotes|endnotes|footer\d*)\.xml$/i.test(k)).sort().forEach(k => {
+    Object.keys(files).filter(k => /^word\/(footnotes|endnotes|footer\d*)\.xml$/i.test(k.replace(/\\/g, "/"))).sort().forEach(k => {
       const t = parseDocxXml(files[k]).trim();
       if (t) sections.push(t);
     });
@@ -3950,10 +3988,14 @@ Orgán: OBÚ.
       }
       const buf = await file.arrayBuffer();
       const n = (file.name || "").toLowerCase();
+      const u8Magic = new Uint8Array(buf.slice(0, 8));
+      const isZip = u8Magic.length >= 4 && u8Magic[0] === 0x50 && u8Magic[1] === 0x4B && u8Magic[2] === 0x03 && u8Magic[3] === 0x04;
+      const isPdfMagic = u8Magic.length >= 5 && u8Magic[0] === 0x25 && u8Magic[1] === 0x50 && u8Magic[2] === 0x44 && u8Magic[3] === 0x46 && u8Magic[4] === 0x2D;
+      const isRtfMagic = u8Magic.length >= 5 && u8Magic[0] === 0x7B && u8Magic[1] === 0x5C && u8Magic[2] === 0x72 && u8Magic[3] === 0x74 && u8Magic[4] === 0x66;
 
       if (n.endsWith(".doc")) {
         throw new Error(i().errDocOld);
-      } else if (n.endsWith(".docx")) {
+      } else if (n.endsWith(".docx") || file.type==="application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
         let text = "";
         let mammothErr = null;
         if (window.mammoth) {
@@ -3974,27 +4016,61 @@ Orgán: OBÚ.
         } else if (!text && mammothErr) {
           throw mammothErr;
         }
+        if (!text || !text.trim()) {
+          throw new Error(i().errFileEmpty.replace("{f}", file.name));
+        }
         await ingest(file.name, "docx", text, buf);
       } else if (n.endsWith(".xlsx") || n.endsWith(".xls") || n.endsWith(".ods") || file.type==="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || file.type==="application/vnd.ms-excel" || file.type==="application/vnd.oasis.opendocument.spreadsheet") {
         const extracted = await extractXlsx(buf);
+        if (!extracted || !extracted.text || !extracted.text.trim()) {
+          throw new Error(i().errFileEmpty.replace("{f}", file.name));
+        }
         await ingest(file.name, "xlsx", extracted.text, buf, { cellMap: extracted.cellMap });
-      } else if (n.endsWith(".odt")) {
+      } else if (n.endsWith(".odt") || file.type==="application/vnd.oasis.opendocument.text") {
         const text = extractOdtText(buf);
+        if (!text || !text.trim()) {
+          throw new Error(i().errFileEmpty.replace("{f}", file.name));
+        }
         await ingest(file.name, "text", text, buf);
-      } else if (n.endsWith(".rtf")) {
+      } else if (n.endsWith(".rtf") || file.type==="application/rtf" || file.type==="text/rtf" || isRtfMagic) {
         const raw = decodeTextBuffer(buf);
         const text = extractRtfText(raw);
+        if (!text || !text.trim()) {
+          throw new Error(i().errFileEmpty.replace("{f}", file.name));
+        }
         await ingest(file.name, "text", text, buf);
-      } else if (n.endsWith(".pdf") || file.type==="application/pdf") {
+      } else if (n.endsWith(".pdf") || file.type==="application/pdf" || isPdfMagic) {
         const extracted = await extractPdf(buf);
         await ingest(file.name, "pdf", extracted.text, buf, { pages: extracted.pages });
       } else if (isImageFile(file.name, file.type)) {
         await handleImageFile(file, buf);
       } else {
+        if (isZip && window.fflate) {
+          try {
+            const files = fflate.unzipSync(new Uint8Array(buf));
+            const hasDocXml = Object.keys(files).some(k => k.replace(/\\/g, "/").toLowerCase() === "word/document.xml");
+            if (hasDocXml) {
+              const text = extractDocxTextWithFflate(buf);
+              if (!text || !text.trim()) throw new Error(i().errFileEmpty.replace("{f}", file.name));
+              await ingest(file.name, "docx", text, buf);
+              return true;
+            }
+            const hasContentXml = Object.keys(files).some(k => k.toLowerCase() === "content.xml");
+            if (hasContentXml) {
+              const text = extractOdtText(buf);
+              if (!text || !text.trim()) throw new Error(i().errFileEmpty.replace("{f}", file.name));
+              await ingest(file.name, "text", text, buf);
+              return true;
+            }
+          } catch (_) {}
+        }
         if (isBinaryBuffer(buf)) {
           throw new Error(i().errFileBinary.replace("{f}", file.name));
         }
         const text = decodeTextBuffer(buf);
+        if (!text || !text.trim()) {
+          throw new Error(i().errFileEmpty.replace("{f}", file.name));
+        }
         await ingest(file.name, "text", text, buf);
       }
       return true;
@@ -4146,20 +4222,18 @@ Orgán: OBÚ.
     if (failedIndex >= 0) Q.items.splice(failedIndex, 1);
     Q.cur = -1;
 
+    if (prevItem && Q.items.includes(prevItem) && prevItem.snap) {
+      const backIndex = Q.items.indexOf(prevItem);
+      Q.cur = backIndex;
+      restoreState(prevItem.snap);
+      paint();
+      return;
+    }
+
     if (Q.items.length > 0) {
       const nextIdx = Math.min(Math.max(0, failedIndex), Q.items.length - 1);
       await openQueueItem(nextIdx);
       return;
-    }
-
-    if (prevItem) {
-      const backIndex = Q.items.indexOf(prevItem);
-      if (backIndex >= 0 && prevItem.snap) {
-        Q.cur = backIndex;
-        restoreState(prevItem.snap);
-        paint();
-        return;
-      }
     }
 
     reset();
@@ -4552,7 +4626,9 @@ Orgán: OBÚ.
     let text = "";
 
     let ocrWorker = null;
-    if (S.ocrEnabled && window.Tesseract) {
+    async function getOcrWorker(){
+      if (ocrWorker) return ocrWorker;
+      if (!S.ocrEnabled || !window.Tesseract) return null;
       try {
         showOcrProgress(S.lang === "cs" ? "OCR: inicializuji jazykový model…" : "OCR: loading language model…");
         ocrWorker = await Tesseract.createWorker("ces", 1, {
@@ -4570,123 +4646,138 @@ Orgán: OBÚ.
           }
         });
         showOcrProgress(S.lang === "cs" ? "OCR: připraveno" : "OCR: ready");
+        return ocrWorker;
       } catch (e) {
         console.warn("Tesseract OCR init failed:", e);
         ocrWorker = null;
         hideOcrProgress();
+        return null;
       }
     }
 
-    for (let i=1;i<=pdf.numPages;i++) {
-      const page = await pdf.getPage(i);
-      const tc = await page.getTextContent();
-      const compact = (tc.items||[]).map(it => ({ str: it.str, transform: it.transform, width: it.width }));
+    try {
+      for (let i=1;i<=pdf.numPages;i++) {
+        const page = await pdf.getPage(i);
+        const tc = await page.getTextContent();
+        const compact = (tc.items||[]).map(it => ({ str: it.str, transform: it.transform, width: it.width }));
 
-      const meaningfulItems = compact.filter(it => it.str && it.str.trim());
-      const isScan = meaningfulItems.length < 5;
+        const meaningfulItems = compact.filter(it => it.str && it.str.trim());
+        const totalTextLength = meaningfulItems.reduce((acc, it) => acc + it.str.trim().length, 0);
+        const isScan = meaningfulItems.length === 0 || (meaningfulItems.length < 3 && totalTextLength < 8);
 
-      let finalItems = compact;
-      let body;
+        let finalItems = compact;
+        let body;
 
-      if (isScan && ocrWorker) {
-        const t = S.lang;
-        showOcrProgress((t === "cs" ? "OCR: zpracovávám stránku " : "OCR: processing page ") + i + "/" + pdf.numPages + "…");
-        try {
-          const ocrScale = 2.5;
-          const vp = page.getViewport({ scale: ocrScale });
-          const canvas = document.createElement("canvas");
-          canvas.width = vp.width; canvas.height = vp.height;
-          const ctx = canvas.getContext("2d");
-          await page.render({ canvasContext: ctx, viewport: vp }).promise;
-
-          showOcrProgress((t === "cs" ? "OCR: stránka " : "OCR: page ") + i + "/" + pdf.numPages + "…");
-          const { data: ocrData } = await ocrWorker.recognize(canvas);
-
-          finalItems = (ocrData.words || [])
-            .filter(w => w.text && w.text.trim() && (w.confidence || 0) > 25)
-            .map(w => ({
-              str: w.text,
-              _ocr: true,
-              _pdfX:    w.bbox.x0 / ocrScale,
-              _pdfYTop: w.bbox.y0 / ocrScale,
-              _pdfW:    (w.bbox.x1 - w.bbox.x0) / ocrScale,
-              _pdfH:    (w.bbox.y1 - w.bbox.y0) / ocrScale,
-              transform: null,
-              width:    (w.bbox.x1 - w.bbox.x0) / ocrScale
-            }));
-
-          body = finalItems.map(it => it.str).join(" ");
-        } catch (e) {
-          console.warn("OCR failed for page " + i + ":", e);
-          body = pageTextFromItems(compact);
-          finalItems = compact;
+        let activeWorker = null;
+        if (isScan && S.ocrEnabled) {
+          activeWorker = await getOcrWorker();
         }
-      } else {
-        body = pageTextFromItems(compact);
-      }
 
-      const signatures = await pageSignatureMeta(page);
-      let stampText = signatures.map(s => s.text).filter(Boolean).join(" ");
+        if (isScan && activeWorker) {
+          const t = S.lang;
+          showOcrProgress((t === "cs" ? "OCR: zpracovávám stránku " : "OCR: processing page ") + i + "/" + pdf.numPages + "…");
+          try {
+            const ocrScale = 2.5;
+            const vp = page.getViewport({ scale: ocrScale });
+            const canvas = document.createElement("canvas");
+            canvas.width = vp.width; canvas.height = vp.height;
+            const ctx = canvas.getContext("2d");
+            await page.render({ canvasContext: ctx, viewport: vp }).promise;
 
-      if (ocrWorker && signatures.length && !isScan) {
-        try {
-          const ocrScale = 2.2;
-          const vp = page.getViewport({ scale: ocrScale });
-          const canvas = document.createElement("canvas");
-          canvas.width = vp.width; canvas.height = vp.height;
-          const ctx = canvas.getContext("2d");
-          await page.render(pdfRenderParams(ctx, vp)).promise;
-          for (const sig of signatures) {
-            const r = viewportCoverRect(vp, sig.rect);
-            if (!r || r.w < 8 || r.h < 8) continue;
-            showOcrProgress((S.lang === "cs" ? "OCR: razítko podpisu, str. " : "OCR: signature stamp, p. ") + i + "…");
-            const crop = document.createElement("canvas");
-            const cw = Math.min(canvas.width, Math.max(8, Math.ceil(r.w)));
-            const ch = Math.min(canvas.height, Math.max(8, Math.ceil(r.h)));
-            crop.width = cw; crop.height = ch;
-            crop.getContext("2d").drawImage(canvas, r.x, r.y, r.w, r.h, 0, 0, cw, ch);
-            const { data: ocrData } = await ocrWorker.recognize(crop);
-            const words = (ocrData.words || []).filter(w => w.text && w.text.trim() && (w.confidence || 0) > 20);
-            const line = words.map(w => w.text).join(" ").replace(/\s+/g, " ").trim();
-            const pageH = page.getViewport({ scale: 1 }).height;
-            sig.nameRects = stampNameRectsFromOcr(words, r, ocrScale, pageH);
-            const signer = pickStampSignerWords(words).map(w => w.text).join(" ").trim();
-            if (signer) sig.signer = signer;
-            if (line) {
-              stampText = (stampText ? stampText + " " : "") + line;
-              words.forEach(w => {
-                finalItems.push({
-                  str: w.text,
-                  _ocr: true,
-                  _pdfX:    (r.x + w.bbox.x0) / ocrScale,
-                  _pdfYTop: (r.y + w.bbox.y0) / ocrScale,
-                  _pdfW:    (w.bbox.x1 - w.bbox.x0) / ocrScale,
-                  _pdfH:    (w.bbox.y1 - w.bbox.y0) / ocrScale,
-                  transform: null,
-                  width:    (w.bbox.x1 - w.bbox.x0) / ocrScale
-                });
-              });
-            }
-            if (line && !sig.text) sig.text = line;
+            showOcrProgress((t === "cs" ? "OCR: stránka " : "OCR: page ") + i + "/" + pdf.numPages + "…");
+            const { data: ocrData } = await activeWorker.recognize(canvas);
+
+            finalItems = (ocrData.words || [])
+              .filter(w => w.text && w.text.trim() && (w.confidence || 0) > 25)
+              .map(w => ({
+                str: w.text,
+                _ocr: true,
+                _pdfX:    w.bbox.x0 / ocrScale,
+                _pdfYTop: w.bbox.y0 / ocrScale,
+                _pdfW:    (w.bbox.x1 - w.bbox.x0) / ocrScale,
+                _pdfH:    (w.bbox.y1 - w.bbox.y0) / ocrScale,
+                transform: null,
+                width:    (w.bbox.x1 - w.bbox.x0) / ocrScale
+              }));
+
+            body = finalItems.map(it => it.str).join(" ");
+          } catch (e) {
+            console.warn("OCR failed for page " + i + ":", e);
+            body = pageTextFromItems(compact);
+            finalItems = compact;
           }
-        } catch (e) {
-          console.warn("OCR of signature stamp failed on page " + i + ":", e);
+        } else {
+          body = pageTextFromItems(compact);
         }
+
+        const signatures = await pageSignatureMeta(page);
+        let stampText = signatures.map(s => s.text).filter(Boolean).join(" ");
+
+        let sigWorker = null;
+        if (signatures.length && !isScan && S.ocrEnabled) {
+          sigWorker = await getOcrWorker();
+        }
+
+        if (sigWorker && signatures.length && !isScan) {
+          try {
+            const ocrScale = 2.2;
+            const vp = page.getViewport({ scale: ocrScale });
+            const canvas = document.createElement("canvas");
+            canvas.width = vp.width; canvas.height = vp.height;
+            const ctx = canvas.getContext("2d");
+            await page.render(pdfRenderParams(ctx, vp)).promise;
+            for (const sig of signatures) {
+              const r = viewportCoverRect(vp, sig.rect);
+              if (!r || r.w < 8 || r.h < 8) continue;
+              showOcrProgress((S.lang === "cs" ? "OCR: razítko podpisu, str. " : "OCR: signature stamp, p. ") + i + "…");
+              const crop = document.createElement("canvas");
+              const cw = Math.min(canvas.width, Math.max(8, Math.ceil(r.w)));
+              const ch = Math.min(canvas.height, Math.max(8, Math.ceil(r.h)));
+              crop.width = cw; crop.height = ch;
+              crop.getContext("2d").drawImage(canvas, r.x, r.y, r.w, r.h, 0, 0, cw, ch);
+              const { data: ocrData } = await sigWorker.recognize(crop);
+              const words = (ocrData.words || []).filter(w => w.text && w.text.trim() && (w.confidence || 0) > 20);
+              const line = words.map(w => w.text).join(" ").replace(/\s+/g, " ").trim();
+              const pageH = page.getViewport({ scale: 1 }).height;
+              sig.nameRects = stampNameRectsFromOcr(words, r, ocrScale, pageH);
+              const signer = pickStampSignerWords(words).map(w => w.text).join(" ").trim();
+              if (signer) sig.signer = signer;
+              if (line) {
+                stampText = (stampText ? stampText + " " : "") + line;
+                words.forEach(w => {
+                  finalItems.push({
+                    str: w.text,
+                    _ocr: true,
+                    _pdfX:    (r.x + w.bbox.x0) / ocrScale,
+                    _pdfYTop: (r.y + w.bbox.y0) / ocrScale,
+                    _pdfW:    (w.bbox.x1 - w.bbox.x0) / ocrScale,
+                    _pdfH:    (w.bbox.y1 - w.bbox.y0) / ocrScale,
+                    transform: null,
+                    width:    (w.bbox.x1 - w.bbox.x0) / ocrScale
+                  });
+                });
+              }
+              if (line && !sig.text) sig.text = line;
+            }
+          } catch (e) {
+            console.warn("OCR of signature stamp failed on page " + i + ":", e);
+          }
+        }
+
+        if (stampText) body = (body ? body + "\n" : "") + stampText;
+
+        const noTextLayer = isScan && (!activeWorker || !finalItems.some(it => it.str && it.str.trim()));
+
+        const chunk = "\n\n--- "+i+" ---\n"+body;
+        const start = text.length + (body ? chunk.indexOf(body) : chunk.length);
+        text += chunk;
+        pages.push({ n:i, start, end: start+body.length, body, items: finalItems, noTextLayer, signatures });
       }
-
-      if (stampText) body = (body ? body + "\n" : "") + stampText;
-
-      const noTextLayer = isScan && (!ocrWorker || !finalItems.some(it => it.str && it.str.trim()));
-
-      const chunk = "\n\n--- "+i+" ---\n"+body;
-      const start = text.length + (body ? chunk.indexOf(body) : chunk.length);
-      text += chunk;
-      pages.push({ n:i, start, end: start+body.length, body, items: finalItems, noTextLayer, signatures });
-    }
-
-    if (ocrWorker) {
-      await ocrWorker.terminate();
-      hideOcrProgress();
+    } finally {
+      if (ocrWorker) {
+        try { await ocrWorker.terminate(); } catch (_) {}
+        hideOcrProgress();
+      }
     }
 
     return { text, pages };
@@ -5824,29 +5915,36 @@ Orgán: OBÚ.
     async function scanEntry(entry){
       if (!entry) return;
       if (entry.isFile) {
-        return new Promise(res => entry.file(f => {
-          if (f && !isIgnoredSystemFile(f.name)) files.push(f);
-          res();
-        }, () => res()));
+        return new Promise(res => {
+          try {
+            entry.file(f => {
+              if (f && !isIgnoredSystemFile(f.name)) files.push(f);
+              res();
+            }, () => res());
+          } catch (_) { res(); }
+        });
       }
       if (entry.isDirectory) {
-        const reader = entry.createReader();
-        const readEntries = () => new Promise(res => {
-          reader.readEntries(async entries => {
-            if (!entries || !entries.length) return res();
-            for (const c of entries) await scanEntry(c);
-            await readEntries();
-            res();
-          }, () => res());
-        });
-        await readEntries();
+        try {
+          const reader = entry.createReader();
+          const readEntries = () => new Promise(res => {
+            reader.readEntries(async entries => {
+              if (!entries || !entries.length) return res();
+              for (const c of entries) await scanEntry(c);
+              await readEntries();
+              res();
+            }, () => res());
+          });
+          await readEntries();
+        } catch (_) {}
       }
     }
     const promises = [];
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
       if (typeof it.webkitGetAsEntry === "function") {
-        const entry = it.webkitGetAsEntry();
+        let entry = null;
+        try { entry = it.webkitGetAsEntry(); } catch (_) {}
         if (entry) { promises.push(scanEntry(entry)); continue; }
       }
       const f = it.getAsFile ? it.getAsFile() : null;
@@ -5885,7 +5983,7 @@ Orgán: OBÚ.
     e.preventDefault();
     const d = $("drop");
     if (d) d.classList.remove("over");
-    if (e.target && (e.target.id === "drop" || e.target.closest("#drop"))) return;
+    if (e.target instanceof Element && (e.target.id === "drop" || e.target.closest("#drop"))) return;
     const files = await collectFilesFromDataTransfer(e.dataTransfer);
     if (files.length) onFiles(files);
   });

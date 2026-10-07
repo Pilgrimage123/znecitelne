@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-07
+
+- Oprava chyb při nahrávání souborů a stabilizace načítání:
+  - **Ochrana globálního Drag & Drop:** Odstraněna neošetřená chyba `TypeError: e.target.closest is not a function`, ke které docházelo při přetažení souborů na okno prohlížeče (pokud cílem události nebyl prvek typu `Element`, např. `document`).
+  - **Líná inicializace OCR pro PDF:** Zrušeno předčasné stahování a spouštění OCR modelu Tesseract při každém nahrání digitálního PDF. Model se nyní inicializuje líně pouze tehdy, pokud je v PDF detekována naskenovaná stránka bez textové vrstvy nebo podpisové razítko. Čištění workeru probíhá v `finally` bloku.
+  - **Rozpoznávání formátů a MIME typů:** Doplněna detekce podle MIME typů (`application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `application/vnd.oasis.opendocument.text`, `application/rtf`) i kontrola magických hlaviček (PDF, ZIP/DOCX, RTF), díky čemuž se soubory bez přípony či s generickým typem již chybně neoznačují jako nepodporovaný binární soubor.
+  - **Ochrana před tichým selháním prázdných dokumentů:** Pro všechny textové formáty a kancelářské dokumenty (DOCX, XLSX, ODT, RTF, TXT) je ověřena přítomnost extrahovaného textu. Prázdné dokumenty již nezpůsobují tiché odstranění z fronty nebo pád zpět na úvodní obrazovku bez vysvětlení, ale zobrazí jasnou chybovou hlášku.
+  - **Zotavení fronty a bezpečnost prvků:** Při selhání nově přidávaného souboru se aplikace přednostně a bezpečně vrátí na dříve aktivní dokument. Doplněny záložní názvy kategorií v seznamu nálezů a v liště rychlé volby (`qh-label`) a null-guard pro `host` element ve vizuálním PDF režimu.
+
 ## 2026-10-06
 
 - Morfologická lemmatizace a skloňování českých jmen (Nápad 1 / B.6):

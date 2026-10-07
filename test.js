@@ -127,6 +127,19 @@ check(
   htmlSourceIncludes('id="residual"') && !htmlSourceIncludes('$("residual").className ='),
   "residual element must exist in markup and be guarded against null references in paintReview"
 );
+check(
+  htmlSourceIncludes("e.target instanceof Element && (e.target.id === \"drop\" || e.target.closest(\"#drop\"))"),
+  "window drop listener must guard e.target against non-Element targets"
+);
+check(
+  htmlSourceIncludes("application/vnd.openxmlformats-officedocument.wordprocessingml.document") &&
+  htmlSourceIncludes("application/vnd.oasis.opendocument.text"),
+  "file loader must support DOCX and ODT MIME types"
+);
+check(
+  htmlSourceIncludes("async function getOcrWorker()"),
+  "PDF text extractor must lazily initialize OCR worker only when needed"
+);
 
 check(
   server.includes("if (path.extname(req.path))"),
