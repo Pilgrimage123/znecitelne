@@ -3694,16 +3694,97 @@ Orgán: OBÚ.
       return /\/ByteRange\s*\[/.test(s) && /\/Type\s*\/Sig\b|\/SubFilter\s*\/(?:adbe|ETSI)/.test(s);
     } catch (_) { return false; }
   }
-  async function ingest(name, kind, text, buf, extra){
+  const IngestErrorCode = Object.freeze({
+    EMPTY_DOCUMENT: "errFileEmpty",
+    FILE_TOO_LARGE: "errFileTooLarge",
+    UNSUPPORTED_BINARY: "errFileBinary",
+    LEGACY_DOC_FORMAT: "errDocOld",
+    IMAGE_NEED_OCR: "errImageNeedOcr"
+  });
+
+  class DocumentIngestionError extends Error {
+    constructor(code, fileName = "", cause = null) {
+      super(code);
+      this.name = "DocumentIngestionError";
+      this.code = code;
+      this.fileName = fileName;
+      this.cause = cause;
+    }
+  }
+
+  function localizeIngestError(err, fallbackFileName = "") {
+    if (!err) return "";
+    const code = err.code || err.message;
+    const f = err.fileName || fallbackFileName || "";
+    const dict = (typeof i === "function") ? i() : {};
+    if (code === IngestErrorCode.EMPTY_DOCUMENT || code === "errFileEmpty") {
+      return (dict.errFileEmpty || "Soubor {f} je prázdný.").replace("{f}", f);
+    }
+    if (code === IngestErrorCode.FILE_TOO_LARGE || code === "errFileTooLarge") {
+      return (dict.errFileTooLarge || "Soubor {f} je příliš velký (limit 100 MB).").replace("{f}", f);
+    }
+    if (code === IngestErrorCode.UNSUPPORTED_BINARY || code === "errFileBinary") {
+      return (dict.errFileBinary || "Soubor {f} obsahuje neznámá binární data.").replace("{f}", f);
+    }
+    if (code === IngestErrorCode.LEGACY_DOC_FORMAT || code === "errDocOld") {
+      return dict.errDocOld || "Starý binární formát DOC není podporován. Uložte jej jako DOCX.";
+    }
+    if (code === IngestErrorCode.IMAGE_NEED_OCR || code === "errImageNeedOcr") {
+      return dict.errImageNeedOcr || "Pro zpracování obrázků musí být povoleno OCR.";
+    }
+    return err.message || String(err);
+  }
+
+  async function buildCanonicalDocument({ fileName, kind, text, sourceBuf = null, pages = null, cellMap = null, sigDetected = false }){
     const cleanText = String(text || "").normalize("NFC");
-    S.fileName = name; S.kind = kind; S.text = cleanText; S.sourceBuf = (kind==="pdf"||kind==="xlsx"||kind==="docx") ? buf : null;
-    S.pages = (extra && extra.pages) || (cleanText ? [{ n:1, start:0, end:cleanText.length }] : []);
-    S.noTextPages = S.pages.filter(p => p.noTextLayer).length;
-    S.cellMap = (extra && extra.cellMap) || [];
-    S.sigDetected = kind === "pdf" && (S.pages.some(p => p.signatures && p.signatures.length) || pdfHasSignatureBytes(buf));
-    S.hashIn = await sha256(buf); S.hashOut = "";
-    S.reviewed = false; S.hits = [];
-    runAnalyze(cleanText);
+    const docPages = (pages && pages.length)
+      ? pages
+      : (cleanText ? [{ n: 1, start: 0, end: cleanText.length, body: cleanText, items: [], noTextLayer: false }] : []);
+    const hashIn = sourceBuf ? await sha256(sourceBuf) : (cleanText ? await sha256(new TextEncoder().encode(cleanText)) : "");
+
+    return Object.freeze({
+      id: "doc_" + Math.random().toString(36).slice(2, 10),
+      fileName: fileName || "document",
+      kind: kind || "text",
+      text: cleanText,
+      sourceBuf: (kind === "pdf" || kind === "xlsx" || kind === "docx") ? sourceBuf : null,
+      pages: docPages,
+      noTextPages: docPages.filter(p => p.noTextLayer).length,
+      cellMap: cellMap || [],
+      sigDetected: !!sigDetected,
+      hashIn: hashIn
+    });
+  }
+
+  function applyDocumentToState(doc){
+    if (!doc) return;
+    S.fileName = doc.fileName;
+    S.kind = doc.kind;
+    S.text = doc.text;
+    S.sourceBuf = doc.sourceBuf;
+    S.pages = doc.pages;
+    S.noTextPages = doc.noTextPages;
+    S.cellMap = doc.cellMap;
+    S.sigDetected = doc.sigDetected;
+    S.hashIn = doc.hashIn;
+    S.hashOut = "";
+    S.reviewed = false;
+    S.hits = [];
+    runAnalyze(doc.text);
+  }
+
+  async function ingest(name, kind, text, buf, extra){
+    const doc = await buildCanonicalDocument({
+      fileName: name,
+      kind: kind,
+      text: text,
+      sourceBuf: buf,
+      pages: extra && extra.pages,
+      cellMap: extra && extra.cellMap,
+      sigDetected: kind === "pdf" && (((extra && extra.pages) || []).some(p => p.signatures && p.signatures.length) || pdfHasSignatureBytes(buf))
+    });
+    applyDocumentToState(doc);
+    return doc;
   }
   function decodeTextBuffer(buf){
     const u8 = toBytes(buf);
@@ -3902,14 +3983,16 @@ Orgán: OBÚ.
     return /\.(png|jpe?g|webp|bmp|gif|tiff?)$/i.test(n) || (typeof type === "string" && type.startsWith("image/"));
   }
 
-  async function handleImageFile(file, buf){
-    if (!S.ocrEnabled || !window.Tesseract) {
-      throw new Error(i().errImageNeedOcr);
+  async function handleImageFile(file, buf, options = {}){
+    const ocrEnabled = options.ocrEnabled ?? S.ocrEnabled;
+    if (!ocrEnabled || !window.Tesseract) {
+      throw new DocumentIngestionError(IngestErrorCode.IMAGE_NEED_OCR, file ? file.name : "");
     }
-    const t = S.lang;
-    showOcrProgress(t === "cs" ? "OCR: připravuji obrázek…" : "OCR: preparing image…");
+    const reportProgress = options.onProgress || showOcrProgress;
+    const t = options.lang || S.lang;
+    reportProgress(t === "cs" ? "OCR: připravuji obrázek…" : "OCR: preparing image…");
 
-    const imgBlob = new Blob([buf], { type: file.type || "image/png" });
+    const imgBlob = new Blob([buf], { type: (file && file.type) || "image/png" });
     const imgUrl = URL.createObjectURL(imgBlob);
     let img;
     try {
@@ -3933,12 +4016,12 @@ Orgán: OBÚ.
     let text = "";
     let items = [];
     try {
-      showOcrProgress(t === "cs" ? "OCR: spouštím rozpoznávání textu…" : "OCR: running recognition…");
+      reportProgress(t === "cs" ? "OCR: spouštím rozpoznávání textu…" : "OCR: running recognition…");
       ocrWorker = await Tesseract.createWorker("ces", 1, {
         ...((window.__libLocal && window.__libLocal.tesseract) ? { workerPath:"./lib/tesseract/worker.min.js", corePath:"./lib/tesseract/core/", langPath:"./lib/tesseract/lang/" } : {}),
         logger: m => {
           if (m.status === "recognizing text") {
-            showOcrProgress((t === "cs" ? "OCR: rozpoznávám text" : "OCR: recognizing text") +
+            reportProgress((t === "cs" ? "OCR: rozpoznávám text" : "OCR: recognizing text") +
               " (" + Math.round((m.progress || 0) * 100) + "%)…");
           }
         }
@@ -3969,7 +4052,7 @@ Orgán: OBÚ.
         const { PDFDocument } = PDFLib;
         const doc = await PDFDocument.create();
         let pdfImg = null;
-        if (file.type === "image/png" || /\.png$/i.test(file.name)) {
+        if ((file && file.type === "image/png") || (file && /\.png$/i.test(file.name))) {
           try {
             pdfImg = await doc.embedPng(new Uint8Array(buf));
           } catch (_) {}
@@ -3996,126 +4079,168 @@ Orgán: OBÚ.
       }
     }
 
+    const docName = (file && file.name) || "image";
     if (pdfBuf) {
-      await ingest(file.name, "pdf", text, pdfBuf, {
+      return await buildCanonicalDocument({
+        fileName: docName,
+        kind: "pdf",
+        text,
+        sourceBuf: pdfBuf,
         pages: [{ n: 1, start: 0, end: text.length, body: text, items, noTextLayer: false }]
       });
     } else {
-      await ingest(file.name, "text", text, buf);
+      return await buildCanonicalDocument({
+        fileName: docName,
+        kind: "text",
+        text,
+        sourceBuf: buf
+      });
     }
+  }
+
+  async function ingestDocument(input, options = {}){
+    const file = input;
+    const name = (file && file.name) || options.fileName || "document";
+    const size = typeof file?.size === "number" ? file.size : (file?.buffer?.byteLength || 0);
+
+    if (!file || (size === 0 && !file.arrayBuffer && !file.buffer)) {
+      throw new DocumentIngestionError(IngestErrorCode.EMPTY_DOCUMENT, name);
+    }
+    if (size > 100 * 1024 * 1024) {
+      throw new DocumentIngestionError(IngestErrorCode.FILE_TOO_LARGE, name);
+    }
+
+    const buf = file.arrayBuffer ? await file.arrayBuffer() : (file.buffer ? file.buffer : toBytes(file).buffer);
+    if (!buf || buf.byteLength === 0) {
+      throw new DocumentIngestionError(IngestErrorCode.EMPTY_DOCUMENT, name);
+    }
+    if (buf.byteLength > 100 * 1024 * 1024) {
+      throw new DocumentIngestionError(IngestErrorCode.FILE_TOO_LARGE, name);
+    }
+
+    const n = name.toLowerCase();
+    const type = (file && file.type) || options.type || "";
+    const u8Magic = new Uint8Array(buf.slice(0, 8));
+    const isZip = u8Magic.length >= 4 && u8Magic[0] === 0x50 && u8Magic[1] === 0x4B && u8Magic[2] === 0x03 && u8Magic[3] === 0x04;
+    const isPdfMagic = u8Magic.length >= 5 && u8Magic[0] === 0x25 && u8Magic[1] === 0x50 && u8Magic[2] === 0x44 && u8Magic[3] === 0x46 && u8Magic[4] === 0x2D;
+    const isRtfMagic = u8Magic.length >= 5 && u8Magic[0] === 0x7B && u8Magic[1] === 0x5C && u8Magic[2] === 0x72 && u8Magic[3] === 0x74 && u8Magic[4] === 0x66;
+
+    if (n.endsWith(".doc")) {
+      throw new DocumentIngestionError(IngestErrorCode.LEGACY_DOC_FORMAT, name);
+    } else if (n.endsWith(".docx") || type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      let text = "";
+      let mammothErr = null;
+      if (window.mammoth) {
+        try {
+          const res = await window.mammoth.extractRawText({ arrayBuffer: buf });
+          text = (res && res.value) || "";
+        } catch (e) {
+          mammothErr = e;
+        }
+      }
+      if (!text && window.fflate) {
+        try {
+          text = extractDocxTextWithFflate(buf);
+        } catch (e) {
+          if (mammothErr) throw mammothErr;
+          throw e;
+        }
+      } else if (!text && mammothErr) {
+        throw mammothErr;
+      }
+      if (!text || !text.trim()) {
+        throw new DocumentIngestionError(IngestErrorCode.EMPTY_DOCUMENT, name);
+      }
+      return await buildCanonicalDocument({ fileName: name, kind: "docx", text, sourceBuf: buf });
+    } else if (n.endsWith(".xlsx") || n.endsWith(".xls") || n.endsWith(".ods") || type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || type === "application/vnd.ms-excel" || type === "application/vnd.oasis.opendocument.spreadsheet") {
+      const extracted = await extractXlsx(buf);
+      if (!extracted || !extracted.text || !extracted.text.trim()) {
+        throw new DocumentIngestionError(IngestErrorCode.EMPTY_DOCUMENT, name);
+      }
+      return await buildCanonicalDocument({ fileName: name, kind: "xlsx", text: extracted.text, sourceBuf: buf, cellMap: extracted.cellMap });
+    } else if (n.endsWith(".odt") || type === "application/vnd.oasis.opendocument.text") {
+      const text = extractOdtText(buf);
+      if (!text || !text.trim()) {
+        throw new DocumentIngestionError(IngestErrorCode.EMPTY_DOCUMENT, name);
+      }
+      return await buildCanonicalDocument({ fileName: name, kind: "text", text, sourceBuf: buf });
+    } else if (n.endsWith(".rtf") || type === "application/rtf" || type === "text/rtf" || isRtfMagic) {
+      const raw = decodeTextBuffer(buf);
+      const text = extractRtfText(raw);
+      if (!text || !text.trim()) {
+        throw new DocumentIngestionError(IngestErrorCode.EMPTY_DOCUMENT, name);
+      }
+      return await buildCanonicalDocument({ fileName: name, kind: "text", text, sourceBuf: buf });
+    } else if (n.endsWith(".pdf") || type === "application/pdf" || isPdfMagic) {
+      const extracted = await extractPdf(buf);
+      const sigDetected = (extracted.pages && extracted.pages.some(p => p.signatures && p.signatures.length)) || pdfHasSignatureBytes(buf);
+      return await buildCanonicalDocument({ fileName: name, kind: "pdf", text: extracted.text, sourceBuf: buf, pages: extracted.pages, sigDetected });
+    } else if (isImageFile(name, type)) {
+      return await handleImageFile(file, buf, options);
+    } else {
+      if (isZip && window.fflate) {
+        try {
+          const files = fflate.unzipSync(new Uint8Array(buf));
+          const hasDocXml = Object.keys(files).some(k => k.replace(/\\/g, "/").toLowerCase() === "word/document.xml");
+          if (hasDocXml) {
+            const text = extractDocxTextWithFflate(buf);
+            if (!text || !text.trim()) throw new DocumentIngestionError(IngestErrorCode.EMPTY_DOCUMENT, name);
+            return await buildCanonicalDocument({ fileName: name, kind: "docx", text, sourceBuf: buf });
+          }
+          const hasContentXml = Object.keys(files).some(k => k.toLowerCase() === "content.xml");
+          if (hasContentXml) {
+            const text = extractOdtText(buf);
+            if (!text || !text.trim()) throw new DocumentIngestionError(IngestErrorCode.EMPTY_DOCUMENT, name);
+            return await buildCanonicalDocument({ fileName: name, kind: "text", text, sourceBuf: buf });
+          }
+          const hasWbXml = Object.keys(files).some(k => k.replace(/\\/g, "/").toLowerCase() === "xl/workbook.xml");
+          if (hasWbXml) {
+            const extracted = await extractXlsx(buf);
+            if (!extracted || !extracted.text || !extracted.text.trim()) throw new DocumentIngestionError(IngestErrorCode.EMPTY_DOCUMENT, name);
+            return await buildCanonicalDocument({ fileName: name, kind: "xlsx", text: extracted.text, sourceBuf: buf, cellMap: extracted.cellMap });
+          }
+        } catch (zipErr) {
+          if (zipErr instanceof DocumentIngestionError || (zipErr && zipErr.code)) throw zipErr;
+        }
+      }
+      if (isBinaryBuffer(buf)) {
+        throw new DocumentIngestionError(IngestErrorCode.UNSUPPORTED_BINARY, name);
+      }
+      const text = decodeTextBuffer(buf);
+      if (!text || !text.trim()) {
+        throw new DocumentIngestionError(IngestErrorCode.EMPTY_DOCUMENT, name);
+      }
+      return await buildCanonicalDocument({ fileName: name, kind: "text", text, sourceBuf: buf });
+    }
+  }
+
+  async function ingestDocumentBatch(list, options = {}){
+    const files = Array.from(list || []);
+    const results = [];
+    for (const f of files) {
+      try {
+        const doc = await ingestDocument(f, options);
+        results.push({ ok: true, fileName: (f && f.name) || "document", doc });
+      } catch (err) {
+        results.push({ ok: false, fileName: (f && f.name) || "document", error: err });
+      }
+    }
+    return results;
   }
 
   async function onFile(file){
     $("errLand").classList.add("hidden");
     $("errLand").textContent = "";
     try {
-      if (!file || file.size === 0) {
-        throw new Error(i().errFileEmpty.replace("{f}", file ? file.name : ""));
-      }
-      if (file.size > 100 * 1024 * 1024) {
-        throw new Error(i().errFileTooLarge.replace("{f}", file.name));
-      }
-      const buf = await file.arrayBuffer();
-      const n = (file.name || "").toLowerCase();
-      const u8Magic = new Uint8Array(buf.slice(0, 8));
-      const isZip = u8Magic.length >= 4 && u8Magic[0] === 0x50 && u8Magic[1] === 0x4B && u8Magic[2] === 0x03 && u8Magic[3] === 0x04;
-      const isPdfMagic = u8Magic.length >= 5 && u8Magic[0] === 0x25 && u8Magic[1] === 0x50 && u8Magic[2] === 0x44 && u8Magic[3] === 0x46 && u8Magic[4] === 0x2D;
-      const isRtfMagic = u8Magic.length >= 5 && u8Magic[0] === 0x7B && u8Magic[1] === 0x5C && u8Magic[2] === 0x72 && u8Magic[3] === 0x74 && u8Magic[4] === 0x66;
-
-      if (n.endsWith(".doc")) {
-        throw new Error(i().errDocOld);
-      } else if (n.endsWith(".docx") || file.type==="application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-        let text = "";
-        let mammothErr = null;
-        if (window.mammoth) {
-          try {
-            const res = await window.mammoth.extractRawText({ arrayBuffer: buf });
-            text = (res && res.value) || "";
-          } catch (e) {
-            mammothErr = e;
-          }
-        }
-        if (!text && window.fflate) {
-          try {
-            text = extractDocxTextWithFflate(buf);
-          } catch (e) {
-            if (mammothErr) throw mammothErr;
-            throw e;
-          }
-        } else if (!text && mammothErr) {
-          throw mammothErr;
-        }
-        if (!text || !text.trim()) {
-          throw new Error(i().errFileEmpty.replace("{f}", file.name));
-        }
-        await ingest(file.name, "docx", text, buf);
-      } else if (n.endsWith(".xlsx") || n.endsWith(".xls") || n.endsWith(".ods") || file.type==="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || file.type==="application/vnd.ms-excel" || file.type==="application/vnd.oasis.opendocument.spreadsheet") {
-        const extracted = await extractXlsx(buf);
-        if (!extracted || !extracted.text || !extracted.text.trim()) {
-          throw new Error(i().errFileEmpty.replace("{f}", file.name));
-        }
-        await ingest(file.name, "xlsx", extracted.text, buf, { cellMap: extracted.cellMap });
-      } else if (n.endsWith(".odt") || file.type==="application/vnd.oasis.opendocument.text") {
-        const text = extractOdtText(buf);
-        if (!text || !text.trim()) {
-          throw new Error(i().errFileEmpty.replace("{f}", file.name));
-        }
-        await ingest(file.name, "text", text, buf);
-      } else if (n.endsWith(".rtf") || file.type==="application/rtf" || file.type==="text/rtf" || isRtfMagic) {
-        const raw = decodeTextBuffer(buf);
-        const text = extractRtfText(raw);
-        if (!text || !text.trim()) {
-          throw new Error(i().errFileEmpty.replace("{f}", file.name));
-        }
-        await ingest(file.name, "text", text, buf);
-      } else if (n.endsWith(".pdf") || file.type==="application/pdf" || isPdfMagic) {
-        const extracted = await extractPdf(buf);
-        await ingest(file.name, "pdf", extracted.text, buf, { pages: extracted.pages });
-      } else if (isImageFile(file.name, file.type)) {
-        await handleImageFile(file, buf);
-      } else {
-        if (isZip && window.fflate) {
-          try {
-            const files = fflate.unzipSync(new Uint8Array(buf));
-            const hasDocXml = Object.keys(files).some(k => k.replace(/\\/g, "/").toLowerCase() === "word/document.xml");
-            if (hasDocXml) {
-              const text = extractDocxTextWithFflate(buf);
-              if (!text || !text.trim()) throw new Error(i().errFileEmpty.replace("{f}", file.name));
-              await ingest(file.name, "docx", text, buf);
-              return true;
-            }
-            const hasContentXml = Object.keys(files).some(k => k.toLowerCase() === "content.xml");
-            if (hasContentXml) {
-              const text = extractOdtText(buf);
-              if (!text || !text.trim()) throw new Error(i().errFileEmpty.replace("{f}", file.name));
-              await ingest(file.name, "text", text, buf);
-              return true;
-            }
-            const hasWbXml = Object.keys(files).some(k => k.replace(/\\/g, "/").toLowerCase() === "xl/workbook.xml");
-            if (hasWbXml) {
-              const extracted = await extractXlsx(buf);
-              if (!extracted || !extracted.text || !extracted.text.trim()) throw new Error(i().errFileEmpty.replace("{f}", file.name));
-              await ingest(file.name, "xlsx", extracted.text, buf, { cellMap: extracted.cellMap });
-              return true;
-            }
-          } catch (zipErr) {
-            if (zipErr && zipErr.message && (zipErr.message.includes(file.name) || zipErr.message === i().errFileEmpty.replace("{f}", file.name))) {
-              throw zipErr;
-            }
-          }
-        }
-        if (isBinaryBuffer(buf)) {
-          throw new Error(i().errFileBinary.replace("{f}", file.name));
-        }
-        const text = decodeTextBuffer(buf);
-        if (!text || !text.trim()) {
-          throw new Error(i().errFileEmpty.replace("{f}", file.name));
-        }
-        await ingest(file.name, "text", text, buf);
-      }
+      const doc = await ingestDocument(file, {
+        ocrEnabled: S.ocrEnabled,
+        lang: S.lang,
+        onProgress: showOcrProgress
+      });
+      applyDocumentToState(doc);
       return true;
     } catch (e) {
-      const msg = e.message || String(e);
+      const msg = localizeIngestError(e, file ? file.name : "");
       $("errLand").textContent = msg;
       $("errLand").classList.remove("hidden");
       toast(msg);

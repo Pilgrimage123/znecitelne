@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-08
+
+- Hloubkový modul pro načítání a extrakci dokumentů (`DocumentIngestion`):
+  - **Sjednocené rozhraní (`ingestDocument`):** Původních 10 mělkých funkcí pro detekci formátů, kontrolu magických bajtů a dekódování znakových sad sloučeno za jedno úzké rozhraní vracející neměnnou kanonickou strukturu doménového objektu `Dokument` (`id`, `fileName`, `kind`, `text`, `sourceBuf`, `pages`, `noTextPages`, `cellMap`, `sigDetected`, `hashIn`).
+  - **Strukturované doménové chyby (`DocumentIngestionError`):** Chyby načítání (`errFileEmpty`, `errFileTooLarge`, `errFileBinary`, `errDocOld`, `errImageNeedOcr`) jsou kategorizovány na úrovni švu modulu a odděleny od vykreslování DOMu a toastů.
+  - **Dávkové zpracování bez blokování (`ingestDocumentBatch`):** Dávková fronta zpracovává položky izolovaně; selhání jednoho souboru již neohrožuje celou frontu a vrací přehledné výsledky po jednotlivých dokumentech.
+  - **Regresní testy:** Do testovací sady doplněny automatizované testy ověřující jednotné švy modulu, immutabilitu `Dokumentu`, detekci chyb a dávkové načítání.
+
 ## 2026-10-07
 
 - Oprava chyb při nahrávání souborů a stabilizace načítání:

@@ -141,6 +141,13 @@ check(
   "PDF text extractor must lazily initialize OCR worker only when needed"
 );
 check(
+  htmlSourceIncludes("async function ingestDocument(") &&
+  htmlSourceIncludes("function applyDocumentToState(") &&
+  htmlSourceIncludes("class DocumentIngestionError") &&
+  htmlSourceIncludes("async function ingestDocumentBatch("),
+  "deepened document ingestion module must provide canonical ingestDocument interface and structured errors"
+);
+check(
   htmlSourceIncludes('pdfaFontWarn:"Nevložené fonty') &&
   htmlSourceIncludes('pdfaFontWarn:"Unembedded fonts'),
   "PDF/A font warning localization must exist in both Czech and English"
@@ -200,6 +207,99 @@ check(
   !/const candidates = \["index\\.html"/.test(canonical),
   "HTML self-export must not prefer obsolete index.html"
 );
+
+// Unit tests exercising deepened Document Ingestion module through its seam
+try {
+  const scriptContent = canonical.match(/<script>([\s\S]*?)<\/script>/)?.[1] || "";
+  const vm = await import("node:vm");
+  const sandbox = {
+    TextDecoder,
+    TextEncoder,
+    Uint8Array,
+    ArrayBuffer,
+    console,
+    Math,
+    String,
+    Number,
+    Object,
+    Error,
+    window: {},
+    document: {},
+    S: { lang: "cs", ocrEnabled: false },
+    sha256: async () => "mockhash"
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    `
+    function toBytes(buf){
+      if (!buf) return new Uint8Array(0);
+      if (buf instanceof Uint8Array) return buf;
+      if (buf instanceof ArrayBuffer) return new Uint8Array(buf);
+      if (ArrayBuffer.isView(buf)) return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+      return new Uint8Array(0);
+    }
+    ` +
+    scriptContent.slice(
+      scriptContent.indexOf("const IngestErrorCode ="),
+      scriptContent.indexOf("function extractOdtText(")
+    ) +
+    scriptContent.slice(
+      scriptContent.indexOf("function isImageFile("),
+      scriptContent.indexOf("const Q = { items:")
+    ),
+    sandbox
+  );
+
+  // 1. Structured domain error on empty document
+  let caught = null;
+  try {
+    await sandbox.ingestDocument({ name: "empty.txt", buffer: new ArrayBuffer(0) });
+  } catch (e) {
+    caught = e;
+  }
+  check(caught && caught.code === "errFileEmpty", "ingestDocument must throw errFileEmpty on empty buffer");
+
+  // 2. Structured domain error on legacy .doc
+  caught = null;
+  try {
+    await sandbox.ingestDocument({ name: "stary.doc", buffer: new Uint8Array([1, 2, 3]).buffer });
+  } catch (e) {
+    caught = e;
+  }
+  check(caught && caught.code === "errDocOld", "ingestDocument must throw errDocOld on legacy .doc");
+
+  // 3. Structured domain error on raw binary
+  caught = null;
+  try {
+    const binaryBytes = new Uint8Array([0x41, 0x42, 0x00, 0x43]);
+    await sandbox.ingestDocument({ name: "unknown.bin", buffer: binaryBytes.buffer });
+  } catch (e) {
+    caught = e;
+  }
+  check(caught && caught.code === "errFileBinary", "ingestDocument must throw errFileBinary on binary buffer");
+
+  // 4. Valid document extraction produces canonical immutable Dokument
+  const sampleText = "Dobrý den, anonymizace dokumentu.";
+  const sampleBuf = new TextEncoder().encode(sampleText).buffer;
+  const doc = await sandbox.ingestDocument({ name: "smlouva.txt", buffer: sampleBuf });
+  check(doc && doc.text === sampleText, "ingestDocument must extract clean normalized text");
+  check(doc && doc.kind === "text", "ingestDocument must identify text kind");
+  check(doc && Array.isArray(doc.pages) && doc.pages.length === 1, "ingestDocument must guarantee uniform pages array");
+  check(doc && Array.isArray(doc.cellMap) && doc.cellMap.length === 0, "ingestDocument must guarantee uniform cellMap array");
+  check(doc && doc.hashIn === "mockhash", "ingestDocument must guarantee computed hashIn");
+  check(Object.isFrozen(doc), "ingestDocument must return an immutable frozen Dokument");
+
+  // 5. Batch ingestion reports per-item results without halting on failure
+  const batch = await sandbox.ingestDocumentBatch([
+    { name: "valid.txt", buffer: sampleBuf },
+    { name: "invalid.doc", buffer: new Uint8Array([1, 2]).buffer }
+  ]);
+  check(batch.length === 2, "ingestDocumentBatch must return result for each input");
+  check(batch[0].ok && batch[0].doc.text === sampleText, "ingestDocumentBatch must succeed on valid item");
+  check(!batch[1].ok && batch[1].error.code === "errDocOld", "ingestDocumentBatch must capture error for invalid item");
+} catch (testErr) {
+  failures.push("Document ingestion unit test failed: " + (testErr.message || String(testErr)));
+}
 
 if (failures.length) {
   console.error("Quality gate failed:");
