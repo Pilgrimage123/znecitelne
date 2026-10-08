@@ -1579,7 +1579,6 @@ Orgán: OBÚ.
   }
   function dictRe(name){
     const esc = name.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
-    if (/\s/.test(name)) return new RegExp(esc, "gi");
     return new RegExp("(?<![\\p{L}\\p{N}])"+esc+"(?![\\p{L}\\p{N}])", "giu");
   }
   const URL_TOKEN_RE = /\b(?:https?:\/\/|www\.)[^\s<>"'\u00AD\u200B]+|\b[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+\.(?:cz|sk|com|net|org|eu|io)\/[^\s<>"'\u00AD\u200B]*/gi;
@@ -1620,13 +1619,18 @@ Orgán: OBÚ.
     return h;
   }
   function findAll(text, re, type, validate, group){
-    const out = []; const r = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags+"g");
+    const flags = (re.flags.includes("g") ? re.flags : re.flags+"g") + (re.flags.includes("d") ? "" : "d");
+    const out = []; const r = new RegExp(re.source, flags);
     let m; while ((m = r.exec(text))) {
       let value = m[0], start = m.index;
       if (group && m[group] != null) {
         const g = m[group];
-        const rel = m[0].indexOf(g);
-        start = m.index + (rel >= 0 ? rel : 0);
+        if (m.indices && m.indices[group]) {
+          start = m.indices[group][0];
+        } else {
+          const rel = m[0].indexOf(g);
+          start = m.index + (rel >= 0 ? rel : 0);
+        }
         value = g;
       }
       if (validate && !validate(value, text, start, m)) continue;
@@ -3894,12 +3898,12 @@ Orgán: OBÚ.
         return m;
       }
     });
-    s = s.replace(/\\([a-zA-Z]+)-?\d* ?/g, "");
     s = s.replace(/\\\\/g, "\uE000").replace(/\\\{/g, "\uE001").replace(/\\\}/g, "\uE002");
     s = s.replace(/\\([\\{}~])/g, "$1");
+    s = s.replace(/\\([a-zA-Z]+)-?\d* ?/g, "");
     s = s.replace(/[{}]/g, "");
-    s = s.replace(/\uE001/g, "{").replace(/\uE002/g, "}").replace(/\uE000/g, "\\");
     s = s.replace(/\\/g, "");
+    s = s.replace(/\uE001/g, "{").replace(/\uE002/g, "}").replace(/\uE000/g, "\\");
     return s.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
   }
 
@@ -5262,15 +5266,19 @@ Orgán: OBÚ.
       return true;
     } catch (err) {
       if (err.message && err.message.includes("PDF security verification failed")) throw err;
-      return true;
+      throw new Error("PDF security verification failed: " + (err.message || String(err)));
     }
   }
 
   function assertSecurePdfBytes(bytes){
     const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     const ascii = new TextDecoder("latin1").decode(u8);
+    const normAscii = ascii.replace(/\/([^\s<>[\]{}/%]+)/g, (_, name) => {
+      const decoded = name.replace(/#([0-9a-fA-F]{2})/g, (__, hex) => String.fromCharCode(parseInt(hex, 16)));
+      return "/" + decoded;
+    });
     const forbidden = ["/AcroForm", "/Sig", "/EmbeddedFiles", "/JavaScript", "/JS"];
-    const found = forbidden.filter(token => ascii.includes(token));
+    const found = forbidden.filter(token => ascii.includes(token) || normAscii.includes(token));
     if (found.length) {
       throw new Error("PDF security preflight failed: "+found.join(", "));
     }

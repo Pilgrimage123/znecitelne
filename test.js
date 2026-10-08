@@ -301,6 +301,58 @@ try {
   failures.push("Document ingestion unit test failed: " + (testErr.message || String(testErr)));
 }
 
+// Regression tests for proactive bug fixes
+try {
+  const scriptContent = canonical.match(/<script>([\s\S]*?)<\/script>/)?.[1] || "";
+  const vm = await import("node:vm");
+  const sandbox = {
+    TextDecoder,
+    TextEncoder,
+    Uint8Array,
+    ArrayBuffer,
+    console,
+    Math,
+    String,
+    Number,
+    Object,
+    Error,
+    RegExp,
+    window: {},
+    document: {}
+  };
+  vm.createContext(sandbox);
+
+  const rtfCode = scriptContent.slice(scriptContent.indexOf("function extractRtfText("), scriptContent.indexOf("function extractOdtText("));
+  const findAllCode = scriptContent.slice(scriptContent.indexOf("function findAll("), scriptContent.indexOf("function scoreHit("));
+  const dictReCode = scriptContent.slice(scriptContent.indexOf("function dictRe("), scriptContent.indexOf("const URL_TOKEN_RE ="));
+  const assertPdfCode = scriptContent.slice(scriptContent.indexOf("function assertSecurePdfBytes("), scriptContent.indexOf("async function exportPdfTrueRedact("));
+
+  vm.runInContext(rtfCode + "\n" + findAllCode + "\n" + dictReCode + "\n" + assertPdfCode, sandbox);
+
+  // 1. RTF extraction preserves file paths with escaped backslashes
+  const rtfPath = sandbox.extractRtfText("{\\rtf1 C:\\\\temp\\\\file.txt}");
+  check(rtfPath === "C:\\temp\\file.txt", "extractRtfText must preserve literal backslashes and path segments in RTF");
+
+  // 2. findAll tracks exact capture group start offset even when token matches prefix label
+  const hits = sandbox.findAll("secret: secret", /(?:secret)\s*[:=]\s*(\S+)/i, "credential", null, 1);
+  check(hits.length === 1 && hits[0].start === 8 && hits[0].value === "secret", "findAll must use exact capture group offset instead of matching prefix label");
+
+  // 3. dictRe maintains word boundaries for multi-word phrases
+  const multiRe = sandbox.dictRe("Projekt Atlas");
+  check(!multiRe.test("MůjProjekt Atlas") && multiRe.test("Projekt Atlas"), "dictRe must enforce word boundaries on multi-word phrases");
+
+  // 4. assertSecurePdfBytes detects hex-encoded names
+  let caughtHex = false;
+  try {
+    sandbox.assertSecurePdfBytes(new TextEncoder().encode("%PDF-1.4\n1 0 obj\n/#41croForm <<>>\nendobj\n%%EOF"));
+  } catch (_) {
+    caughtHex = true;
+  }
+  check(caughtHex, "assertSecurePdfBytes must reject hex-encoded forbidden names");
+} catch (regErr) {
+  failures.push("Regression test suite failed: " + (regErr.message || String(regErr)));
+}
+
 if (failures.length) {
   console.error("Quality gate failed:");
   for (const failure of failures) console.error(`- ${failure}`);
