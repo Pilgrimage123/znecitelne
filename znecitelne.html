@@ -2129,16 +2129,14 @@ Orgán: OBÚ.
   }
   function bindReplacer(mode, lang, hits){
     const replacer = makeReplacer(mode, lang);
-    topHits(hits).slice()
-      .sort((a,b) => a.start-b.start || (a.id||0)-(b.id||0))
-      .forEach(h => { replacer(h); });
+    effectiveHits(hits).forEach(h => { replacer(h); });
     return replacer;
   }
   function buildGlossary(hits, mode, lang, publicOnly){
     const replacer = bindReplacer(mode, lang, hits);
     const rows = [];
     const seen = new Set();
-    topHits(hits).forEach(h => {
+    effectiveHits(hits).forEach(h => {
       const token = replacer(h);
       const k = h.type+"|"+h.value.toLocaleLowerCase("cs");
       if (seen.has(k)) return;
@@ -2149,30 +2147,63 @@ Orgán: OBÚ.
     });
     return rows;
   }
+  /**
+   * Dekonflikce nálezů (Deep Module):
+   * Vyřeší překrývající se rozsahy nálezů v textu/dokumentu podle hierarchie priorit:
+   * 1. Stav schválení (accept) – schválené mají přednost před neschválenými
+   * 2. Délka rozsahu (end - start) – delší a specifičtější nález vyhrává nad podslovem
+   * 3. Skóre detektoru (score) – vyšší spolehlivost detekce
+   * 4. Počáteční offset (start) – dřívější výskyt v textu
+   * 5. ID nálezu – deterministický tiebreaker pro nerozhodné případy
+   *
+   * @param {Array<object>} hits - Vstupní nálezy
+   * @param {object} [options]
+   * @param {boolean} [options.acceptedOnly=false] - Zpracovat pouze schválené nálezy (pro exporty a náhrady)
+   * @returns {Array<object>} Nepřekrývající se nálezy seřazené vzestupně podle start offsetu
+   */
   function resolveHits(hits, { acceptedOnly = false } = {}){
     const source = (hits || []).filter(h =>
       h &&
       Number.isFinite(h.start) &&
       Number.isFinite(h.end) &&
       h.end > h.start &&
-      (!acceptedOnly || h.accept)
+      (!acceptedOnly || Boolean(h.accept))
     );
     const ordered = source.slice().sort((a, b) => {
-      if (!!a.accept !== !!b.accept) return a.accept ? -1 : 1;
+      const accA = Boolean(a.accept);
+      const accB = Boolean(b.accept);
+      if (accA !== accB) return accA ? -1 : 1;
+
       const lenA = a.end - a.start;
       const lenB = b.end - b.start;
       if (lenA !== lenB) return lenB - lenA;
+
       const scoreA = Number(a.score) || 0;
       const scoreB = Number(b.score) || 0;
       if (scoreA !== scoreB) return scoreB - scoreA;
-      return a.start - b.start || (a.id || 0) - (b.id || 0);
+
+      if (a.start !== b.start) return a.start - b.start;
+
+      const idA = a.id ?? 0;
+      const idB = b.id ?? 0;
+      if (typeof idA === "number" && typeof idB === "number") return idA - idB;
+      return String(idA).localeCompare(String(idB));
     });
     const chosen = [];
     for (const h of ordered) {
-      if (chosen.some(o => h.start < o.end && h.end > o.start)) continue;
-      chosen.push(h);
+      let low = 0, high = chosen.length;
+      while (low < high) {
+        const mid = (low + high) >> 1;
+        if (chosen[mid].end > h.start) {
+          high = mid;
+        } else {
+          low = mid + 1;
+        }
+      }
+      if (low < chosen.length && chosen[low].start < h.end) continue;
+      chosen.splice(low, 0, h);
     }
-    return chosen.sort((a, b) => a.start - b.start || a.end - b.end);
+    return chosen;
   }
   function effectiveHits(hits){
     return resolveHits(hits, { acceptedOnly: true });
@@ -2185,9 +2216,12 @@ Orgán: OBÚ.
   }
   function apply(text, hits, mode, lang){
     const replacer = bindReplacer(mode, lang, hits);
-    const accepted = topHits(hits).sort((a,b)=>b.start-a.start);
+    const accepted = effectiveHits(hits);
     let out = text;
-    for (const h of accepted) out = out.slice(0,h.start)+replacer(h)+out.slice(h.end);
+    for (let i = accepted.length - 1; i >= 0; i--) {
+      const h = accepted[i];
+      out = out.slice(0, h.start) + replacer(h) + out.slice(h.end);
+    }
     return out;
   }
   function xlsxToText(wb){
@@ -2221,13 +2255,13 @@ Orgán: OBÚ.
     const wb = XLSX.read(sourceBuf.slice(0), { type:"array" });
     const { cellMap } = xlsxToText(wb);
     const replacer = bindReplacer(mode, lang, hits);
-    const accepted = topHits(hits);
+    const accepted = effectiveHits(hits);
     cellMap.forEach(cm => {
-      const cellHits = accepted.filter(h => h.end>cm.start && h.start<cm.end).sort((a,b)=>b.start-a.start);
+      const cellHits = accepted.filter(h => h.end>cm.start && h.start<cm.end);
       if (!cellHits.length) return;
       const ws = wb.Sheets[cm.sheet]; const cell = ws[cm.ref]; if (!cell) return;
       let str = String(cell.v);
-      cellHits.forEach(h => {
+      cellHits.reverse().forEach(h => {
         const s = Math.max(0, h.start-cm.start);
         const e = Math.min(str.length, h.end-cm.start);
         if (e<=s) return;
@@ -2596,7 +2630,7 @@ Orgán: OBÚ.
 
     const replacer = bindReplacer(mode, lang, hits);
     const map = new Map();
-    topHits(hits).slice().sort((a,b) => a.start - b.start).forEach(h => {
+    effectiveHits(hits).forEach(h => {
       if (h.value && !map.has(h.value)) map.set(h.value, replacer(h));
     });
 
@@ -2760,7 +2794,7 @@ Orgán: OBÚ.
     replacer = replacer || bindReplacer(S.mode==="box"?"pseudo":S.mode, S.lang, hits);
     const base = lineStart || 0;
     let out = line;
-    topHits(hits).sort((a,b)=>b.start-a.start).forEach(h => {
+    effectiveHits(hits).reverse().forEach(h => {
       const s = h.start - base, e = h.end - base;
       if (s>=0 && e<=out.length && out.slice(s,e)===h.value) out = out.slice(0,s)+replacer(h)+out.slice(e);
       else if (out.includes(h.value)) out = out.replace(h.value, replacer(h));
@@ -3313,7 +3347,7 @@ Orgán: OBÚ.
     const previewOn = S.docView === "preview";
     PV.pages.forEach(pg => {
       pg.layer.innerHTML = "";
-      S.hits.forEach(h => {
+      visibleHits(S.hits, S.selectedId).forEach(h => {
         const meta = (S.pages || []).find(p => p.n === pg.n);
         if (!meta || h.start < meta.start || h.start >= meta.end + 1) return;
         const rel = h.start - meta.start;
@@ -3415,7 +3449,7 @@ Orgán: OBÚ.
   function paintReview(){
     const t = i();
     const replaced = apply(S.text, S.hits, S.mode, S.lang);
-    const leftovers = topHits(S.hits).filter(h => h.value.length>=5 && replaced.includes(h.value));
+    const leftovers = effectiveHits(S.hits).filter(h => h.value.length>=5 && replaced.includes(h.value));
     const red = S.hits.filter(h=>h.accept).length;
     const proc = S.processAnalysis ? analyzeProcess(S.text, replaced, S.hits) : { leaks: [] };
     const leaks = proc.leaks;
@@ -5365,7 +5399,7 @@ Orgán: OBÚ.
       const text = mapped.text;
       const map = mapped.map;
       const redactedIntervals = [];
-      topHits(hits).filter(h => (h.page || pageOf(h.start)) === i).forEach(hit => {
+      effectiveHits(hits).filter(h => (h.page || pageOf(h.start)) === i).forEach(hit => {
         let idx = -1;
         if (pageMeta && hit.start >= pageMeta.start && hit.end <= pageMeta.end) {
           idx = hit.start - pageMeta.start;
@@ -5451,14 +5485,14 @@ Orgán: OBÚ.
     const outBytes = await doc.save({ useObjectStreams:false });
     const verifiedBytes = assertSecurePdfBytes(outBytes);
     if (S.truePdfRedact) {
-      verifySanitizedPdfText(verifiedBytes, topHits(hits));
+      verifySanitizedPdfText(verifiedBytes, effectiveHits(hits));
     }
     return verifiedBytes;
   }
   function getRedactionDiff(text, hits, mode, lang){
     const packMode = (mode === "box" && S._aiPack) ? "pseudo" : mode;
     const replaced = apply(text, hits, packMode, lang);
-    const activeHits = (hits || []).filter(h => h.accept);
+    const activeHits = effectiveHits(hits);
 
     const reWord = /[\p{L}\p{N}_@.-]+/gu;
     const wordsBefore = (text.match(reWord) || []);

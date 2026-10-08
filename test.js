@@ -37,6 +37,20 @@ check(
   canonical.includes("function topHits(hits){") && canonical.includes("return effectiveHits(hits);"),
   "topHits must use the canonical effective-hit resolver"
 );
+const bindReplacerBody = canonical.match(/function bindReplacer[\s\S]*?\n  \}/)?.[0] || "";
+check(
+  !bindReplacerBody.includes(".sort("),
+  "bindReplacer must not redundantly sort hits"
+);
+check(
+  bindReplacerBody.includes("effectiveHits(hits)") && !bindReplacerBody.includes(".slice("),
+  "bindReplacer must consume effectiveHits directly without redundant slice or sort"
+);
+const docxExportBody = canonical.match(/async function exportDocxFile[\s\S]*?\n  \}/)?.[0] || "";
+check(
+  !docxExportBody.includes(".sort("),
+  "exportDocxFile must not redundantly sort hits"
+);
 check(
   htmlSourceIncludes("function assertSecurePdfBytes(bytes)"),
   "PDF exports must have a security preflight"
@@ -299,6 +313,188 @@ try {
   check(!batch[1].ok && batch[1].error.code === "errDocOld", "ingestDocumentBatch must capture error for invalid item");
 } catch (testErr) {
   failures.push("Document ingestion unit test failed: " + (testErr.message || String(testErr)));
+}
+
+// Jednotkové testy modulu dekonflikce nálezů (resolveHits, effectiveHits, visibleHits) přes kanonické rozhraní
+try {
+  const scriptContent = canonical.match(/<script>([\s\S]*?)<\/script>/)?.[1] || "";
+  const vm = await import("node:vm");
+  const deconflictSandbox = {
+    Number,
+    Boolean,
+    String,
+    Array,
+    Map,
+    Set,
+    Math,
+    console,
+    LABEL: { cs: { name: "OSOBA", ticket: "TICKET" } },
+    STATUS_GENERIC: { cs: { prod: "PROD" } },
+    canonToken: (s) => String(s).toLowerCase()
+  };
+  vm.createContext(deconflictSandbox);
+  vm.runInContext(
+    scriptContent.slice(
+      scriptContent.indexOf("function tokenBase("),
+      scriptContent.indexOf("function xlsxToText(")
+    ),
+    deconflictSandbox
+  );
+
+  const { resolveHits, effectiveHits, visibleHits, topHits, apply, buildGlossary } = deconflictSandbox;
+
+  // 1. Schválený nález má přednost před delším neschváleným nálezem
+  const approvedVsLonger = resolveHits([
+    { id: 1, start: 0, end: 30, value: "neco dlouheho neovereneho", accept: false },
+    { id: 2, start: 5, end: 15, value: "schvaleno", accept: true }
+  ]);
+  check(
+    approvedVsLonger.length === 1 && approvedVsLonger[0].id === 2,
+    "resolveHits must prioritize accepted hits over longer unaccepted hits"
+  );
+
+  // effectiveHits must return only accepted hits
+  const eff = effectiveHits([
+    { id: 1, start: 0, end: 10, accept: false },
+    { id: 2, start: 20, end: 30, accept: true }
+  ]);
+  check(
+    eff.length === 1 && eff[0].id === 2,
+    "effectiveHits must return only accepted hits"
+  );
+
+  // visibleHits returns all deconflicted hits regardless of accept
+  const vis = visibleHits([
+    { id: 1, start: 0, end: 10, accept: false },
+    { id: 2, start: 20, end: 30, accept: true }
+  ]);
+  check(
+    vis.length === 2 && vis[0].id === 1 && vis[1].id === 2,
+    "visibleHits must return both accepted and unaccepted deconflicted hits"
+  );
+
+  // topHits delegates to effectiveHits
+  const top = topHits([
+    { id: 1, start: 0, end: 10, accept: false },
+    { id: 2, start: 20, end: 30, accept: true }
+  ]);
+  check(
+    top.length === 1 && top[0].id === 2,
+    "topHits must delegate to effectiveHits"
+  );
+
+  // 2. Při shodném stavu schválení vyhrává delší rozsah
+  const longerWinsSameStatus = resolveHits([
+    { id: "part", start: 4, end: 9, value: "Novák", accept: false },
+    { id: "full", start: 0, end: 9, value: "Jan Novák", accept: false }
+  ]);
+  check(
+    longerWinsSameStatus.length === 1 && longerWinsSameStatus[0].id === "full",
+    "resolveHits must prioritize longer hit over substring when approval status matches"
+  );
+
+  // 3. Sousední nálezy dotýkající se na hranici (start jednoho == end druhého) nezpůsobí kolizi
+  const abutting = resolveHits([
+    { id: "b", start: 10, end: 20, value: "druhy", accept: true },
+    { id: "a", start: 0, end: 10, value: "prvni", accept: true }
+  ]);
+  check(
+    abutting.length === 2 && abutting[0].id === "a" && abutting[1].id === "b",
+    "resolveHits must retain abutting adjacent hits without false collision"
+  );
+
+  // 4. Vyřazení neplatných nálezů (obrácený rozsah, nečíselné offsety, null/undefined)
+  const invalidInputs = resolveHits([
+    null,
+    undefined,
+    { id: 1, start: 10, end: 5 },
+    { id: 2, start: 5, end: 5 },
+    { id: 3, start: "5", end: 10 },
+    { id: 4, start: NaN, end: 10 },
+    { id: 5, start: 0, end: Infinity },
+    { id: 6, start: 0, end: 8, value: "platny" }
+  ]);
+  check(
+    invalidInputs.length === 1 && invalidInputs[0].id === 6,
+    "resolveHits must filter out null, undefined, inverted, and non-finite ranges"
+  );
+
+  // 5. Deterministický tiebreaker pro nerozhodné případy (číselná i řetězcová ID)
+  const numTie = resolveHits([
+    { id: 10, start: 0, end: 5, score: 1, accept: true },
+    { id: 2, start: 0, end: 5, score: 1, accept: true }
+  ]);
+  check(
+    numTie.length === 1 && numTie[0].id === 2,
+    "resolveHits tiebreaker must deterministically select lower numeric id"
+  );
+
+  const strTie = resolveHits([
+    { id: "z-hit", start: 0, end: 5, score: 1, accept: true },
+    { id: "a-hit", start: 0, end: 5, score: 1, accept: true }
+  ]);
+  check(
+    strTie.length === 1 && strTie[0].id === "a-hit",
+    "resolveHits tiebreaker must deterministically select lexicographically earlier string id"
+  );
+
+  // 6. Výstupní pole nálezů je vždy seřazeno vzestupně podle počátečního offsetu
+  const unordered = resolveHits([
+    { id: 3, start: 50, end: 60, accept: true },
+    { id: 1, start: 10, end: 20, accept: true },
+    { id: 2, start: 30, end: 40, accept: true }
+  ]);
+  check(
+    unordered.length === 3 && unordered[0].id === 1 && unordered[1].id === 2 && unordered[2].id === 3,
+    "resolveHits must always return hits sorted ascending by start offset"
+  );
+
+  // 7. Škálovatelnost a výkon algoritmu překryvů bez kvadratické zátěže (Ticket 02)
+  const stressHits = [];
+  for (let i = 0; i < 1000; i++) {
+    const s = (i * 7) % 5000;
+    stressHits.push({
+      id: i,
+      start: s,
+      end: s + 10 + (i % 15),
+      score: 0.5 + (i % 50) / 100,
+      accept: i % 2 === 0
+    });
+  }
+  const tStart = performance.now();
+  const stressResolved = resolveHits(stressHits);
+  const duration = performance.now() - tStart;
+  check(
+    duration < 100,
+    `resolveHits on 1000 hits must complete efficiently without quadratic lag (took ${duration.toFixed(2)}ms)`
+  );
+  const strictlyOrderedAndDisjoint = stressResolved.every((h, idx) => {
+    if (idx === 0) return true;
+    return h.start >= stressResolved[idx - 1].end;
+  });
+  check(
+    strictlyOrderedAndDisjoint,
+    "resolveHits output must be strictly disjoint and ordered ascending by start"
+  );
+
+  // 8. Integrace apply a buildGlossary s dekonflikcí nálezů (Ticket 03)
+  const overlapHits = [
+    { id: 1, start: 0, end: 9, value: "Jan Novák", type: "name", accept: true, score: 0.9, entityKey: "name|jan" },
+    { id: 2, start: 4, end: 9, value: "Novák", type: "name", accept: true, score: 0.99, entityKey: "name|nov" },
+    { id: 3, start: 15, end: 19, value: "CBUA", type: "ticket", accept: true, score: 0.5, entityKey: "ticket|cbua" }
+  ];
+  const overlapOut = apply("Jan Novák .... CBUA", overlapHits, "pseudo", "cs");
+  check(
+    !overlapOut.includes("Novák") && !overlapOut.includes("CBUA") && overlapOut.includes("[OSOBA_"),
+    "apply must use deconflicted hits and replace sensitive values properly"
+  );
+  const gloss = buildGlossary(overlapHits, "pseudo", "cs", false);
+  check(
+    gloss.length === 2 && gloss.some(r => r.type === "name") && gloss.some(r => r.type === "ticket"),
+    "buildGlossary must produce tokens based on deconflicted hits"
+  );
+} catch (hitErr) {
+  failures.push("Test modulu dekonflikce nálezů selhal: " + (hitErr.message || String(hitErr)));
 }
 
 // Regression tests for proactive bug fixes
