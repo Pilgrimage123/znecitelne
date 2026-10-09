@@ -826,7 +826,7 @@ Orgán: OBÚ.
       leakBad:"Po anonymizaci zbývají vzory, které by veřejná AI ještě mohla zneužít.",
       stripMeta:"Odstranit metadata",
       pdfaDecl:"Deklarace PDF/A-2b + sRGB OutputIntent (preflight stále nutný)", pdfaNote:"PDF/A metadata a sRGB OutputIntent byly vloženy; shoda stále není certifikována bez externího preflightu.", pdfaFontWarn:"Nevložené fonty nalezeny na stránkách {n}; tyto stránky se mají při bezpečném exportu převést na raster.", pdfaFail:"PDF/A metadata nebo OutputIntent se nepodařilo vložit.",
-      queueLbl:"Fronta souborů", queueAll:"Exportovat všechny zkontrolované", queueNone:"Žádný soubor ve frontě zatím není zkontrolovaný.", queueDone:"Exportováno souborů: {n}", queueBad:"Soubor „{f}“ se nepodařilo načíst.", queueRemove:"Odebrat z fronty", errPdfPassword:"PDF je chráněno heslem. Před zpracováním heslo odstraňte.", errPdfInvalid:"Soubor PDF je poškozený nebo neúplný.", errFileEmpty:"Soubor „{f}“ je prázdný (0 B).", errFileTooLarge:"Soubor „{f}“ je příliš velký (maximum je 100 MB).", errFileBinary:"Soubor „{f}“ je v nepodporovaném binárním formátu.", errDocOld:"Starší formát .doc (Word 97-2003) uložte prosím jako .docx nebo .pdf.", errImageNeedOcr:"Zpracování obrázku (skenu) vyžaduje zapnutí OCR v nastavení.",
+      queueLbl:"Dávková fronta", queueAll:"Exportovat všechny zkontrolované", queueNone:"Žádný soubor ve frontě zatím není zkontrolovaný.", queueDone:"Exportováno souborů: {n}", queueBad:"Soubor „{f}“ se nepodařilo načíst.", queueRemove:"Odebrat z fronty", errPdfPassword:"PDF je chráněno heslem. Před zpracováním heslo odstraňte.", errPdfInvalid:"Soubor PDF je poškozený nebo neúplný.", errFileEmpty:"Soubor „{f}“ je prázdný (0 B).", errFileTooLarge:"Soubor „{f}“ je příliš velký (maximum je 100 MB).", errFileBinary:"Soubor „{f}“ je v nepodporovaném binárním formátu.", errDocOld:"Starší formát .doc (Word 97-2003) uložte prosím jako .docx nebo .pdf.", errImageNeedOcr:"Zpracování obrázku (skenu) vyžaduje zapnutí OCR v nastavení.",
       truePdfRedact:"Při anonymizaci PDF zůstává textová vrstva",
       truePdfRedactHint:"Zachová prohledávatelný text mimo začerněné nebo nahrazené úseky, ve všech režimech výstupu (začernění, XXXX, štítek i pseudonym). Stránky, které nelze bezpečně ověřit, se přesto převedou na obrázek.",
       morphBtn:"Skloňování: dohledat všechny pády v textu",
@@ -2536,70 +2536,6 @@ Orgán: OBÚ.
     }
   }
 
-  function docxBuildSensitiveMediaRename(files){
-    const sensitive = /(?:sekret|secret|tajne|tajné|tajny|tajný|sensitive|confidential|citliv|internal|private)/iu;
-    const rename = new Map();
-    let n = 1;
-
-    Object.keys(files).filter(name => /^word\/media\/[^/]+$/i.test(name)).sort().forEach(oldName => {
-      const base = oldName.split("/").pop();
-      if (!sensitive.test(base)) return;
-
-      const dot = base.lastIndexOf(".");
-      const ext = dot >= 0 ? base.slice(dot) : "";
-      let candidate;
-      do {
-        candidate = `word/media/image_anonymized_${String(n++).padStart(3, "0")}${ext}`;
-      } while (files[candidate]);
-      rename.set(oldName, candidate);
-    });
-
-    return rename;
-  }
-
-  function docxApplyPartRenames(files, rename, dec, enc){
-    if (!rename.size) return;
-
-    for (const [oldName, newName] of rename) {
-      if (!files[oldName]) continue;
-      files[newName] = files[oldName];
-      delete files[oldName];
-    }
-
-    for (const name of Object.keys(files)) {
-      if (name !== "_rels/.rels" && !/^.+\/_rels\/[^/]+\.rels$/i.test(name)) continue;
-
-      const doc = new DOMParser().parseFromString(dec.decode(files[name]), "application/xml");
-      if (doc.getElementsByTagName("parsererror").length) throw new Error("Invalid relationships: " + name);
-
-      const sourcePart = docxRelationshipSourcePart(name);
-      let changed = false;
-
-      Array.from(doc.getElementsByTagNameNS(DOCX_REL_NS, "Relationship")).forEach(rel => {
-        if (rel.getAttribute("TargetMode") === "External") return;
-        const target = rel.getAttribute("Target");
-        const absolute = docxResolveRelTarget(sourcePart, target);
-        if (!absolute) return;
-
-        const replacement = rename.get(absolute);
-        if (!replacement) return;
-
-        rel.setAttribute("Target", docxRelativeZipPath(
-          sourcePart ? sourcePart.slice(0, sourcePart.lastIndexOf("/")) : "",
-          replacement
-        ));
-        changed = true;
-      });
-
-      if (changed) {
-        files[name] = enc.encode(
-          '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
-          new XMLSerializer().serializeToString(doc)
-        );
-      }
-    }
-  }
-
   function docxAssertNoDanglingRelationships(files, dec){
     for (const name of Object.keys(files)) {
       if (name !== "_rels/.rels" && !/^.+\/_rels\/[^/]+\.rels$/i.test(name)) continue;
@@ -3484,7 +3420,6 @@ Orgán: OBÚ.
     if (S.kind === "pdf" && S.sigDetected) { sigWarn.classList.remove("hidden"); sigWarn.textContent = "⚠ " + t.sigWarning; }
     else { sigWarn.classList.add("hidden"); sigWarn.textContent = ""; }
     const previewOn = S.docView === "preview";
-    document.body.classList.toggle("doc-preview", previewOn);
     $("lblOrig").textContent = previewOn ? t.previewChanges : t.original;
     $("btnAdd").textContent = t.addSelection; $("btnAdd").setAttribute("data-tip", t.tips.addSelection);
     $("orig").innerHTML = previewOn ? previewHTML() : origHTML();
@@ -4366,8 +4301,33 @@ Orgán: OBÚ.
     QUEUE_LOAD_GENERATION++;
     saveCurrent();
     const start = Q.items.length;
-    files.forEach(f => Q.items.push({ name:f.name, file:f, snap:null }));
-    await openQueueItem(start);
+
+    const results = await ingestDocumentBatch(files, {
+      ocrEnabled: S.ocrEnabled,
+      lang: S.lang,
+      onProgress: showOcrProgress
+    });
+
+    let added = 0;
+    for (let idx = 0; idx < results.length; idx++) {
+      const res = results[idx];
+      const origFile = files[idx];
+      if (res.ok) {
+        Q.items.push({ name: res.fileName, file: origFile, doc: res.doc, snap: null });
+        added++;
+      } else {
+        const msg = localizeIngestError(res.error, res.fileName);
+        toast(msg);
+      }
+    }
+
+    if (added > 0) {
+      await openQueueItem(start);
+    } else if (!Q.items.length) {
+      paintLanding();
+    } else {
+      renderQueue();
+    }
   }
 
   function removeQueueItem(idx){
@@ -4406,10 +4366,15 @@ Orgán: OBÚ.
     }
 
     let ok = false;
-    try {
-      ok = await onFile(it.file);
-    } catch (_) {
-      ok = false;
+    if (it.doc) {
+      applyDocumentToState(it.doc);
+      ok = true;
+    } else {
+      try {
+        ok = await onFile(it.file);
+      } catch (_) {
+        ok = false;
+      }
     }
 
     if (generation !== QUEUE_LOAD_GENERATION || Q.items[idx] !== it || Q.cur !== idx) {
@@ -5104,171 +5069,6 @@ Orgán: OBÚ.
     return await doc.save({ useObjectStreams:false });
   }
 
-  function pdfTokenize(bytes){
-    const tokens = [];
-    let i = 0; const n = bytes.length;
-    const isWS = c => c===0x20||c===0x0A||c===0x0D||c===0x09||c===0x0C||c===0x00;
-    const isDelim = c => c===0x28||c===0x29||c===0x3C||c===0x3E||c===0x5B||c===0x5D||c===0x7B||c===0x7D||c===0x2F||c===0x25;
-    const s = (a,b) => { let r=""; for (let k=a;k<b;k++) r+=String.fromCharCode(bytes[k]); return r; };
-    while (i < n) {
-      const c = bytes[i];
-      if (isWS(c)) { i++; continue; }
-      if (c === 0x25) { while (i<n && bytes[i]!==0x0A && bytes[i]!==0x0D) i++; continue; }
-      if (c === 0x28) {
-        const start=i; i++; let depth=1;
-        while (i<n && depth>0) { if (bytes[i]===0x5C){i+=2;continue;} if (bytes[i]===0x28) depth++; else if (bytes[i]===0x29) depth--; i++; }
-        tokens.push({ type:"string", start, end:i }); continue;
-      }
-      if (c === 0x3C && bytes[i+1] === 0x3C) {
-        const start=i; i+=2; let depth=1;
-        while (i<n && depth>0) { if (bytes[i]===0x3C&&bytes[i+1]===0x3C){depth++;i+=2;continue;} if (bytes[i]===0x3E&&bytes[i+1]===0x3E){depth--;i+=2;continue;} i++; }
-        tokens.push({ type:"dict", start, end:i }); continue;
-      }
-      if (c === 0x3C) {
-        const start=i; i++; while (i<n && bytes[i]!==0x3E) i++; i++;
-        tokens.push({ type:"hexstring", start, end:i }); continue;
-      }
-      if (c === 0x5B) {
-        const start=i; i++; let depth=1;
-        while (i<n && depth>0) {
-          if (bytes[i]===0x5B) depth++;
-          else if (bytes[i]===0x5D) depth--;
-          else if (bytes[i]===0x28) { i++; let d2=1; while(i<n&&d2>0){ if(bytes[i]===0x5C){i+=2;continue;} if(bytes[i]===0x28)d2++; else if(bytes[i]===0x29)d2--; i++; } continue; }
-          else if (bytes[i]===0x3C) { i++; while(i<n&&bytes[i]!==0x3E) i++; i++; continue; }
-          i++;
-        }
-        tokens.push({ type:"array", start, end:i }); continue;
-      }
-      if (c === 0x2F) {
-        const start=i; i++; while (i<n && !isWS(bytes[i]) && !isDelim(bytes[i])) i++;
-        tokens.push({ type:"name", start, end:i }); continue;
-      }
-      const start=i; while (i<n && !isWS(bytes[i]) && !isDelim(bytes[i])) i++;
-      if (i===start) { i++; continue; }
-      const str = s(start,i);
-      tokens.push({ type: /^[+-]?(\d+\.?\d*|\.\d+)$/.test(str) ? "number":"op", start, end:i, str });
-    }
-    return tokens;
-  }
-  function pdfDecodeStringToken(bytes, tok){
-    if (tok.type === "hexstring") {
-      let hex = ""; for (let k=tok.start+1;k<tok.end-1;k++) hex += String.fromCharCode(bytes[k]);
-      hex = hex.replace(/[^0-9A-Fa-f]/g,"");
-      const out = new Uint8Array(Math.floor(hex.length/2));
-      for (let k=0;k<out.length;k++) out[k] = parseInt(hex.substr(k*2,2),16);
-      return out;
-    }
-    if (tok.type === "string") {
-      const out = [];
-      for (let k=tok.start+1;k<tok.end-1;k++) {
-        if (bytes[k]===0x5C) {
-          k++; const c = bytes[k];
-          if (c===0x6E) out.push(0x0A); else if (c===0x72) out.push(0x0D);
-          else if (c===0x74) out.push(0x09); else if (c===0x62) out.push(0x08);
-          else if (c===0x66) out.push(0x0C);
-          else if (c>=0x30 && c<=0x37) {
-            let oct = String.fromCharCode(c);
-            for (let j=0;j<2 && bytes[k+1]>=0x30 && bytes[k+1]<=0x37;j++){ k++; oct+=String.fromCharCode(bytes[k]); }
-            out.push(parseInt(oct,8)&0xFF);
-          } else out.push(c);
-        } else out.push(bytes[k]);
-      }
-      return new Uint8Array(out);
-    }
-    return new Uint8Array(0);
-  }
-  function pdfBytesToLatin1(u8){ let s=""; for (let k=0;k<u8.length;k++) s+=String.fromCharCode(u8[k]); return s; }
-  function pdfConcatU8(a,b){ const out=new Uint8Array(a.length+b.length); out.set(a,0); out.set(b,a.length); return out; }
-  function parseToUnicodeCMap(bytes){
-    const s = pdfBytesToLatin1(bytes);
-    const map = new Map();
-    const hexToStr = (hex) => {
-      let out = "";
-      for (let k=0;k<hex.length;k+=4) {
-        const cu = parseInt(hex.substr(k,4),16);
-        if (!isNaN(cu)) out += String.fromCharCode(cu);
-      }
-      return out;
-    };
-    const charRe = /beginbfchar([\s\S]*?)endbfchar/g;
-    let m;
-    while ((m = charRe.exec(s))) {
-      const pairRe = /<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g;
-      let p;
-      while ((p = pairRe.exec(m[1]))) {
-        if (p[1].length !== 2) continue;
-        map.set(parseInt(p[1],16), hexToStr(p[2]));
-      }
-    }
-    const rangeRe = /beginbfrange([\s\S]*?)endbfrange/g;
-    while ((m = rangeRe.exec(s))) {
-      const rowRe = /<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g;
-      let p;
-      while ((p = rowRe.exec(m[1]))) {
-        if (p[1].length !== 2 || p[2].length !== 2) continue;
-        const lo = parseInt(p[1],16), hi = parseInt(p[2],16);
-        const base = parseInt(p[3].slice(-4) || "0", 16);
-        for (let c = lo; c <= hi && (c-lo) < 512; c++) map.set(c, String.fromCharCode(base + (c-lo)));
-      }
-    }
-    return map.size ? map : null;
-  }
-  function pdfDecodeBytesToText(raw, toUnicode){
-    if (!toUnicode) return pdfBytesToLatin1(raw);
-    let out = "";
-    for (let k=0;k<raw.length;k++) {
-      const mapped = toUnicode.get(raw[k]);
-      out += (mapped && mapped.length===1) ? mapped : String.fromCharCode(raw[k]);
-    }
-    return out;
-  }
-  function pdfInspectFont(context, resourcesDict, fontResName){
-    try {
-      const { PDFName, decodePDFRawStream } = PDFLib;
-      const fontsRef = resourcesDict.get(PDFName.of("Font"));
-      if (!fontsRef) return { isSimple:false, toUnicode:null };
-      const fontsDict = context.lookup(fontsRef);
-      const nameKey = "/"+fontResName.replace(/^\//,"");
-      let entryRef = null;
-      for (const [key, ref] of fontsDict.entries()) if (key.encodedName === nameKey) { entryRef = ref; break; }
-      if (!entryRef) return { isSimple:false, toUnicode:null };
-      const fontObj = context.lookup(entryRef);
-      const subtype = fontObj.get(PDFName.of("Subtype"));
-      if (subtype && subtype.encodedName === "/Type0") return { isSimple:false, toUnicode:null };
-      let toUnicode = null;
-      try {
-        const tuRef = fontObj.get(PDFName.of("ToUnicode"));
-        if (tuRef) {
-          const tuObj = context.lookup(tuRef);
-          if (tuObj && tuObj.dict) toUnicode = parseToUnicodeCMap(decodePDFRawStream(tuObj).decode());
-        }
-      } catch (_) {}
-      return { isSimple:true, toUnicode };
-    } catch (_) { return { isSimple:false, toUnicode:null }; }
-  }
-  function pdfFindTargetRanges(text, targets){
-    const ranges = [];
-    for (const target of targets) {
-      if (!target) continue;
-      let from = 0;
-      while (true) {
-        const idx = text.indexOf(target, from);
-        if (idx === -1) break;
-        ranges.push({ start: idx, end: idx+target.length });
-        from = idx + target.length;
-      }
-    }
-    if (!ranges.length) return [];
-    ranges.sort((a,b)=>a.start-b.start);
-    const merged = [ranges[0]];
-    for (let k=1;k<ranges.length;k++) {
-      const last = merged[merged.length-1];
-      if (ranges[k].start <= last.end) last.end = Math.max(last.end, ranges[k].end);
-      else merged.push(ranges[k]);
-    }
-    return merged;
-  }
-
   function verifySanitizedPdfText(bytes, activeHits){
     if (!window.fflate || !activeHits || !activeHits.length) return true;
     try {
@@ -5338,46 +5138,6 @@ Orgán: OBÚ.
     return { bytes: assertSecurePdfBytes(bytes), rasterPages: new Set() };
   }
 
-  function stripPdfSignatureFields(doc){
-    try {
-      const { PDFName, PDFArray, PDFDict } = PDFLib;
-      const isSigDict = (obj) => {
-        if (!obj || typeof obj.get !== "function") return false;
-        const ft = obj.get(PDFName.of("FT"));
-        if (ft && (ft.encodedName === "/Sig" || String(ft) === "Sig")) return true;
-        const parent = obj.get(PDFName.of("Parent"));
-        if (parent) {
-          try { if (isSigDict(doc.context.lookup(parent))) return true; } catch (_) {}
-        }
-        const v = obj.get(PDFName.of("V"));
-        if (v) {
-          try {
-            const vd = doc.context.lookup(v);
-            const typ = vd && vd.get && vd.get(PDFName.of("Type"));
-            if (typ && typ.encodedName === "/Sig") return true;
-          } catch (_) {}
-        }
-        return false;
-      };
-      doc.getPages().forEach(page => {
-        const annots = page.node.get(PDFName.of("Annots"));
-        if (!annots) return;
-        const arr = doc.context.lookup(annots);
-        if (!(arr instanceof PDFArray)) return;
-        const keep = [];
-        for (let k=0;k<arr.size();k++) {
-          const ref = arr.get(k);
-          let obj = null;
-          try { obj = doc.context.lookup(ref); } catch (_) { keep.push(ref); continue; }
-          if (isSigDict(obj)) continue;
-          keep.push(ref);
-        }
-        if (keep.length === arr.size()) return;
-        if (!keep.length) page.node.delete(PDFName.of("Annots"));
-        else page.node.set(PDFName.of("Annots"), doc.context.obj(keep));
-      });
-    } catch (e) { console.warn("stripPdfSignatureFields", e); }
-  }
   async function exportPdfRaster(source, hits, title, mode, lang){
     const pdf = await getPdfDocument(source);
     const { PDFDocument } = PDFLib;
@@ -6248,7 +6008,6 @@ Orgán: OBÚ.
     else if ((e.key==="p"||e.key==="P") && S.selectedId) patch(S.selectedId, false);
   };
   window.addEventListener("resize", () => {
-    initActionMarquees(document);
     updateHeaderHeightVar();
     updateBarHeightVar();
   });
@@ -6262,56 +6021,11 @@ Orgán: OBÚ.
   const MOVIE_SLOWDOWN = 0.3;
   function movieEffectiveSpeed(){ return MOVIE_SPEED * MOVIE_SLOWDOWN; }
 
-  function marqueeDurationSec(shiftPx){
-    const base = Math.max(6, (shiftPx || 80) / 28);
-    return S.movie ? base / movieEffectiveSpeed() : base;
+  function initActionMarquees(_root){
+    /* Cleaned: text overflow handled via responsive CSS */
   }
-  function initActionMarquees(root){
-    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    (root || document).querySelectorAll(".action-marquee").forEach(el => {
-      const inner = el.querySelector(".action-marquee-inner");
-      if (!inner) return;
-      el.classList.remove("marquee-active");
-      el.style.removeProperty("--marquee-duration");
-      if (reduce) return;
-      if (inner.scrollWidth > el.clientWidth + 2) {
-        const shift = inner.scrollWidth + el.clientWidth;
-        el.style.setProperty("--marquee-duration", marqueeDurationSec(shift) + "s");
-        el.classList.add("marquee-active");
-      }
-    });
-  }
-  function startTextMarquee(chip){
-    if (!chip) return;
-    chip.classList.remove("marquee");
-    chip.style.removeProperty("--chip-marquee-duration");
-    chip.style.removeProperty("--chip-marquee-shift");
-    const existingTrack = chip.querySelector(".chip-track");
-    if (existingTrack) {
-      const original = existingTrack.querySelector(".chip-content:not(.chip-content-clone)");
-      if (original) chip.replaceChild(original, existingTrack);
-    }
-    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    requestAnimationFrame(() => {
-      const content = chip.querySelector(".chip-content");
-      if (!content) return;
-      const contentWidth = content.scrollWidth;
-      const chipWidth = chip.clientWidth || chip.parentElement && chip.parentElement.clientWidth || 0;
-      if (reduce || contentWidth <= chipWidth + 2 || chipWidth < 24) return;
-      const GAP = 32;
-      const track = document.createElement("span");
-      track.className = "chip-track";
-      const clone = content.cloneNode(true);
-      clone.classList.add("chip-content-clone");
-      clone.setAttribute("aria-hidden", "true");
-      chip.replaceChild(track, content);
-      track.appendChild(content);
-      track.appendChild(clone);
-      const shift = contentWidth + GAP;
-      chip.style.setProperty("--chip-marquee-shift", shift + "px");
-      chip.style.setProperty("--chip-marquee-duration", marqueeDurationSec(shift) + "s");
-      chip.classList.add("marquee");
-    });
+  function startTextMarquee(_chip){
+    /* Cleaned: chip wrapping handled via responsive CSS */
   }
 
   let MOVIE_PREV = null;

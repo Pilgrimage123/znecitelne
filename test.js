@@ -72,11 +72,30 @@ check(
   "true-redact release path must fail closed to isolated raster export"
 );
 const trueRedactBody = canonical.match(
-  /async function exportPdfTrueRedact[\s\S]*?\n  \\}\n  async function exportPdfRaster/
+  /async function exportPdfTrueRedact\s*\([^)]*\)\s*\{[\s\S]*?\n  \}/
 )?.[0] || "";
+check(
+  Boolean(trueRedactBody),
+  "exportPdfTrueRedact body must be extracted from canonical HTML"
+);
 check(
   !trueRedactBody.includes("PDFDocument.load(source"),
   "true-redact release path must not load the source PDF with PDFDocument.load"
+);
+check(
+  !canonical.includes("function pdfTokenize") &&
+  !canonical.includes("function pdfDecodeStringToken") &&
+  !canonical.includes("function pdfFindTargetRanges"),
+  "canonical app must not contain vestigial in-stream PDF tokenizer/parser"
+);
+check(
+  !canonical.includes("function docxBuildSensitiveMediaRename") &&
+  !canonical.includes("function docxApplyPartRenames"),
+  "canonical app must not contain dead DOCX media renamer"
+);
+check(
+  !canonical.includes("function stripPdfSignatureFields"),
+  "canonical app must not contain dead PDF signature field stripper"
 );
 
 check(
@@ -158,8 +177,13 @@ check(
   htmlSourceIncludes("async function ingestDocument(") &&
   htmlSourceIncludes("function applyDocumentToState(") &&
   htmlSourceIncludes("class DocumentIngestionError") &&
-  htmlSourceIncludes("async function ingestDocumentBatch("),
-  "deepened document ingestion module must provide canonical ingestDocument interface and structured errors"
+  htmlSourceIncludes("async function ingestDocumentBatch(") &&
+  htmlSourceIncludes("await ingestDocumentBatch(files"),
+  "deepened document ingestion module must provide canonical ingestDocument interface and batch integration in onFiles"
+);
+check(
+  htmlSourceIncludes('queueLbl:"Dávková fronta"'),
+  "queue label must strictly use canonical domain term Dávková fronta"
 );
 check(
   htmlSourceIncludes('pdfaFontWarn:"Nevložené fonty') &&
