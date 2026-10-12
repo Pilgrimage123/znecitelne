@@ -2,6 +2,10 @@
 
 ## 2026-10-12
 
+- **Responzivní modální okna / export:** Dialogy se nyní na menších displejích vejdou do dostupné výšky a šířky; obsah modálu lze samostatně posouvat, maximální šířka panelu je 680 px a vnitřní odsazení se přizpůsobuje šířce obrazovky.
+
+## 2026-10-12
+
 - Zachování běžných českých pádů při pseudonymizaci osob:
   - **Pádově přizpůsobený token (`declinedPersonTokenBase`):** Základní tvar používá `[OSOBA_001]`, běžné dativní/lokálové tvary `[OSOBĚ_001]` a instrumentálové tvary `[OSOBOU_001]`.
   - **Stabilní mapování identity:** Mapa pseudonymů uchovává základ tokenu a suffix odděleně, takže změna gramatického tvaru nemění identifikační suffix a ostatní kategorie zůstávají beze změny.

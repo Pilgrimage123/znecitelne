@@ -326,8 +326,31 @@ body.bar-pos-top .review { padding-top: calc(var(--bar-h, 72px) + 4px); }
   .bar .check { min-height: 40px; padding: 0 4px; font-size: 13px; }
 }
 .check { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 8px; font-size: 14px; }
-.modal { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: var(--overlay); padding: 16px; }
-.sheet { width: min(520px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: 0 12px 40px rgba(14,16,20,.3); }
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--overlay);
+  padding: 12px;
+}
+.sheet {
+  width: min(680px, 100%);
+  max-height: 90vh;
+  max-height: min(90dvh, 760px);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: clamp(12px, 2.5vw, 20px);
+  box-shadow: 0 12px 40px rgba(14,16,20,.3);
+}
 .hidden { display: none !important; }
 footer { text-align: center; font-size: 12px; color: var(--muted); padding: 8px 16px 24px; }
 kbd { display: inline-block; min-width: 1.4rem; padding: .1rem .4rem; border-radius: 4px; border: 1.5px solid var(--muted); background: var(--surface); color: var(--fg); font: 11px/1.4 var(--mono); font-weight: 700; text-align: center; }
