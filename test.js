@@ -107,6 +107,14 @@ check(
   "application must provide text comparison diff before/after redaction with removed words for approval"
 );
 check(
+  htmlSourceIncludes("function declinedPersonTokenBase(base, h, lang)") &&
+  htmlSourceIncludes('name: "czech pseudonym tokens preserve common grammatical cases"') &&
+  htmlSourceIncludes('rMorph(h) === "[OSOBA_001]"') &&
+  htmlSourceIncludes('rMorph(h) === "[OSOBĚ_001]"') &&
+  htmlSourceIncludes('rMorph(h) === "[OSOBOU_001]"'),
+  "Czech pseudonyms must preserve base, dative/locative and instrumental forms with one stable suffix"
+);
+check(
   htmlSourceIncludes("function generateCzechNameForms(") &&
   htmlSourceIncludes("function expandCzechNameMorphology("),
   "application must provide Czech name morphology generation and case expansion"
