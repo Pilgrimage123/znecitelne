@@ -7177,7 +7177,8 @@ Orgán: OBÚ.
     expect("namesti", "se sídlem Václavské náměstí 1, 110 00 Praha 1", "medium", "address", "náměstí");
     expect("ticket", "ticket CBUAIS-5164", "medium", "ticket", "CBUAIS-5164");
     expect("declined", "sešli jsme se s Novákem.", "medium", "name", "Novákem");
-    expectNone("geographic phrase Černá Hora is not a person", "Jednání se týká Černé Hory.", "medium", "name");
+    expectNone("geographic phrase Černá Hora is not a person", "Černá Hora is a country.", "medium", "name");
+    expectNone("geographic inflection Černé Hory is not a person", "Jednání se týká Černé Hory.", "medium", "name");
     expect("person surname Hora is preserved", "Jednání vedl Jan Hora.", "medium", "name", "Jan Hora");
     cases.push({
       name: "standalone common term rejected as person name",
