@@ -2,6 +2,11 @@
 
 ## 2026-10-12
 
+- **Omezení falešných pozitivit u českých jmen:** Před řešením překryvů se odstraňují přesné kandidáty odpovídající vybraným obecným českým slovům a skloňovaným variantám geografického názvu „Černá Hora“. Filtr neblokuje samotná příjmení, například „Hora“ nebo „Černý“. Doplněny regresní samotesty pro geografický název, běžné slovo „Termín“ a zachování skutečného jména „Jan Hora“.
+
+
+## 2026-10-12
+
 - **Responzivní modální okna / export:** Dialogy se nyní na menších displejích vejdou do dostupné výšky a šířky; obsah modálu lze samostatně posouvat, maximální šířka panelu je 680 px a vnitřní odsazení se přizpůsobuje šířce obrazovky.
 
 ## 2026-10-12
