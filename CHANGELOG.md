@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-12
+
+- Zachování běžných českých pádů při pseudonymizaci osob:
+  - **Pádově přizpůsobený token (`declinedPersonTokenBase`):** Základní tvar používá `[OSOBA_001]`, běžné dativní/lokálové tvary `[OSOBĚ_001]` a instrumentálové tvary `[OSOBOU_001]`.
+  - **Stabilní mapování identity:** Mapa pseudonymů uchovává základ tokenu a suffix odděleně, takže změna gramatického tvaru nemění identifikační suffix a ostatní kategorie zůstávají beze změny.
+  - **Regresní test:** Samotest ověřuje základní tvar, „Janu Novákovi“ a „Janem Novákem“ proti odpovídajícím variantám pseudonymu.
+
 ## 2026-10-09
 
 - Oprava zbytků písma a diakritiky v anonymizovaném PDF:
