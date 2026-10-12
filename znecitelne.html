@@ -1735,8 +1735,9 @@ Orgán: OBÚ.
     const normalize = s => s
       .normalize("NFC")
       .toLocaleLowerCase("cs")
-      .replace(/[.,;:!?()[\\]"]/g, "")
-      .replace(/\\s+/g, " ")
+      .replace(/[.,;:!?]/g, "")
+      .replace(/[\(\)\[\]"]/g, "")
+      .replace(/\s+/g, " ")
       .trim();
 
     // Use the source span when it is valid, so offsets and candidate text
