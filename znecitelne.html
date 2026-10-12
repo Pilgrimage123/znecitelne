@@ -1727,6 +1727,73 @@ Orgán: OBÚ.
     });
     return set;
   }
+  // Conservative post-processing for Czech person-name candidates.
+  // Exact-phrase filtering avoids a global surname blacklist.
+  function isLikelyNonPersonName(value, src, start, end){
+    if (!value || !src) return false;
+
+    const normalize = s => s
+      .normalize("NFC")
+      .toLocaleLowerCase("cs")
+      .replace(/[.,;:!?]/g, "")
+      .replace(/[\(\)\[\]"]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // Use the source span when it is valid, so offsets and candidate text
+    // cannot silently drift apart during post-processing.
+    const candidate = Number.isInteger(start) && Number.isInteger(end) &&
+      start >= 0 && end > start && end <= src.length
+      ? src.slice(start, end)
+      : value;
+    const name = normalize(candidate || value);
+
+    // Common standalone words that must not be treated as person names.
+    // Never blacklist common surnames globally.
+    const commonWords = new Set([
+      "termín",
+      "smlouva",
+      "objednatel",
+      "zhotovitel",
+      "dodavatel",
+      "odběratel",
+      "kupující",
+      "prodávající",
+      "pondělí",
+      "úterý",
+      "středa",
+      "čtvrtek",
+      "pátek",
+      "sobota",
+      "neděle",
+      "leden",
+      "únor",
+      "březen",
+      "duben",
+      "květen",
+      "červen",
+      "červenec",
+      "srpen",
+      "září",
+      "říjen",
+      "listopad",
+      "prosinec"
+    ]);
+
+    if (!name.includes(" ") && commonWords.has(name)) return true;
+
+    // Geographic-name variants. Keep names like "Jan Hora" and "Petr Černý".
+    const locations = new Set([
+      "černá hora",
+      "černé hoře",
+      "černé hory",
+      "černou horu",
+      "černou horou"
+    ]);
+
+    return locations.has(name);
+  }
+
   function detect(text, enabled, secrets){
     const bag = []; const seen = new Set();
     const { src, work, toSrc } = makeWork(text || "");
@@ -2081,6 +2148,18 @@ Orgán: OBÚ.
       });
       bag.length = 0;
       bag.push(...survivors);
+    }
+
+    // Remove known non-person phrases before overlap resolution, so a false
+    // positive cannot suppress another detection based on score or span size.
+    for (let i = bag.length - 1; i >= 0; i--) {
+      const h = bag[i];
+      if (
+        h.type === "name" &&
+        isLikelyNonPersonName(h.value, src, h.start, h.end)
+      ) {
+        bag.splice(i, 1);
+      }
     }
 
     bag.sort((a,b)=>a.start-b.start || (b.end-a.start)-(a.end-a.start));
@@ -7098,6 +7177,16 @@ Orgán: OBÚ.
     expect("namesti", "se sídlem Václavské náměstí 1, 110 00 Praha 1", "medium", "address", "náměstí");
     expect("ticket", "ticket CBUAIS-5164", "medium", "ticket", "CBUAIS-5164");
     expect("declined", "sešli jsme se s Novákem.", "medium", "name", "Novákem");
+    expectNone("geographic phrase Černá Hora is not a person", "Černá Hora is a country.", "medium", "name");
+    expectNone("geographic inflection Černé Hory is not a person", "Jednání se týká Černé Hory.", "medium", "name");
+    expect("person surname Hora is preserved", "Jednání vedl Jan Hora.", "medium", "name", "Jan Hora");
+    cases.push({
+      name: "standalone common term rejected as person name",
+      ok: isLikelyNonPersonName("Termín", "Termín", 0, 6),
+      type: "name",
+      includes: "Termín excluded",
+      got: [String(isLikelyNonPersonName("Termín", "Termín", 0, 6))]
+    });
     expect("czech surname cerny", "sešel se s Janem Černým.", "medium", "name", "Černým");
     expect("czech surname svoboda", "jednání vedl Petr Svoboda.", "medium", "name", "Petr Svoboda");
     expect("czech surname novotna", "podepsala Jana Novotná.", "medium", "name", "Jana Novotná");
