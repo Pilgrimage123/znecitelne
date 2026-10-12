@@ -154,7 +154,27 @@ body.pdf-visual-on #orig { display: none; }
 .pv-box.pv-on { background: rgba(217,83,79,.28); border-color: #8a3a12; }
 .pv-box.pv-off { background: rgba(46,140,96,.25); border-color: #1e5a3f; }
 .pv-box.pv-prev { background: #16181a; border-color: #16181a; }
-.pv-box.pv-sel { outline: 3px solid var(--focus); outline-offset: 1px; }
+.pv-box.pv-prev.pv-prev-token {
+  background: #ffffff;
+  color: #14161a;
+  border-color: color-mix(in srgb, var(--primary) 70%, #16181a);
+  font-family: var(--mono);
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  white-space: nowrap;
+  padding: 0 3px;
+  z-index: 2;
+  box-shadow: 0 1px 2px rgba(0,0,0,.15);
+}
+.pv-box.pv-prev-token:hover {
+  background: #f4f6f8;
+  border-color: var(--focus);
+}
+.pv-box.pv-sel { outline: 3px solid var(--focus); outline-offset: 1px; z-index: 5; }
 .pv-note { font-size: 12px; color: var(--muted); text-align: center; margin: 0 0 8px; }
 button.btn-visual[disabled] { opacity: .5; }
 .proc-summary { font-size: 13px; margin: 0 0 8px; }
@@ -685,6 +705,8 @@ body.movie-active #settingsSheet {
 
   const RULES = "2026.10.05-ai31";
   const CHANGELOG = [
+    { version: "2026.10.09-ai34", notes: { cs: "Oprava: V anonymizovaném PDF již nezůstávají kusy písma (diakritika, háčky, čárky, descender ocásky u p/y/g/j/q ani šikmé tahy kurzívy). Fyzické zakrytí na rastrovém plátně exportu i v náhledu přesně pokrývá plný rozsah fontu od horní diakritiky po spodní descender včetně bezpečnostního horizontálního přesahu.", en: "Fix: In the anonymized PDF, fragments of glyphs (Czech diacritics, accents, descenders on p/y/g/j/q, and italic slants) no longer remain visible. Physical blanking on the raster canvas and in preview cleanly covers the full font vertical range from accents to descenders along with horizontal bleed." } },
+    { version: "2026.10.09-ai33", notes: { cs: "Oprava: Vizuální náhled PDF v režimu Náhled změn respektuje zvolený režim náhrady (pseudonymy [OSOBA_001], štítky [OSOBA], XXXX) a vykresluje náhradní textové tokeny namísto chybného plošného začernění.", en: "Fix: Visual PDF preview in Preview changes mode respects the selected replacement mode (pseudonyms [OSOBA_001], tags [OSOBA], XXXX) and renders replacement text tokens instead of incorrectly blacking out items." } },
     { version: "2026.10.06-ai32", notes: { cs: "Morfologické skloňování českých jmen a bezpečný vyhledatelný PDF export: automatická expanze všech pádů nalezených osob napříč textem se sjednoceným pseudonymním tokenem, tlačítko v inspektoru/výběru a bezpečná čistá textová vrstva v PDFDocument.create s nulovou opacitou a automatickou stream verifikací bez citlivých slov.", en: "Czech name morphology declension and secure searchable PDF export: automatic expansion of all cases across text with unified pseudonym tokens, inspector/selection button, and secure clean text layer in PDFDocument.create with zero opacity and stream verification." } },
     { version: "2026.10.05-ai31", notes: { cs: "Ošetření specifik Microsoft Wordu, české abecedy, diakritiky a interpunkce: DOCX export podporuje split runs napříč <w:r> i speciálními elementy (<w:tab/>, <w:noBreakHyphen/>), zavedena normalizace pevných mezer (\\u00A0), českých uvozovek („ “, ‚ ‘) a pomlček, opravena detekce systémů a modulů s českou diakritikou (\\p{L} namísto \\w), a rozšířeno rozpoznávání českých příjmení (Černý, Svoboda, Novotná, Veselý, Kučera, Procházka, Růžička, Pospíšil) i post-nominálních titulů (, Ph.D., , MBA).", en: "Support for Microsoft Word specifics, Czech alphabet, diacritics, and punctuation: DOCX export handles split runs across <w:r> and special elements (<w:tab/>, <w:noBreakHyphen/>), introduces normalization for non-breaking spaces (\\u00A0), Czech quotation marks („ “, ‚ ‘) and dashes, fixes system/module regexes for Czech letters (\\p{L} instead of \\w), and expands Czech surname recognition (Černý, Svoboda, Novotná, Veselý, Kučera, Procházka, Růžička, Pospíšil) and post-nominal degrees (, Ph.D., , MBA)." } },
     { version: "2026.10.05-ai30", notes: { cs: "Ochrana sousedních řádků při redakci: obdélníky se počítají z přesných obrysů slov (quads) bez line-height přesahu, aplikováno svislé zúžení (vertical inset) chránící diakritiku a sousední řádky („Termín…“, „o činnosti…“), a před exportem je zavedeno porovnání textu před/po s výpisem odstraněných slov ke schválení.", en: "Adjacent line protection during redaction: bounding boxes derived from exact word quads without line-height overflow, vertical inset applied to protect diacritics and neighbouring rows, and pre-export text diff introduced showing removed words for operator approval." } },
@@ -1183,7 +1205,11 @@ Orgán: OBÚ.
     if (month < 1 || month > 12 || day < 1 || day > 31) return null;
     const yy = +m[1];
     const d = m[1]+m[2]+m[3]+m[4];
-    if (d.length === 10 && Number(d) % 11 !== 0) return null;
+    if (d.length === 10) {
+      const mod = Number(d.slice(0, 9)) % 11;
+      const last = +d[9];
+      if (mod === 10 ? last !== 0 : last !== mod) return null;
+    }
     if (d.length !== 9 && d.length !== 10) return null;
     const year = d.length === 9 ? 1900 + yy : (yy < 54 ? 2000 + yy : 1900 + yy);
     const dim = [31, (year%4===0&&year%100!==0)||year%400===0?29:28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month-1];
@@ -2296,7 +2322,7 @@ Orgán: OBÚ.
   }
 
   function docxResolveRelTarget(sourcePart, target){
-    if (!target || /^[a-z][a-z0-9+.-]*:/i.test(target)) return null;
+    if (!target || target.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(target)) return null;
     let decoded = target;
     try { decoded = decodeURIComponent(target); } catch (_) {}
     const base = sourcePart ? sourcePart.slice(0, sourcePart.lastIndexOf("/") + 1) : "";
@@ -2795,15 +2821,19 @@ Orgán: OBÚ.
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
+  let _toastTimer = null;
   function toast(msg){
+    if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+    if (_ocrProgressTimer) { clearTimeout(_ocrProgressTimer); _ocrProgressTimer = null; }
     const t = $("toast");
     if (!t) return;
     t.textContent = String(msg || "");
     t.style.display = "block";
-    setTimeout(() => { if (t) t.style.display = "none"; }, 2400);
+    _toastTimer = setTimeout(() => { if (t) t.style.display = "none"; _toastTimer = null; }, 2400);
   }
   let _ocrProgressTimer = null;
   function showOcrProgress(msg) {
+    if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
     if (_ocrProgressTimer) { clearTimeout(_ocrProgressTimer); _ocrProgressTimer = null; }
     const t = $("toast");
     if (!t) return;
@@ -3261,8 +3291,9 @@ Orgán: OBÚ.
         line.minY = Math.min(line.minY, g.y);
         line.maxY = Math.max(line.maxY, g.y + g.h);
         line.h = Math.max(line.h, g.h);
+        line.glyphs.push(g);
       } else {
-        lines.push({ y: g.y, h: g.h, minX: g.x, maxX: g.x + g.w, minY: g.y, maxY: g.y + g.h });
+        lines.push({ y: g.y, h: g.h, minX: g.x, maxX: g.x + g.w, minY: g.y, maxY: g.y + g.h, glyphs: [g] });
       }
     }
     return lines.map(l => {
@@ -3273,7 +3304,13 @@ Orgán: OBÚ.
         x: l.minX,
         y: l.minY + vInset,
         w: Math.max(l.maxX - l.minX, 4),
-        h: Math.max(fullH - (vInset * 2), 4)
+        h: Math.max(fullH - (vInset * 2), 4),
+        rawMinX: l.minX,
+        rawMaxX: l.maxX,
+        rawMinY: l.minY,
+        rawMaxY: l.maxY,
+        rawH: fullH,
+        glyphs: l.glyphs
       };
     });
   }
@@ -3281,6 +3318,8 @@ Orgán: OBÚ.
   function paintPdfVisualOverlays(){
     if (!PV) return;
     const previewOn = S.docView === "preview";
+    const isBox = S.mode === "box" || !S.mode;
+    const replacer = (previewOn && !isBox) ? bindReplacer(S.mode, S.lang, S.hits) : null;
     PV.pages.forEach(pg => {
       pg.layer.innerHTML = "";
       visibleHits(S.hits, S.selectedId).forEach(h => {
@@ -3292,15 +3331,70 @@ Orgán: OBÚ.
         const end = idx + Math.max(h.value.length, 1);
         const glyphs = pg.map.filter(m => m.end > idx && m.start < end);
         if (!glyphs.length) return;
-        pdfWordQuads(glyphs).forEach(r => {
+        const quads = pdfWordQuads(glyphs);
+        quads.forEach((r, qIdx) => {
           const b = document.createElement("button");
           b.type = "button";
           b.dataset.id = h.id;
-          b.className = "pv-box " + (h.accept ? (previewOn ? "pv-prev" : "pv-on") : "pv-off") + (S.selectedId === h.id ? " pv-sel" : "");
-          b.style.left = r.x + "px"; b.style.top = r.y + "px";
-          b.style.width = r.w + "px"; b.style.height = r.h + "px";
-          b.setAttribute("aria-label", i().cats[h.type] || h.type);
+          const lineGlyphs = (r.glyphs && r.glyphs.length) ? r.glyphs : pg.map.filter(m => m.end > idx && m.start < end && Math.abs(m.y - r.y) < Math.max(m.h, r.h) * 0.6);
+          const hasBaseline = lineGlyphs.some(g => g && g.baselineY);
+          let boxX = r.x, boxY = r.y, boxW = r.w, boxH = r.h;
+          if (previewOn) {
+            if (hasBaseline) {
+              const bGlyphs = lineGlyphs.filter(g => g && g.baselineY);
+              const baseLine = bGlyphs[0].baselineY;
+              const fH = Math.max(...bGlyphs.map(g => g.fontH || g.h));
+              const minX = Math.min(...lineGlyphs.map(g => g.x));
+              const maxX = Math.max(...lineGlyphs.map(g => g.x + g.w));
+              boxX = Math.max(0, minX - 2);
+              boxW = Math.max(maxX + 3 - boxX, 6);
+              boxY = Math.max(0, baseLine - fH * 1.02);
+              boxH = Math.max((baseLine + fH * 0.28) - boxY, 8);
+            } else {
+              const padY = Math.max(2, Math.round((r.rawH || r.h) * 0.16));
+              boxX = Math.max(0, (r.rawMinX != null ? r.rawMinX : r.x) - 2);
+              const maxX = (r.rawMaxX != null ? r.rawMaxX : (r.x + r.w)) + 3;
+              boxW = Math.max(maxX - boxX, 6);
+              boxY = Math.max(0, (r.rawMinY != null ? r.rawMinY : r.y) - padY);
+              const maxY = (r.rawMaxY != null ? r.rawMaxY : (r.y + r.h)) + padY;
+              boxH = Math.max(maxY - boxY, 8);
+            }
+          }
+          b.style.left = boxX + "px";
+          b.style.top = boxY + "px";
+          b.style.height = boxH + "px";
           b.onclick = () => select(h.id);
+
+          if (!h.accept) {
+            b.className = "pv-box pv-off" + (S.selectedId === h.id ? " pv-sel" : "");
+            b.style.width = r.w + "px";
+            b.setAttribute("aria-label", i().cats[h.type] || h.type);
+          } else if (!previewOn) {
+            b.className = "pv-box pv-on" + (S.selectedId === h.id ? " pv-sel" : "");
+            b.style.width = r.w + "px";
+            b.setAttribute("aria-label", i().cats[h.type] || h.type);
+          } else if (isBox) {
+            b.className = "pv-box pv-prev pv-prev-box" + (S.selectedId === h.id ? " pv-sel" : "");
+            b.style.width = boxW + "px";
+            b.setAttribute("aria-label", (i().cats[h.type] || h.type) + " (" + (i().redact || "anonymizováno") + ")");
+          } else {
+            const token = replacer ? replacer(h) : "";
+            b.className = "pv-box pv-prev pv-prev-token" + (S.selectedId === h.id ? " pv-sel" : "");
+            b.style.minWidth = boxW + "px";
+            b.style.width = "auto";
+            const wrapW = pg.wrap ? (pg.wrap.clientWidth || parseFloat(pg.wrap.style.width) || 0) : 0;
+            const maxW = Math.max(boxW, (wrapW > boxX ? wrapW - boxX - 2 : 500));
+            b.style.maxWidth = maxW + "px";
+            const fontSize = Math.max(8, Math.min(13, Math.round(boxH * 0.65)));
+            b.style.fontSize = fontSize + "px";
+            if (qIdx === 0) {
+              b.textContent = token;
+            } else {
+              b.textContent = "";
+            }
+            b.setAttribute("aria-label", token + " · " + (i().cats[h.type] || h.type));
+            b.title = token;
+          }
           pg.layer.appendChild(b);
         });
       });
@@ -3773,13 +3867,19 @@ Orgán: OBÚ.
     }
     if (u8.length >= 4) {
       const checkLen = Math.min(u8.length - (u8.length % 2), 256);
-      let zeroOdds = 0;
-      for (let i = 1; i < checkLen; i += 2) {
-        if (u8[i] === 0) zeroOdds++;
+      let zeroOdds = 0, zeroEvens = 0;
+      for (let i = 0; i < checkLen; i += 2) {
+        if (u8[i] === 0) zeroEvens++;
+        if (u8[i + 1] === 0) zeroOdds++;
       }
-      if (zeroOdds / (checkLen / 2) > 0.8) {
+      const half = checkLen / 2;
+      if (zeroOdds / half > 0.8) {
         try {
           return new TextDecoder("utf-16le").decode(u8);
+        } catch (_) {}
+      } else if (zeroEvens / half > 0.8) {
+        try {
+          return new TextDecoder("utf-16be").decode(u8);
         } catch (_) {}
       }
     }
@@ -3803,11 +3903,13 @@ Orgán: OBÚ.
     if (u8.length >= 2 && ((u8[0] === 0xFF && u8[1] === 0xFE) || (u8[0] === 0xFE && u8[1] === 0xFF))) return false;
     if (u8.length >= 4) {
       const checkLen = Math.min(u8.length - (u8.length % 2), 256);
-      let zeroOdds = 0;
-      for (let i = 1; i < checkLen; i += 2) {
-        if (u8[i] === 0) zeroOdds++;
+      let zeroOdds = 0, zeroEvens = 0;
+      for (let i = 0; i < checkLen; i += 2) {
+        if (u8[i] === 0) zeroEvens++;
+        if (u8[i + 1] === 0) zeroOdds++;
       }
-      if (zeroOdds / (checkLen / 2) > 0.8) return false;
+      const half = checkLen / 2;
+      if (zeroOdds / half > 0.8 || zeroEvens / half > 0.8) return false;
     }
     const limit = Math.min(u8.length, 8000);
     let ctrl = 0;
@@ -4340,6 +4442,7 @@ Orgán: OBÚ.
       return;
     }
     if (isCur) {
+      Q.cur = -1;
       const nextIdx = Math.min(idx, Q.items.length - 1);
       void openQueueItem(nextIdx);
     } else {
@@ -4460,6 +4563,12 @@ Orgán: OBÚ.
       let done = 0;
       let failed = 0;
       const batchReturnState = snapState();
+      const chosenSettings = {
+        stripMeta: S.stripMeta,
+        pdfaDecl: S.pdfaDecl,
+        includeOutline: S.includeOutline,
+        publicGlossary: S.publicGlossary
+      };
       S._batchExport = true;
       try {
         for (const it of ready) {
@@ -4468,6 +4577,7 @@ Orgán: OBÚ.
           try {
             itemReturnState = snapState();
             restoreState(it.snap);
+            Object.assign(S, chosenSettings);
             S._batchExport = true;
             S._exportNotice = null;
             S._aiPack = false;
@@ -4502,10 +4612,11 @@ Orgán: OBÚ.
         paint();
         $("exportModal").classList.add("hidden");
         go.disabled = false;
-        go.textContent = t.export;
+        go.textContent = t.diffApproveExport;
       }
       if (failed) {
-        toast(t.queueDone.replace("{n}", String(done)) + " · " + String(failed) + " failed");
+        const failMsg = S.lang === "cs" ? (String(failed) + " selhalo") : (String(failed) + " failed");
+        toast(t.queueDone.replace("{n}", String(done)) + " · " + failMsg);
       } else {
         toast(t.queueDone.replace("{n}", String(done)));
       }
@@ -4559,7 +4670,9 @@ Orgán: OBÚ.
             x: (it._pdfX * scale) + (k * charW),
             y: it._pdfYTop * scale,
             w: charW,
-            h: it._pdfH * scale
+            h: it._pdfH * scale,
+            fontH: it._pdfH * scale,
+            baselineY: 0
           });
         }
       } else {
@@ -4579,7 +4692,9 @@ Orgán: OBÚ.
             x: (tx ? tx[4] : 0) + (k * charW),
             y: yTop,
             w: charW,
-            h: fontH
+            h: fontH,
+            fontH,
+            baselineY: tx ? tx[5] : 0
           });
         }
       }
@@ -4747,7 +4862,7 @@ Orgán: OBÚ.
     if (!ctx) return;
     const label = (lang === "en") ? "[PERSON]" : "[OSOBA]";
     const paint = (x, y, w, h) => {
-      const pad = 1;
+      const pad = 2;
       ctx.fillStyle = (mode === "box") ? "#16181d" : "#ffffff";
       ctx.fillRect(x - pad, y - pad, w + pad * 2, h + pad * 2);
       if (mode !== "box") {
@@ -5079,7 +5194,10 @@ Orgán: OBÚ.
       let m;
       while ((m = streamRe.exec(latin)) !== null) {
         const startByte = m.index + m[0].indexOf("\n") + 1;
-        const endByte = m.index + m[0].lastIndexOf("endstream");
+        let endByte = m.index + m[0].lastIndexOf("endstream");
+        while (endByte > startByte && (u8[endByte - 1] === 10 || u8[endByte - 1] === 13)) {
+          endByte--;
+        }
         const slice = u8.subarray(startByte, endByte);
         try {
           const unzipped = window.fflate.unzlibSync(slice);
@@ -5181,21 +5299,47 @@ Orgán: OBÚ.
         if (!glyphs.length) return;
         const quads = pdfWordQuads(glyphs);
         quads.forEach(r => {
+          let boxX, boxY, boxW, boxH;
+          const lineGlyphs = (r.glyphs && r.glyphs.length) ? r.glyphs : glyphs.filter(g => Math.abs(g.y - r.y) < Math.max(g.h, r.h) * 0.6);
+          const hasBaseline = lineGlyphs.some(g => g && g.baselineY);
+          const padXLeft = Math.max(2, Math.round(scale * 1.2));
+          const padXRight = Math.max(3, Math.round(scale * 1.8));
+          if (hasBaseline) {
+            const bGlyphs = lineGlyphs.filter(g => g && g.baselineY);
+            const baseLine = bGlyphs[0].baselineY;
+            const fH = Math.max(...bGlyphs.map(g => g.fontH || g.h));
+            const minX = Math.min(...lineGlyphs.map(g => g.x));
+            const maxX = Math.max(...lineGlyphs.map(g => g.x + g.w));
+            boxX = minX - padXLeft;
+            boxW = Math.max(maxX + padXRight - boxX, 6);
+            boxY = baseLine - fH * 1.04;
+            const bottomY = baseLine + fH * 0.30;
+            boxH = Math.max(bottomY - boxY, 8);
+          } else {
+            const padY = Math.max(2.5, Math.round((r.rawH || r.h) * 0.18));
+            boxX = (r.rawMinX != null ? r.rawMinX : r.x) - padXLeft;
+            const maxX = (r.rawMaxX != null ? r.rawMaxX : (r.x + r.w)) + padXRight;
+            boxW = Math.max(maxX - boxX, 6);
+            boxY = (r.rawMinY != null ? r.rawMinY : r.y) - padY;
+            const maxY = (r.rawMaxY != null ? r.rawMaxY : (r.y + r.h)) + padY;
+            boxH = Math.max(maxY - boxY, 8);
+          }
+
           if (isBox) {
             ctx.fillStyle = "#16181d";
-            ctx.fillRect(r.x, r.y, r.w, r.h);
+            ctx.fillRect(boxX, boxY, boxW, boxH);
             return;
           }
           const token = replacer(hit);
-          let size = Math.max(8, Math.min(r.h * 0.65, 14 * scale));
+          let size = Math.max(8, Math.min(boxH * 0.65, 14 * scale));
           ctx.font = size+"px sans-serif";
           let tokenW = ctx.measureText(token).width;
-          while (tokenW > r.w*3 && size > 8) { size -= 1; ctx.font = size+"px sans-serif"; tokenW = ctx.measureText(token).width; }
+          while (tokenW > boxW*3 && size > 8) { size -= 1; ctx.font = size+"px sans-serif"; tokenW = ctx.measureText(token).width; }
           ctx.fillStyle = "#ffffff";
-          ctx.fillRect(r.x, r.y, Math.max(r.w, tokenW+4), r.h);
+          ctx.fillRect(boxX, boxY, Math.max(boxW, tokenW+6), boxH);
           ctx.fillStyle = "#0c0c0c";
           ctx.textBaseline = "middle";
-          ctx.fillText(token, r.x+2, r.y + r.h/2);
+          ctx.fillText(token, boxX + 3, boxY + boxH / 2);
         });
       });
       if (shouldCoverVisibleStamps()) {
@@ -5262,7 +5406,7 @@ Orgán: OBÚ.
     activeHits.forEach(h => {
       const val = (h.value || "").trim();
       if (!val) return;
-      const key = val.toLowerCase();
+      const key = val.toLocaleLowerCase("cs");
       const existing = removedMap.get(key) || { value: val, type: h.type, count: 0 };
       existing.count++;
       removedMap.set(key, existing);
@@ -5604,9 +5748,9 @@ Orgán: OBÚ.
       if (!batchExport) toast(e.message||String(e));
       return false;
     } finally {
-      if (btn) {
+      if (btn && !batchExport) {
         btn.disabled=false;
-        btn.textContent=t.export;
+        btn.textContent=t.diffApproveExport;
       }
     }
   }
@@ -5958,7 +6102,21 @@ Orgán: OBÚ.
   $("btnAdd").onclick = () => {
     const sel = window.getSelection().toString().trim();
     if (sel.length<3) return;
-    const start = S.text.indexOf(sel); if (start<0) return;
+    let start = -1;
+    const origEl = $("orig");
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount && origEl && origEl.contains(selection.getRangeAt(0).startContainer)) {
+      const range = selection.getRangeAt(0);
+      const preRange = range.cloneRange();
+      preRange.selectNodeContents(origEl);
+      preRange.setEnd(range.startContainer, range.startOffset);
+      const offset = preRange.toString().length;
+      if (S.text.slice(offset, offset + sel.length) === sel) {
+        start = offset;
+      }
+    }
+    if (start < 0) start = S.text.indexOf(sel);
+    if (start < 0) return;
     const nid = S.hits.reduce((m,h)=>Math.max(m,h.id||0),0)+1;
     const words = sel.split(/\s+/);
     const isName = looksName(sel) || (words.length >= 2 && words.some(w => looksName(w)));

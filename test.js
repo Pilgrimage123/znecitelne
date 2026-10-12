@@ -546,8 +546,13 @@ try {
   const findAllCode = scriptContent.slice(scriptContent.indexOf("function findAll("), scriptContent.indexOf("function scoreHit("));
   const dictReCode = scriptContent.slice(scriptContent.indexOf("function dictRe("), scriptContent.indexOf("const URL_TOKEN_RE ="));
   const assertPdfCode = scriptContent.slice(scriptContent.indexOf("function assertSecurePdfBytes("), scriptContent.indexOf("async function exportPdfTrueRedact("));
+  const docxRelCode = scriptContent.slice(scriptContent.indexOf("function docxNormalizeZipPath("), scriptContent.indexOf("function docxSetTextPreservingSpace("));
+  const toBytesCode = scriptContent.slice(scriptContent.indexOf("function toBytes("), scriptContent.indexOf("function isValidICO("));
+  const binaryDecodeCode = scriptContent.slice(scriptContent.indexOf("function decodeTextBuffer("), scriptContent.indexOf("function extractRtfText("));
 
-  vm.runInContext(rtfCode + "\n" + findAllCode + "\n" + dictReCode + "\n" + assertPdfCode, sandbox);
+  const parseRCCode = scriptContent.slice(scriptContent.indexOf("function parseRC("), scriptContent.indexOf("function pageOf("));
+
+  vm.runInContext(rtfCode + "\n" + findAllCode + "\n" + dictReCode + "\n" + assertPdfCode + "\n" + docxRelCode + "\n" + toBytesCode + "\n" + binaryDecodeCode + "\n" + parseRCCode, sandbox);
 
   // 1. RTF extraction preserves file paths with escaped backslashes
   const rtfPath = sandbox.extractRtfText("{\\rtf1 C:\\\\temp\\\\file.txt}");
@@ -569,8 +574,195 @@ try {
     caughtHex = true;
   }
   check(caughtHex, "assertSecurePdfBytes must reject hex-encoded forbidden names");
+
+  // 5. docxResolveRelTarget ignores internal fragment/bookmark targets without producing dangling relation errors
+  const internalAnchor = sandbox.docxResolveRelTarget("word/document.xml", "#_Toc123");
+  check(internalAnchor === null, "docxResolveRelTarget must return null for internal anchor references (#...)");
+
+  // 6. UTF-16BE text without BOM is properly detected and decoded rather than treated as unsupported binary
+  const utf16beBytes = new Uint8Array([0x00, 0x41, 0x00, 0x68, 0x00, 0x6f, 0x00, 0x6a]);
+  check(!sandbox.isBinaryBuffer(utf16beBytes), "isBinaryBuffer must not reject UTF-16BE text without BOM as binary");
+  check(sandbox.decodeTextBuffer(utf16beBytes) === "Ahoj", "decodeTextBuffer must correctly decode UTF-16BE text without BOM");
+
+  // 7. parseRC properly accepts 10-digit birth numbers where 9-digit prefix mod 11 is 10 (check digit 0)
+  check(sandbox.parseRC("850101/0090") === true, "parseRC must accept valid 10-digit birth number with mod 10 exception");
+  check(sandbox.parseRC("850101/0091") === null, "parseRC must reject 10-digit birth number with mismatched check digit");
 } catch (regErr) {
   failures.push("Regression test suite failed: " + (regErr.message || String(regErr)));
+}
+
+check(
+  canonical.includes("if (isCur) {\n      Q.cur = -1;"),
+  "removeQueueItem must invalidate Q.cur to -1 when removing current item to prevent overwriting next item snapshot"
+);
+check(
+  htmlSourceIncludes("let _toastTimer = null;"),
+  "toast notifications must manage timer cancellation to prevent race condition premature hiding"
+);
+
+check(
+  htmlSourceIncludes("baseLine - fH * 1.04") && htmlSourceIncludes("baseLine + fH * 0.30"),
+  "PDF raster export must compute full vertical font extent (diacritics and descenders) to prevent residual font glyphs"
+);
+check(
+  htmlSourceIncludes("while (endByte > startByte && (u8[endByte - 1] === 10 || u8[endByte - 1] === 13))"),
+  "verifySanitizedPdfText must trim trailing CR/LF delimiters from stream slices before decompressing"
+);
+check(
+  htmlSourceIncludes("Object.assign(S, chosenSettings)"),
+  "exportAllReviewed must preserve user-chosen export modal settings across batch items"
+);
+check(
+  htmlSourceIncludes("if (btn && !batchExport) {"),
+  "doExport must not prematurely re-enable export button while batch export is running"
+);
+
+// Regression tests for PDF visual preview token overlay
+check(
+  htmlSourceIncludes("pv-prev-token"),
+  "PDF visual preview must support token replacement styling pv-prev-token"
+);
+check(
+  htmlSourceIncludes("const replacer = (previewOn && !isBox) ? bindReplacer(S.mode, S.lang, S.hits) : null;"),
+  "paintPdfVisualOverlays must bind replacer in preview mode when mode is not box"
+);
+
+try {
+  const scriptContent = canonical.match(/<script>([\s\S]*?)<\/script>/)?.[1] || "";
+  const vm = await import("node:vm");
+  const pvElements = [];
+  const mockLayer = {
+    innerHTML: "",
+    appendChild(child) { pvElements.push(child); }
+  };
+  const mockButton = () => ({
+    type: "",
+    dataset: {},
+    className: "",
+    style: {},
+    setAttribute(k, v) { this[k] = v; },
+    textContent: ""
+  });
+  const pvSandbox = {
+    console,
+    Math,
+    String,
+    Number,
+    Array,
+    Object,
+    document: {
+      createElement(tag) {
+        if (tag === "button") return mockButton();
+        return {};
+      }
+    },
+    LABEL: { cs: { name: "OSOBA", ticket: "TICKET" } },
+    STATUS_GENERIC: { cs: { prod: "PROD" } },
+    canonToken: (s) => String(s).toLowerCase(),
+    I18N: {
+      cs: {
+        cats: { name: "Jména a tituly" },
+        redact: "anonymizovat"
+      }
+    },
+    S: {
+      lang: "cs",
+      mode: "pseudo",
+      docView: "preview",
+      selectedId: null,
+      hits: [
+        { id: 1, type: "name", value: "Jan Novák", start: 0, end: 9, accept: true, score: 0.9, entityKey: "name|jan" }
+      ],
+      pages: [
+        { n: 1, start: 0, end: 20 }
+      ]
+    },
+    PV: {
+      pages: [
+        {
+          n: 1,
+          wrap: { clientWidth: 600, style: { width: "600px" } },
+          layer: mockLayer,
+          text: "Jan Novák je zde.",
+          map: [
+            { start: 0, end: 9, str: "Jan Novák", x: 50, y: 100, w: 80, h: 14 }
+          ]
+        }
+      ]
+    }
+  };
+  vm.createContext(pvSandbox);
+  const pdfQuadsCode = scriptContent.slice(
+    scriptContent.indexOf("function pdfWordQuads("),
+    scriptContent.indexOf("async function buildPdfVisual(")
+  );
+  const replacerCode = scriptContent.slice(
+    scriptContent.indexOf("function tokenBase("),
+    scriptContent.indexOf("function xlsxToText(")
+  );
+  vm.runInContext(
+    replacerCode + "\n" +
+    pdfQuadsCode + "\n" +
+    "const i = () => I18N[S.lang];\n",
+    pvSandbox
+  );
+
+  // Test 1: preview mode with pseudo replacement produces pv-prev-token with [OSOBA_001]
+  pvSandbox.paintPdfVisualOverlays();
+  check(pvElements.length === 1, "paintPdfVisualOverlays must render one element for the hit");
+  check(
+    pvElements[0] && pvElements[0].className.includes("pv-prev-token"),
+    "preview mode with pseudo mode must apply pv-prev-token class"
+  );
+  check(
+    pvElements[0] && pvElements[0].textContent.includes("[OSOBA_"),
+    "preview mode with pseudo mode must display pseudonym token text"
+  );
+
+  // Test 2: preview mode with box replacement produces pv-prev-box with empty textContent (redacted black box)
+  pvElements.length = 0;
+  pvSandbox.S.mode = "box";
+  pvSandbox.paintPdfVisualOverlays();
+  check(pvElements.length === 1, "paintPdfVisualOverlays must render one element for box mode");
+  check(
+    pvElements[0] && pvElements[0].className.includes("pv-prev-box"),
+    "preview mode with box mode must apply pv-prev-box class"
+  );
+  check(
+    pvElements[0] && pvElements[0].textContent === "",
+    "preview mode with box mode must leave textContent empty"
+  );
+
+  // Test 3: original version mode produces pv-on with empty textContent
+  pvElements.length = 0;
+  pvSandbox.S.docView = "original";
+  pvSandbox.paintPdfVisualOverlays();
+  check(pvElements.length === 1, "paintPdfVisualOverlays must render one element for original mode");
+  check(
+    pvElements[0] && pvElements[0].className.includes("pv-on"),
+    "original version mode must apply pv-on class"
+  );
+  check(
+    pvElements[0] && pvElements[0].textContent === "",
+    "original version mode must leave textContent empty"
+  );
+
+  // Test 4: PDF redaction calculation covers full vertical extent for diacritics and descenders
+  const glyphsWithMetrics = [
+    { start: 0, end: 1, str: "Š", x: 10, y: 88, w: 10, h: 20, fontH: 20, baselineY: 100 },
+    { start: 1, end: 2, str: "p", x: 20, y: 88, w: 10, h: 20, fontH: 20, baselineY: 100 },
+    { start: 2, end: 3, str: "y", x: 30, y: 88, w: 10, h: 20, fontH: 20, baselineY: 100 }
+  ];
+  const quads = pvSandbox.pdfWordQuads(glyphsWithMetrics);
+  check(quads.length === 1, "pdfWordQuads must group glyphs on same baseline into one quad");
+  check(Array.isArray(quads[0].glyphs) && quads[0].glyphs.length === 3, "pdfWordQuads must preserve constituent glyphs");
+  const baseLine = glyphsWithMetrics[0].baselineY;
+  const fH = glyphsWithMetrics[0].fontH;
+  const boxTop = baseLine - fH * 1.04;
+  const boxBottom = baseLine + fH * 0.30;
+  check(boxTop < (baseLine - 20) && boxBottom > (baseLine + 5), "redaction box must extend beyond accent ceiling and descender floor");
+} catch (pvErr) {
+  failures.push("PDF visual preview unit test failed: " + (pvErr.message || String(pvErr)));
 }
 
 if (failures.length) {

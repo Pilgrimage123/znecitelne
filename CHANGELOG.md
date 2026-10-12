@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-09
+
+- Oprava zbytků písma a diakritiky v anonymizovaném PDF:
+  - **Fyzické zakrytí citlivých údajů na rastrovém plátně exportu (`exportPdfRaster`):** V exportovaném anonymizovaném PDF již nezůstávají viditelné kusy písma, horní diakritika (háčky, čárky a kroužky u českých velkých i malých písmen), spodní výběžky descenderů (u znaků `p`, `y`, `g`, `j`, `q`) ani šikmé tahy kurzívy a subpixelové vyhlazení po stranách. Krycí obdélníky v režimu začernění (`box`) i bílé náhrady s tokenem (`pseudo`) se nyní počítají s plným vertikálním rozsahem fontu (od $1.04 \times fontH$ nad účařím po $0.30 \times fontH$ pod účařím) a s bezpečným horizontálním přesahem.
+  - **Metrika fontu v mapování znaků (`mapPageGlyphs`):** U každého znaku je evidována přesná účaří (`baselineY`) a velikost písma (`fontH`), což umožňuje deterministické a neprůstřelné krytí bez přesahu do sousedních řádků.
+  - **Zpřesnění vizuálního náhledu (`paintPdfVisualOverlays`):** V režimu náhledu změn krycí prvky plně překrývají podkladový text včetně diakritiky, takže ani v interaktivním náhledu neprosvítají fragmenty citlivých slov.
+
+- Oprava vizuálního náhledu PDF v režimu Náhled změn:
+  - **Respektování režimu náhrady v PDF náhledu (`paintPdfVisualOverlays`):** Vizuální náhled PDF v režimu „Náhled změn“ (`preview`) dříve pro všechny schválené nálezy chybně zobrazoval pouze černé obdélníky (`pv-prev`), bez ohledu na zvolený režim anonymizace. Nyní správně rozlišuje režimy: při volbě pseudonymů (`pseudo`), obecných štítků (`label`) nebo řetězců (`xxxx`) vykresluje bílé krycí pole s příslušným náhradním tokenem (např. `[OSOBA_001]`, `[OSOBA]`, `XXXX`) zarovnaným podle řádku, a černé začernění ponechává výhradně pro nevratný režim černého boxu (`box`).
+
 ## 2026-10-08
 
 - Hloubkový modul pro načítání a extrakci dokumentů (`DocumentIngestion`):
