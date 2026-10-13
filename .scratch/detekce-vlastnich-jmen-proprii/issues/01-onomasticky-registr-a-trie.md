@@ -5,9 +5,9 @@ Vytvoření kurátorovaného onomastického registru nejčastějších českých
 
 **Blocked by:** None (může začít okamžitě)
 
-**Status:** ready
+**Status:** closed
 
-- [ ] Vygenerovat reprezentativní slovník top frekventovaných českých křestních jmen a příjmení v normalizované podobě.
-- [ ] Zkomprimovat slovník přes `fflate` a uložit jako kompaktní base64 řetězec v `znecitelne.html`.
-- [ ] Implementovat odlehčenou datovou strukturu trie / look-up pro $\mathcal{O}(L)$ ověřování bez paměťového přetížení prohlížeče.
-- [ ] Integrovat inicializaci do startovací sekvence aplikace bez blokování hlavního vlákna UI.
+- [x] Vygenerovat reprezentativní slovník top frekventovaných českých křestních jmen a příjmení v normalizované podobě.
+- [x] Zkomprimovat slovník přes `fflate` a uložit jako kompaktní base64 řetězec v `znecitelne.html`.
+- [x] Implementovat odlehčenou datovou strukturu trie / look-up pro $\mathcal{O}(L)$ ověřování bez paměťového přetížení prohlížeče.
+- [x] Integrovat inicializaci do startovací sekvence aplikace bez blokování hlavního vlákna UI.
