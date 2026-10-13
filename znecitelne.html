@@ -778,6 +778,7 @@ body.movie-active #settingsSheet {
     }
   };
   const NAMES = new Set("Adam Aleš Alexandr Vítězslav Alexandra Alena Alice Alois Alžběta Andrea Anežka Anna Antonín Barbora Běla Blanka Bohdan Bohumil Bohuslav Božena Čeněk Dagmar Dalibor Dana Daniel Daniela David Denis Dominik Drahomíra Dušan Edita Eduard Eliška Ema Emil Emilie Erik Eva Filip František Františka Gabriela Hana Helena Hynek Ivan Ivana Iva Iveta Ivo Jáchym Jakub Jan Jana Jarmila Jaromír Jaroslav Jaroslava Jindřich Jiří Jiřina Jitka Josef Julie Kamila Karel Karla Kateřina Klára Kristýna Květa Ladislav Lenka Leoš Libor Libuše Linda Luboš Lucie Ludmila Luděk Lukáš Magdalena Marcel Marcela Marek Marie Markéta Marta Martin Martina Matěj Matyáš Michaela Michal Mikuláš Milan Milada Milena Miloslav Miloš Miroslav Miroslava Monika Naděžda Natálie Nela Nikola Oldřich Olga Ondřej Otto Patrik Pavel Pavla Pavlína Petr Petra Přemysl Radek Radim Radka Renata René Robert Roman Romana Rudolf Růžena Sabina Samuel Sandra Simona Soňa Stanislav Šárka Šimon Štěpán Tadeáš Tereza Tomáš Václav Vendula Věra Veronika Viktor Viktorie Vilém Vladimír Vlasta Vojtěch Zdeněk Zdeňka Zuzana Žaneta Žofie Alex Emma Hannah Jacob James Liam Noah Oliver Olivia Sophia William".split(" ").map(s => s.toLocaleLowerCase("cs")));
+  const FIRST_NAMES = new Set(NAMES);
   const TITLES = ["prof","doc","mudr","judr","phdr","rndr","ing","arch","mgr","mga","bc","bca","dis","mba","phd","csc","dr","pplk","plk","npor","por","kpt","mjr","gen"];
   const PUBLIC = ["česká republika","ministerstvo","úřad","krajský úřad","obecní úřad","městský úřad","okresní soud","krajský soud","státní podnik","národní podnik","české dráhy","česká pošta","správa železnic","praha","brno","ostrava","plzeň",
     "postsignum","i.ca","ica a.s","eidentity","first certification authority","qualified certification authority","certifikační autorita","kvalifikovaný poskytovatel","kvalifikovaný elektronický podpis","kvalifikovaná elektronická pečeť","zaručený elektronický podpis","uznávaný elektronický podpis","časové razítko","kvalifikované časové razítko","timestamping authority"];
@@ -931,6 +932,10 @@ Orgán: OBÚ.
       filterAll:"Vše", filterRedact:"K anonymizaci", filterKeep:"Ponecháno",
       addSelection:"Přidat vlastní výběr textu", visualOn:"Vizuální náhled PDF", visualOff:"Textový náhled", visualNote:"Vizuální náhled: kliknutím na zvýrazněný nález jej vyberete. Vlastní výběr textu přidáte v textovém náhledu.", visualErr:"Vizuální náhled se nepodařilo vykreslit.", selected:"Vybraný nález", context:"Kontext",
       high:"ověřeno", medium:"pravděpodobná shoda",
+      reasonLabels:{
+        "trigger:role": "[Trigger: role]",
+        "trigger:official": "[Trigger: úřední]"
+      },
       expertMode:"Zobrazit technické detaily nálezů", processToggle:"Zobrazit rozbor postupu",
       movieAdvancedHelp:"Spustit pokročilou nápovědu (video)",
       processAnalysisLabel:"Analýza rizika odhalení pracovních postupů",
@@ -1101,6 +1106,10 @@ Orgán: OBÚ.
       filterAll:"All", filterRedact:"To redact", filterKeep:"Kept",
       addSelection:"Add custom text selection", visualOn:"Visual PDF preview", visualOff:"Text view", visualNote:"Visual preview: click a highlighted finding to select it. Add a custom text selection in the text view.", visualErr:"The visual preview could not be rendered.", selected:"Selected hit", context:"Context",
       high:"validated", medium:"likely match",
+      reasonLabels:{
+        "trigger:role": "[Trigger: role]",
+        "trigger:official": "[Trigger: official]"
+      },
       expertMode:"Show technical hit details", processToggle:"Show process breakdown",
       movieAdvancedHelp:"Start advanced walkthrough (video)",
       processAnalysisLabel:"Workflow exposure risk analysis",
@@ -1769,6 +1778,8 @@ Orgán: OBÚ.
     if (has("iban")) s += 50;
     if (has("label")) s += 40;
     if (has("dict")) s += 45;
+    if (has("trigger:official")) s += 50;
+    if (has("trigger:role")) s += 35;
     if (has("titled")) s += 25;
     if (has("gazetteer")) s += 28;
     if (has("context")) s += 20;
@@ -1789,7 +1800,7 @@ Orgán: OBÚ.
     trimHitValue(h, src);
     const sc = scoreHit(h);
     h.score = sc;
-    h.confidence = sc >= 48 ? "high" : "medium";
+    h.confidence = (h.confidence === "high" || sc >= 48) ? "high" : "medium";
     return h;
   }
   function projectPrefixes(){
@@ -1800,10 +1811,12 @@ Orgán: OBÚ.
     });
     return set;
   }
+
   // Conservative post-processing for Czech person-name candidates.
   // Exact-phrase filtering avoids a global surname blacklist.
-  function isLikelyNonPersonName(value, src, start, end){
+  function isLikelyNonPersonName(value, src, start, end, reasons){
     if (!value || !src) return false;
+    if (reasons && reasons.some(r => r.startsWith("trigger:"))) return false;
 
     const normalize = s => s
       .normalize("NFC")
@@ -1855,6 +1868,19 @@ Orgán: OBÚ.
 
     if (!name.includes(" ") && commonWords.has(name)) return true;
 
+    // Sentence-initial token desambiguation
+    if (Number.isInteger(start) && start >= 0 && isSentenceStart(src, start)) {
+      if (!name.includes(" ")) {
+        if (SENTENCE_INITIAL_APELATIVA.has(name) || commonWords.has(name)) return true;
+      } else {
+        const parts = name.split(" ");
+        const isKnownFirstName = (typeof FIRST_NAMES !== "undefined" && FIRST_NAMES) ? FIRST_NAMES.has(parts[0]) : (typeof NAMES !== "undefined" && NAMES ? NAMES.has(parts[0]) : false);
+        if (SENTENCE_INITIAL_APELATIVA.has(parts[0]) && (!isKnownFirstName || commonWords.has(parts[1]) || SENTENCE_INITIAL_APELATIVA.has(parts[1]))) {
+          return true;
+        }
+      }
+    }
+
     // Geographic-name variants. Keep names like "Jan Hora" and "Petr Černý".
     const locations = new Set([
       "černá hora",
@@ -1876,6 +1902,61 @@ Orgán: OBÚ.
     return false;
   }
 
+  // --- Desambiguace větných verzálek a kontextové triggery (Ticket 02) ---
+  const RE_ABBR_BEFORE = /(?:např|tzv|tj|t\.j|tzn|atd|apod|popř|resp|s\.r\.o|a\.s|v\.o\.s|spol|č|č\.j|čj|sp\.?\s*zn|odst|písm|sb|str|sv|r|nar|hod|min|st|p|ing|mgr|bc|mudr|judr|mvdr|phdr|rndr|pharmdr|thdr|doc|prof)\.$/iu;
+
+  function isSentenceStart(text, start) {
+    if (!text || start <= 0) return true;
+    const prefix = text.slice(0, start);
+    if (/^\s*$/.test(prefix)) return true;
+    if (/[\r\n]\s*(?:[•\-*–—]|\d+[\.\)]|[a-zA-Z][\.\)])?\s*$/.test(prefix)) return true;
+    if (/^(?:[•\-*–—]|\d+[\.\)]|[a-zA-Z][\.\)])\s*$/.test(prefix.trim())) return true;
+    const m = prefix.match(/([.?!…])[\s"'»”’\)]*$/);
+    if (!m) return false;
+    if (m[1] === "!" || m[1] === "?" || m[1] === "…") return true;
+    const dotPos = prefix.lastIndexOf(".");
+    const beforeDot = prefix.slice(0, dotPos + 1).trim();
+    if (/\b\d+\.$/.test(beforeDot)) return false;
+    if (RE_ABBR_BEFORE.test(beforeDot)) return false;
+    return true;
+  }
+
+  const SENTENCE_INITIAL_APELATIVA = new Set([
+    "nový", "nová", "nové", "nového", "novému", "novým", "nových", "novými",
+    "starý", "stará", "staré", "starého", "starému", "starým", "starých", "starými",
+    "bílá", "bílý", "bílé", "bílého", "bílému", "bílým", "bílých", "bílými",
+    "černý", "černá", "černé", "černého", "černému", "černým", "černých", "černými",
+    "malý", "malá", "malé", "malého", "malému", "malým", "malých", "malými",
+    "velký", "velká", "velké", "velkého", "velkému", "velkým", "velkých", "velkými",
+    "svobodný", "svobodná", "svobodné", "svobodného", "svobodnému", "svobodným",
+    "veselý", "veselá", "veselé", "veselého", "veselému", "veselým",
+    "krátký", "krátká", "krátké", "dlouhý", "dlouhá", "dlouhé",
+    "tichý", "tichá", "tiché", "suchý", "suchá", "suché", "mokrý", "mokrá", "mokré",
+    "český", "česká", "české", "moravský", "moravská", "moravské", "slovenský", "slovenská",
+    "hlavní", "další", "poslední", "první", "druhý", "třetí", "jediný", "celý", "veškerý",
+    "podle", "vedle", "kolem", "během", "místo", "proti", "vzhledem", "naproti", "podél",
+    "mezi", "před", "přes", "skrz", "kvůli", "včetně", "vyjma", "kromě",
+    "jestliže", "pokud", "protože", "poněvadž", "přestože", "ačkoliv", "ačkoli", "avšak", "však",
+    "tudíž", "proto", "neboť", "nebo", "anebo", "čili", "ani", "takže", "jakmile", "zatímco",
+    "tento", "tato", "toto", "tito", "tyto", "onen", "ona", "ono", "oni", "ony",
+    "každý", "každá", "každé", "který", "která", "které", "kteří", "všechen", "všechna", "všichni",
+    "kovář", "holub", "zima", "léto", "jaro", "podzim", "vlk", "beran", "jelen", "kos", "vrba",
+    "čech", "němec", "polák", "růže", "fiala", "král", "hora", "les", "pole", "potok",
+    "smlouva", "dohoda", "zákon", "zákoník", "vyhláška", "nařízení", "směrnice",
+    "usnesení", "rozsudek", "nález", "příkaz", "pokyn", "rozhodnutí", "opatření", "stanovisko", "výzva",
+    "žaloba", "odvolání", "stížnost", "návrh", "žádost", "podání", "vyjádření", "sdělení",
+    "protokol", "zápis", "zpráva", "listina", "dokument", "spis", "řízení",
+    "soud", "žalobce", "žalovaná", "žalovaný", "navrhovatel", "odpůrce", "stěžovatel",
+    "účastník", "svědek", "znalec", "tlumočník", "obhájce", "zástupce", "zmocněnec",
+    "správce", "věřitel", "dlužník", "povinný", "oprávněný",
+    "objednatel", "zhotovitel", "kupující", "prodávající", "nájemce", "pronajímatel",
+    "dodavatel", "odběratel", "uživatel", "klient", "zákazník",
+    "přístup", "postup", "způsob", "systém", "technika", "stavba", "práce",
+    "termín", "lhůta", "doba", "den", "měsíc", "rok", "datum",
+    "částka", "cena", "platba", "poplatek", "úhrada", "náklad", "náklady", "odměna", "pokuta",
+    "ředitel", "vedoucí", "starosta", "primátor", "ministr", "předseda"
+  ]);
+
   function detect(text, enabled, secrets){
     const bag = []; const seen = new Set();
     const { src, work, toSrc } = makeWork(text || "");
@@ -1893,7 +1974,15 @@ Orgán: OBÚ.
       const mapped = (h.start < src.length && src.slice(h.start, h.end) === h.value) ? finalizeHit(h, src) : lift(h);
       if (!mapped.value || !mapped.value.trim()) return;
       const k = mapped.type+"|"+mapped.start+"|"+mapped.end;
-      if (seen.has(k)) return;
+      if (seen.has(k)) {
+        const existing = bag.find(b => b.type === mapped.type && b.start === mapped.start && b.end === mapped.end);
+        if (existing) {
+          existing.reasons = Array.from(new Set([].concat(existing.reasons || [], mapped.reasons || [])));
+          if (mapped.confidence === "high") existing.confidence = "high";
+          if (mapped.accept) existing.accept = true;
+        }
+        return;
+      }
       seen.add(k);
       bag.push(mapped);
     };
@@ -2067,6 +2156,99 @@ Orgán: OBÚ.
       add(findAll(t, /(?<![\p{L}\p{N}])\p{Lu}\p{Ll}{2,}(?:ová|á)\s+roz\.\s+\p{Lu}\p{Ll}{2,}/gu, "name"), ["format","label:roz"]);
       add(findAll(t, /(?<![\p{L}\p{N}])\p{Lu}\p{Ll}{3,}(?:ovi|em|ové)(?![\p{L}\p{N}])/gu, "name", v => looksName(v)), ["declined"]);
       const roleWords = new Set(["v","dne","na","pro","při","the","this","zástupce","ředitel","ředitelka","objednatel","zhotovitel","jednatel","jednatelka","předseda","předsedkyně","místopředseda","starosta","starostka","primátor","primátorka","ministr","ministryně","náměstek","náměstkyně","kupující","prodávající","žalobce","žalovaná","žalovaný","dlužník","věřitel","správce","vlastník","žadatel"]);
+
+      // Procedural and social role triggers (Ticket 02)
+      function ciPat(s) {
+        return s.split('').map(c => {
+          const up = c.toUpperCase(), low = c.toLowerCase();
+          return up !== low ? '[' + up + low + ']' : c;
+        }).join('');
+      }
+
+      const roleWordsList = [
+        'žalobce', 'žalobci', 'žalobcem', 'žalobkyně', 'žalobkyni', 'žalobkyní',
+        'žalovaný', 'žalovaného', 'žalovanému', 'žalovaným', 'žalovaná', 'žalované', 'žalovanou',
+        'svědek', 'svědka', 'svědkovi', 'svědkem', 'svědkyně', 'svědkyni', 'svědkyní',
+        'obžalovaný', 'obžalovaného', 'obžalovanému', 'obžalovaným', 'obžalovaná', 'obžalované', 'obžalovanou',
+        'poškozený', 'poškozeného', 'poškozenému', 'poškozeným', 'poškozená', 'poškozené', 'poškozenou',
+        'jednatel', 'jednatele', 'jednateli', 'jednatelem', 'jednatelka', 'jednatelky', 'jednatelce', 'jednatelku', 'jednatelkou',
+        'pan', 'pana', 'panu', 'panem', 'paní'
+      ];
+      const roleTriggersPattern = roleWordsList.map(ciPat).join('|');
+      const namePartPattern = '\\p{Lu}[\\p{L}\x27-]+';
+      const namePhrasePattern = namePartPattern + '(?:[ \\t]+' + namePartPattern + '){0,3}(?:\\s*,\\s*(?:' + postTitles + '))?';
+
+      // 1. Procedural and social role triggers
+      const roleRe = new RegExp('(?<![\\p{L}\\p{N}])(' + roleTriggersPattern + ')(?![\\p{L}\\p{N}])(?:\\s*[:=]\\s*|\\s+)(?:(?:' + titlePat + ')\\.?,?\\s+)*(' + namePhrasePattern + ')(?![\\p{L}\\p{N}])', 'gu');
+      let rm;
+      while ((rm = roleRe.exec(t)) !== null) {
+        const fullMatch = rm[0];
+        const rawName = rm[2];
+        if (!rawName || isPublic(rawName)) continue;
+        const nameClean = rawName.replace(/,.*$/, "").trim();
+        const words = nameClean.split(/\s+/);
+        const firstLow = (words[0]||"").toLocaleLowerCase("cs");
+        if (roleWords.has(firstLow)) continue;
+        const nameOffsetInMatch = fullMatch.lastIndexOf(rawName);
+        const nStart = rm.index + nameOffsetInMatch;
+        const nEnd = nStart + rawName.length;
+        const isMulti = words.length >= 2;
+        push({
+          type: "name",
+          value: rawName,
+          start: nStart,
+          end: nEnd,
+          reasons: ["trigger:role"],
+          confidence: isMulti ? "high" : "medium",
+          accept: true
+        });
+      }
+
+      // 2. Administrative marker triggers
+      const adminMarkersPattern = '(?:[Nn][Aa][Rr]\\.|[Nn][Aa][Rr][Oo][Zz][Ee][Nn](?:[aeyáí]|ého|ému|ým)?|[Bb][Yy][Tt][Ee][Mm]|[Tt][Rr][Vv][Aa][Ll][Ee]\\s+[Bb][Yy][Tt][Ee][Mm]|[Rr]\\.?\\s*[Čč]\\.?|[Rr][Oo][Dd][Nn][Éé](?:[Hh][Oo])?\\s+[Čč][Íí][Ss][Ll][Oo])';
+
+      // Case A: Name preceding admin marker, e.g. "John Smith, nar. 1980" or "John Smith, bytem v Praze"
+      const adminFollowRe = new RegExp('(?<![\\p{L}\\p{N}])(' + namePhrasePattern + ')\\s*,\\s*(?:' + adminMarkersPattern + ')(?![\\p{L}\\p{N}])', 'gu');
+      let afm;
+      while ((afm = adminFollowRe.exec(t)) !== null) {
+        const rawName = afm[1];
+        if (!rawName || isPublic(rawName)) continue;
+        const words = rawName.replace(/,.*$/, "").trim().split(/\s+/);
+        const firstLow = (words[0]||"").toLocaleLowerCase("cs");
+        if (roleWords.has(firstLow)) continue;
+        push({
+          type: "name",
+          value: rawName,
+          start: afm.index,
+          end: afm.index + rawName.length,
+          reasons: ["trigger:official"],
+          confidence: "high",
+          accept: true
+        });
+      }
+
+      // Case B: Admin marker preceding name, e.g. "narozen: Petr Novák"
+      const adminLeadRe = new RegExp('(?:[Nn][Aa][Rr]\\.|[Nn][Aa][Rr][Oo][Zz][Ee][Nn](?:[aeyáí]|ého|ému|ým)?)\\s*[:=]?\\s*(?:(?:' + titlePat + ')\\.?,?\\s+)*(' + namePhrasePattern + ')(?![\\p{L}\\p{N}])', 'gu');
+      let alm;
+      while ((alm = adminLeadRe.exec(t)) !== null) {
+        const rawName = alm[1];
+        if (!rawName || isPublic(rawName)) continue;
+        if (/^\d/.test(rawName)) continue;
+        const words = rawName.replace(/,.*$/, "").trim().split(/\s+/);
+        const firstLow = (words[0]||"").toLocaleLowerCase("cs");
+        if (roleWords.has(firstLow)) continue;
+        const nameIdx = alm.index + alm[0].lastIndexOf(rawName);
+        push({
+          type: "name",
+          value: rawName,
+          start: nameIdx,
+          end: nameIdx + rawName.length,
+          reasons: ["trigger:official"],
+          confidence: "high",
+          accept: true
+        });
+      }
+
       add(findAll(t, new RegExp("(?<![\\p{L}\\p{N}])\\p{Lu}\\p{Ll}{2,}\\s+\\p{Lu}\\p{Ll}{2,}(?:\\s*,\\s*(?:"+postTitles+"))?(?![\\p{L}\\p{N}])", "gu"), "name", (v) => {
         const clean = v.replace(/,.*$/, "").trim();
         const p = clean.split(/\s+/);
@@ -2238,7 +2420,7 @@ Orgán: OBÚ.
       const h = bag[i];
       if (
         h.type === "name" &&
-        isLikelyNonPersonName(h.value, src, h.start, h.end)
+        isLikelyNonPersonName(h.value, src, h.start, h.end, h.reasons)
       ) {
         bag.splice(i, 1);
       }
@@ -3433,7 +3615,13 @@ Orgán: OBÚ.
   function hitEvidence(h, t, full){
     const ev = h.confidence==="high"?t.high:t.medium;
     if (!full) return ev;
-    const rs = (h.reasons||[]).map(r => r.replace(/^context:/,"ctx:"));
+    const labels = (t && t.reasonLabels) || {};
+    const rs = (h.reasons||[]).map(r => {
+      if (labels[r]) return labels[r];
+      if (r === "trigger:role") return "[Trigger: role]";
+      if (r === "trigger:official") return "[Trigger: úřední]";
+      return r.replace(/^context:/,"ctx:");
+    });
     return [ev].concat(rs).join(" · ");
   }
   function origHTML(){
@@ -7298,6 +7486,16 @@ Orgán: OBÚ.
     expect("czech quote name", "zástupce „Jan Novák“ podepsal", "medium", "name", "Jan Novák");
     expect("czech system diacritics", "aplikace Účetnictví a systém Pošta", "medium", "system", "Pošta");
     expect("initials", "podepsal J. Novák", "medium", "name", "J. Novák");
+    // Ticket 02: Desambiguace větných verzálek a kontextové triggery
+    expectNone("sentence start apelativum Nový", "Nový přístup byl zvolen.", "medium", "name");
+    expectNone("sentence start apelativum Starý", "Starý stavební zákon pozbyl platnosti.", "medium", "name");
+    expectNone("sentence start apelativum Podle", "Podle žalobce došlo k prodlení.", "medium", "name");
+    expectNone("sentence start apelativum Bílá", "Bílá technika byla dodána.", "medium", "name");
+    expect("sentence start multi-word name", "Petr Nový podepsal smlouvu.", "medium", "name", "Petr Nový");
+    expectNone("homonym apelativum kovář", "zručný kovář vyrobil mříž", "medium", "name");
+    expect("role trigger full name", "svědek Jiří Kovář vypověděl", "medium", "name", "Jiří Kovář");
+    expect("role trigger lone surname", "svědek Kovář vypověděl", "medium", "name", "Kovář");
+    expect("administrative trigger foreign name", "obžalovaný John Smith, nar. 1980, bytem v Praze", "medium", "name", "John Smith");
     expect("ip", "server 10.12.8.4 uvnitř", "medium", "ip", "10.12.8.4");
     expect("host", "viz https://ais.internal/ticket/1", "medium", "host", "ais.internal");
     expect("geo", "stanoviště 50.087465, 14.421253", "medium", "geo", "50.087465");
@@ -7584,6 +7782,9 @@ Orgán: OBÚ.
     window.isOnomasticName = isOnomasticName;
     window.initOnomasticRegistry = initOnomasticRegistry;
     window.createOnomasticTrie = createOnomasticTrie;
+    window.detect = detect;
+    window.hitEvidence = hitEvidence;
+    window.I18N = I18N;
   }
   if (typeof queueMicrotask === "function") {
     queueMicrotask(initOnomasticRegistry);
