@@ -935,7 +935,8 @@ Orgán: OBÚ.
       reasonLabels:{
         "trigger:role": "[Trigger: role]",
         "trigger:official": "[Trigger: úřední]",
-        "propagation": "[Propagace]"
+        "propagation": "[Propagace]",
+        "ocr:fuzzy": "[OCR: fuzzy]"
       },
       expertMode:"Zobrazit technické detaily nálezů", processToggle:"Zobrazit rozbor postupu",
       movieAdvancedHelp:"Spustit pokročilou nápovědu (video)",
@@ -1110,7 +1111,8 @@ Orgán: OBÚ.
       reasonLabels:{
         "trigger:role": "[Trigger: role]",
         "trigger:official": "[Trigger: official]",
-        "propagation": "[Propagation]"
+        "propagation": "[Propagation]",
+        "ocr:fuzzy": "[OCR: fuzzy]"
       },
       expertMode:"Show technical hit details", processToggle:"Show process breakdown",
       movieAdvancedHelp:"Start advanced walkthrough (video)",
@@ -1384,6 +1386,10 @@ Orgán: OBÚ.
     const decl = t.replace(/(?:ovi|ovým|ovými|ových|ové|ama|ami|ách|ům|em|ou|u|e|a)$/u, "");
     if (decl !== t && decl.length >= 3) {
       if (/ov$/u.test(decl) && decl.length >= 4) return decl.replace(/ov$/u, "");
+      if (decl.length >= 3 && /[lkc]$/.test(decl)) {
+        const alt = decl.slice(0, -1) + "e" + decl.slice(-1);
+        if (NAMES.has(alt) || isOnomasticName(alt)) return alt;
+      }
       return decl;
     }
     if (/ová$/u.test(t)) return t.replace(/ová$/u, "");
@@ -1574,6 +1580,13 @@ Orgán: OBÚ.
       else if (low.endsWith("a") && low.length > 3) nomStem = sur.slice(0, -1);
       if (nomStem && nomStem !== sur && nomStem.length >= 3) {
         declineCzechSurname(nomStem).forEach(f => forms.add(f));
+        if (/[lkc]$/i.test(nomStem)) {
+          const alt = nomStem.slice(0, -1) + "e" + nomStem.slice(-1);
+          declineCzechSurname(alt).forEach(f => forms.add(f));
+          if (typeof declineCzechFirstName === "function") {
+            declineCzechFirstName(alt).forEach(f => forms.add(f));
+          }
+        }
       }
     }
 
@@ -2017,7 +2030,7 @@ Orgán: OBÚ.
   // Exact-phrase filtering avoids a global surname blacklist.
   function isLikelyNonPersonName(value, src, start, end, reasons){
     if (!value || !src) return false;
-    if (reasons && reasons.some(r => r.startsWith("trigger:"))) return false;
+    if (reasons && reasons.some(r => r.startsWith("trigger:") || r === "ocr:fuzzy")) return false;
 
     const normalize = s => s
       .normalize("NFC")
@@ -2358,6 +2371,46 @@ Orgán: OBÚ.
       add(findAll(t, /\b(?:EL|AK|EB|EE)\s?\d{2,4}\b/g, "spz", (v,f,i) => sus==="high" || ctxHas(f,i,i+v.length,["spz","vozid","značk","elektro"], win)), ["format"]);
     }
     if (enabled.name) {
+      const isOcr = Boolean((options && (options.ocrActive || options.ocr)) || S.ocrActive);
+      function levenshteinDist1(a, b) {
+        const al = a.length, bl = b.length;
+        if (Math.abs(al - bl) > 1) return false;
+        if (al === bl) {
+          let diff = 0;
+          for (let i = 0; i < al; i++) {
+            if (a[i] !== b[i]) {
+              diff++;
+              if (diff > 1) return false;
+            }
+          }
+          return diff <= 1;
+        }
+        const [shorter, longer] = al < bl ? [a, b] : [b, a];
+        let i = 0, j = 0, diff = 0;
+        while (i < shorter.length && j < longer.length) {
+          if (shorter[i] !== longer[j]) {
+            diff++;
+            if (diff > 1) return false;
+            j++;
+          } else {
+            i++;
+            j++;
+          }
+        }
+        return true;
+      }
+      function fuzzyMatchKnownName(cand) {
+        if (!cand || cand.length < 6) return false;
+        const candLow = cand.toLocaleLowerCase("cs");
+        if (!ONOMASTIC_TRIE) initOnomasticRegistry();
+        for (const name of NAMES) {
+          if (name.length < 6) continue;
+          if (Math.abs(name.length - candLow.length) > 1) continue;
+          if (levenshteinDist1(candLow, name)) return true;
+        }
+        return false;
+      }
+
       const titlePat = TITLES.map(tp => tp.split("").map(c => "["+c.toUpperCase()+c.toLowerCase()+"]").join("")).join("|");
       const postTitles = "Ph\\.?D\\.?|CSc\\.?|DrSc\\.?|DiS\\.?|MBA|LL\\.?M\\.?|MPA|DSc\\.?|Th\\.?D\\.?";
       add(findAll(t, new RegExp("(?<![\\p{L}\\p{N}])(?:"+titlePat+")\\.?,?\\s+(?:(?:"+titlePat+")\\.?,?\\s+)*(?:(?!(?:"+titlePat+")\\b)\\p{Lu}\\p{Ll}+)(?:[ \\t]+(?:(?!(?:"+titlePat+")\\b)\\p{Lu}\\p{Ll}+)){0,3}(?:\\s*,\\s*(?:"+postTitles+"))?(?!\\s+(?:"+titlePat+")\\b)","gu"), "name"), ["titled"]);
@@ -2402,13 +2455,14 @@ Orgán: OBÚ.
         const nStart = rm.index + nameOffsetInMatch;
         const nEnd = nStart + rawName.length;
         const isMulti = words.length >= 2;
+        const isFuzzy = isOcr && words.length === 1 && !NAMES.has(words[0].toLocaleLowerCase("cs")) && fuzzyMatchKnownName(words[0]);
         push({
           type: "name",
           value: rawName,
           start: nStart,
           end: nEnd,
-          reasons: ["trigger:role"],
-          confidence: isMulti ? "high" : "medium",
+          reasons: isFuzzy ? ["ocr:fuzzy", "trigger:role"] : ["trigger:role"],
+          confidence: isMulti || isFuzzy ? "high" : "medium",
           accept: true
         });
       }
@@ -2425,12 +2479,13 @@ Orgán: OBÚ.
         const words = rawName.replace(/,.*$/, "").trim().split(/\s+/);
         const firstLow = (words[0]||"").toLocaleLowerCase("cs");
         if (roleWords.has(firstLow)) continue;
+        const isFuzzy = isOcr && words.length === 1 && !NAMES.has(words[0].toLocaleLowerCase("cs")) && fuzzyMatchKnownName(words[0]);
         push({
           type: "name",
           value: rawName,
           start: afm.index,
           end: afm.index + rawName.length,
-          reasons: ["trigger:official"],
+          reasons: isFuzzy ? ["ocr:fuzzy", "trigger:official"] : ["trigger:official"],
           confidence: "high",
           accept: true
         });
@@ -2446,16 +2501,77 @@ Orgán: OBÚ.
         const words = rawName.replace(/,.*$/, "").trim().split(/\s+/);
         const firstLow = (words[0]||"").toLocaleLowerCase("cs");
         if (roleWords.has(firstLow)) continue;
+        const isFuzzy = isOcr && words.length === 1 && !NAMES.has(words[0].toLocaleLowerCase("cs")) && fuzzyMatchKnownName(words[0]);
         const nameIdx = alm.index + alm[0].lastIndexOf(rawName);
         push({
           type: "name",
           value: rawName,
           start: nameIdx,
           end: nameIdx + rawName.length,
-          reasons: ["trigger:official"],
+          reasons: isFuzzy ? ["ocr:fuzzy", "trigger:official"] : ["trigger:official"],
           confidence: "high",
           accept: true
         });
+      }
+
+      // 3. Dedicated OCR fuzzy scan near triggers for OCR-defective tokens (Ticket 05)
+      if (isOcr) {
+        const ocrRolePattern = roleWordsList.map(ciPat).join('|');
+        const ocrAdminPattern = adminMarkersPattern;
+        const ocrCombPattern = '(?:' + ocrRolePattern + '|' + ocrAdminPattern + ')';
+        const ocrScanRe = new RegExp('(?<![\\p{L}\\p{N}])(' + ocrCombPattern + ')(?![\\p{L}\\p{N}])', 'gu');
+        let osm;
+        while ((osm = ocrScanRe.exec(t)) !== null) {
+          const trigStart = osm.index;
+          const trigEnd = trigStart + osm[0].length;
+          const trigWord = osm[1].toLocaleLowerCase("cs");
+          const isRoleTrig = roleWords.has(trigWord) || roleWordsList.some(rw => trigWord.startsWith(rw));
+          const trigReason = isRoleTrig ? "trigger:role" : "trigger:official";
+
+          // Window after trigger
+          const afterSlice = t.slice(trigEnd, Math.min(t.length, trigEnd + 50));
+          const afterTokenRe = /(?:(?:\s*[:=]\s*|\s+)(?:(?:prof|doc|mudr|judr|phdr|rndr|ing|arch|mgr|bc)\.?\s*)*)\b([\p{L}\p{N}]{6,})\b/giu;
+          let atm;
+          while ((atm = afterTokenRe.exec(afterSlice)) !== null) {
+            const tok = atm[1];
+            if (roleWords.has(tok.toLocaleLowerCase("cs"))) continue;
+            if (fuzzyMatchKnownName(tok)) {
+              const tokStart = trigEnd + atm.index + atm[0].lastIndexOf(tok);
+              const tokEnd = tokStart + tok.length;
+              push({
+                type: "name",
+                value: tok,
+                start: tokStart,
+                end: tokEnd,
+                reasons: ["ocr:fuzzy", trigReason],
+                confidence: "high",
+                accept: true
+              });
+            }
+          }
+
+          // Window before trigger
+          const beforeSlice = t.slice(Math.max(0, trigStart - 50), trigStart);
+          const beforeTokenRe = /\b([\p{L}\p{N}]{6,})\b(?:\s*,\s*|\s*)$/giu;
+          let btm;
+          while ((btm = beforeTokenRe.exec(beforeSlice)) !== null) {
+            const tok = btm[1];
+            if (roleWords.has(tok.toLocaleLowerCase("cs"))) continue;
+            if (fuzzyMatchKnownName(tok)) {
+              const tokStart = Math.max(0, trigStart - 50) + btm.index;
+              const tokEnd = tokStart + tok.length;
+              push({
+                type: "name",
+                value: tok,
+                start: tokStart,
+                end: tokEnd,
+                reasons: ["ocr:fuzzy", trigReason],
+                confidence: "high",
+                accept: true
+              });
+            }
+          }
+        }
       }
 
       add(findAll(t, new RegExp("(?<![\\p{L}\\p{N}])\\p{Lu}\\p{Ll}{2,}\\s+\\p{Lu}\\p{Ll}{2,}(?:\\s*,\\s*(?:"+postTitles+"))?(?![\\p{L}\\p{N}])", "gu"), "name", (v) => {
@@ -3947,6 +4063,7 @@ Orgán: OBÚ.
       if (r === "trigger:role") return "[Trigger: role]";
       if (r === "trigger:official") return "[Trigger: úřední]";
       if (r === "propagation") return "[Propagace]";
+      if (r === "ocr:fuzzy") return "[OCR: fuzzy]";
       return r.replace(/^context:/,"ctx:");
     });
     return [ev].concat(rs).join(" · ");
@@ -8115,6 +8232,95 @@ Orgán: OBÚ.
       type: "court-profile",
       includes: "court-whitelist",
       got: ["court profile rules verified"]
+    });
+    cases.push({
+      name: "fp sentence-start apelativa suppression",
+      ok: (() => {
+        const sentences = [
+          "Nový přístup byl zvolen.",
+          "Starý zákoník práce pozbyl platnosti.",
+          "Podle vyjádření žalobce došlo k prodlení.",
+          "Bílá technika byla dodána."
+        ];
+        return sentences.every(s => detect(s, { name: true }, []).filter(h => h.type === "name").length === 0);
+      })(),
+      type: "name",
+      includes: "sentence-start FP suppression",
+      got: ["suppressed"]
+    });
+
+    cases.push({
+      name: "sentence-start multi-word name preserved",
+      ok: (() => {
+        const h = detect("Petr Nový podepsal smlouvu.", { name: true }, []);
+        return h.some(x => x.type === "name" && x.value === "Petr Nový");
+      })(),
+      type: "name",
+      includes: "Petr Nový",
+      got: ["detected"]
+    });
+
+    cases.push({
+      name: "homonym apelativa vs role triggers",
+      ok: (() => {
+        const ap1 = detect("zručný kovář vyrobil mříž", { name: true }, []);
+        const ap2 = detect("nad městem kroužil holub", { name: true }, []);
+        const ap3 = detect("venku vládla tuhá zima", { name: true }, []);
+        const tr1 = detect("svědek Jiří Kovář vypověděl", { name: true }, []);
+        const tr2 = detect("pan Holub doložil plnou moc", { name: true }, []);
+        return ap1.length === 0 && ap2.length === 0 && ap3.length === 0 &&
+               tr1.some(h => h.value === "Jiří Kovář") &&
+               tr2.some(h => /Holub/.test(h.value));
+      })(),
+      type: "name",
+      includes: "homonymy desambiguation",
+      got: ["homonyms resolved"]
+    });
+
+    cases.push({
+      name: "inflection and entity propagation cache with declension",
+      ok: (() => {
+        const text = "smlouva s Janem Pavlem byla uzavřena. Později předáno Pavlovi. Podle názoru Pavla nedošlo k pochybení.";
+        const hits = detect(text, { name: true }, []);
+        const names = hits.filter(h => h.type === "name");
+        const keys = new Set(names.map(h => h.entityKey));
+        const pseudo = apply(text, hits, "pseudo", "cs");
+        return names.length >= 3 && keys.size === 1 &&
+               /\[OSOBOU_0*1\]/.test(pseudo) && /\[OSOBĚ_0*1\]/.test(pseudo) && /\[OSOBA_0*1\]/.test(pseudo);
+      })(),
+      type: "name",
+      includes: "propagation and 7-case tokens",
+      got: ["propagation verified"]
+    });
+
+    cases.push({
+      name: "foreign and uninflected names near triggers",
+      ok: (() => {
+        const text = "obžalovaný John Smith, nar. 1980 byl přítomen. svědkyně Marie Svoboda, bytem v Praze vypovídala.";
+        const hits = detect(text, { name: true, address: true }, []);
+        return hits.some(h => h.type === "name" && h.value.includes("John Smith")) &&
+               hits.some(h => h.type === "name" && h.value.includes("Marie Svoboda"));
+      })(),
+      type: "name",
+      includes: "foreign names detected",
+      got: ["foreign names verified"]
+    });
+
+    cases.push({
+      name: "ocr fuzzy tolerance near triggers",
+      ok: (() => {
+        const ocrActiveText = "obžalovaný Dv0řák, nar. 1980 se nedostavil.";
+        const activeHits = detect(ocrActiveText, { name: true }, [], { ocrActive: true });
+        const inactiveHits = detect(ocrActiveText, { name: true }, [], { ocrActive: false });
+        const shortHits = detect("svědek N0vák vypověděl.", { name: true }, [], { ocrActive: true });
+        const hasFuzzy = activeHits.some(h => h.type === "name" && /Dv0řák/.test(h.value) && (h.reasons || []).includes("ocr:fuzzy"));
+        const noInactive = !inactiveHits.some(h => h.type === "name" && /Dv0řák/.test(h.value));
+        const noShort = !shortHits.some(h => h.type === "name" && /N0vák/.test(h.value));
+        return hasFuzzy && noInactive && noShort;
+      })(),
+      type: "name",
+      includes: "ocr fuzzy tolerance",
+      got: ["ocr fuzzy verified"]
     });
     S.systems = prevSys; S.projects = prevProj;
     S.suspicion = prev;
