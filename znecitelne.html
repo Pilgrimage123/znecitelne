@@ -1503,6 +1503,7 @@ Orgán: OBÚ.
           const end = start + m[0].length;
           const overlaps = existingSpans.some(s => (start < s.end && end > s.start));
           if (!overlaps) {
+            if (isLikelyNonPersonName(m[0], text, start, end)) continue;
             existingSpans.push({ start, end });
             newHits.push({
               type: "name",
@@ -1791,7 +1792,16 @@ Orgán: OBÚ.
       "černou horou"
     ]);
 
-    return locations.has(name);
+    if (locations.has(name)) return true;
+
+    if (Number.isInteger(start) && Number.isInteger(end) && start >= 0 && end <= src.length) {
+      const beforeWord = (src.slice(Math.max(0, start - 30), start).trim().split(/\s+/).pop() || "");
+      const afterWord = (src.slice(end, Math.min(src.length, end + 30)).trim().split(/\s+/)[0] || "");
+      if (beforeWord && locations.has(normalize(beforeWord + " " + candidate))) return true;
+      if (afterWord && locations.has(normalize(candidate + " " + afterWord))) return true;
+    }
+
+    return false;
   }
 
   function detect(text, enabled, secrets){
@@ -2238,7 +2248,8 @@ Orgán: OBÚ.
   }
   function declinedPersonTokenBase(base, h, lang){
     if (lang !== "cs" || h.type !== "name" || base !== "OSOBA") return base;
-    const words = String(h.value || "").trim().toLocaleLowerCase("cs").split(/\s+/);
+    const clean = String(h.value || "").replace(/,.*$/, "").trim();
+    const words = clean.toLocaleLowerCase("cs").replace(/[.,;:!?]/g, "").split(/\s+/).filter(Boolean);
     const last = words[words.length - 1] || "";
     // Instrumental: Janem Novákem, Janou Novákovou.
     if (/(?:em|ou|ovou)$/u.test(last)) return "OSOBOU";
@@ -7249,7 +7260,49 @@ Orgán: OBÚ.
     const extraHits = detect(extra, enabled, []);
     const rExtra = bindReplacer("pseudo", "cs", extraHits);
     const extraToks = extraHits.filter(h=>h.type==="name").map(h => rExtra(h));
-    cases.push({ name:"declined+initials share token", ok: extraToks.length>=4 && extraToks.every(t => t===extraToks[0]), type:"name", includes:"one person", got: extraHits.filter(h=>h.type==="name").map(h=>h.value+":"+h.entityKey+":"+rExtra(h)) });
+    cases.push({
+      name: "declined+initials share token",
+      ok: extraToks.length >= 4 &&
+          extraToks.every(t => /_001\]$/.test(t)) &&
+          extraToks.some(t => t.startsWith("[OSOBA_")) &&
+          extraToks.some(t => t.startsWith("[OSOBĚ_")) &&
+          extraToks.some(t => t.startsWith("[OSOBOU_")),
+      type: "name",
+      includes: "one person stable suffix",
+      got: extraHits.filter(h=>h.type==="name").map(h=>h.value+":"+h.entityKey+":"+rExtra(h))
+    });
+    cases.push({
+      name: "declined token preserves case with post-nominal title",
+      ok: (() => {
+        const r = bindReplacer("pseudo", "cs", [{ id: 1, type: "name", value: "Janem Novákem, MBA", accept: true, entityKey: "name|jan novak" }]);
+        return r({ id: 1, type: "name", value: "Janem Novákem, MBA", accept: true, entityKey: "name|jan novak" }) === "[OSOBOU_001]";
+      })(),
+      type: "name",
+      includes: "[OSOBOU_001]",
+      got: [bindReplacer("pseudo", "cs", [{ id: 1, type: "name", value: "Janem Novákem, MBA", accept: true, entityKey: "name|jan novak" }])({ id: 1, type: "name", value: "Janem Novákem, MBA", accept: true, entityKey: "name|jan novak" })]
+    });
+    cases.push({
+      name: "geographic phrase Černé Hory not corrupted when Jan Hora present",
+      ok: (() => {
+        const h = detect("Jednání vedl Jan Hora. Výsledky přišly z Černé Hory.", enabled, secrets);
+        return h.some(x => x.type === "name" && x.value.includes("Jan Hora")) &&
+               !h.some(x => x.type === "name" && (x.value === "Hory" || x.value === "Černé Hory"));
+      })(),
+      type: "name",
+      includes: "Jan Hora kept, Hory excluded",
+      got: detect("Jednání vedl Jan Hora. Výsledky přišly z Černé Hory.", enabled, secrets).map(x => x.value)
+    });
+    cases.push({
+      name: "standalone month duben not added as person when Jan Duben present",
+      ok: (() => {
+        const h = detect("Tuto smlouvu uzavřel Jan Duben dne 15. dubna. Termín plnění je stanoven na duben.", enabled, secrets);
+        return h.some(x => x.type === "name" && x.value.includes("Jan Duben")) &&
+               !h.some(x => x.type === "name" && x.value === "duben");
+      })(),
+      type: "name",
+      includes: "Jan Duben kept, duben excluded",
+      got: detect("Tuto smlouvu uzavřel Jan Duben dne 15. dubna. Termín plnění je stanoven na duben.", enabled, secrets).map(x => x.value)
+    });
     const sysText = "Projekt CBUAIS, systém AIS SBS, integrace eSpis, eSpis, modul SAMO2, AIS SBS.";
     const sysHits = detect(sysText, enabled, []);
     const rSys = bindReplacer("pseudo", "cs", sysHits);
@@ -7436,6 +7489,7 @@ Orgán: OBÚ.
 
   if (typeof location !== "undefined" && /(?:\?|&)selftest=1\b/.test(location.search||"")) {
     const r = selfTest();
+    if (typeof window !== "undefined") window.__selfTestResult = r;
     console.log("Znečitelně selftest", r);
     if (!r.ok) console.warn(r.failed);
   }

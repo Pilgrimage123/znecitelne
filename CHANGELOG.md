@@ -1,16 +1,17 @@
 # Changelog
 
+## 2026-10-13
+
+- Oprava falešných detekcí a skloňování v morfologické expanzi:
+  - **Ochrana morfologické expanze před falešnými pozitivitami (`expandCzechNameMorphology`):** Nově vytvoření kandidáti jsou validováni pomocí `isLikelyNonPersonName`. Běžná slova (např. kalendářní měsíc „duben“) ani složky geografických názvů („Černé Hory“, „Černé Hoře“) se již chybně neoznačují jako osoby při výskytu jmen jako „Jan Duben“, „Jan Hora“ či „Jan Černý“.
+  - **Podpora titulů za jménem a interpunkce u pádových tokenů (`declinedPersonTokenBase`):** Tokeny osob zachovávají pád i u jmen s tituly za jménem (např. „Janem Novákem, MBA“ → `[OSOBOU_001]`, „Janu Novákovi, Ph.D.“ → `[OSOBĚ_001]`) a s koncovou interpunkcí.
+  - **Sjednocení regresních samotestů se specifikací ADR-0003:** Test `declined+initials share token` nově ověřuje stabilní identifikační suffix (`_001`) napříč skloňovanými formami (`[OSOBA_001]`, `[OSOBĚ_001]`, `[OSOBOU_001]`). Samotesty jsou nově automaticky spouštěny v rámci testovací sady `test.js`.
+
 ## 2026-10-12
 
 - **Omezení falešných pozitivit u českých jmen:** Před řešením překryvů se odstraňují přesné kandidáty odpovídající vybraným obecným českým slovům a skloňovaným variantám geografického názvu „Černá Hora“. Filtr neblokuje samotná příjmení, například „Hora“ nebo „Černý“. Doplněny regresní samotesty pro geografický název, běžné slovo „Termín“ a zachování skutečného jména „Jan Hora“.
-
-## 2026-10-12
-
 - **Responzivní modální okna / export:** Dialogy se nyní na menších displejích vejdou do dostupné výšky a šířky; obsah modálu lze samostatně posouvat, maximální šířka panelu je 680 px a vnitřní odsazení se přizpůsobuje šířce obrazovky.
-
-## 2026-10-12
-
-- Zachování běžných českých pádů při pseudonymizaci osob:
+- **Zachování běžných českých pádů při pseudonymizaci osob:**
   - **Pádově přizpůsobený token (`declinedPersonTokenBase`):** Základní tvar používá `[OSOBA_001]`, běžné dativní/lokálové tvary `[OSOBĚ_001]` a instrumentálové tvary `[OSOBOU_001]`.
   - **Stabilní mapování identity:** Mapa pseudonymů uchovává základ tokenu a suffix odděleně, takže změna gramatického tvaru nemění identifikační suffix a ostatní kategorie zůstávají beze změny.
   - **Regresní test:** Samotest ověřuje základní tvar, „Janu Novákovi“ a „Janem Novákem“ proti odpovídajícím variantám pseudonymu.

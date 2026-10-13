@@ -7,7 +7,9 @@ const metadata = JSON.parse(readFileSync("metadata.json", "utf8"));
 
 const failures = [];
 
-function htmlSourceIncludes(fragment) { return canonical.includes(fragment); }
+function htmlSourceIncludes(fragment) {
+  return canonical.replace(/\r\n/g, "\n").includes(fragment.replace(/\r\n/g, "\n"));
+}
 
 function check(condition, message) {
   if (!condition) failures.push(message);
@@ -559,8 +561,10 @@ try {
   const binaryDecodeCode = scriptContent.slice(scriptContent.indexOf("function decodeTextBuffer("), scriptContent.indexOf("function extractRtfText("));
 
   const parseRCCode = scriptContent.slice(scriptContent.indexOf("function parseRC("), scriptContent.indexOf("function pageOf("));
+  const isLikelyCode = scriptContent.slice(scriptContent.indexOf("function isLikelyNonPersonName("), scriptContent.indexOf("function detect("));
+  const declinedCode = scriptContent.slice(scriptContent.indexOf("function declinedPersonTokenBase("), scriptContent.indexOf("function makeReplacer("));
 
-  vm.runInContext(rtfCode + "\n" + findAllCode + "\n" + dictReCode + "\n" + assertPdfCode + "\n" + docxRelCode + "\n" + toBytesCode + "\n" + binaryDecodeCode + "\n" + parseRCCode, sandbox);
+  vm.runInContext(rtfCode + "\n" + findAllCode + "\n" + dictReCode + "\n" + assertPdfCode + "\n" + docxRelCode + "\n" + toBytesCode + "\n" + binaryDecodeCode + "\n" + parseRCCode + "\n" + isLikelyCode + "\n" + declinedCode, sandbox);
 
   // 1. RTF extraction preserves file paths with escaped backslashes
   const rtfPath = sandbox.extractRtfText("{\\rtf1 C:\\\\temp\\\\file.txt}");
@@ -595,12 +599,34 @@ try {
   // 7. parseRC properly accepts 10-digit birth numbers where 9-digit prefix mod 11 is 10 (check digit 0)
   check(sandbox.parseRC("850101/0090") === true, "parseRC must accept valid 10-digit birth number with mod 10 exception");
   check(sandbox.parseRC("850101/0091") === null, "parseRC must reject 10-digit birth number with mismatched check digit");
+
+  // 8. declinedPersonTokenBase correctly declines names with post-nominal titles and trailing punctuation
+  check(
+    sandbox.declinedPersonTokenBase("OSOBA", { type: "name", value: "Janem Novákem, MBA" }, "cs") === "OSOBOU",
+    "declinedPersonTokenBase must correctly return OSOBOU for names with post-nominal titles"
+  );
+  check(
+    sandbox.declinedPersonTokenBase("OSOBA", { type: "name", value: "Janu Novákovi, Ph.D." }, "cs") === "OSOBĚ",
+    "declinedPersonTokenBase must correctly return OSOBĚ for names with post-nominal titles"
+  );
+
+  // 9. isLikelyNonPersonName guards location constituent tokens and standalone calendar words
+  const locPhrase = "Jednání se týká Černé Hory.";
+  const horyIdx = locPhrase.indexOf("Hory");
+  check(
+    sandbox.isLikelyNonPersonName("Hory", locPhrase, horyIdx, horyIdx + 4) === true,
+    "isLikelyNonPersonName must identify location sub-token preceded by Černé as non-person"
+  );
+  check(
+    sandbox.isLikelyNonPersonName("duben", "Termín je duben.", 10, 15) === true,
+    "isLikelyNonPersonName must identify standalone month word as non-person"
+  );
 } catch (regErr) {
   failures.push("Regression test suite failed: " + (regErr.message || String(regErr)));
 }
 
 check(
-  canonical.includes("if (isCur) {\n      Q.cur = -1;"),
+  htmlSourceIncludes("if (isCur) {\n      Q.cur = -1;"),
   "removeQueueItem must invalidate Q.cur to -1 when removing current item to prevent overwriting next item snapshot"
 );
 check(
@@ -771,6 +797,101 @@ try {
   check(boxTop < (baseLine - 20) && boxBottom > (baseLine + 5), "redaction box must extend beyond accent ceiling and descender floor");
 } catch (pvErr) {
   failures.push("PDF visual preview unit test failed: " + (pvErr.message || String(pvErr)));
+}
+
+// Verification that canonical application internal self-test suite (selftest=1) passes
+try {
+  const scriptContent = canonical.match(/<script>([\s\S]*?)<\/script>/)?.[1] || "";
+  const vm = await import("node:vm");
+  const storage = {};
+  const localStorage = {
+    getItem: (k) => storage[k] || null,
+    setItem: (k, v) => { storage[k] = String(v); },
+    removeItem: (k) => { delete storage[k]; },
+    clear: () => {}
+  };
+  const makeEl = (tag) => ({
+    tagName: (tag || "").toUpperCase(),
+    classList: { add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false },
+    style: {},
+    dataset: {},
+    setAttribute: () => {},
+    getAttribute: () => null,
+    appendChild: (c) => c,
+    querySelectorAll: () => [],
+    querySelector: () => null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    innerHTML: "",
+    textContent: "",
+    value: "",
+    children: []
+  });
+  const doc = {
+    documentElement: {
+      outerHTML: canonical.replace(/^<!DOCTYPE html>\s*/i, ""),
+      classList: { add: () => {}, remove: () => {} },
+      setAttribute: () => {}
+    },
+    querySelectorAll: () => [],
+    querySelector: () => null,
+    getElementById: () => makeEl("div"),
+    createElement: makeEl,
+    body: makeEl("body"),
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+  const windowObj = {
+    location: { search: "?selftest=1" },
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    matchMedia: () => ({ matches: false }),
+    document: doc,
+    localStorage,
+    atob: (s) => Buffer.from(s, "base64").toString("binary"),
+    btoa: (s) => Buffer.from(s, "binary").toString("base64")
+  };
+  const stSandbox = {
+    window: windowObj,
+    document: doc,
+    location: windowObj.location,
+    localStorage,
+    atob: windowObj.atob,
+    btoa: windowObj.btoa,
+    navigator: { language: "cs", userAgent: "test" },
+    console,
+    setTimeout: () => 1,
+    clearTimeout: () => {},
+    setInterval: () => 1,
+    clearInterval: () => {},
+    performance: { now: () => Date.now() },
+    TextEncoder,
+    TextDecoder,
+    Uint8Array,
+    ArrayBuffer,
+    Math,
+    Date,
+    String,
+    Number,
+    Boolean,
+    Array,
+    Object,
+    Map,
+    Set,
+    RegExp,
+    Error,
+    JSON
+  };
+  vm.createContext(stSandbox);
+  const scriptToRun = scriptContent.replace(/applyTheme\(\);\s*paint\(\);/, "");
+  vm.runInContext(scriptToRun, stSandbox);
+  const stRes = stSandbox.window.__selfTestResult;
+  check(
+    stRes && stRes.ok === true,
+    `canonical selfTest suite must pass (got ${stRes ? stRes.failed.length : "no"} failures out of ${stRes ? stRes.n : 0} cases)`
+  );
+} catch (stErr) {
+  failures.push("Canonical selfTest execution failed: " + (stErr.message || String(stErr)));
 }
 
 if (failures.length) {
