@@ -1113,13 +1113,13 @@ try {
   check(typeof declinedPersonTokenBase === "function", "window.declinedPersonTokenBase must be exposed");
 
   if (typeof createEntityPropagationCache === "function") {
-    // 1. Entity cache collects verified person entities and generates 7-case paradigms
+    // 1. Dokumentová mezipaměť entit collects verified person entities and generates 7-case paradigms
     const sampleHits = [
       { id: 1, type: "name", value: "Petr Kovář", start: 20, end: 30, confidence: "high", accept: true, reasons: ["trigger:role"] }
     ];
     const cache = createEntityPropagationCache("test", sampleHits);
     const entities = cache.getEntities ? cache.getEntities() : Array.from(cache.entities.values());
-    check(entities.length === 1, `Entity cache must collect confirmed person entities (got ${entities.length})`);
+    check(entities.length === 1, `Dokumentová mezipaměť entit must collect confirmed person entities (got ${entities.length})`);
 
     const forms = cache.generateParadigm("Petr Kovář");
     const requiredForms = ["Petr Kovář", "Petra Kováře", "Petrem Kovářem", "Kovář", "Kováře", "Kovářovi", "Kovářem"];

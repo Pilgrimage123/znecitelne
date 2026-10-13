@@ -154,6 +154,7 @@ body.pdf-visual-on #orig { display: none; }
 .pv-box.pv-on { background: rgba(217,83,79,.28); border-color: #8a3a12; }
 .pv-box.pv-off { background: rgba(46,140,96,.25); border-color: #1e5a3f; }
 .pv-box.pv-prev { background: #16181a; border-color: #16181a; }
+.pv-box.pv-prev.pv-prev-box { background: #16181a; border-color: #16181a; }
 .pv-box.pv-prev.pv-prev-token {
   background: #ffffff;
   color: #14161a;
@@ -728,6 +729,7 @@ body.movie-active #settingsSheet {
 
   const RULES = "2026.10.05-ai31";
   const CHANGELOG = [
+    { version: "2026.10.13-ai38", notes: { cs: "Bezpečný audit kódu a výkonnostní optimalizace: jednoprůchodový lineární apply() O(L+H), ohraničený 200znakový kontextový lookback v isSentenceStart(), mapové O(1) indexování duplicit v detect(), binární vyhledávání intervalů v EntityPropagationCache a exportXlsxFile, reverzní shlukování řádků v pdfWordQuads, memoizace kontroly úniků v paintReview(), konsolidace docxMakeWork a terminologické zarovnání dle GLOSSARY.md.", en: "Safe code audit and performance optimization: single-pass linear apply() O(L+H), bounded 200-char context lookback in isSentenceStart(), Map-based O(1) duplicate indexing in detect(), binary search interval indexing in EntityPropagationCache and exportXlsxFile, reverse line clustering in pdfWordQuads, memoized leak analysis in paintReview(), docxMakeWork consolidation, and terminology alignment per GLOSSARY.md." } },
     { version: "2026.10.13-ai37", notes: { cs: "Klientská hybridní detekce vlastních jmen (ADR-0004): Onomastický registr v paměťovém trie přes fflate (offline bez sítě dle ADR-0002), desambiguace větných verzálek a kontextové triggery pro úřední a procesní role, Dokumentová mezipaměť entit (EntityPropagationCache) pro celo-dokumentové šíření skloňovaných tvarů dle ADR-0003, profil publikace Justiční rozhodnutí (vyhl. 403/2022 Sb.) s autoritním whitelistem soudců, sídel a judikatury, a OCR fuzzy tolerance pro digitalizované dokumenty.", en: "Client-side hybrid Czech propria detection (ADR-0004): Onomastic registry in an in-memory trie via fflate (offline Zero-Network ADR-0002), sentence boundary disambiguation and contextual triggers for procedural/official roles, Document Entity Propagation Cache (EntityPropagationCache) for whole-document declension spreading per ADR-0003, Court Decisions publication profile (Decree 403/2022 Coll.) with statutory whitelist for judges, seats and case citations, and OCR fuzzy tolerance for digitized records." } },
     { version: "2026.10.13-ai36", notes: { cs: "Oprava falešných detekcí a skloňování v morfologické expanzi: validace kandidátů pomocí isLikelyNonPersonName (ochrana běžných slov a geografických názvů), podpora post-nominálních titulů s interpunkcí u pádových pseudonymizačních tokenů a sjednocení samotestů se specifikací ADR-0003.", en: "Fix false positive person detections and morphological expansion: candidate validation via isLikelyNonPersonName (protecting common words and place names), support for post-nominal titles and punctuation in declined pseudonym tokens, and regression self-test alignment with ADR-0003." } },
     { version: "2026.10.12-ai35", notes: { cs: "Responzivní modální dialogy na menších displejích, zachování běžných českých pádů při pseudonymizaci osob ([OSOBA_001], [OSOBĚ_001], [OSOBOU_001]) se stabilním identifikačním suffixem dle ADR-0003 a filtrace falešných pozitiv u vybraných obecných slov.", en: "Responsive modal dialogs on smaller displays, preservation of common Czech grammatical cases in pseudonym tokens ([OSOBA_001], [OSOBĚ_001], [OSOBOU_001]) with a stable identity suffix per ADR-0003, and false positive filtering for selected generic words." } },
@@ -939,7 +941,9 @@ Orgán: OBÚ.
         "trigger:role": "[Trigger: role]",
         "trigger:official": "[Trigger: úřední]",
         "propagation": "[Propagace]",
-        "ocr:fuzzy": "[OCR: fuzzy]"
+        "ocr:fuzzy": "[OCR: fuzzy]",
+        "gazetteer": "[Onomastický registr]",
+        "onomastic": "[Onomastický registr]"
       },
       expertMode:"Zobrazit technické detaily nálezů", processToggle:"Zobrazit rozbor postupu",
       movieAdvancedHelp:"Spustit pokročilou nápovědu (video)",
@@ -1115,7 +1119,9 @@ Orgán: OBÚ.
         "trigger:role": "[Trigger: role]",
         "trigger:official": "[Trigger: official]",
         "propagation": "[Propagation]",
-        "ocr:fuzzy": "[OCR: fuzzy]"
+        "ocr:fuzzy": "[OCR: fuzzy]",
+        "gazetteer": "[Onomastic registry]",
+        "onomastic": "[Onomastic registry]"
       },
       expertMode:"Show technical hit details", processToggle:"Show process breakdown",
       movieAdvancedHelp:"Start advanced walkthrough (video)",
@@ -1738,8 +1744,36 @@ Orgán: OBÚ.
       if (triggerHit) this.registerEntity(triggerHit);
       if (!this.entities.size) return [];
 
-      const existingSpans = this.hits.map(h => ({ start: h.start, end: h.end, hit: h }));
+      const existingSpans = this.hits.map(h => ({ start: h.start, end: h.end, hit: h })).sort((a, b) => a.start - b.start);
       const newHits = [];
+
+      const findOverlapping = (start, end) => {
+        let low = 0, high = existingSpans.length - 1, first = existingSpans.length;
+        while (low <= high) {
+          const mid = (low + high) >> 1;
+          if (existingSpans[mid].end > start) {
+            first = mid;
+            high = mid - 1;
+          } else {
+            low = mid + 1;
+          }
+        }
+        const res = [];
+        for (let i = first; i < existingSpans.length && existingSpans[i].start < end; i++) {
+          if (existingSpans[i].end > start) res.push(existingSpans[i]);
+        }
+        return res;
+      };
+
+      const insertSpan = (span) => {
+        let low = 0, high = existingSpans.length;
+        while (low < high) {
+          const mid = (low + high) >> 1;
+          if (existingSpans[mid].start < span.start) low = mid + 1;
+          else high = mid;
+        }
+        existingSpans.splice(low, 0, span);
+      };
 
       for (const [key, ent] of this.entities.entries()) {
         const sortedForms = Array.from(ent.forms).filter(f => f && f.length >= 3).sort((a, b) => b.length - a.length);
@@ -1750,7 +1784,7 @@ Orgán: OBÚ.
           while ((m = re.exec(this.text)) !== null) {
             const start = m.index;
             const end = start + m[0].length;
-            const overlapping = existingSpans.filter(s => (start < s.end && end > s.start));
+            const overlapping = findOverlapping(start, end);
             if (overlapping.length > 0) {
               overlapping.forEach(s => {
                 if (s.hit && s.hit.type === "name") {
@@ -1777,31 +1811,38 @@ Orgán: OBÚ.
               accept: true,
               page: pageOf(start)
             };
-            existingSpans.push({ start, end, hit: newHit });
+            insertSpan({ start, end, hit: newHit });
             newHits.push(newHit);
           }
         }
       }
 
+      const formToKey = new Map();
       for (const [key, ent] of this.entities.entries()) {
-        this.hits.forEach(h => {
-          if (h.type === "name" && h.entityKey !== key) {
-            const valClean = String(h.value || "").replace(/,.*$/, "").trim().toLocaleLowerCase("cs");
-            for (const f of ent.forms) {
-              if (f.toLocaleLowerCase("cs") === valClean) {
-                h.entityKey = key;
-                if (!this.isPrimaryHit(h)) {
-                  if (!h.reasons) h.reasons = [];
-                  if (!h.reasons.includes("propagation")) h.reasons.push("propagation");
-                  h.confidence = "high";
-                  h.accept = true;
-                }
-                break;
-              }
+        for (const f of ent.forms) {
+          if (!f) continue;
+          const lowerForm = f.toLocaleLowerCase("cs");
+          if (!formToKey.has(lowerForm)) {
+            formToKey.set(lowerForm, key);
+          }
+        }
+      }
+
+      this.hits.forEach(h => {
+        if (h.type === "name") {
+          const valClean = String(h.value || "").replace(/,.*$/, "").trim().toLocaleLowerCase("cs");
+          const matchedKey = formToKey.get(valClean);
+          if (matchedKey && h.entityKey !== matchedKey) {
+            h.entityKey = matchedKey;
+            if (!this.isPrimaryHit(h)) {
+              if (!h.reasons) h.reasons = [];
+              if (!h.reasons.includes("propagation")) h.reasons.push("propagation");
+              h.confidence = "high";
+              h.accept = true;
             }
           }
-        });
-      }
+        }
+      });
 
       return newHits;
     }
@@ -1998,7 +2039,7 @@ Orgán: OBÚ.
     if (has("trigger:official")) s += 50;
     if (has("trigger:role")) s += 35;
     if (has("titled")) s += 25;
-    if (has("gazetteer")) s += 28;
+    if (has("gazetteer") || has("onomastic")) s += 28;
     if (has("context")) s += 20;
     if (has("format")) s += 10;
     if (has("declined")) s += 16;
@@ -2124,10 +2165,14 @@ Orgán: OBÚ.
 
   function isSentenceStart(text, start) {
     if (!text || start <= 0) return true;
-    const prefix = text.slice(0, start);
-    if (/^\s*$/.test(prefix)) return true;
+    const windowStart = Math.max(0, start - 200);
+    const prefix = text.slice(windowStart, start);
+    if (windowStart === 0 && /^\s*$/.test(prefix)) return true;
+    if (windowStart > 0 && /^\s*$/.test(prefix)) {
+      if (!/\S/.test(text.slice(0, windowStart))) return true;
+    }
     if (/[\r\n]\s*(?:[•\-*–—]|\d+[\.\)]|[a-zA-Z][\.\)])?\s*$/.test(prefix)) return true;
-    if (/^(?:[•\-*–—]|\d+[\.\)]|[a-zA-Z][\.\)])\s*$/.test(prefix.trim())) return true;
+    if (windowStart === 0 && /^(?:[•\-*–—]|\d+[\.\)]|[a-zA-Z][\.\)])\s*$/.test(prefix.trim())) return true;
     const m = prefix.match(/([.?!…])[\s"'»”’\)]*$/);
     if (!m) return false;
     if (m[1] === "!" || m[1] === "?" || m[1] === "…") return true;
@@ -2175,7 +2220,7 @@ Orgán: OBÚ.
   ]);
 
   function detect(text, enabled, secrets, options){
-    const bag = []; const seen = new Set();
+    const bag = []; const bagMap = new Map();
     const { src, work, toSrc } = makeWork(text || "");
     const t = work;
     const sus = S.suspicion || "medium";
@@ -2191,16 +2236,14 @@ Orgán: OBÚ.
       const mapped = (h.start < src.length && src.slice(h.start, h.end) === h.value) ? finalizeHit(h, src) : lift(h);
       if (!mapped.value || !mapped.value.trim()) return;
       const k = mapped.type+"|"+mapped.start+"|"+mapped.end;
-      if (seen.has(k)) {
-        const existing = bag.find(b => b.type === mapped.type && b.start === mapped.start && b.end === mapped.end);
-        if (existing) {
-          existing.reasons = Array.from(new Set([].concat(existing.reasons || [], mapped.reasons || [])));
-          if (mapped.confidence === "high") existing.confidence = "high";
-          if (mapped.accept) existing.accept = true;
-        }
+      const existing = bagMap.get(k);
+      if (existing) {
+        existing.reasons = Array.from(new Set([].concat(existing.reasons || [], mapped.reasons || [])));
+        if (mapped.confidence === "high") existing.confidence = "high";
+        if (mapped.accept) existing.accept = true;
         return;
       }
-      seen.add(k);
+      bagMap.set(k, mapped);
       bag.push(mapped);
     };
     const add = (hits, extraReasons) => {
@@ -3067,12 +3110,22 @@ Orgán: OBÚ.
   function apply(text, hits, mode, lang){
     const replacer = bindReplacer(mode, lang, hits);
     const accepted = effectiveHits(hits);
-    let out = text;
-    for (let i = accepted.length - 1; i >= 0; i--) {
+    if (!accepted.length) return text;
+    const pieces = [];
+    let lastIdx = 0;
+    for (let i = 0; i < accepted.length; i++) {
       const h = accepted[i];
-      out = out.slice(0, h.start) + replacer(h) + out.slice(h.end);
+      const s = Math.max(lastIdx, Math.min(text.length, h.start));
+      if (s > lastIdx) {
+        pieces.push(text.slice(lastIdx, s));
+      }
+      pieces.push(replacer(h));
+      lastIdx = Math.max(lastIdx, Math.min(text.length, h.end));
     }
-    return out;
+    if (lastIdx < text.length) {
+      pieces.push(text.slice(lastIdx));
+    }
+    return pieces.join("");
   }
   function xlsxToText(wb){
     const cellMap = []; let text = "";
@@ -3106,8 +3159,27 @@ Orgán: OBÚ.
     const { cellMap } = xlsxToText(wb);
     const replacer = bindReplacer(mode, lang, hits);
     const accepted = effectiveHits(hits);
+    if (!accepted.length) {
+      if (S.stripMeta) stripWorkbookMeta(wb);
+      return XLSX.write(wb, { bookType:"xlsx", type:"array" });
+    }
     cellMap.forEach(cm => {
-      const cellHits = accepted.filter(h => h.end>cm.start && h.start<cm.end);
+      let low = 0, high = accepted.length - 1, first = accepted.length;
+      while (low <= high) {
+        const mid = (low + high) >> 1;
+        if (accepted[mid].end > cm.start) {
+          first = mid;
+          high = mid - 1;
+        } else {
+          low = mid + 1;
+        }
+      }
+      const cellHits = [];
+      for (let i = first; i < accepted.length && accepted[i].start < cm.end; i++) {
+        if (accepted[i].end > cm.start) {
+          cellHits.push(accepted[i]);
+        }
+      }
       if (!cellHits.length) return;
       const ws = wb.Sheets[cm.sheet]; const cell = ws[cm.ref]; if (!cell) return;
       let str = String(cell.v);
@@ -3174,21 +3246,7 @@ Orgán: OBÚ.
   }
 
   function docxMakeWork(text){
-    const src = String(text ?? "").normalize("NFC");
-    let work = "";
-    const toSrc = [];
-    for (let i = 0; i < src.length; i++) {
-      const c = src.charCodeAt(i);
-      if (c===0x00AD || c===0x200B || c===0x200C || c===0x200D || c===0x2060 || c===0xFEFF) continue;
-      let ch = src[i];
-      if (c===0x00A0 || c===0x202F || c===0x2007 || c===0x2009 || c===0x200A) ch = " ";
-      else if (c===0x2013 || c===0x2014 || c===0x2212 || c===0x2010 || c===0x2011 || c===0x2012 || c===0x2015 || c===0xFE58 || c===0xFE63 || c===0xFF0D) ch = "-";
-      else if (c===0x201E || c===0x201C || c===0x201D || c===0x00AB || c===0x00BB) ch = '"';
-      else if (c===0x201A || c===0x2018 || c===0x2019) ch = "'";
-      work += ch;
-      toSrc.push(i);
-    }
-    return { src, work, toSrc };
+    return makeWork(text);
   }
 
   /*
@@ -4116,7 +4174,17 @@ Orgán: OBÚ.
     const lines = [];
     const sorted = glyphs.slice().sort((a,b) => a.y - b.y || a.x - b.x);
     for (const g of sorted) {
-      const line = lines.find(l => Math.abs(l.y - g.y) < Math.max(g.h, l.h) * 0.45);
+      let line = null;
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const l = lines[i];
+        if (Math.abs(l.y - g.y) < Math.max(g.h, l.h) * 0.45) {
+          line = l;
+          break;
+        }
+        if (g.y - l.y > Math.max(g.h, l.h) * 2) {
+          break;
+        }
+      }
       if (line) {
         line.minX = Math.min(line.minX, g.x);
         line.maxX = Math.max(line.maxX, g.x + g.w);
@@ -4308,13 +4376,42 @@ Orgán: OBÚ.
   function filtered(){
     return S.hits.filter(h => S.filter==="all" || (S.filter==="redact"?h.accept:!h.accept));
   }
+  let _reviewCache = null;
+
   function paintReview(){
     const t = i();
-    const replaced = apply(S.text, S.hits, S.mode, S.lang);
-    const leftovers = effectiveHits(S.hits).filter(h => h.value.length>=5 && replaced.includes(h.value));
-    const red = S.hits.filter(h=>h.accept).length;
-    const proc = S.processAnalysis ? analyzeProcess(S.text, replaced, S.hits) : { leaks: [] };
-    const leaks = proc.leaks;
+    let acceptedCount = 0;
+    let acceptedSig = 0;
+    for (let idx = 0; idx < S.hits.length; idx++) {
+      const h = S.hits[idx];
+      if (h.accept) {
+        acceptedCount++;
+        acceptedSig = (acceptedSig * 33 + (h.id || idx)) | 0;
+      }
+    }
+    const cacheKey = `${S.text ? S.text.length : 0}_${S.mode}_${S.lang}_${!!S.processAnalysis}_${S.hits.length}_${acceptedCount}_${acceptedSig}`;
+    let replaced, leftovers, leaks, red;
+    if (_reviewCache && _reviewCache.key === cacheKey && _reviewCache.text === S.text) {
+      replaced = _reviewCache.replaced;
+      leftovers = _reviewCache.leftovers;
+      leaks = _reviewCache.leaks;
+      red = _reviewCache.red;
+    } else {
+      replaced = apply(S.text, S.hits, S.mode, S.lang);
+      const eff = effectiveHits(S.hits);
+      leftovers = eff.filter(h => h.value.length >= 5 && replaced.includes(h.value));
+      const proc = S.processAnalysis ? analyzeProcess(S.text, replaced, S.hits) : { leaks: [] };
+      leaks = proc.leaks;
+      red = acceptedCount;
+      _reviewCache = {
+        key: cacheKey,
+        text: S.text,
+        replaced,
+        leftovers,
+        leaks,
+        red
+      };
+    }
     let residualText = S.hits.length ? (leftovers.length?t.residual:t.residualOk) : t.noHits;
     let residualClass = leftovers.length ? "danger" : "ok";
     if (leaks.length && !leftovers.length) {
@@ -8398,6 +8495,7 @@ Orgán: OBÚ.
     window.declinedPersonTokenBase = declinedPersonTokenBase;
     window.applyCourtProfileRules = applyCourtProfileRules;
     window.filterCourtDecisionsWhitelist = filterCourtDecisionsWhitelist;
+    window.isSentenceStart = isSentenceStart;
     window.apply = apply;
   }
   if (typeof queueMicrotask === "function") {

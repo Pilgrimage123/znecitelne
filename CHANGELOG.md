@@ -2,6 +2,15 @@
 
 ## 2026-10-13
 
+- Bezpečný audit kódu a výkonnostní optimalizace:
+  - **Lineární sestavování textu (`apply`):** Nahrazeno zpětné krájení celého řetězce za jednoprůchodový lineární generátor $\mathcal{O}(L + H)$. Zpracování 2MB dokumentu s 2 000 nálezy zrychleno na ~33 ms s radikální redukcí paměťové alokace.
+  - **Ohraničené okno větných začátků (`isSentenceStart`):** Zpětný pohled v textu omezen na nejvýše 200 znaků před nálezem namísto neomezeného kopírování od počátku dokumentu.
+  - **Mapový index v detekci a dokumentové mezipaměti entit (`EntityPropagationCache`):** Nahrazeno lineární vyhledávání duplicit v `detect().push()` za $\mathcal{O}(1)$ mapu `bagMap`. Trojitě vnořený cyklus a intervalové kolize v `EntityPropagationCache` optimalizovány pomocí `formToKey` a binárního vyhledávání překryvů.
+  - **Indexovaná filtrace buněk v XLSX exportu (`exportXlsxFile`):** Nahrazen scan všech nálezů na každé buňce za intervalové binární vyhledávání.
+  - **Zpětné řazení řádků v PDF Quads (`pdfWordQuads`):** Shlukování řádků optimalizováno na $\mathcal{O}(1)$ reverzní kontrolu na glyfech seřazených podle souřadnice $y$.
+  - **Memoizace analýzy úniků v uživatelském rozhraní (`paintReview`):** Výpočet `apply()`, kontroly zbytkových úniků a procesní analýzy je memoizován podle textu a stavu schválených nálezů pro okamžitou odezvu při procházení nálezů a přepínání filtrů.
+  - **Konsolidace duplicit a zarovnání terminologie:** Odstraněna duplicitní implementace `docxMakeWork` (přesměrováno na kanonickou `makeWork`), explicitně nastylována třída `.pv-prev-box` a v testech sladěna terminologie na kanonický pojem *Dokumentová mezipaměť entit* dle `GLOSSARY.md`.
+
 - Klientská hybridní detekce vlastních jmen a dokumentová mezipaměť entit (ADR-0004):
   - **Komprimovaný onomastický registr a kompaktní paměťové trie (Ticket 01):** Integrován frekvenční lexikon nejčastějších českých křestních jmen a příjmení (odvozený z databází MVČR). Data jsou uložena v úsporném DEFLATE base64 payloadu přímo v aplikaci a při inicializaci bezpečně rozbalována pomocí `fflate` do paměťového trie pro deterministické vyhledávání v čase $\mathcal{O}(L)$ bez odesílání dat do sítě (Zero-Network ADR-0002).
   - **Větná desambiguace a kontextové triggery (Ticket 02):** Zavedena syntaktická desambiguace na větných hranicích potlačující falešně pozitivní detekce u osamocených apelativ na počátku vět (např. *„Nový přístup…“*, *„Starý zákoník…“*, *„Podle vyjádření…“*, *„Bílá technika…“*), pokud netvoří víceslovnou jmennou frázi. Implementována pravidlová triggerová gramatika zachycující neznámá a cizojazyčná jména podle administrativních markerů (*nar.*, *bytem*, *r. č.*), procesních a sociálních rolí (*žalobce*, *svědek*, *obžalovaný*, *pan/paní*) a pre/post-nominálních akademických titulů s odpovídajícími odznaky původu (`[Trigger: role]`, `[Trigger: úřední]`).
