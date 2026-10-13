@@ -5,10 +5,10 @@ Doplnění komplexní testovací sady do `test.js` verifikující správnost zá
 
 **Blocked by:** 01, 02, 03, 04
 
-**Status:** ready
+**Status:** closed
 
-- [ ] Přidat testy na potlačení FP u počátečních verzálek (např. *„Nový stavební zákon...“*, *„Podle žalobce...“*, *„Bílá technika...“*).
-- [ ] Přidat testy na správné zachycení homonymních příjmení s kontextovým spouštěčem (např. *„svědek Jiří Kovář“* $\rightarrow$ detekováno, *„zručný kovář opravil...“* $\rightarrow$ ignorováno).
-- [ ] Přidat testy na obousměrnou propagaci entit a skloňované pseudonymizační tokeny dle ADR-0003.
-- [ ] Přidat testy na Profil publikace Justiční rozhodnutí (zachování soudců a sídel soudů, anonymizace účastníků).
-- [ ] Ověřit průchodnost `npm test` a dodržení nulové síťové komunikace (Zero-Network).
+- [x] Přidat testy na potlačení FP u počátečních verzálek (např. *„Nový stavební zákon...“*, *„Podle žalobce...“*, *„Bílá technika...“*).
+- [x] Přidat testy na správné zachycení homonymních příjmení s kontextovým spouštěčem (např. *„svědek Jiří Kovář“* $\rightarrow$ detekováno, *„zručný kovář opravil...“* $\rightarrow$ ignorováno).
+- [x] Přidat testy na obousměrnou propagaci entit a skloňované pseudonymizační tokeny dle ADR-0003.
+- [x] Přidat testy na Profil publikace Justiční rozhodnutí (zachování soudců a sídel soudů, anonymizace účastníků).
+- [x] Ověřit průchodnost `npm test` a dodržení nulové síťové komunikace (Zero-Network).

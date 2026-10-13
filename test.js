@@ -1347,6 +1347,142 @@ try {
       citationRedacted.includes("Lavický, P."),
       `Case citations and legal commentators must not be redacted (§ 4 odst. 3 písm. e), got: "${citationRedacted}"`
     );
+
+    // -------------------------------------------------------------------------
+    // Ticket 05: Komplexní testovací brána a lingvistické regresní testy
+    // -------------------------------------------------------------------------
+
+    // 1. Potlačení falešných pozitiv u počátečních verzálek vět
+    const sentenceStartApelativa = [
+      "Nový přístup byl zvolen.",
+      "Starý zákoník práce pozbyl platnosti.",
+      "Podle vyjádření žalobce došlo k prodlení.",
+      "Bílá technika byla dodána."
+    ];
+    for (const stText of sentenceStartApelativa) {
+      const hits = detect(stText, { name: true }, []);
+      const nHits = hits.filter(h => h.type === "name");
+      check(
+        nHits.length === 0,
+        `Sentence-start apelativum must NOT trigger person name hit: "${stText}" (got: ${JSON.stringify(nHits.map(h => h.value))})`
+      );
+    }
+    const petrNovyHits = detect("Petr Nový podepsal smlouvu.", { name: true }, []);
+    const petrNovyHit = petrNovyHits.find(h => h.type === "name" && h.value === "Petr Nový");
+    check(
+      Boolean(petrNovyHit),
+      `Sentence-start multi-word name "Petr Nový" MUST be detected (got: ${JSON.stringify(petrNovyHits.map(h => h.value))})`
+    );
+
+    // 2. Homonymie s apelativy
+    const apelativaTexts = [
+      "zručný kovář vyrobil mříž",
+      "nad městem kroužil holub",
+      "venku vládla tuhá zima"
+    ];
+    for (const aText of apelativaTexts) {
+      const hits = detect(aText, { name: true }, []);
+      const nHits = hits.filter(h => h.type === "name");
+      check(
+        nHits.length === 0,
+        `Lowercase homonym apelativum must NOT trigger name hit: "${aText}" (got: ${JSON.stringify(nHits.map(h => h.value))})`
+      );
+    }
+    const witnessJiriKovarHits = detect("svědek Jiří Kovář vypověděl", { name: true }, []);
+    const witnessJiriKovar = witnessJiriKovarHits.find(h => h.type === "name" && h.value === "Jiří Kovář");
+    check(
+      Boolean(witnessJiriKovar && (witnessJiriKovar.reasons || []).includes("trigger:role")),
+      `Role trigger "svědek Jiří Kovář" must detect "Jiří Kovář" with reason "trigger:role" (got: ${JSON.stringify(witnessJiriKovar)})`
+    );
+    const panHolubDocHits = detect("pan Holub doložil plnou moc", { name: true }, []);
+    const panHolubHit = panHolubDocHits.find(h => h.type === "name" && /Holub/.test(h.value));
+    check(
+      Boolean(panHolubHit && (panHolubHit.reasons || []).includes("trigger:role")),
+      `Role trigger "pan Holub" must detect "Holub" with reason "trigger:role" (got: ${JSON.stringify(panHolubHit)})`
+    );
+
+    // 3. Pádová flexe a Dokumentová mezipaměť entit (ADR-0003)
+    const t5PavelDoc = "smlouva s Janem Pavlem byla uzavřena. Později předáno Pavlovi. Podle názoru Pavla nedošlo k pochybení.";
+    const t5PavelHits = detect(t5PavelDoc, { name: true }, []);
+    const pavelNames = t5PavelHits.filter(h => h.type === "name");
+    check(
+      pavelNames.length >= 3,
+      `All 3 mentions of entity Pavel must be detected across document (got: ${JSON.stringify(pavelNames.map(h => h.value))})`
+    );
+    const pavelKeys = new Set(pavelNames.map(h => h.entityKey));
+    check(
+      pavelKeys.size === 1,
+      `All 3 Pavel mentions must be linked to identical entityKey (got: ${JSON.stringify([...pavelKeys])})`
+    );
+    const pavelPseudo = apply(t5PavelDoc, t5PavelHits, "pseudo", "cs");
+    check(
+      /\[OSOBOU_0*1\]/.test(pavelPseudo),
+      `Instrumental Janem Pavlem must be replaced by [OSOBOU_1] / [OSOBOU_001] (got: "${pavelPseudo}")`
+    );
+    check(
+      /\[OSOBĚ_0*1\]/.test(pavelPseudo),
+      `Dative Pavlovi must be replaced by [OSOBĚ_1] / [OSOBĚ_001] (got: "${pavelPseudo}")`
+    );
+    check(
+      /\[OSOBA_0*1\]/.test(pavelPseudo),
+      `Genitive Pavla must be replaced by [OSOBA_1] / [OSOBA_001] (got: "${pavelPseudo}")`
+    );
+
+    // 4. Foreign and uninflected names
+    const foreignDoc = "obžalovaný John Smith, nar. 1980 byl přítomen. svědkyně Marie Svoboda, bytem v Praze vypovídala.";
+    const foreignHits = detect(foreignDoc, { name: true, address: true }, []);
+    const johnSmithHit = foreignHits.find(h => h.type === "name" && h.value.includes("John Smith"));
+    const marieSvobodaHit = foreignHits.find(h => h.type === "name" && h.value.includes("Marie Svoboda"));
+    check(
+      Boolean(johnSmithHit && (johnSmithHit.reasons || []).some(r => r.startsWith("trigger:"))),
+      `Foreign name "John Smith" must be detected with trigger reason (got: ${JSON.stringify(johnSmithHit)})`
+    );
+    check(
+      Boolean(marieSvobodaHit && (marieSvobodaHit.reasons || []).some(r => r.startsWith("trigger:"))),
+      `Uninflected name "Marie Svoboda" must be detected with trigger reason (got: ${JSON.stringify(marieSvobodaHit)})`
+    );
+
+    // 5. OCR fuzzy tolerance
+    // Token >= 6 chars near trigger with 1 OCR typo/error detected when ocrActive: true
+    const ocrFuzzyDoc = "obžalovaný Dv0řák, nar. 1980 se nedostavil.";
+    const ocrFuzzyHits = detect(ocrFuzzyDoc, { name: true }, [], { ocrActive: true });
+    const ocrDvorak = ocrFuzzyHits.find(h => h.type === "name" && /Dv0řák/.test(h.value));
+    check(
+      Boolean(ocrDvorak && (ocrDvorak.reasons || []).includes("ocr:fuzzy")),
+      `OCR fuzzy match for Dv0řák must be detected with reason "ocr:fuzzy" when ocrActive: true (got: ${JSON.stringify(ocrFuzzyHits)})`
+    );
+
+    // Token >= 6 chars with typo strictly ignored when OCR inactive
+    const ocrInactiveHits = detect(ocrFuzzyDoc, { name: true }, [], { ocrActive: false });
+    const ocrInactiveDvorak = ocrInactiveHits.find(h => h.type === "name" && /Dv0řák/.test(h.value));
+    check(
+      !ocrInactiveDvorak,
+      `OCR defective token Dv0řák must NOT be detected as name when OCR is inactive (got: ${JSON.stringify(ocrInactiveHits)})`
+    );
+
+    // Token < 6 chars (Novák with typo) must NOT match even when ocrActive: true
+    const ocrShortDoc = "svědek N0vák vypověděl.";
+    const ocrShortHits = detect(ocrShortDoc, { name: true }, [], { ocrActive: true });
+    const ocrShortNovak = ocrShortHits.find(h => h.type === "name" && /N0vák/.test(h.value));
+    check(
+      !ocrShortNovak,
+      `Short token N0vák (length 5 < 6) must NOT trigger OCR fuzzy match (got: ${JSON.stringify(ocrShortHits)})`
+    );
+
+    // 6. Zero-Network integrity (ADR-0002)
+    check(
+      canonical.includes("const ONOMASTIC_PAYLOAD_B64 = "),
+      "Canonical application must embed compressed onomastic payload directly offline"
+    );
+    const onomasticBlock = canonical.match(/function initOnomasticRegistry[\s\S]*?\n  \}/)?.[0] || "";
+    check(
+      Boolean(onomasticBlock) && !onomasticBlock.includes("fetch(") && !onomasticBlock.includes("http:") && !onomasticBlock.includes("https:"),
+      "initOnomasticRegistry must not make any remote network requests (Zero-Network ADR-0002)"
+    );
+    check(
+      !canonical.includes("https://cdn.jsdelivr.net/npm/tesseract.js") && !canonical.includes("https://unpkg.com/tesseract.js"),
+      "Tesseract and OCR components must not load via remote CDN (Zero-Network ADR-0002)"
+    );
   }
 } catch (stErr) {
   failures.push("Canonical selfTest execution failed: " + (stErr.message || String(stErr)));
