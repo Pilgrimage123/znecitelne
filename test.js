@@ -1007,6 +1007,92 @@ try {
     stRes && stRes.ok === true,
     `canonical selfTest suite must pass (got ${stRes ? stRes.failed.length : "no"} failures out of ${stRes ? stRes.n : 0} cases)`
   );
+
+  // Ticket 02: Sentence boundary desambiguation & contextual triggers
+  const detect = stSandbox.window.detect;
+  const I18N = stSandbox.window.I18N;
+  const hitEvidence = stSandbox.window.hitEvidence;
+  check(typeof detect === "function", "window.detect must be exposed as public detection interface");
+
+  if (typeof detect === "function") {
+    // 1. Sentence-start false positive suppression
+    const sentenceStartFPs = [
+      "Nový přístup byl zvolen.",
+      "Starý stavební zákon pozbyl platnosti.",
+      "Podle žalobce došlo k prodlení.",
+      "Bílá technika byla dodána."
+    ];
+    for (const text of sentenceStartFPs) {
+      const hits = detect(text, { name: true }, []);
+      const nameHits = hits.filter(h => h.type === "name");
+      check(
+        nameHits.length === 0,
+        `Sentence-start word must NOT trigger person name hit: "${text}" (got: ${JSON.stringify(nameHits.map(h => h.value))})`
+      );
+    }
+
+    // 2. Multi-word name at sentence start MUST trigger hit
+    const multiWordHits = detect("Petr Nový podepsal smlouvu.", { name: true }, []);
+    const petrNovy = multiWordHits.find(h => h.type === "name" && h.value === "Petr Nový");
+    check(
+      Boolean(petrNovy),
+      `Multi-word name at sentence start "Petr Nový" MUST be detected (got: ${JSON.stringify(multiWordHits.map(h => h.value))})`
+    );
+
+    // 3. Homonym suppression vs trigger capture
+    const homonymText = "zručný kovář vyrobil mříž";
+    const homonymHits = detect(homonymText, { name: true }, []);
+    const kovarHit = homonymHits.find(h => h.type === "name" && /kovář/i.test(h.value));
+    check(
+      !kovarHit,
+      `Homonym apelativum "kovář" must NOT be detected in: "${homonymText}"`
+    );
+
+    const jiriKovarHits = detect("svědek Jiří Kovář vypověděl", { name: true }, []);
+    const jiriKovar = jiriKovarHits.find(h => h.type === "name" && h.value === "Jiří Kovář");
+    check(
+      Boolean(jiriKovar && (jiriKovar.reasons || []).includes("trigger:role") && jiriKovar.confidence === "high"),
+      `Role trigger "svědek Jiří Kovář" MUST detect "Jiří Kovář" with reason "trigger:role" and high confidence (got: ${JSON.stringify(jiriKovar)})`
+    );
+
+    const singleKovarHits = detect("svědek Kovář vypověděl", { name: true }, []);
+    const singleKovar = singleKovarHits.find(h => h.type === "name" && h.value === "Kovář");
+    check(
+      Boolean(singleKovar && (singleKovar.reasons || []).includes("trigger:role")),
+      `Role trigger "svědek Kovář" MUST detect "Kovář" with reason "trigger:role" (got: ${JSON.stringify(singleKovar)})`
+    );
+
+    // 4. Administrative triggers
+    const adminText = "obžalovaný John Smith, nar. 1980, bytem v Praze";
+    const adminHits = detect(adminText, { name: true }, []);
+    const johnSmith = adminHits.find(h => h.type === "name" && h.value === "John Smith");
+    check(
+      Boolean(johnSmith),
+      `Administrative trigger MUST detect "John Smith" in "${adminText}" (got: ${JSON.stringify(adminHits.map(h => h.value))})`
+    );
+    if (johnSmith) {
+      const hasTriggerReason = (johnSmith.reasons || []).includes("trigger:role") || (johnSmith.reasons || []).includes("trigger:official");
+      check(hasTriggerReason, `John Smith must have trigger indicator reason (got: ${JSON.stringify(johnSmith.reasons)})`);
+      check(johnSmith.confidence === "high", `John Smith must have confidence "high" (got: ${johnSmith.confidence})`);
+      check(johnSmith.accept === true, `John Smith must have accept: true (got: ${johnSmith.accept})`);
+    }
+  }
+
+  // 5. I18N reason labels
+  check(
+    Boolean(I18N && I18N.cs && I18N.cs.reasonLabels && I18N.cs.reasonLabels["trigger:role"] === "[Trigger: role]"),
+    `I18N.cs must define reasonLabels["trigger:role"] === "[Trigger: role]"`
+  );
+  check(
+    Boolean(I18N && I18N.cs && I18N.cs.reasonLabels && I18N.cs.reasonLabels["trigger:official"] === "[Trigger: úřední]"),
+    `I18N.cs must define reasonLabels["trigger:official"] === "[Trigger: úřední]"`
+  );
+  if (hitEvidence && I18N && I18N.cs) {
+    const renderedRole = hitEvidence({ confidence: "high", reasons: ["trigger:role"] }, I18N.cs, true);
+    check(renderedRole.includes("[Trigger: role]"), `hitEvidence must render [Trigger: role] (got: "${renderedRole}")`);
+    const renderedOfficial = hitEvidence({ confidence: "high", reasons: ["trigger:official"] }, I18N.cs, true);
+    check(renderedOfficial.includes("[Trigger: úřední]"), `hitEvidence must render [Trigger: úřední] (got: "${renderedOfficial}")`);
+  }
 } catch (stErr) {
   failures.push("Canonical selfTest execution failed: " + (stErr.message || String(stErr)));
 }

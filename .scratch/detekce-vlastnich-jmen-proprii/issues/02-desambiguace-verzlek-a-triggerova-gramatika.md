@@ -5,9 +5,9 @@ Implementace eliminace falešně pozitivních nálezů na počátku vět (normal
 
 **Blocked by:** 01 (využívá onomastický registr)
 
-**Status:** ready
+**Status:** closed
 
-- [ ] Implementovat algoritmus detekce větných hranic a nultých pozic ve větných celcích.
-- [ ] Doplnit normalizaci na malá písmena a blokování falešných personálních nálezů u osamocených apelativ (např. *„Starý...“*, *„Nový...“*, *„Podle...“*), pokud netvoří víceslovnou jmennou frázi ani nejsou uvozena triggerem.
-- [ ] Implementovat pravidlové triggery pro úřední a procesní kontexty (*nar.*, *bytem*, *r. č.*, *žalobce*, *svědek*, *obžalovaný*).
-- [ ] Přiřadit triggerovým nálezům patřičnou konfidenci a označení v revizním UI (`[Trigger: role]` / `[Trigger: úřední]`).
+- [x] Implementovat algoritmus detekce větných hranic a nultých pozic ve větných celcích.
+- [x] Doplnit normalizaci na malá písmena a blokování falešných personálních nálezů u osamocených apelativ (např. *„Starý...“*, *„Nový...“*, *„Podle...“*), pokud netvoří víceslovnou jmennou frázi ani nejsou uvozena triggerem.
+- [x] Implementovat pravidlové triggery pro úřední a procesní kontexty (*nar.*, *bytem*, *r. č.*, *žalobce*, *svědek*, *obžalovaný*).
+- [x] Přiřadit triggerovým nálezům patřičnou konfidenci a označení v revizním UI (`[Trigger: role]` / `[Trigger: úřední]`).
