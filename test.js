@@ -122,6 +122,12 @@ check(
   "application must provide Czech name morphology generation and case expansion"
 );
 check(
+  htmlSourceIncludes("function createEntityPropagationCache(") &&
+  htmlSourceIncludes("class EntityPropagationCache") &&
+  htmlSourceIncludes("window.createEntityPropagationCache = createEntityPropagationCache"),
+  "application must provide Document Entity Propagation Cache interface"
+);
+check(
   htmlSourceIncludes("function verifySanitizedPdfText("),
   "PDF export must verify sanitized text layer with zero leaked sensitive words"
 );
@@ -1092,6 +1098,142 @@ try {
     check(renderedRole.includes("[Trigger: role]"), `hitEvidence must render [Trigger: role] (got: "${renderedRole}")`);
     const renderedOfficial = hitEvidence({ confidence: "high", reasons: ["trigger:official"] }, I18N.cs, true);
     check(renderedOfficial.includes("[Trigger: úřední]"), `hitEvidence must render [Trigger: úřední] (got: "${renderedOfficial}")`);
+  }
+
+  // Ticket 03: Entity Propagation Cache & Morphological Declension
+  const createEntityPropagationCache = stSandbox.window.createEntityPropagationCache;
+  const EntityPropagationCache = stSandbox.window.EntityPropagationCache;
+  const expandCzechNameMorphology = stSandbox.window.expandCzechNameMorphology;
+  const declinedPersonTokenBase = stSandbox.window.declinedPersonTokenBase;
+  const apply = stSandbox.window.apply;
+
+  check(typeof createEntityPropagationCache === "function", "window.createEntityPropagationCache must be exposed");
+  check(typeof EntityPropagationCache === "function", "window.EntityPropagationCache must be exposed");
+  check(typeof expandCzechNameMorphology === "function", "window.expandCzechNameMorphology must be exposed");
+  check(typeof declinedPersonTokenBase === "function", "window.declinedPersonTokenBase must be exposed");
+
+  if (typeof createEntityPropagationCache === "function") {
+    // 1. Entity cache collects verified person entities and generates 7-case paradigms
+    const sampleHits = [
+      { id: 1, type: "name", value: "Petr Kovář", start: 20, end: 30, confidence: "high", accept: true, reasons: ["trigger:role"] }
+    ];
+    const cache = createEntityPropagationCache("test", sampleHits);
+    const entities = cache.getEntities ? cache.getEntities() : Array.from(cache.entities.values());
+    check(entities.length === 1, `Entity cache must collect confirmed person entities (got ${entities.length})`);
+
+    const forms = cache.generateParadigm("Petr Kovář");
+    const requiredForms = ["Petr Kovář", "Petra Kováře", "Petrem Kovářem", "Kovář", "Kováře", "Kovářovi", "Kovářem"];
+    check(
+      requiredForms.every(f => forms.includes(f)),
+      `generateParadigm must generate 7-case forms for Czech names (missing: ${requiredForms.filter(f => !forms.includes(f)).join(", ")})`
+    );
+
+    // 2. Uninflected surnames like Marie Svoboda
+    const uninflectedForms = cache.generateParadigm("Marie Svoboda");
+    check(
+      uninflectedForms.includes("Marie Svoboda") && uninflectedForms.includes("Svoboda") && uninflectedForms.includes("paní Svoboda"),
+      "generateParadigm must handle uninflected surnames (Marie Svoboda / paní Svoboda)"
+    );
+
+    // 3. Foreign surnames like paní Smith
+    const foreignForms = cache.generateParadigm("paní Smith");
+    check(
+      foreignForms.includes("Smith") && foreignForms.includes("paní Smith"),
+      "generateParadigm must handle foreign uninflected surnames (Smith / paní Smith)"
+    );
+  }
+
+  // 4. Case endings recognized by declinedPersonTokenBase
+  if (typeof declinedPersonTokenBase === "function") {
+    check(
+      declinedPersonTokenBase("OSOBA", { type: "name", value: "Kováře" }, "cs") === "OSOBA",
+      "declinedPersonTokenBase must return OSOBA for genitive/accusative Kováře"
+    );
+    check(
+      declinedPersonTokenBase("OSOBA", { type: "name", value: "Kovářovi" }, "cs") === "OSOBĚ",
+      "declinedPersonTokenBase must return OSOBĚ for dative/locative Kovářovi"
+    );
+    check(
+      declinedPersonTokenBase("OSOBA", { type: "name", value: "Kovářem" }, "cs") === "OSOBOU",
+      "declinedPersonTokenBase must return OSOBOU for instrumental Kovářem"
+    );
+  }
+
+  // 5. Bidirectional scan and pseudonym preservation
+  if (typeof detect === "function" && typeof apply === "function") {
+    const biText = "Podle výpovědi Kováře došlo k nehodě. Obžalovaný Ing. Petr Kovář, nar. 1978, však tvrdil opak. Později bylo doručeno Kovářovi a jednal s Kovářem.";
+    const biHits = detect(biText, { name: true }, []);
+    const nameHits = biHits.filter(h => h.type === "name");
+    const uniqueKeys = new Set(nameHits.map(h => h.entityKey));
+
+    check(
+      nameHits.length >= 4,
+      `Bidirectional scan must detect all 4 name mentions (got ${nameHits.length}: ${JSON.stringify(nameHits.map(h => h.value))})`
+    );
+    check(
+      uniqueKeys.size === 1,
+      `All propagated hits of an entity must share unified entityKey (got keys: ${JSON.stringify([...uniqueKeys])})`
+    );
+
+    const propagatedHits = nameHits.filter(h => (h.reasons || []).includes("propagation"));
+    check(
+      propagatedHits.length >= 3,
+      `Propagated hits must be tagged with reasons: ['propagation'] (got ${propagatedHits.length})`
+    );
+
+    const pseudoOut = apply(biText, biHits, "pseudo", "cs");
+    check(
+      pseudoOut.includes("[OSOBA_001]") && pseudoOut.includes("[OSOBĚ_001]") && pseudoOut.includes("[OSOBOU_001]"),
+      `Pseudonym mode must preserve unified index and natural cases ([OSOBA_001], [OSOBĚ_001], [OSOBOU_001]), got: "${pseudoOut}"`
+    );
+
+    // 6. Multi-entity propagation with distinct stable indexes
+    const multiDoc = "Obžalovaný Ing. Petr Kovář a poškozená MUDr. Jana Nováková. Doručeno Kovářovi a jednal s Novákovou.";
+    const multiHits = detect(multiDoc, { name: true }, []);
+    const multiNames = multiHits.filter(h => h.type === "name");
+    const kovarEntities = multiNames.filter(h => /Kovář/i.test(h.value));
+    const novakEntities = multiNames.filter(h => /Novák/i.test(h.value));
+    check(
+      kovarEntities.length >= 2 && novakEntities.length >= 2,
+      `Multi-entity text must detect both entities across text (got Kovář: ${kovarEntities.length}, Nováková: ${novakEntities.length})`
+    );
+    const kovarKey = kovarEntities[0].entityKey;
+    const novakKey = novakEntities[0].entityKey;
+    check(
+      kovarKey !== novakKey,
+      `Different persons must have distinct entityKeys (${kovarKey} vs ${novakKey})`
+    );
+    check(
+      kovarEntities.every(h => h.entityKey === kovarKey),
+      `All Kovář mentions must share kovarKey`
+    );
+    check(
+      novakEntities.every(h => h.entityKey === novakKey),
+      `All Nováková mentions must share novakKey`
+    );
+    const multiPseudo = apply(multiDoc, multiHits, "pseudo", "cs");
+    check(
+      multiPseudo.includes("[OSOBA_001]") && multiPseudo.includes("[OSOBĚ_001]"),
+      `Kovář mentions must share index 001 in multiPseudo (got: "${multiPseudo}")`
+    );
+    check(
+      multiPseudo.includes("[OSOBA_002]") && multiPseudo.includes("[OSOBOU_002]"),
+      `Nováková mentions must share index 002 in multiPseudo (got: "${multiPseudo}")`
+    );
+
+    // 7. Uninflected foreign surnames in context
+    const smithDoc = "obžalovaná paní Smith, nar. 1980. Později paní Smith vypověděla, že se Smithovou nemluvila.";
+    const smithHits = detect(smithDoc, { name: true }, []);
+    const smithNames = smithHits.filter(h => h.type === "name");
+    const smithKeys = new Set(smithNames.map(h => h.entityKey));
+    check(
+      smithNames.length >= 2,
+      `Uninflected foreign surname mentions must be detected (got ${smithNames.length}: ${JSON.stringify(smithNames.map(h => h.value))})`
+    );
+    check(
+      smithKeys.size === 1,
+      `All Smith mentions must share one unified entityKey (got: ${JSON.stringify([...smithKeys])})`
+    );
   }
 } catch (stErr) {
   failures.push("Canonical selfTest execution failed: " + (stErr.message || String(stErr)));

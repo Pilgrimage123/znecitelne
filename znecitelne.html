@@ -934,7 +934,8 @@ Orgán: OBÚ.
       high:"ověřeno", medium:"pravděpodobná shoda",
       reasonLabels:{
         "trigger:role": "[Trigger: role]",
-        "trigger:official": "[Trigger: úřední]"
+        "trigger:official": "[Trigger: úřední]",
+        "propagation": "[Propagace]"
       },
       expertMode:"Zobrazit technické detaily nálezů", processToggle:"Zobrazit rozbor postupu",
       movieAdvancedHelp:"Spustit pokročilou nápovědu (video)",
@@ -1108,7 +1109,8 @@ Orgán: OBÚ.
       high:"validated", medium:"likely match",
       reasonLabels:{
         "trigger:role": "[Trigger: role]",
-        "trigger:official": "[Trigger: official]"
+        "trigger:official": "[Trigger: official]",
+        "propagation": "[Propagation]"
       },
       expertMode:"Show technical hit details", processToggle:"Show process breakdown",
       movieAdvancedHelp:"Start advanced walkthrough (video)",
@@ -1379,7 +1381,7 @@ Orgán: OBÚ.
     if (/(?:n|l|t|v|m|ch|sk|ck)(?:ého|ému|ým|ném|ných|nými)$/u.test(t)) {
       return t.replace(/(?:ého|ému|ým|ném|ných|nými)$/u, "ý");
     }
-    const decl = t.replace(/(?:ovi|ovým|ovými|ových|ové|ama|ami|ách|ům|em|ou|u)$/u, "");
+    const decl = t.replace(/(?:ovi|ovým|ovými|ových|ové|ama|ami|ách|ům|em|ou|u|e|a)$/u, "");
     if (decl !== t && decl.length >= 3) {
       if (/ov$/u.test(decl) && decl.length >= 4) return decl.replace(/ov$/u, "");
       return decl;
@@ -1399,10 +1401,24 @@ Orgán: OBÚ.
     if (NAMES.has(stem) || isOnomasticName(stem)) return true;
     return RE_CZECH_SURNAMES.test(t) || RE_CZECH_SURNAMES.test(stem);
   }
+  const ROLE_WORDS_SET = new Set([
+    "pan", "pana", "panu", "panem", "paní", "slečna", "slečně", "slečnu", "slečnou",
+    "obžalovaný", "obžalovaná", "obžalovaného", "obžalovanému", "obžalovaným", "obžalované", "obžalovanou",
+    "svědek", "svědka", "svědkovi", "svědkem", "svědkyně", "svědkyni", "svědkyní",
+    "žalobce", "žalobci", "žalobcem", "žalobkyně", "žalobkyni", "žalobkyní",
+    "žalovaný", "žalovaného", "žalovanému", "žalovaným", "žalovaná", "žalované", "žalovanou",
+    "poškozený", "poškozeného", "poškozenému", "poškozeným", "poškozená", "poškozené", "poškozenou",
+    "jednatel", "jednatele", "jednateli", "jednatelem", "jednatelka", "jednatelky", "jednatelce", "jednatelku", "jednatelkou"
+  ]);
   function nameKey(value){
     const parts = String(value||"").split(/\s+/).map(stripTitle).filter(Boolean)
-      .filter(p => !TITLES.includes(p.toLocaleLowerCase("cs").replace(/\./g,"")));
-    return parts.map(stemNamePart).filter(p => p.length>1).join(" ");
+      .filter(p => {
+        const low = p.toLocaleLowerCase("cs").replace(/[.,]/g,"");
+        return !TITLES.includes(low) && !ROLE_WORDS_SET.has(low);
+      });
+    const stemmed = parts.map(stemNamePart).filter(p => p.length>1);
+    if (!stemmed.length) return canonToken(value);
+    return stemmed.join(" ");
   }
   function canonToken(s){
     return String(s||"").toLocaleLowerCase("cs").replace(/[^\p{L}\p{N}]+/gu,"");
@@ -1453,26 +1469,51 @@ Orgán: OBÚ.
     if (!first) return [];
     const low = first.toLocaleLowerCase("cs");
     const forms = new Set([first]);
-    if (low === "jan") ["Jana", "Janu", "Janovi", "Janem"].forEach(f => forms.add(f));
-    else if (low === "petr") ["Petra", "Petru", "Petrovi", "Petrem"].forEach(f => forms.add(f));
-    else if (low === "pavel") ["Pavla", "Pavlu", "Pavlovi", "Pavlem"].forEach(f => forms.add(f));
-    else if (low === "karel") ["Karla", "Karlu", "Karlovi", "Karlem"].forEach(f => forms.add(f));
-    else if (low === "josef") ["Josefa", "Josefu", "Josefovi", "Josefem"].forEach(f => forms.add(f));
-    else if (low === "tomas" || low === "tomáš") ["Tomáše", "Tomášovi", "Tomášem", "Tomáši"].forEach(f => forms.add(f));
-    else if (low === "jiri" || low === "jiří") ["Jiřího", "Jiřímu", "Jiřím"].forEach(f => forms.add(f));
-    else if (low === "lukas" || low === "lukáš") ["Lukáše", "Lukášovi", "Lukášem", "Lukáši"].forEach(f => forms.add(f));
-    else if (low.endsWith("a")) {
-      const stem = first.slice(0, -1);
-      [stem + "y", stem + "e", stem + "ě", stem + "u", stem + "o", stem + "ou"].forEach(f => forms.add(f));
-    } else if (low.endsWith("el") && low.length > 3) {
-      const stem = first.slice(0, -2) + "l";
-      [stem + "a", stem + "u", stem + "ovi", stem + "em"].forEach(f => forms.add(f));
-    } else if (low.endsWith("ek") && low.length > 3) {
-      const stem = first.slice(0, -2) + "k";
-      [stem + "a", stem + "u", stem + "ovi", stem + "em"].forEach(f => forms.add(f));
-    } else {
-      [first + "a", first + "u", first + "ovi", first + "em", first + "e", first + "i"].forEach(f => forms.add(f));
+    const knownMasc = {
+      jan: ["Jan", "Jana", "Janu", "Janovi", "Janem"],
+      petr: ["Petr", "Petra", "Petru", "Petrovi", "Petrem"],
+      pavel: ["Pavel", "Pavla", "Pavlu", "Pavlovi", "Pavlem"],
+      karel: ["Karel", "Karla", "Karlu", "Karlovi", "Karlem"],
+      josef: ["Josef", "Josefa", "Josefu", "Josefovi", "Josefem"],
+      tomáš: ["Tomáš", "Tomáše", "Tomášovi", "Tomášem", "Tomáši"],
+      tomas: ["Tomáš", "Tomáše", "Tomášovi", "Tomášem", "Tomáši"],
+      jiří: ["Jiří", "Jiřího", "Jiřímu", "Jiřím"],
+      jiri: ["Jiří", "Jiřího", "Jiřímu", "Jiřím"],
+      lukáš: ["Lukáš", "Lukáše", "Lukášovi", "Lukášem", "Lukáši"],
+      lukas: ["Lukáš", "Lukáše", "Lukášovi", "Lukášem", "Lukáši"],
+      ondřej: ["Ondřej", "Ondřeje", "Ondřejovi", "Ondřejem"],
+      martin: ["Martin", "Martina", "Martinu", "Martinovi", "Martinem"],
+      michal: ["Michal", "Michala", "Michalovi", "Michalem"],
+      marek: ["Marek", "Marka", "Marku", "Markovi", "Markem"],
+      zdeněk: ["Zdeněk", "Zdeňka", "Zdeňkovi", "Zdeňkem"]
+    };
+    for (const [nom, list] of Object.entries(knownMasc)) {
+      if (list.map(x => x.toLocaleLowerCase("cs")).includes(low)) {
+        list.forEach(f => forms.add(f));
+        return Array.from(forms);
+      }
     }
+    if (/i[eé]$/u.test(low)) {
+      const stem = first.slice(0, -1);
+      [first, stem + "i", stem + "í"].forEach(f => forms.add(f));
+      return Array.from(forms);
+    }
+    if (low.endsWith("a")) {
+      const stem = first.slice(0, -1);
+      [first, stem + "y", stem + "e", stem + "ě", stem + "u", stem + "o", stem + "ou", stem + "i", stem + "ovi"].forEach(f => forms.add(f));
+      return Array.from(forms);
+    }
+    if (low.endsWith("el") && low.length > 3) {
+      const stem = first.slice(0, -2) + "l";
+      [first, stem + "a", stem + "u", stem + "ovi", stem + "em"].forEach(f => forms.add(f));
+      return Array.from(forms);
+    }
+    if (low.endsWith("ek") && low.length > 3) {
+      const stem = first.slice(0, -2) + "k";
+      [first, stem + "a", stem + "u", stem + "ovi", stem + "em"].forEach(f => forms.add(f));
+      return Array.from(forms);
+    }
+    [first, first + "a", first + "u", first + "ovi", first + "em", first + "e", first + "i"].forEach(f => forms.add(f));
     return Array.from(forms);
   }
 
@@ -1480,44 +1521,82 @@ Orgán: OBÚ.
     if (!sur) return [];
     const forms = new Set([sur]);
     const low = sur.toLocaleLowerCase("cs");
+
     if (low.endsWith("ý")) {
       const stem = sur.slice(0, -1);
       [stem + "ého", stem + "ému", stem + "ým", stem + "ém", stem + "í", stem + "ých", stem + "ými", stem + "á", stem + "é", stem + "ou"].forEach(f => forms.add(f));
-    } else if (low.endsWith("á")) {
-      const stem = sur.slice(0, -1);
-      [stem + "é", stem + "ou", stem + "ých", stem + "ým", stem + "ými", stem + "ý", stem + "ého", stem + "ému"].forEach(f => forms.add(f));
-    } else if (low.endsWith("ová")) {
-      const stem = sur.slice(0, -3);
-      [sur, sur.slice(0,-1)+"é", sur.slice(0,-1)+"ou", stem, stem+"a", stem+"ovi", stem+"em"].forEach(f => forms.add(f));
-    } else if (low.endsWith("ec") && low.length > 3) {
-      const stem = sur.slice(0, -2) + "c";
-      [stem + "e", stem + "i", stem + "ovi", stem + "em", stem + "ová", stem + "ové", stem + "ovou"].forEach(f => forms.add(f));
-    } else if (low.endsWith("ek") && low.length > 3) {
-      const stem = sur.slice(0, -2) + "k";
-      [stem + "a", stem + "u", stem + "ovi", stem + "em", stem + "ová", stem + "ové", stem + "ovou"].forEach(f => forms.add(f));
-    } else if (low.endsWith("a")) {
-      const stem = sur.slice(0, -1);
-      [stem + "y", stem + "ovi", stem + "u", stem + "o", stem + "ou", stem + "ová", stem + "ové", stem + "ovou"].forEach(f => forms.add(f));
-    } else if (/[eé][šs]$/iu.test(low)) {
-      const stem = sur;
-      [stem + "e", stem + "ovi", stem + "em", stem + "i", stem + "ová", stem + "ové", stem + "ovou"].forEach(f => forms.add(f));
-    } else {
-      [sur + "a", sur + "ovi", sur + "u", sur + "em", sur + "e", sur + "i", sur + "ová", sur + "ové", sur + "ovou"].forEach(f => forms.add(f));
+      return Array.from(forms);
     }
+    if (low.endsWith("á") && !low.endsWith("ová")) {
+      const stem = sur.slice(0, -1);
+      [stem + "é", stem + "ou", stem + "ých", stem + "ým", stem + "ými", stem + "ý", stem + "ého", stem + "ému", stem + "ém"].forEach(f => forms.add(f));
+      return Array.from(forms);
+    }
+    if (low.endsWith("í")) {
+      const stem = sur.slice(0, -1);
+      [stem + "ího", stem + "ímu", stem + "ím", stem + "ích", stem + "ími"].forEach(f => forms.add(f));
+      return Array.from(forms);
+    }
+    if (low.endsWith("ová")) {
+      const stem = sur.slice(0, -3);
+      [sur, sur.slice(0,-1)+"é", sur.slice(0,-1)+"ou", sur.slice(0,-1)+"ých", sur.slice(0,-1)+"ým", sur.slice(0,-1)+"ými"].forEach(f => forms.add(f));
+      declineCzechSurname(stem).forEach(f => forms.add(f));
+      return Array.from(forms);
+    }
+    if (low.endsWith("a")) {
+      const stem = sur.slice(0, -1);
+      [sur, stem + "y", stem + "ovi", stem + "u", stem + "o", stem + "ou", stem + "ě", stem + "e", stem + "ová", stem + "ové", stem + "ovou", stem + "ových", stem + "ovým", stem + "ovými"].forEach(f => forms.add(f));
+      return Array.from(forms);
+    }
+    if (low.endsWith("ek") && low.length > 3) {
+      const stem = sur.slice(0, -2) + "k";
+      [sur, stem + "a", stem + "u", stem + "ovi", stem + "em", stem + "e", stem + "i", stem + "ová", stem + "ové", stem + "ovou", stem + "ových", stem + "ovým", stem + "ovými"].forEach(f => forms.add(f));
+      return Array.from(forms);
+    }
+    if (low.endsWith("ec") && low.length > 3) {
+      const stem = sur.slice(0, -2) + "c";
+      [sur, stem + "e", stem + "i", stem + "ovi", stem + "em", stem + "ová", stem + "ové", stem + "ovou", stem + "ových", stem + "ovým", stem + "ovými"].forEach(f => forms.add(f));
+      return Array.from(forms);
+    }
+    if (/[cčšžřjďťň]$/iu.test(low)) {
+      [sur, sur + "e", sur + "i", sur + "ovi", sur + "em", sur + "ů", sur + "ům", sur + "ích", sur + "ová", sur + "ové", sur + "ovou", sur + "ových", sur + "ovým", sur + "ovými"].forEach(f => forms.add(f));
+      return Array.from(forms);
+    }
+
+    [sur, sur + "a", sur + "u", sur + "ovi", sur + "em", sur + "e", sur + "i", sur + "ů", sur + "ům", sur + "ech", sur + "y", sur + "ová", sur + "ové", sur + "ovou", sur + "ových", sur + "ovým", sur + "ovými"].forEach(f => forms.add(f));
+
+    if (/(?:ovi|ovým|ovými|ových|ové|em|ou|u|e|a)$/u.test(low)) {
+      let nomStem = null;
+      if (low.endsWith("ovi")) nomStem = sur.slice(0, -3);
+      else if (low.endsWith("em")) nomStem = sur.slice(0, -2);
+      else if (low.endsWith("ou")) nomStem = sur.slice(0, -2) + "a";
+      else if (low.endsWith("e") && /[cčšžřjďťň]e$/iu.test(low)) nomStem = sur.slice(0, -1);
+      else if (low.endsWith("a") && low.length > 3) nomStem = sur.slice(0, -1);
+      if (nomStem && nomStem !== sur && nomStem.length >= 3) {
+        declineCzechSurname(nomStem).forEach(f => forms.add(f));
+      }
+    }
+
     return Array.from(forms);
   }
 
   function generateCzechNameForms(nameVal) {
     const raw = String(nameVal || "").replace(/,.*$/, "").trim();
     const parts = raw.split(/\s+/).map(stripTitle).filter(Boolean)
-      .filter(p => !TITLES.includes(p.toLocaleLowerCase("cs").replace(/\./g,"")));
+      .filter(p => {
+        const low = p.toLocaleLowerCase("cs").replace(/[.,]/g, "");
+        return !TITLES.includes(low) && !ROLE_WORDS_SET.has(low);
+      });
     if (!parts.length) return [];
     const forms = new Set();
+    const courtesies = ["pan", "pana", "panu", "panem", "paní", "slečna", "slečně", "slečnu", "slečnou"];
+
     if (parts.length >= 2) {
       const first = parts[0];
       const sur = parts[parts.length - 1];
       const firstForms = declineCzechFirstName(first);
       const surForms = declineCzechSurname(sur);
+
       for (const f of firstForms) {
         for (const s of surForms) {
           forms.add(f + " " + s);
@@ -1527,87 +1606,209 @@ Orgán: OBÚ.
       for (const s of surForms) {
         forms.add(init + " " + s);
       }
-      const courtesies = ["pan", "pana", "panu", "panem", "paní"];
       for (const c of courtesies) {
+        const cCap = c.charAt(0).toUpperCase() + c.slice(1);
         for (const s of surForms) {
           forms.add(c + " " + s);
-          forms.add(c.charAt(0).toUpperCase() + c.slice(1) + " " + s);
+          forms.add(cCap + " " + s);
         }
+        forms.add(c + " " + sur);
+        forms.add(cCap + " " + sur);
       }
       for (const s of surForms) {
-        if (s.length >= 4) forms.add(s);
+        if (s.length >= 3) forms.add(s);
+      }
+      for (const f of firstForms) {
+        forms.add(f + " " + sur);
       }
     } else {
       const single = parts[0];
       const surForms = declineCzechSurname(single);
       for (const s of surForms) forms.add(s);
-      const courtesies = ["pan", "pana", "panu", "panem", "paní"];
       for (const c of courtesies) {
+        const cCap = c.charAt(0).toUpperCase() + c.slice(1);
         for (const s of surForms) {
           forms.add(c + " " + s);
-          forms.add(c.charAt(0).toUpperCase() + c.slice(1) + " " + s);
+          forms.add(cCap + " " + s);
         }
       }
     }
     return Array.from(forms).filter(f => f && f.length >= 3);
   }
 
-  function expandCzechNameMorphology(text, hits, triggerHit = null) {
-    if (!text || !hits || !hits.length) return hits;
-    const names = triggerHit ? [triggerHit] : hits.filter(h => h.type === "name");
-    if (!names.length) return hits;
+  class EntityPropagationCache {
+    constructor(text, hits) {
+      this.text = text || "";
+      this.hits = hits ? hits : [];
+      this.entities = new Map();
+      this.init();
+    }
 
-    const byKey = new Map();
-    names.forEach(h => {
-      const k = h.entityKey || ("name|" + nameKey(h.value));
-      if (!byKey.has(k)) byKey.set(k, []);
-      byKey.get(k).push(h);
-    });
+    init() {
+      this.collectConfirmedEntities();
+    }
 
-    const existingSpans = hits.map(h => ({ start: h.start, end: h.end }));
-    const newHits = [];
+    isConfirmedEntity(h) {
+      if (h.type !== "name") return false;
+      if (h.reasons && h.reasons.some(r => r.startsWith("trigger:") || r === "dict" || r === "titled")) return true;
+      const clean = String(h.value || "").replace(/,.*$/, "").trim();
+      const parts = clean.split(/\s+/).map(stripTitle).filter(Boolean)
+        .filter(p => {
+          const low = p.toLocaleLowerCase("cs").replace(/[.,]/g, "");
+          return !TITLES.includes(low) && !ROLE_WORDS_SET.has(low);
+        });
+      if (parts.length >= 2) return true;
+      if (parts.length === 1 && isOnomasticName(parts[0])) return true;
+      return false;
+    }
 
-    for (const [key, group] of byKey.entries()) {
-      const allForms = new Set();
-      group.forEach(h => {
-        generateCzechNameForms(h.value).forEach(f => allForms.add(f));
+    isPrimaryHit(h) {
+      if (!h || h.type !== "name") return false;
+      if (h.reasons && h.reasons.some(r => r.startsWith("trigger:") || r === "titled")) return true;
+      const clean = String(h.value || "").replace(/,.*$/, "").trim();
+      const parts = clean.split(/\s+/).map(stripTitle).filter(Boolean)
+        .filter(p => {
+          const low = p.toLocaleLowerCase("cs").replace(/[.,]/g, "");
+          return !TITLES.includes(low) && !ROLE_WORDS_SET.has(low);
+        });
+      return parts.length >= 2;
+    }
+
+    collectConfirmedEntities() {
+      const names = this.hits.filter(h => h.type === "name");
+      names.forEach(h => {
+        if (!this.isConfirmedEntity(h)) return;
+        const key = h.entityKey || ("name|" + nameKey(h.value));
+        if (!this.entities.has(key)) {
+          this.entities.set(key, {
+            entityKey: key,
+            baseName: h.value,
+            forms: new Set(),
+            sourceHits: []
+          });
+        }
+        const ent = this.entities.get(key);
+        ent.sourceHits.push(h);
+        this.generateParadigm(h.value).forEach(f => ent.forms.add(f));
       });
-      const sortedForms = Array.from(allForms).sort((a,b) => b.length - a.length);
+    }
 
-      for (const form of sortedForms) {
-        if (form.length < 3) continue;
-        const escForm = form.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const re = new RegExp("(?<![\\p{L}\\p{N}])" + escForm + "(?![\\p{L}\\p{N}])", "giu");
-        let m;
-        while ((m = re.exec(text)) !== null) {
-          const start = m.index;
-          const end = start + m[0].length;
-          const overlaps = existingSpans.some(s => (start < s.end && end > s.start));
-          if (!overlaps) {
-            if (isLikelyNonPersonName(m[0], text, start, end)) continue;
-            existingSpans.push({ start, end });
-            newHits.push({
+    registerEntity(hit) {
+      if (!hit || hit.type !== "name") return null;
+      const key = hit.entityKey || ("name|" + nameKey(hit.value));
+      if (!this.entities.has(key)) {
+        this.entities.set(key, {
+          entityKey: key,
+          baseName: hit.value,
+          forms: new Set(),
+          sourceHits: []
+        });
+      }
+      const ent = this.entities.get(key);
+      ent.sourceHits.push(hit);
+      this.generateParadigm(hit.value).forEach(f => ent.forms.add(f));
+      return ent;
+    }
+
+    getEntities() {
+      return Array.from(this.entities.values());
+    }
+
+    generateParadigm(nameVal) {
+      return generateCzechNameForms(nameVal);
+    }
+
+    scan(triggerHit = null) {
+      if (triggerHit) this.registerEntity(triggerHit);
+      if (!this.entities.size) return [];
+
+      const existingSpans = this.hits.map(h => ({ start: h.start, end: h.end, hit: h }));
+      const newHits = [];
+
+      for (const [key, ent] of this.entities.entries()) {
+        const sortedForms = Array.from(ent.forms).filter(f => f && f.length >= 3).sort((a, b) => b.length - a.length);
+        for (const form of sortedForms) {
+          const escForm = form.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const re = new RegExp("(?<![\\p{L}\\p{N}])" + escForm + "(?![\\p{L}\\p{N}])", "giu");
+          let m;
+          while ((m = re.exec(this.text)) !== null) {
+            const start = m.index;
+            const end = start + m[0].length;
+            const overlapping = existingSpans.filter(s => (start < s.end && end > s.start));
+            if (overlapping.length > 0) {
+              overlapping.forEach(s => {
+                if (s.hit && s.hit.type === "name") {
+                  s.hit.entityKey = key;
+                  if (!this.isPrimaryHit(s.hit)) {
+                    if (!s.hit.reasons) s.hit.reasons = [];
+                    if (!s.hit.reasons.includes("propagation")) s.hit.reasons.push("propagation");
+                    s.hit.confidence = "high";
+                    s.hit.accept = true;
+                  }
+                }
+              });
+              continue;
+            }
+            if (isLikelyNonPersonName(m[0], this.text, start, end)) continue;
+            const newHit = {
               type: "name",
               value: m[0],
               start,
               end,
-              reasons: ["morphology"],
+              reasons: ["propagation"],
               confidence: "high",
               entityKey: key,
               accept: true,
               page: pageOf(start)
-            });
+            };
+            existingSpans.push({ start, end, hit: newHit });
+            newHits.push(newHit);
           }
         }
       }
+
+      for (const [key, ent] of this.entities.entries()) {
+        this.hits.forEach(h => {
+          if (h.type === "name" && h.entityKey !== key) {
+            const valClean = String(h.value || "").replace(/,.*$/, "").trim().toLocaleLowerCase("cs");
+            for (const f of ent.forms) {
+              if (f.toLocaleLowerCase("cs") === valClean) {
+                h.entityKey = key;
+                if (!this.isPrimaryHit(h)) {
+                  if (!h.reasons) h.reasons = [];
+                  if (!h.reasons.includes("propagation")) h.reasons.push("propagation");
+                  h.confidence = "high";
+                  h.accept = true;
+                }
+                break;
+              }
+            }
+          }
+        });
+      }
+
+      return newHits;
     }
 
-    if (newHits.length) {
-      let maxId = hits.reduce((max, h) => Math.max(max, h.id || 0), 0);
-      newHits.forEach(h => { h.id = ++maxId; hits.push(h); });
-      hits.sort((a, b) => a.start - b.start);
+    propagate(triggerHit = null) {
+      const newHits = this.scan(triggerHit);
+      if (newHits.length) {
+        let maxId = this.hits.reduce((max, h) => Math.max(max, h.id || 0), 0);
+        newHits.forEach(h => { h.id = ++maxId; this.hits.push(h); });
+        this.hits.sort((a, b) => a.start - b.start);
+      }
+      return this.hits;
     }
-    return hits;
+  }
+
+  function createEntityPropagationCache(text, hits) {
+    return new EntityPropagationCache(text, hits);
+  }
+
+  function expandCzechNameMorphology(text, hits, triggerHit = null) {
+    if (!text || !hits || !hits.length) return hits;
+    const cache = createEntityPropagationCache(text, hits);
+    return cache.propagate(triggerHit);
   }
   function alignDictEntity(h, src){
     const dicts = parseDict(S.systems+"\n"+S.projects+"\n"+S.orgs).filter(d => d.name && d.name.length>=2);
@@ -2505,10 +2706,10 @@ Orgán: OBÚ.
     const clean = String(h.value || "").replace(/,.*$/, "").trim();
     const words = clean.toLocaleLowerCase("cs").replace(/[.,;:!?]/g, "").split(/\s+/).filter(Boolean);
     const last = words[words.length - 1] || "";
-    // Instrumental: Janem Novákem, Janou Novákovou.
-    if (/(?:em|ou|ovou)$/u.test(last)) return "OSOBOU";
-    // Dative/locative: Janu Novákovi, Janovi Novákovi.
-    if (/(?:ovi|u|i)$/u.test(last)) return "OSOBĚ";
+    // Instrumental: Janem Novákem, Janou Novákovou, Kovářem, Černým, Jiřím.
+    if (/(?:em|ou|ovou|ým|ím)$/u.test(last)) return "OSOBOU";
+    // Dative/locative: Janu Novákovi, Janovi Novákovi, Kovářovi, Černému, Marii.
+    if (/(?:ovi|u|i|ému|ě)$/u.test(last)) return "OSOBĚ";
     return base;
   }
   function makeReplacer(mode, lang){
@@ -3620,6 +3821,7 @@ Orgán: OBÚ.
       if (labels[r]) return labels[r];
       if (r === "trigger:role") return "[Trigger: role]";
       if (r === "trigger:official") return "[Trigger: úřední]";
+      if (r === "propagation") return "[Propagace]";
       return r.replace(/^context:/,"ctx:");
     });
     return [ev].concat(rs).join(" · ");
@@ -7513,6 +7715,55 @@ Orgán: OBÚ.
     expectNone("sig ca name kept", "Certifikát vydal: PostSignum Qualified Certification Authority", "high", "name");
     expectNone("sig level kept", "Typ podpisu: Kvalifikovaný elektronický podpis", "high", "name");
     cases.push({ name:"signature annot helper", ok: isSignatureAnnot({ fieldType:"Sig", rect:[0,0,100,40] }) && !isSignatureAnnot({ fieldType:"Tx", subtype:"Widget" }), type:"sigcert", includes:"annot", got:["ok"] });
+    // Ticket 03: Dokumentová mezipaměť entit a pádová propagace
+    cases.push({
+      name: "entity propagation cache interface available",
+      ok: typeof createEntityPropagationCache === "function" && typeof EntityPropagationCache === "function",
+      type: "propagation",
+      includes: "EntityPropagationCache",
+      got: [typeof createEntityPropagationCache]
+    });
+    const cachePdm = typeof createEntityPropagationCache === "function" ? createEntityPropagationCache("test", []).generateParadigm("Petr Kovář") : [];
+    cases.push({
+      name: "entity cache paradigm generation for 7 cases",
+      ok: Array.isArray(cachePdm) &&
+          ["Kovář", "Kováře", "Kovářovi", "Kovářem"].every(f => cachePdm.includes(f)) &&
+          ["Petr Kovář", "Petra Kováře", "Petrem Kovářem"].every(f => cachePdm.includes(f)),
+      type: "propagation",
+      includes: "7-case paradigm",
+      got: cachePdm.slice(0, 8)
+    });
+    const uninflPdm = typeof createEntityPropagationCache === "function" ? createEntityPropagationCache("test", []).generateParadigm("Marie Svoboda") : [];
+    cases.push({
+      name: "entity cache uninflected surname paradigm",
+      ok: Array.isArray(uninflPdm) &&
+          ["Svoboda", "Marie Svoboda", "paní Svoboda"].some(f => uninflPdm.includes(f)),
+      type: "propagation",
+      includes: "uninflected paradigm",
+      got: uninflPdm.slice(0, 8)
+    });
+    const propDocText = "Podle výpovědi Kováře došlo k nehodě. Obžalovaný Ing. Petr Kovář, nar. 1978, však tvrdil opak. Později bylo doručeno Kovářovi a jednal s Kovářem.";
+    const propHits = detect(propDocText, enabled, []);
+    const propNameHits = propHits.filter(h => h.type === "name");
+    const kovarKeys = new Set(propNameHits.map(h => h.entityKey));
+    const rProp = bindReplacer("pseudo", "cs", propHits);
+    const propOut = apply(propDocText, propHits, "pseudo", "cs");
+    cases.push({
+      name: "bidirectional entity propagation unifies entityKey and pseudonyms",
+      ok: propNameHits.length >= 4 &&
+          kovarKeys.size === 1 &&
+          propNameHits.some(h => h.value === "Kováře" && (h.reasons || []).includes("propagation")) &&
+          propNameHits.some(h => /Petr Kovář/.test(h.value)) &&
+          propNameHits.some(h => h.value === "Kovářovi" && (h.reasons || []).includes("propagation")) &&
+          propNameHits.some(h => h.value === "Kovářem" && (h.reasons || []).includes("propagation")) &&
+          propOut.includes("[OSOBĚ_") &&
+          propOut.includes("[OSOBOU_") &&
+          propNameHits.some(h => h.value === "Kovářovi" && rProp(h).startsWith("[OSOBĚ_")) &&
+          propNameHits.some(h => h.value === "Kovářem" && rProp(h).startsWith("[OSOBOU_")),
+      type: "propagation",
+      includes: "bidirectional unified entityKey",
+      got: propNameHits.map(h => h.value + ":" + h.entityKey + ":" + rProp(h))
+    });
     const overlapHits = [
       { id:1, start:0, end:12, value:"Jan Novák", type:"name", accept:true, score:0.9, entityKey:"name|jan" },
       { id:2, start:4, end:7, value:"Nov", type:"name", accept:true, score:0.99, entityKey:"name|nov" },
@@ -7785,6 +8036,11 @@ Orgán: OBÚ.
     window.detect = detect;
     window.hitEvidence = hitEvidence;
     window.I18N = I18N;
+    window.EntityPropagationCache = EntityPropagationCache;
+    window.createEntityPropagationCache = createEntityPropagationCache;
+    window.expandCzechNameMorphology = expandCzechNameMorphology;
+    window.declinedPersonTokenBase = declinedPersonTokenBase;
+    window.apply = apply;
   }
   if (typeof queueMicrotask === "function") {
     queueMicrotask(initOnomasticRegistry);

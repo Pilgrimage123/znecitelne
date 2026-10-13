@@ -5,9 +5,9 @@ Refaktoring stávajícího mechanismu `expandCzechNameMorphology` na plnohodnotn
 
 **Blocked by:** 01, 02
 
-**Status:** ready
+**Status:** closed
 
-- [ ] Vytvořit správce Dokumentové mezipaměti entit shromažďujícího ověřené personální entity s jejich variantami.
-- [ ] Vylepšit generátor pádových paradigmat pro česká jména a příjmení (mužské i ženské vzory, přechýlené i nepřechýlené varianty).
-- [ ] Provést obousměrné dohledání izolovaných tvarů jmen a příjmení v textu a sjednotit jejich `entityKey`.
-- [ ] Zajistit, aby v režimu Pseudonymizace byly všem nálezům entity přiřazeny správně skloňované pseudonymizační tokeny (`[OSOBA_N]`, `[OSOBĚ_N]`, `[OSOBOU_N]`) dle ADR-0003.
+- [x] Vytvořit správce Dokumentové mezipaměti entit shromažďujícího ověřené personální entity s jejich variantami.
+- [x] Vylepšit generátor pádových paradigmat pro česká jména a příjmení (mužské i ženské vzory, přechýlené i nepřechýlené varianty).
+- [x] Provést obousměrné dohledání izolovaných tvarů jmen a příjmení v textu a sjednotit jejich `entityKey`.
+- [x] Zajistit, aby v režimu Pseudonymizace byly všem nálezům entity přiřazeny správně skloňované pseudonymizační tokeny (`[OSOBA_N]`, `[OSOBĚ_N]`, `[OSOBOU_N]`) dle ADR-0003.
