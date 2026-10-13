@@ -799,6 +799,117 @@ try {
   failures.push("PDF visual preview unit test failed: " + (pvErr.message || String(pvErr)));
 }
 
+check(
+  htmlSourceIncludes("function isOnomasticName(") || htmlSourceIncludes("const isOnomasticName ="),
+  "Onomastic Registry must expose isOnomasticName lookup interface"
+);
+check(
+  htmlSourceIncludes("function initOnomasticRegistry(") || htmlSourceIncludes("const initOnomasticRegistry ="),
+  "Onomastic Registry must expose initOnomasticRegistry initialization interface"
+);
+check(
+  htmlSourceIncludes("ONOMASTIC_PAYLOAD_B64"),
+  "Onomastic Registry must include compressed ONOMASTIC_PAYLOAD_B64"
+);
+
+// Unit tests exercising Onomastic Registry and Trie through its testing seams
+try {
+  const fflateCode = readFileSync("./lib/fflate.js", "utf8");
+  const vm = await import("node:vm");
+  const fflateCtx = { self: {} };
+  vm.runInNewContext(fflateCode, fflateCtx);
+  const fflateLib = fflateCtx.self.fflate;
+
+  const onomasticSandbox = {
+    window: { fflate: fflateLib },
+    fflate: fflateLib,
+    atob: (s) => Buffer.from(s, "base64").toString("binary"),
+    btoa: (s) => Buffer.from(s, "binary").toString("base64"),
+    TextEncoder,
+    TextDecoder,
+    Uint8Array,
+    ArrayBuffer,
+    Set,
+    Map,
+    Object,
+    String,
+    Boolean,
+    console
+  };
+  vm.createContext(onomasticSandbox);
+
+  const scriptContent = canonical.match(/<script>([\s\S]*?)<\/script>/)?.[1] || "";
+  const trieDef = scriptContent.slice(
+    scriptContent.indexOf("function stripTitle(token){"),
+    scriptContent.indexOf("function nameKey(value){")
+  );
+  vm.runInContext(
+    `const NAMES = new Set();\n` + trieDef,
+    onomasticSandbox
+  );
+
+  const trie = onomasticSandbox.initOnomasticRegistry();
+  check(Boolean(trie && typeof trie.has === "function"), "initOnomasticRegistry must return initialized trie");
+
+  // Top Czech surnames & first names from prompt
+  const requiredSurnames = [
+    "Novák", "Nováková", "Svoboda", "Svobodová", "Dvořák", "Dvořáková", "Černý", "Černá",
+    "Procházka", "Kučera", "Veselý", "Horák", "Němec", "Marek", "Pospíšil", "Pokorný",
+    "Hájek", "Král", "Jelínek", "Růžička", "Beneš", "Fiala", "Sedláček", "Doležal",
+    "Zeman", "Kolář", "Navrátil", "Čermák", "Vaněk", "Urban", "Blažek", "Kříž", "Kovář", "Holub"
+  ];
+  for (const name of requiredSurnames) {
+    check(
+      onomasticSandbox.isOnomasticName(name) === true,
+      `isOnomasticName must identify frequent Czech surname: ${name}`
+    );
+  }
+
+  // Top Czech first names
+  const requiredFirstNames = [
+    "Jan", "Jana", "Petr", "Petra", "Pavel", "Pavla", "Martin", "Martina",
+    "Tomáš", "Jiří", "Jiřina", "Josef", "Marie", "Eva", "Hana", "Anna",
+    "Lenka", "Kateřina", "Lucie", "Alena", "Michal", "Milan", "Karel", "Jakub", "Lukáš", "David"
+  ];
+  for (const fn of requiredFirstNames) {
+    check(
+      onomasticSandbox.isOnomasticName(fn) === true,
+      `isOnomasticName must identify frequent Czech first name: ${fn}`
+    );
+  }
+
+  // Common non-names must be rejected
+  const nonNames = [
+    "smlouva", "praha", "dnes", "auto", "faktura", "strom", "projekt",
+    "software", "objednatel", "korun", "dne", "který", "nebo", "podle", "pouze"
+  ];
+  for (const non of nonNames) {
+    check(
+      onomasticSandbox.isOnomasticName(non) === false,
+      `isOnomasticName must reject non-name: ${non}`
+    );
+  }
+
+  // Normalization: case insensitivity and punctuation stripping
+  check(onomasticSandbox.isOnomasticName("novák") === true, "isOnomasticName must be case-insensitive (lowercase)");
+  check(onomasticSandbox.isOnomasticName("NOVÁK") === true, "isOnomasticName must be case-insensitive (uppercase)");
+  check(onomasticSandbox.isOnomasticName("Novák,") === true, "isOnomasticName must strip punctuation");
+
+  // Integration into looksName
+  check(onomasticSandbox.looksName("Novák") === true, "looksName must identify Novák");
+  check(onomasticSandbox.looksName("Kovář") === true, "looksName must identify Kovář");
+  check(onomasticSandbox.looksName("Svobodová") === true, "looksName must identify Svobodová");
+
+  // Memory & Payload compactness
+  const payloadB64 = vm.runInContext("ONOMASTIC_PAYLOAD_B64", onomasticSandbox);
+  check(
+    typeof payloadB64 === "string" && payloadB64.length > 500 && payloadB64.length < 25000,
+    `ONOMASTIC_PAYLOAD_B64 must be compact compressed base64 string (got length ${payloadB64?.length})`
+  );
+} catch (onoErr) {
+  failures.push("Onomastic Registry unit test failed: " + (onoErr.message || String(onoErr)));
+}
+
 // Verification that canonical application internal self-test suite (selftest=1) passes
 try {
   const scriptContent = canonical.match(/<script>([\s\S]*?)<\/script>/)?.[1] || "";
@@ -851,8 +962,14 @@ try {
     atob: (s) => Buffer.from(s, "base64").toString("binary"),
     btoa: (s) => Buffer.from(s, "binary").toString("base64")
   };
+  const fflateCode = readFileSync("./lib/fflate.js", "utf8");
+  const fflateHolder = { self: {} };
+  vm.runInNewContext(fflateCode, fflateHolder);
+  const fflateObj = fflateHolder.self.fflate;
+  windowObj.fflate = fflateObj;
   const stSandbox = {
     window: windowObj,
+    fflate: fflateObj,
     document: doc,
     location: windowObj.location,
     localStorage,
