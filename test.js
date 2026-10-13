@@ -1234,6 +1234,119 @@ try {
       smithKeys.size === 1,
       `All Smith mentions must share one unified entityKey (got: ${JSON.stringify([...smithKeys])})`
     );
+
+    // -------------------------------------------------------------------------
+    // Ticket 04: Profil publikace Justiční rozhodnutí (vyhl. 403/2022 Sb.)
+    // -------------------------------------------------------------------------
+
+    // 1. Profile label in I18N.cs.profiles
+    const courtLabelCs = I18N && I18N.cs && I18N.cs.profiles && I18N.cs.profiles.court;
+    check(
+      Boolean(courtLabelCs && courtLabelCs.includes("Justiční rozhodnutí") && courtLabelCs.includes("403/2022")),
+      `I18N.cs.profiles.court must contain "Justiční rozhodnutí" and "403/2022" (got: "${courtLabelCs}")`
+    );
+
+    // 2. Testing seams exposure
+    const applyCourtProfileRules = stSandbox.window.applyCourtProfileRules;
+    const filterCourtDecisionsWhitelist = stSandbox.window.filterCourtDecisionsWhitelist;
+    check(
+      typeof applyCourtProfileRules === "function",
+      "window.applyCourtProfileRules must be exposed as a public testing seam"
+    );
+    check(
+      typeof filterCourtDecisionsWhitelist === "function",
+      "window.filterCourtDecisionsWhitelist must be exposed as a public testing seam"
+    );
+
+    // 3. Court seat protection (§ 4 odst. 3 písm. a)
+    const courtSeatText = "Krajský soud v Ostravě rozhodl ve věci žalobce Petr Svoboda. Žalovaný bytem v Ostravě se nedostavil.";
+    const courtSeatHits = detect(courtSeatText, { name: true, address: true }, [], { profile: "court" });
+    const seatHitOstrava = courtSeatHits.find(h => h.start < 30 && h.value.includes("Ostrav"));
+    const residenceHitOstrava = courtSeatHits.find(h => h.start > 60 && h.value.includes("Ostrav"));
+
+    check(
+      !seatHitOstrava || seatHitOstrava.whitelisted === true || seatHitOstrava.accept === false,
+      `Court seat "Ostravě" in "Krajský soud v Ostravě" must be preserved as court seat (§ 4 odst. 3 písm. a)`
+    );
+    check(
+      Boolean(residenceHitOstrava && residenceHitOstrava.accept === true && !residenceHitOstrava.whitelisted),
+      `Defendant residence "Ostravě" in "žalovaný bytem v Ostravě" must be detected and kept for redaction`
+    );
+    const seatRedacted = apply(courtSeatText, courtSeatHits, "box", "cs");
+    check(
+      seatRedacted.includes("Krajský soud v Ostravě"),
+      `Court seat in court collocation must be preserved in redacted text: "${seatRedacted}"`
+    );
+    check(
+      !seatRedacted.includes("bytem v Ostravě"),
+      `Defendant residence must be redacted in text: "${seatRedacted}"`
+    );
+
+    // 4. Judicial decision-makers (§ 4 odst. 3 písm. d) vs participants/witnesses/defendants
+    const courtOfficialsText =
+      "Předseda senátu JUDr. Karel Novák, soudkyně Mgr. Jana Černá, za přítomnosti státního zástupce JUDr. Pavla Kováře " +
+      "rozhodli ve věci. Žalobce Petr Svoboda a obžalovaný Josef Dvořák nebyli přítomni, svědek Martin Holub vypovídal. " +
+      "V Praze dne 1. 2. 2023, JUDr. Karel Novák, v. r.";
+    const courtOfficialsHits = detect(courtOfficialsText, { name: true, address: true }, [], { profile: "court" });
+
+    const karelHits = courtOfficialsHits.filter(h => /Karel Novák/i.test(h.value));
+    const janaHits = courtOfficialsHits.filter(h => /Jana Černá/i.test(h.value));
+    const pavelHits = courtOfficialsHits.filter(h => /Pavl.*Kovář/i.test(h.value));
+    const petrHits = courtOfficialsHits.filter(h => /Petr Svoboda/i.test(h.value));
+    const josefHits = courtOfficialsHits.filter(h => /Josef Dvořák/i.test(h.value));
+    const martinHits = courtOfficialsHits.filter(h => /Martin Holub/i.test(h.value));
+
+    check(
+      karelHits.length >= 1 && karelHits.every(h => h.whitelisted === true || h.accept === false),
+      `Judicial decision-maker Karel Novák must be whitelisted (accept: false / whitelisted: true)`
+    );
+    check(
+      janaHits.length >= 1 && janaHits.every(h => h.whitelisted === true || h.accept === false),
+      `Judicial decision-maker Jana Černá must be whitelisted (accept: false / whitelisted: true)`
+    );
+    check(
+      pavelHits.length >= 1 && pavelHits.every(h => h.whitelisted === true || h.accept === false),
+      `Public prosecutor Pavel Kovář must be whitelisted (accept: false / whitelisted: true)`
+    );
+    check(
+      petrHits.length >= 1 && petrHits.every(h => h.accept === true && !h.whitelisted),
+      `Plaintiff Petr Svoboda must remain detected and accepted for redaction`
+    );
+    check(
+      josefHits.length >= 1 && josefHits.every(h => h.accept === true && !h.whitelisted),
+      `Defendant Josef Dvořák must remain detected and accepted for redaction`
+    );
+    check(
+      martinHits.length >= 1 && martinHits.every(h => h.accept === true && !h.whitelisted),
+      `Witness Martin Holub must remain detected and accepted for redaction`
+    );
+
+    const officialsRedacted = apply(courtOfficialsText, courtOfficialsHits, "box", "cs");
+    check(
+      officialsRedacted.includes("Karel Novák") && officialsRedacted.includes("Jana Černá") && officialsRedacted.includes("Pavla Kováře"),
+      `Court officials must not be redacted in output: "${officialsRedacted}"`
+    );
+    check(
+      !officialsRedacted.includes("Petr Svoboda") && !officialsRedacted.includes("Josef Dvořák") && !officialsRedacted.includes("Martin Holub"),
+      `Participants/witnesses must be redacted in output: "${officialsRedacted}"`
+    );
+
+    // 5. Legal literature and case citations (§ 4 odst. 3 písm. e)
+    const citationText =
+      "V souladu s rozsudek ESLP ve věci Novák proti České republice, nález Ústavního soudu sp. zn. I. ÚS 123/20 " +
+      "a usnesení Nejvyššího soudu sp. zn. 22 Cdo 456/2021. Dále srov. Švestka, J. a kol., Spáčil, J. a kol. či Lavický, P.";
+    const citationHits = detect(citationText, { name: true, casefile: true }, [], { profile: "court" });
+
+    const citationRedacted = apply(citationText, citationHits, "box", "cs");
+    check(
+      citationRedacted.includes("Novák") &&
+      citationRedacted.includes("I. ÚS 123/20") &&
+      citationRedacted.includes("22 Cdo 456/2021") &&
+      citationRedacted.includes("Švestka, J.") &&
+      citationRedacted.includes("Spáčil, J.") &&
+      citationRedacted.includes("Lavický, P."),
+      `Case citations and legal commentators must not be redacted (§ 4 odst. 3 písm. e), got: "${citationRedacted}"`
+    );
   }
 } catch (stErr) {
   failures.push("Canonical selfTest execution failed: " + (stErr.message || String(stErr)));

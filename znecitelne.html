@@ -961,12 +961,12 @@ Orgán: OBÚ.
       sigWarning:"Pozor: Dokument obsahuje elektronický podpis. Anonymizací vznikne nová kopie a původní kryptografický podpis bude zničen. Nelze použít pro autorizovanou konverzi.",
       record:{ title:"Protokol o anonymizaci", internal:"INTERNÍ DOKUMENT – CITLIVÝ", notice:"Tento protokol je určen pouze pro interní potřebu a audit. Místo původních hodnot obsahuje jen masku (první znak a délku) a solený otisk SHA-256; u údajů s malou entropií (např. rodné číslo) nelze vyloučit zpětné dohledání, proto protokol nezveřejňujte.", file:"Soubor", operator:"Odpovědný pracovník", date:"Vygenerováno", profile:"Profil", mode:"Režim výstupu", rules:"Verze pravidel", hashIn:"SHA-256 vstupu", hashOut:"SHA-256 výstupu", notExported:"— (dokument zatím nebyl exportován)", reviewed:"Zkontrolováno", fourEyes:"Čtyři oči", yes:"ano", no:"ne", salt:"Sůl otisků", saltNote:"Otisk hodnoty = SHA-256(sůl + původní hodnota); zobrazeno prvních 24 znaků.", counts:"Začerněno / ponecháno", sig:"Elektronický podpis v originále", cols:["#","Typ","Str.","Maska","Otisk SHA-256","Zákonný důvod"], none:"Žádný údaj není označen k začernění.", page:"Strana" },
       kbdNext:"Další nález", kbdPrev:"Předchozí nález", kbdRedact:"Anonymizovat vybraný", kbdKeep:"Ponechat vybraný",
-      profiles:{ registr:"Registr smluv (340/2015)", infoact:"InfZ (106/1999)", court:"Soud / vyhláška 403/2022", internal:"Interní AI (pseudonymy)", publicai:"Veřejná / externí AI", custom:"Vlastní pravidla" },
+      profiles:{ registr:"Registr smluv (340/2015)", infoact:"InfZ (106/1999)", court:"Justiční rozhodnutí (vyhl. 403/2022 Sb.)", internal:"Interní AI (pseudonymy)", publicai:"Veřejná / externí AI", custom:"Vlastní pravidla" },
       modes:{ box:"Nevratné začernění", xxxx:"Náhrada XXXX", label:"Třída [OSOBA]", pseudo:"Konzistentní TICKET_001" },
       suspicions:{ high:"Vysoké — méně promeškaných", medium:"Střední — kompromis", low:"Nízké — méně falešných poplachů" },
       cats:{ rc:"Rodné číslo", ico:"IČO", dic:"DIČ", account:"Účet / IBAN", phone:"Telefon", email:"E-mail", address:"Adresa / PSČ", dob:"Datum narození", name:"Jména a tituly", idcard:"Číslo dokladu", datovka:"Datová schránka", spz:"SPZ", geo:"Souřadnice", sigcert:"Podpisový certifikát", katastr:"Katastr nemovitostí", zahr_iban:"Zahraniční IBAN / SWIFT", doklady_extra:"Další doklady (pas, ŘP, ZTP)", secrets:"Tajemství", ticket:"Ticket / JIRA", system:"Interní systém", project:"Projekt", incident:"Incident / HD", casefile:"Č.j. / řízení", status:"Stav produkce", orgunit:"Orgán / útvar", host:"Interní URL / host", ip:"Privátní IP", credential:"Klíč / heslo" },
       tips:{
-        lang:"Přepnout jazyk (CS / EN).", theme:"Přepnout světlý / tmavý režim.", help:"Jak anonymizace funguje.", features:"Co všechno aplikace umí.", changelog:"Přehled verzí a změn.", sample:"Fiktivní smlouva s RČ, IČO a IBAN.", movie:"Automatická prohlídka vzorové smlouvy — pauza, 1×/1,75×, další krok.",
+        lang:"Přepnout jazyk (CS / EN).", theme:"Přepnout světlý / tmavý režim.", help:"Jak anonymizace funguje.", features:"Co všechod aplikace umí.", changelog:"Přehled verzí a změn.", sample:"Fiktivní smlouva s RČ, IČO a IBAN.", movie:"Automatická prohlídka vzorové smlouvy — pauza, 1×/1,75×, další krok.",
         settings:"Profil, režim, podezření a kategorie — lze měnit i během kontroly.",
         quickMode:"Skryje seznam nálezů, náhled výstupu i rozbor postupu. Nic se neztratí, jen se to nezobrazuje.",
         fastApprove:"Skryje Zkontrolováno i Druhou kontrolu a při exportu nevyžaduje jméno úředníka.",
@@ -996,7 +996,7 @@ Orgán: OBÚ.
         high:"Silný důkaz (checksum, popisek, slovník).", medium:"Heuristika — ověřte falešný poplach.",
         suspicion:"Vysoké: chytí víc (riziko falešných poplachů). Nízké: přísnější (riziko promeškání). Střední: kompromis.",
         cats:{ rc:"Rodné číslo s kontrolním součtem.", ico:"Osmimístné IČO. U instituce zvažte ponechání.", dic:"DIČ / CZ + IČO.", account:"Český účet a IBAN.", phone:"České telefonní číslo.", email:"E-mail.", address:"Ulice, náměstí, sídlo a PSČ.", dob:"Datum narození v kontextu — ne datum smlouvy.", name:"Jména s titulem, pádem i iniciálou.", idcard:"Číslo OP / pasu.", datovka:"ID datové schránky.", spz:"Registrační značka včetně EL.", geo:"Zeměpisné souřadnice.", sigcert:"Sériové číslo a otisk osobního certifikátu, atribut serialNumber a syrová data podpisu. V viditelném razítku se začerní jen jméno podepisujícího — rámeček, organizace, CA a datum zůstanou.", katastr:"Čísla parcel (parc. č. 123/4), listy vlastnictví (LV 456) a katastrální území (k.ú. Nové Město).", zahr_iban:"Cizí IBAN (SK, DE, AT, PL…) ověřený kontrolním součtem a kódy SWIFT/BIC.", doklady_extra:"Číslo cestovního pasu, řidičského průkazu a průkazu ZTP — hledá se u popisku nebo v kontextu.", secrets:"Vlastní fráze tajemství.", ticket:"JIRA-like ID. Prefix ze slovníku má přednost.", system:"Názvy z interního slovníku a fráze systém/modul/integrace.", project:"Prefix ticketu nebo název projektu.", incident:"HD / INC / provozní číslo.", casefile:"Číslo jednací a spisová značka.", status:"Konkrétní produkční stav se zobecní.", orgunit:"Konkrétní orgán nebo útvar ze slovníku.", host:"Interní hostname nebo URL.", ip:"Privátní IPv4 (10/8, 192.168/16, 172.16/12).", credential:"API klíč, Bearer token, heslo." },
-        profiles:{ registr:"Text jde do centrálního Registru smluv — anonymizujte podle zákona 340/2015 (osobní údaje, obchodní tajemství).", infoact:"Odpověď na žádost podle zákona 106/1999 o svobodném přístupu k informacím.", court:"Zveřejnění rozhodnutí podle vyhlášky 403/2022 o anonymizaci soudních rozhodnutí.", internal:"Pro interní nástroj s omezeným přístupem — hodnoty se nahradí konzistentními pseudonymy, ne úplně smažou.", publicai:"Nejpřísnější profil — bez firmy, systémů i konkrétních čísel, vhodné pro veřejné AI nástroje.", custom:"Kategorie a slovníky si nastavíte sami." },
+        profiles:{ registr:"Text jde do centrálního Registru smluv — anonymizujte podle zákona 340/2015 (osobní údaje, obchodní tajemství).", infoact:"Odpověď na žádost podle zákona 106/1999 o svobodném přístupu k informacím.", court:"Zveřejnění rozhodnutí podle vyhlášky 403/2022 Sb. o anonymizaci soudních rozhodnutí (výjimky pro soudce, státní zástupce, sídla soudů a citace judikatury).", internal:"Pro interní nástroj s omezeným přístupem — hodnoty se nahradí konzistentními pseudonymy, ne úplně smažou.", publicai:"Nejpřísnější profil — bez firmy, systémů i konkrétních čísel, vhodné pro veřejné AI nástroje.", custom:"Kategorie a slovníky si nastavíte sami." },
         modes:{ box:"Text se v souboru fyzicky odstraní / začerní, nejde ho získat zpět.", xxxx:"Nahradí nález řetězcem XXXX stejné délky.", label:"Nahradí nález obecnou značkou podle kategorie, např. [OSOBA] nebo [ADRESA].", pseudo:"Stejná hodnota dostane v celém dokumentu stejný pseudonym (TICKET_001), takže vazby zůstanou čitelné." }
       }
     },
@@ -1136,7 +1136,7 @@ Orgán: OBÚ.
       sigWarning:"Warning: the document contains an electronic signature. Anonymisation creates a new copy and the original cryptographic signature will be destroyed. It cannot be used for an authorised conversion.",
       record:{ title:"Anonymisation record", internal:"INTERNAL DOCUMENT - SENSITIVE", notice:"This record is for internal use and audit only. Instead of original values it holds only a mask (first character and length) and a salted SHA-256 digest; low-entropy values (e.g. birth numbers) may still be recoverable, so do not publish it.", file:"File", operator:"Responsible officer", date:"Generated", profile:"Profile", mode:"Output mode", rules:"Ruleset version", hashIn:"Input SHA-256", hashOut:"Output SHA-256", notExported:"- (not exported yet)", reviewed:"Reviewed", fourEyes:"Four eyes", yes:"yes", no:"no", salt:"Digest salt", saltNote:"Digest = SHA-256(salt + original value); first 24 characters shown.", counts:"Redacted / kept", sig:"E-signature in original", cols:["#","Type","Pg.","Mask","SHA-256 digest","Legal basis"], none:"No item is marked for redaction.", page:"Page" },
       kbdNext:"Next hit", kbdPrev:"Previous hit", kbdRedact:"Redact selected", kbdKeep:"Keep selected",
-      profiles:{ registr:"Register of Contracts (340/2015)", infoact:"Info Act (106/1999)", court:"Court / Decree 403/2022", internal:"Internal AI (pseudonyms)", publicai:"Public / external AI", custom:"Custom rules" },
+      profiles:{ registr:"Register of Contracts (340/2015)", infoact:"Info Act (106/1999)", court:"Court Decisions (Decree 403/2022)", internal:"Internal AI (pseudonyms)", publicai:"Public / external AI", custom:"Custom rules" },
       modes:{ box:"Irreversible black-box", xxxx:"Replace with XXXX", label:"Class [PERSON]", pseudo:"Consistent TICKET_001" },
       suspicions:{ high:"High — fewer misses", medium:"Medium — compromise", low:"Low — fewer false positives" },
       cats:{ rc:"Birth number (RČ)", ico:"Company ID (IČO)", dic:"VAT ID (DIČ)", account:"Account / IBAN", phone:"Phone", email:"Email", address:"Address / postcode", dob:"Date of birth", name:"Names and titles", idcard:"ID document", datovka:"Data mailbox", spz:"Licence plate", geo:"Coordinates", sigcert:"Signature certificate", katastr:"Land registry (cadastre)", zahr_iban:"Foreign IBAN / SWIFT", doklady_extra:"Other documents (passport, licence, ZTP)", secrets:"Trade secrets", ticket:"Ticket / JIRA", system:"Internal system", project:"Project", incident:"Incident / HD", casefile:"Case file no.", status:"Production status", orgunit:"Body / unit", host:"Internal URL / host", ip:"Private IP", credential:"Key / password" },
@@ -1171,7 +1171,7 @@ Orgán: OBÚ.
         high:"Strong evidence (checksum, label, dictionary).", medium:"Heuristic — check for false positives.",
         suspicion:"High: catches more (risk of false positives). Low: stricter (risk of misses). Medium: compromise.",
         cats:{ rc:"Birth number with checksum.", ico:"8-digit company ID.", dic:"VAT ID.", account:"Czech account and IBAN.", phone:"Czech phone number.", email:"Email.", address:"Street, square, seat and postcode.", dob:"Date of birth in context — not a contract date.", name:"Titled, declined and initialised names.", idcard:"ID / passport number.", datovka:"Data mailbox ID.", spz:"Licence plate including EL.", geo:"Coordinates.", sigcert:"Personal certificate serial number and fingerprint, the serialNumber attribute and raw signature data. Inside a visible stamp only the signer name is covered — the frame, organisation, CA and date stay.", katastr:"Parcel numbers (parc. č. 123/4), ownership sheets (LV 456) and cadastral areas (k.ú. Nové Město).", zahr_iban:"Foreign IBANs (SK, DE, AT, PL…) verified by checksum, and SWIFT/BIC codes.", doklady_extra:"Passport, driving licence and ZTP card numbers — found by label or context.", secrets:"Your own secret phrases.", ticket:"JIRA-like IDs. Dictionary prefixes win.", system:"Names from your dictionary plus system/module/integration phrases.", project:"Ticket prefix or project name.", incident:"HD / INC / ops number.", casefile:"Case file no.", status:"Production status", orgunit:"Body / unit", host:"Internal URL / host", ip:"Private IPv4 (10/8, 192.168/16, 172.16/12).", credential:"Key / password" },
-        profiles:{ registr:"Goes into the central Register of Contracts — redact per Act 340/2015 (personal data, trade secrets).", infoact:"A reply to a request under the Freedom of Information Act (106/1999).", court:"Publishing a decision under Decree 403/2022 on anonymising court decisions.", internal:"For an internal tool with restricted access — values become consistent pseudonyms, not fully removed.", publicai:"The strictest profile — no company, systems or specific numbers, suited to public AI tools.", custom:"Set your own categories and dictionaries." },
+        profiles:{ registr:"Goes into the central Register of Contracts — redact per Act 340/2015 (personal data, trade secrets).", infoact:"A reply to a request under the Freedom of Information Act (106/1999).", court:"Publishing court decisions under Decree 403/2022 Coll. (exemptions for judges, public prosecutors, court seats, and legal citations).", internal:"For an internal tool with restricted access — values become consistent pseudonyms, not fully removed.", publicai:"The strictest profile — no company, systems or specific numbers, suited to public AI tools.", custom:"Set your own categories and dictionaries." },
         modes:{ box:"The text is physically removed / blacked out in the file — it cannot be recovered.", xxxx:"Replaces the hit with an XXXX string of the same length.", label:"Replaces the hit with a generic category tag, e.g. [PERSON] or [ADDRESS].", pseudo:"The same value gets the same pseudonym (TICKET_001) throughout the document, so links stay readable." }
       }
     }
@@ -2158,7 +2158,7 @@ Orgán: OBÚ.
     "ředitel", "vedoucí", "starosta", "primátor", "ministr", "předseda"
   ]);
 
-  function detect(text, enabled, secrets){
+  function detect(text, enabled, secrets, options){
     const bag = []; const seen = new Set();
     const { src, work, toSrc } = makeWork(text || "");
     const t = work;
@@ -2267,6 +2267,14 @@ Orgán: OBÚ.
         h.reasons = ["label:adresa","gazetteer"];
         const cut = h.value.split(/\s{2,}|\t/)[0];
         if (cut && cut.length >= 8) { h.value = cut; h.end = h.start + cut.length; }
+        return h;
+      }));
+      add(findAll(t, /(?<!\p{L})(?:bytem|trvale bytem|bydlištěm|se sídlem|sídlo|adresa)\s+(?:v\s+|ve\s+)?([A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\p{L}\-]+(?:\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\p{L}\-]+)?)(?!\p{L})/giu, "address", (v) => !/^(?:České|Slovenské|roce|dne)\b/i.test(v), 1).map(h => {
+        h.reasons = ["label:adresa","context:bytem"];
+        return h;
+      }));
+      add(findAll(t, /(?<!\p{L})(?:v|ve)\s+(Praze|Brně|Ostravě|Plzni|Olomouci|Liberci|Českých Budějovicích|Hradci Králové|Ústí nad Labem|Pardubicích|Zlíně|Kladně|Mostě|Opavě|Karviné|Jihlavě|Teplicích|Děčíně|Karlových Varech|Chomutově|Mladé Boleslavi|Prostějově|Přerově|České Lípě|Třebíči|Třinci|Táboře|Znojmě|Příbrami|Chebu|Kolíně|Trutnově|Písku|Kroměříži|Šumperku|Vsetíně|Hodoníně|Novém Jičíně|Uherském Hradišti|Břeclavi|Litoměřicích|Sokolově|Havlíčkově Brodě|Chrudimi|Strakonicích|Klatovech|Jičíně)(?!\p{L})/giu, "address", null, 1).map(h => {
+        h.reasons = ["gazetteer:city"];
         return h;
       }));
       add(findAll(t, /\p{Lu}[\p{L}.]+(?:\s+\p{Lu}[\p{L}.]+)*\s+(?:náměstí|nám\.|namesti|třída|trida|ulice|nábřeží|nabrezi|alej|sady)\s+\d{1,4}(?:\s*\/\s*\d{1,4})?/giu, "address"), ["gazetteer"]);
@@ -2482,7 +2490,7 @@ Orgán: OBÚ.
     }
     if (enabled.incident) add(findAll(t, /\b(?:HD|INC|CHG|REQ|RITM|PRB)\s*[-:]?\s*\d{3,7}\b/gi, "incident"), ["format"]);
     if (enabled.casefile) {
-      add(findAll(t, /\b(?:č\.?\s*j\.?|čj\.?|sp\.?\s*zn\.?)\s*[A-Z0-9Á-Ž][A-Z0-9Á-Ž./\s-]{4,40}/gi, "casefile"), ["label:č.j."]);
+      add(findAll(t, /(?<!\p{L})(?:č\.?\s*j\.?|čj\.?|sp\.?\s*zn\.?)\s*(?:[I-IV]+\.\s*)?(?:(?:[A-Za-z0-9Á-Ž.-]+)\s+){0,3}\d+\/\d+(?:-\d+)?(?!\p{L})/giu, "casefile"), ["label:č.j."]);
       add(findAll(t, /(?<![\p{L}\p{N}])[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]{2,8}\s+\d{3,6}\/\d{4}(?![\p{L}\p{N}])/gu, "casefile", (v,f,i) => {
         if (/^(?:ZÁKON|VYHL|NAŘ)\b/i.test(v)) return false;
         if (sus === "low") return ctxHas(f,i,i+v.length,["řízení","rizeni","spis","č.j","čj","sbs"], win);
@@ -2689,7 +2697,124 @@ Orgán: OBÚ.
     });
     clusterNameKeys(clustered);
     expandCzechNameMorphology(src, clustered);
+    const prof = (options && options.profile) || S.profile;
+    if (prof === "court") {
+      applyCourtProfileRules(src, clustered);
+    }
     return clustered;
+  }
+
+  function applyCourtProfileRules(text, hits){
+    if (!text || !Array.isArray(hits) || hits.length === 0) return hits;
+
+    // -------------------------------------------------------------------------
+    // Tier 1: Názvy a sídla rozhodujících soudů (§ 4 odst. 3 písm. a)
+    // -------------------------------------------------------------------------
+    const RE_COURT_SEAT = /(?:(?:[Úú]stavní|[Nn]ejvyšší\s+správní|[Nn]ejvyšší|[Vv]rchní|[Kk]rajský|[Oo]kresní|[Mm]ěstský|[Oo]bvodní)(?:ho|mu|m)?\s+[Ss]oud(?:u|em)?)(?:\s+(?:[Vv]|[Vv]e|[Pp]ro)\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\p{L}\-]+(?:\s+(?:nad|pod)\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\p{L}\-]+)?(?:\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\p{L}\-]+)?(?:\s*[-–]\s*[\p{L}\-]+)?(?:\s+\d+)?)?(?:\s*,\s*pobočk[a-y]\s+v\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\p{L}\-]+)?/gu;
+
+    const courtSpans = [];
+    let mCourt;
+    while ((mCourt = RE_COURT_SEAT.exec(text)) !== null) {
+      courtSpans.push({ start: mCourt.index, end: mCourt.index + mCourt[0].length });
+    }
+
+    courtSpans.forEach(span => {
+      hits.forEach(h => {
+        if (h.start >= span.start && h.end <= span.end) {
+          h.accept = false;
+          h.whitelisted = true;
+          if (!h.reasons) h.reasons = [];
+          if (!h.reasons.includes("whitelist:court-seat")) {
+            h.reasons.push("whitelist:court-seat");
+          }
+        }
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // Tier 2: Rozhodující soudci a státní zástupci (§ 4 odst. 3 písm. d)
+    // -------------------------------------------------------------------------
+    const RE_OFFICIAL_ROLE_PREFIX = /(?:(?:předsed(?:a|ové|ovi|u|ou|y|e)|předsedkyn(?:ě|i|í|ou)|místopředsed(?:a|ové|ovi|u|ou|y|e)|místopředsedkyn(?:ě|i|í|ou))\s+senátu|(?:soudc(?:e|i|em|ové|ů|ům|ích)|soudkyn(?:ě|i|í|ou)|samosoudc(?:e|i|em|ové|ů|ům|ích)|samosoudkyn(?:ě|i|í|ou))(?:\s+(?:zpravodaj(?:e|i|em)?|zpravodajk(?:a|y|e|u|ou)))?|(?:asistent(?:ka|ky|ce|ku|kou)?|asistenti?)\s+soudce|vyšší(?:ho|mu|m)?\s+soudní(?:ho|mu|m)?\s+úřední(?:k|ka|kovi|kem|ci|ků|kům)|vyšší\s+soudní\s+úřednic(?:e|i|í)|státní(?:ho|mu|m)?\s+zástupc(?:e|i|em|ů|ům|ích)|státní\s+zástupkyn(?:ě|i|í|ou))(?:\s*,\s*|\s+(?:JUDr\.|Mgr\.|Ing\.|doc\.|prof\.|PhDr\.|JUDr|Mgr|Ing|Bc\.|RNDr\.)|\s+)*$/iu;
+
+    const RE_PARTY_ROLE_PREFIX = /(?<!\p{L})(?:žalobc|žalovan|obžalovan|poškozen|svěd(?:ek|k)|obviněn|odsouzen|stěžovatel|navrhovatel|odpůrc|účastní|dlužní|úpadc)[a-záčďéěíňóřšťúůýž]*(?:\s*,\s*|\s+(?:JUDr\.|Mgr\.|Ing\.|doc\.|prof\.|PhDr\.|Bc\.)|\s+)*$/iu;
+
+    const RE_SIGNATURE_SUFFIX = /^\s*,?\s*(?:v\.\s*r\.|v\.r\.|vlastní\s+rukou)(?!\p{L})/iu;
+
+    const whitelistedEntityKeys = new Set();
+    const partyEntityKeys = new Set();
+
+    hits.forEach(h => {
+      if (h.type !== "name") return;
+      const pre = text.slice(Math.max(0, h.start - 80), h.start).trim();
+      const post = text.slice(h.end, Math.min(text.length, h.end + 30));
+
+      const isParty = RE_PARTY_ROLE_PREFIX.test(pre);
+      if (isParty) {
+        if (h.entityKey) partyEntityKeys.add(h.entityKey);
+        return;
+      }
+
+      const isOfficialPre = RE_OFFICIAL_ROLE_PREFIX.test(pre);
+      const isSignaturePost = RE_SIGNATURE_SUFFIX.test(post);
+
+      if (isOfficialPre || isSignaturePost) {
+        h.accept = false;
+        h.whitelisted = true;
+        if (!h.reasons) h.reasons = [];
+        if (!h.reasons.includes("whitelist:court-official")) {
+          h.reasons.push("whitelist:court-official");
+        }
+        if (h.entityKey) whitelistedEntityKeys.add(h.entityKey);
+      }
+    });
+
+    hits.forEach(h => {
+      if (h.type !== "name") return;
+      if (h.entityKey && whitelistedEntityKeys.has(h.entityKey) && !partyEntityKeys.has(h.entityKey)) {
+        h.accept = false;
+        h.whitelisted = true;
+        if (!h.reasons) h.reasons = [];
+        if (!h.reasons.includes("whitelist:court-official")) {
+          h.reasons.push("whitelist:court-official");
+        }
+      }
+    });
+
+    // -------------------------------------------------------------------------
+    // Tier 3: Citace judikatury a odborné literatury (§ 4 odst. 3 písm. e)
+    // -------------------------------------------------------------------------
+    const RE_CASE_CITATIONS = /(?<!\p{L})(?:(?:rozsudek|nález|usnesení|stanovisko|rozhodnutí)\s+(?:ESLP|Soudního dvora|SDEU|Ústavního soudu|ÚS|Nejvyššího soudu|NS|Nejvyššího správního soudu|NSS)(?:\s+(?:ze dne|dne)\s+\d{1,2}\.\s*\d{1,2}\.\s*\d{4})?(?:\s*,\s*(?:sp\.\s*zn\.|č\.\s*j\.)\s*[^\n,;]+)?(?:\s+ve věci\s+[^\n,;.]+)?|ve věci\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\p{L}\-.]*(?:\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\p{L}\-.]*)*\s+proti\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\p{L}\-.]*(?:\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\p{L}\-.]*)*|(?:sp\.\s*zn\.|č\.\s*j\.)\s*(?:[I-IV]\.\s*ÚS\s+\d+\/\d+|\d+\s+[A-Za-z]+\s+\d+\/\d+))(?!\p{L})/giu;
+
+    const citationSpans = [];
+    let mCit;
+    while ((mCit = RE_CASE_CITATIONS.exec(text)) !== null) {
+      citationSpans.push({ start: mCit.index, end: mCit.index + mCit[0].length });
+    }
+
+    const RE_COMMENTATORS = /(?<!\p{L})[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\p{L}\-]+,\s*[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]\.(?:\s*a\s+kol\.)?/gu;
+    let mComm;
+    while ((mComm = RE_COMMENTATORS.exec(text)) !== null) {
+      citationSpans.push({ start: mComm.index, end: mComm.index + mComm[0].length });
+    }
+
+    citationSpans.forEach(span => {
+      hits.forEach(h => {
+        if (h.start >= span.start && h.end <= span.end) {
+          h.accept = false;
+          h.whitelisted = true;
+          if (!h.reasons) h.reasons = [];
+          if (!h.reasons.includes("whitelist:court-citation")) {
+            h.reasons.push("whitelist:court-citation");
+          }
+        }
+      });
+    });
+
+    return hits;
+  }
+
+  function filterCourtDecisionsWhitelist(text, hits){
+    return applyCourtProfileRules(text, hits);
   }
   function tokenBase(h, lang){
     if (h.tokenClass) return h.tokenClass;
@@ -7969,6 +8094,28 @@ Orgán: OBÚ.
       includes: "true",
       got: [String(isImageFile("sken.png", "image/png"))]
     });
+    cases.push({
+      name: "court decisions profile whitelist (§ 4 odst. 3 vyhl. 403/2022 Sb.)",
+      ok: (() => {
+        const text =
+          "Krajský soud v Ostravě rozhodl ve věci žalobce Petr Svoboda, bytem v Ostravě. " +
+          "Předseda senátu JUDr. Karel Novák, v. r. Dále citován rozsudek ESLP ve věci Novák proti České republice.";
+        const hits = detect(text, { name: true, address: true }, [], { profile: "court" });
+        const ostravaSeat = hits.find(h => h.start < 30 && h.value.includes("Ostrav"));
+        const ostravaHome = hits.find(h => h.start > 50 && h.value.includes("Ostrav"));
+        const judge = hits.find(h => /Karel Novák/i.test(h.value));
+        const plaintiff = hits.find(h => /Petr Svoboda/i.test(h.value));
+        const eslpNovak = hits.find(h => h.start > 80 && /Novák/i.test(h.value));
+        return (!ostravaSeat || ostravaSeat.whitelisted === true || ostravaSeat.accept === false) &&
+               Boolean(ostravaHome && ostravaHome.accept === true && !ostravaHome.whitelisted) &&
+               Boolean(judge && (judge.whitelisted === true || judge.accept === false)) &&
+               Boolean(plaintiff && plaintiff.accept === true && !plaintiff.whitelisted) &&
+               Boolean(!eslpNovak || eslpNovak.whitelisted === true || eslpNovak.accept === false);
+      })(),
+      type: "court-profile",
+      includes: "court-whitelist",
+      got: ["court profile rules verified"]
+    });
     S.systems = prevSys; S.projects = prevProj;
     S.suspicion = prev;
     cases.push({
@@ -8040,6 +8187,8 @@ Orgán: OBÚ.
     window.createEntityPropagationCache = createEntityPropagationCache;
     window.expandCzechNameMorphology = expandCzechNameMorphology;
     window.declinedPersonTokenBase = declinedPersonTokenBase;
+    window.applyCourtProfileRules = applyCourtProfileRules;
+    window.filterCourtDecisionsWhitelist = filterCourtDecisionsWhitelist;
     window.apply = apply;
   }
   if (typeof queueMicrotask === "function") {
