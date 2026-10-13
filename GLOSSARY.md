@@ -33,7 +33,7 @@ Automatické vyřešení překrývajících se rozsahů nálezů upřednostněn�
 _Avoid_: Sloučení nálezů, Odstranění duplicit
 
 **Profil publikace**:
-Přednastavená sada detekčních pravidel a chování (např. Registr smluv, GDPR, Příprava pro AI), určující citlivost, výchozí čištění metadat a globální režim zpracování dokumentu.
+Přednastavená sada detekčních pravidel a chování (např. Registr smluv, GDPR, Příprava pro AI, Justiční rozhodnutí dle vyhlášky č. 403/2022 Sb.), určující citlivost, výchozí čištění metadat a globální režim zpracování dokumentu.
 _Avoid_: Šablona, Nastavení, Exportní předvolba
 
 **Režim zpracování**:
@@ -63,3 +63,12 @@ _Avoid_: Elektronický podpis (pro vizuální prvek), Razítko, Podpisová peče
 **Projektový slovník**:
 Externí soubor s interními názvy systémů, kódovými označeními projektů a organizačních jednotek, který se do aplikace načítá jednorázově pro dané sezení bez trvalého ukládání v prohlížeči.
 _Avoid_: Uživatelské nastavení, Globální slovník, Interní databáze
+
+**Dokumentová mezipaměť entit**:
+Celo-dokumentová paměť potvrzených entit s jejich úplným pádovým svazkem, sloužící k obousměrnému dohledání zkrácených a skloňovaných tvarů bez lokálních kontextových indicií.
+_Avoid_: Entity Cache, Globální registr nálezů
+
+**Onomastický registr**:
+Frekvenčně vážená databáze vlastních jmen integrovaná v aplikaci, sloužící k deterministickému ověřování a doplňování personálních nálezů.
+_Avoid_: Jmenný slovník, Seznam osob, Gazetteer
+
