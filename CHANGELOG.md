@@ -2,6 +2,14 @@
 
 ## 2026-10-14
 
+- Jednotné klientské ZIP exporty, oddělení schvalování a ergonomie UI (ADR-0006):
+  - **Jednotné klientské ZIP balení (`fflate.zipSync`):** Export AI balíčku i hromadný export z dávkové fronty komprimuje všechny výstupy (anonymizovaný text, osnovu postupu, slovník tokenů, PDF a souhrnný auditní protokol) přímo v paměti prohlížeče do jediného archivu (`-ai-pack.zip`, `znecitelne-davka.zip`), čímž zcela eliminuje blokování vícenásobného stahování v prohlížeči.
+  - **Oddělení ergonomie od schvalovacího stavu (`quickMode` vs. `fastApprove`):** Rychlý režim je nyní striktně vizuální zobrazení pro přímočaré procházení nálezů (s možností okamžitého přepnutí tlačítkem v liště), které nijak neobchází povinnost schválení před exportem. Schvalovací bránu obchází pouze explicitně aktivované Zrychlené schvalování (`fastApprove`).
+  - **Jediný zdroj pravdy pro náhled změn:** Odstraněn duplicitní statický panel Návrhu (`#resultPane`) v postranní liště; náhled znečitelněného textu je soustředěn do interaktivního přepínače „Preview změn“ v hlavním pracovním prostoru.
+  - **Konzistence entit u zákonných důvodů:** Nastavení zákonného důvodu znečitelnění v Inspectoru se automaticky propaguje na všechny výskyty stejné identity (`entityKey`) v dokumentu.
+  - **Ergonomická horizontální lišta a exportní dialog:** Odstraněno svislé dokování lišty (`left`/`right`, zachováno pouze `bottom`/`top`); druhotné administrativní exporty (`Audit JSON`, `Protokol o znečitelnění`) jsou přesunuty do exportního dialogu a hromadné akce jsou sjednoceny do kompaktního segmentovaného bloku.
+  - **Zarovnání terminologie dle GLOSSARY.md:** Sjednoceny pojmy v UI i dokumentaci (*Znečitelnění*, *Profil publikace*, *Režim zpracování*, *Stav schválení*, *Dokument*, *Zavřít dokument*).
+
 - Ochrana toponym a hydrologických apelativ (Červená Voda, důlní vody):
   - **Desambiguace toponym a víceslovných geografických názvů (`isLikelyNonPersonName`):** Doplněna pádová paradigmata významných českých víceslovných obcí a toponym (např. *Červená Voda*, *Bílá Voda*, *Dobrá Voda*, *Kutná Hora*, *Zlaté Hory*, *Nová Ves*, *Nové Město*, *Havlíčkův Brod*, *Karlovy Vary*, *Mladá Boleslav*, *Česká Lípa* atd.) a obecný lingvistický vzorec pro spojení relačních/barevných adjektiv s toponymickými a hydrologickými apelativy bez přítomnosti křestních jmen. Přidána strukturní územní zarážka reagující na administrativní uvození (*v obci*, *obec*, *město*, *k.ú.*, *katastrální území*).
   - **Filtrování hydrologických a technických kolokací vody:** Běžné flektivní tvary apelativa *voda* (*vody*, *vodě*, *vodu*, *vodou*, *vod*) zařazeny mezi chráněná apelativa a implementováno rozpoznávání environmentálních kolokací (*důlní vody*, *odpadní vody*, *povrchové vody*, *podzemní vody*, *vypouštěných vod*).

@@ -221,23 +221,20 @@ html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--prima
   padding-top: 10px;
   max-height: min(42dvh, calc(100dvh - var(--hdr-h, 60px)));
 }
-.bar[data-pos="left"], .bar[data-pos="right"] {
-  top: var(--hdr-h, 60px); bottom: 0; width: min(260px, 82vw);
-  height: calc(100dvh - var(--hdr-h, 60px));
-  max-height: none;
-  overflow-y: auto;
-}
-.bar[data-pos="left"] { left: 0; right: auto; box-shadow: 6px 0 24px rgba(14,16,20,.18); }
-.bar[data-pos="right"] { right: 0; left: auto; box-shadow: -6px 0 24px rgba(14,16,20,.18); }
-.bar[data-pos="left"] .bar-inner, .bar[data-pos="right"] .bar-inner {
-  flex-direction: column; align-items: stretch; max-width: none;
-}
-.bar[data-pos="left"] .bar-inner > *, .bar[data-pos="right"] .bar-inner > * { width: 100%; }
-body.bar-pos-left .review, body.bar-pos-left .wrap { padding-left: min(276px, calc(82vw + 16px)); }
-body.bar-pos-right .review, body.bar-pos-right .wrap { padding-right: min(276px, calc(82vw + 16px)); }
 body.bar-pos-bottom .review { padding-bottom: calc(var(--bar-h, 120px) + 16px); }
 body.bar-pos-top .review { padding-top: calc(var(--bar-h, 72px) + 4px); }
 .bar-inner { max-width: 1400px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn-group {
+  display: inline-flex; align-items: stretch; border-radius: 999px; overflow: hidden;
+  border: 1.5px solid color-mix(in srgb, var(--on-primary) 35%, transparent);
+}
+.btn-group .btn {
+  border-radius: 0 !important; border: 0 !important; box-shadow: none !important;
+  min-height: 36px; padding: 0 12px; font-size: 13px;
+}
+.btn-group .btn + .btn {
+  border-left: 1px solid color-mix(in srgb, var(--on-primary) 28%, transparent) !important;
+}
 .bar .check { color: var(--on-primary); }
 .bar .btn {
   background: var(--surface); color: var(--fg);
@@ -378,13 +375,12 @@ kbd { display: inline-block; min-width: 1.4rem; padding: .1rem .4rem; border-rad
 /* Quick mode: hide secondary UI, keep only the essentials to finish a redaction pass */
 body.quick-mode #landingSteps,
 body.quick-mode #landingSettingsDetails,
-body.quick-mode .toolbar,
 body.quick-mode #filters,
 body.quick-mode #hitList,
-body.quick-mode #resultPane,
 body.quick-mode #processPane,
 body.quick-mode .bar #chk2,
 body.quick-mode .bar label:has(#chk2),
+body.quick-mode .bar .bulk-group,
 body.quick-mode .bar #btnAll,
 body.quick-mode .bar #btnNone,
 body.quick-mode .bar #btnOff,
@@ -441,11 +437,6 @@ body.quick-mode header.app .hdr-actions #btnHelp {
 /* Quick-mode hit card floats above the (still visible) export bar rather than replacing it */
 body.quick-mode.hit-selected #quickHitBar[data-pos="bottom"] { bottom: calc(var(--export-bar-h, 60px) + 8px); }
 body.quick-mode.hit-selected #quickHitBar[data-pos="top"] { top: calc(var(--hdr-h, 60px) + var(--export-bar-h, 60px) + 8px); }
-/* When the export bar is a side panel (left/right), the hit card still docks to the bottom of the screen so it never overlaps it */
-body.quick-mode #quickHitBar[data-pos="left"],
-body.quick-mode #quickHitBar[data-pos="right"] {
-  left: 0; right: 0; top: auto; bottom: 0; width: auto; height: auto; max-height: none;
-}
 
 
 [inert] { opacity: .45; filter: grayscale(.15); pointer-events: none; }
@@ -654,10 +645,6 @@ body.movie-active #settingsSheet {
       <div class="filters" id="filters"></div>
       <div class="hits" id="hitList"></div>
       <div class="pane" id="inspector" style="margin-top:12px"></div>
-      <div class="pane" style="margin-top:12px" id="resultPane">
-        <h2 class="lbl" id="lblRes"></h2>
-        <pre class="doc" id="result" style="max-height:12rem"></pre>
-      </div>
       <div class="pane hidden" style="margin-top:12px" id="processPane">
         <h2 class="lbl" id="lblProc"></h2>
         <div class="process" id="processBox"></div>
@@ -727,8 +714,9 @@ body.movie-active #settingsSheet {
   const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];
   const KEYS = PII_KEYS.concat(ORG_KEYS);
 
-  const RULES = "2026.10.14-ai40";
+  const RULES = "2026.10.14-ai41";
   const CHANGELOG = [
+    { version: "2026.10.14-ai41", notes: { cs: "Vyjasnění konfliktů, nekonzistencí a zpřehlednění UI (ADR-0006): klientské ZIP balení pro export AI balíčku a dávkové fronty přes fflate s garancí nulového blokování prohlížečem, striktní oddělení Rychlého režimu od schvalovacího procesu (quickMode neobchází review) s přímým přepínačem v liště recenze, odstranění duplicitního panelu Návrh (#resultPane), horizontální zjednodušení akční lišty s odstraněním svislých pozic Vlevo/Vpravo, seskupení hromadných akcí, přesun druhotných auditních výstupů (Audit JSON, Protokol o znečitelnění) do exportního dialogu, automatická propagace zákonného důvodu na celou entitu (entityKey) a terminologické sladění s GLOSSARY.md.", en: "Resolution of conflicts, inconsistencies, and UI decluttering (ADR-0006): client-side ZIP packaging for AI pack and batch queue exports via fflate eliminating browser download blockers, strict decoupling of Quick mode from approval gates (quickMode preserves mandatory review) with an inline toolbar switch, removal of duplicate Proposal pane (#resultPane), horizontal toolbar simplification removing buggy left/right positions, grouped bulk actions, integration of secondary audit outputs (Audit JSON, Redaction Record) into the export modal, automatic propagation of legal bases across whole entities (entityKey), and terminology alignment per GLOSSARY.md." } },
     { version: "2026.10.14-ai40", notes: { cs: "Ochrana toponym a hydrologických apelativ (Červená Voda, důlní vody): rozšíření isLikelyNonPersonName o úplná pádová paradigmata významných českých víceslovných obcí (Červená Voda, Bílá Voda, Dobrá Voda, Kutná Hora atd.), lingvistické vzorce pro toponymické fráze a hydrologické kolokace (důlní vody, odpadní vody, vypouštěných vod), územní zarážky (v obci, k.ú.), zpřísnění vstupního síta Dokumentové mezipaměti entit pro formátové kandidáty a case-sensitive vyhledávání u jednoslovné propagace.", en: "Protection of toponyms and hydrological collocations (Červená Voda, mine water): expansion of isLikelyNonPersonName with full declensions of prominent Czech compound municipalities (Červená Voda, Bílá Voda, Dobrá Voda, Kutná Hora, etc.), linguistic patterns for toponymic phrases and hydrological collocations (mine waters, waste water, discharged waters), territorial guards (v obci, k.ú.), stricter admission gate for format candidates in EntityPropagationCache, and case-sensitive matching for single-word propagation." } },
     { version: "2026.10.14-ai39", notes: { cs: "Strukturní hranice textu a slovesná desambiguace v personálních nálezech (ADR-0005): rekonstrukce řádkových zlomů (\\n) v PDF textové vrstvě podle delta y baseline, inteligentní slovesná a participiální desambiguace (l-participle, pasivní příčestí, administrativní slovesné kmeny) provázaná s paměťovým trie onomastického registru se zachováním skutečných slovesných příjmení (Pospíšil, Navrátil), potlačení administrativních návěští (Schválil:, Omluveni:) a agendových apelativ (porada, poradu, zasedání) z falešně pozitivních detekcí osob i celodokumentové mezipaměti entit.", en: "Structural text boundaries and verbal disambiguation in personal entity findings (ADR-0005): PDF line-break reconstruction (\\n) via baseline vertical delta tracking, intelligent verbal and participle disambiguation (l-participles, passive participles, administrative stems) against the in-memory onomastic trie preserving authentic verbal surnames (Pospíšil, Navrátil), suppression of administrative labels (Schválil:, Omluveni:) and agenda nouns (porada, poradu, zasedání) from false-positive person detection and entity propagation cache." } },
     { version: "2026.10.13-ai38", notes: { cs: "Bezpečný audit kódu a výkonnostní optimalizace: jednoprůchodový lineární apply() O(L+H), ohraničený 200znakový kontextový lookback v isSentenceStart(), mapové O(1) indexování duplicit v detect(), binární vyhledávání intervalů v EntityPropagationCache a exportXlsxFile, reverzní shlukování řádků v pdfWordQuads, memoizace kontroly úniků v paintReview(), konsolidace docxMakeWork a terminologické zarovnání dle GLOSSARY.md.", en: "Safe code audit and performance optimization: single-pass linear apply() O(L+H), bounded 200-char context lookback in isSentenceStart(), Map-based O(1) duplicate indexing in detect(), binary search interval indexing in EntityPropagationCache and exportXlsxFile, reverse line clustering in pdfWordQuads, memoized leak analysis in paintReview(), docxMakeWork consolidation, and terminology alignment per GLOSSARY.md." } },
@@ -832,15 +820,15 @@ Orgán: OBÚ.
 
   const I18N = {
     cs: {
-      name:"Znečitelně", tagline:"Anonymizace pro úřady i veřejnou AI",
+      name:"Znečitelně", tagline:"Znečitelnění pro úřady i veřejnou AI",
       themeDark:"Tmavý režim", themeLight:"Světlý režim",
       privacy:"Soubor nikam neodesíláme. Detekce, začernění i analýza postupu běží v tomto zařízení.",
-      trySample:"Vyzkoušet vzorovou smlouvu", movieTutorial:"Video tutoriál", newFile:"Nový soubor",
-      drop:"Přetáhněte soubory (PDF, DOCX, XLSX, TXT, skeny…)",
+      trySample:"Vyzkoušet vzorový dokument", movieTutorial:"Video tutoriál", newFile:"Nový dokument",
+      drop:"Přetáhněte dokumenty (PDF, DOCX, XLSX, TXT, skeny…)",
       dropHint:"Nebo vyberte z úložiště. Podporuje PDF, DOCX, XLSX, TXT, tabulky i skeny.",
       dropHintOcr:"Nebo vyberte z úložiště. Zpracuje i obrázky a naskenované dokumenty (OCR).",
       enableOcr:"Povolit OCR pro obrázkové skeny (pomalejší, stahuje ~15 MB jazykových dat)",
-      browse:"Vybrat soubor", profile:"Profil zveřejnění", mode:"Režim výstupu",
+      browse:"Vybrat dokument", profile:"Profil publikace", mode:"Režim zpracování",
       suspicion:"Podezření",
       categories:"Kategorie", secrets:"Obchodní tajemství",
       systemsDict:"Interní systémy a integrace",
@@ -879,23 +867,23 @@ Orgán: OBÚ.
       leakBad:"Po anonymizaci zbývají vzory, které by veřejná AI ještě mohla zneužít.",
       stripMeta:"Odstranit metadata",
       pdfaDecl:"Deklarace PDF/A-2b + sRGB OutputIntent (preflight stále nutný)", pdfaNote:"PDF/A metadata a sRGB OutputIntent byly vloženy; shoda stále není certifikována bez externího preflightu.", pdfaFontWarn:"Nevložené fonty nalezeny na stránkách {n}; tyto stránky se mají při bezpečném exportu převést na raster.", pdfaFail:"PDF/A metadata nebo OutputIntent se nepodařilo vložit.",
-      queueLbl:"Dávková fronta", queueAll:"Exportovat všechny zkontrolované", queueNone:"Žádný soubor ve frontě zatím není zkontrolovaný.", queueDone:"Exportováno souborů: {n}", queueBad:"Soubor „{f}“ se nepodařilo načíst.", queueRemove:"Odebrat z fronty", errPdfPassword:"PDF je chráněno heslem. Před zpracováním heslo odstraňte.", errPdfInvalid:"Soubor PDF je poškozený nebo neúplný.", errFileEmpty:"Soubor „{f}“ je prázdný (0 B).", errFileTooLarge:"Soubor „{f}“ je příliš velký (maximum je 100 MB).", errFileBinary:"Soubor „{f}“ je v nepodporovaném binárním formátu.", errDocOld:"Starší formát .doc (Word 97-2003) uložte prosím jako .docx nebo .pdf.", errImageNeedOcr:"Zpracování obrázku (skenu) vyžaduje zapnutí OCR v nastavení.",
+      queueLbl:"Dávková fronta", queueAll:"Exportovat dávku (ZIP)", queueNone:"Žádný dokument ve frontě zatím není zkontrolovaný.", queueDone:"Exportováno dokumentů: {n}", queueBad:"Dokument „{f}“ se nepodařilo načíst.", queueRemove:"Odebrat z fronty", errPdfPassword:"PDF je chráněno heslem. Před zpracováním heslo odstraňte.", errPdfInvalid:"Soubor PDF je poškozený nebo neúplný.", errFileEmpty:"Dokument „{f}“ je prázdný (0 B).", errFileTooLarge:"Dokument „{f}“ je příliš velký (maximum je 100 MB).", errFileBinary:"Dokument „{f}“ je v nepodporovaném binárním formátu.", errDocOld:"Starší formát .doc (Word 97-2003) uložte prosím jako .docx nebo .pdf.", errImageNeedOcr:"Zpracování obrázku (skenu) vyžaduje zapnutí OCR v nastavení.",
       truePdfRedact:"Při anonymizaci PDF zůstává textová vrstva",
       truePdfRedactHint:"Zachová prohledávatelný text mimo začerněné nebo nahrazené úseky, ve všech režimech výstupu (začernění, XXXX, štítek i pseudonym). Stránky, které nelze bezpečně ověřit, se přesto převedou na obrázek.",
       morphBtn:"Skloňování: dohledat všechny pády v textu",
       morphTip:"Najde v dokumentu všechny pády (2.–7. pád), přechýlení a tvary tohoto jména a sjednotí jejich pseudonymní token.",
       morphToast:"Skloňování: nalezeno a přiřazeno {n} dalších tvarů jména.",
       pdfSearchableVerified:"Bezpečné vyhledatelné PDF: ověřeno, čistá textová vrstva bez začerněných údajů.",
-      aiPack:"Balíček pro AI", includeOutline:"Přiložit osnovu postupu",
+      aiPack:"AI balíček (ZIP)", includeOutline:"Přiložit osnovu postupu",
       publicGlossary:"Slovník bez původních hodnot (pro veřejnou AI)",
       readyPublic:"Vhodné k posouzení pro veřejnou AI",
       readyInternal:"Spíš pro interní AI / další kontrolu",
       verdict:"Verdikt",
       operator:"Odpovědný pracovník", operatorPh:"jméno / služební číslo",
-      original:"Originál", result:"Návrh", previewChanges:"Preview změn", originalVersion:"Původní verze", redact:"Anonymizovat", keep:"Ponechat",
-      acceptAll:"Přijmout vše", rejectAll:"Zamítnout vše", keepOfficials:"Ponechat instituce",
-      reviewed:"Zkontrolováno", secondEyes:"Druhá kontrola", export:"Exportovat", audit:"Audit JSON",
-      clear:"Nová relace", noHits:"Nic se nenašlo.", confirmExport:"Citlivé údaje budou nevratně odstraněny.",
+      original:"Originál", result:"Návrh", previewChanges:"Preview změn", originalVersion:"Původní verze", redact:"Znečitelnit", keep:"Ponechat",
+      acceptAll:"Vše znečitelnit", rejectAll:"Vše ponechat", keepOfficials:"Ponechat instituce",
+      reviewed:"Zkontrolováno", secondEyes:"Druhá kontrola", export:"Znečitelnit a exportovat", audit:"Audit JSON",
+      clear:"Zavřít dokument", noHits:"Nic se nenašlo.", confirmExport:"Citlivé údaje budou nevratně znečitelněny.",
       diffTitle:"Porovnání textu před a po redakci",
       diffRemovedTitle:"Odstraněná slova ke schválení ({n})",
       diffNoRemoved:"Žádná slova nejsou označena k odstranění.",
@@ -950,10 +938,12 @@ Orgán: OBÚ.
       expertMode:"Zobrazit technické detaily nálezů", processToggle:"Zobrazit rozbor postupu",
       movieAdvancedHelp:"Spustit pokročilou nápovědu (video)",
       processAnalysisLabel:"Analýza rizika odhalení pracovních postupů",
-      quickMode:"Rychlý režim (skrýt pokročilé prvky)",
+      quickMode:"Rychlý režim (kompaktní zobrazení)",
+      toggleQuick:"Přepnout zobrazení (Kompaktní / Plný přehled)",
+      quickOn:"⚡ Kompaktní režim", quickOff:"⚡ Plný přehled",
       fastApprove:"Zrychlené schvalování",
-      processHint:"Odhad kroků, rolí a systémů se přiloží k AI balíčku jako samostatný soubor. Neovlivňuje začernění dokumentu.",
-      barPosition:"Umístění lišty", barPosBottom:"Dole", barPosTop:"Nahoře", barPosLeft:"Vlevo", barPosRight:"Vpravo",
+      processHint:"Odhad kroků, rolí a systémů se přiloží k AI balíčku jako samostatný soubor. Neovlivňuje znečitelnění dokumentu.",
+      barPosition:"Umístění lišty", barPosBottom:"Dole", barPosTop:"Nahoře",
       settings:"Nastavení", apply:"Použít", cancel:"Zrušit", confirmTitle:"Nevratný export",
       residual:"V dokumentu zůstal podezřelý řetězec.", residualOk:"Žádný podezřelý řetězec v dokumentu nezůstal.",
       exported:"Export hotov", walk:"z",
@@ -964,15 +954,15 @@ Orgán: OBÚ.
       legalOpts:{ trade:"Obchodní tajemství (§ 504 OZ)", gdpr:"Osobní údaje (čl. 6 GDPR)", security:"Ochrana bezpečnosti", custom:"Vlastní důvod…" },
       legalShort:{ trade:"§ 504 OZ", gdpr:"čl. 6 GDPR", security:"Bezpečnost", custom:"Vlastní" },
       legalCustomPh:"popište důvod",
-      legalTip:"Právní důvod, proč se údaj znečitelňuje. Předvyplní se podle typu nálezu a profilu, jde do auditního JSON a do Protokolu.",
-      recordBtn:"Protokol (PDF)",
-      recordTip:"Interní citlivý dokument: seznam začerněných údajů (maska + otisk SHA-256) se zákonnými důvody. Nezveřejňujte.",
+      legalTip:"Právní důvod, proč se údaj znečitelňuje. Předvyplní se podle typu nálezu a profilu, jde do auditního JSON a do Protokolu. Změna se automaticky aplikuje na všechny výskyty téže entity.",
+      recordBtn:"Protokol o znečitelnění",
+      recordTip:"Interní citlivý dokument: seznam znečitelněných údajů (maska + otisk SHA-256) se zákonnými důvody. Nezveřejňujte.",
       recordNeedPdfLib:"Protokol nelze vytvořit — knihovna pdf-lib se nenačetla (síť).",
-      sigWarning:"Pozor: Dokument obsahuje elektronický podpis. Anonymizací vznikne nová kopie a původní kryptografický podpis bude zničen. Nelze použít pro autorizovanou konverzi.",
-      record:{ title:"Protokol o anonymizaci", internal:"INTERNÍ DOKUMENT – CITLIVÝ", notice:"Tento protokol je určen pouze pro interní potřebu a audit. Místo původních hodnot obsahuje jen masku (první znak a délku) a solený otisk SHA-256; u údajů s malou entropií (např. rodné číslo) nelze vyloučit zpětné dohledání, proto protokol nezveřejňujte.", file:"Soubor", operator:"Odpovědný pracovník", date:"Vygenerováno", profile:"Profil", mode:"Režim výstupu", rules:"Verze pravidel", hashIn:"SHA-256 vstupu", hashOut:"SHA-256 výstupu", notExported:"— (dokument zatím nebyl exportován)", reviewed:"Zkontrolováno", fourEyes:"Čtyři oči", yes:"ano", no:"ne", salt:"Sůl otisků", saltNote:"Otisk hodnoty = SHA-256(sůl + původní hodnota); zobrazeno prvních 24 znaků.", counts:"Začerněno / ponecháno", sig:"Elektronický podpis v originále", cols:["#","Typ","Str.","Maska","Otisk SHA-256","Zákonný důvod"], none:"Žádný údaj není označen k začernění.", page:"Strana" },
-      kbdNext:"Další nález", kbdPrev:"Předchozí nález", kbdRedact:"Anonymizovat vybraný", kbdKeep:"Ponechat vybraný",
+      sigWarning:"Pozor: Dokument obsahuje elektronický podpis. Znečitelněním vznikne nová kopie a původní kryptografický podpis bude zničen. Nelze použít pro autorizovanou konverzi.",
+      record:{ title:"Protokol o znečitelnění", internal:"INTERNÍ DOKUMENT – CITLIVÝ", notice:"Tento protokol je určen pouze pro interní potřebu a audit. Místo původních hodnot obsahuje jen masku (první znak a délku) a solený otisk SHA-256; u údajů s malou entropií (např. rodné číslo) nelze vyloučit zpětné dohledání, proto protokol nezveřejňujte.", file:"Dokument", operator:"Odpovědný pracovník", date:"Vygenerováno", profile:"Profil", mode:"Režim zpracování", rules:"Verze pravidel", hashIn:"SHA-256 vstupu", hashOut:"SHA-256 výstupu", notExported:"— (dokument zatím nebyl exportován)", reviewed:"Zkontrolováno", fourEyes:"Čtyři oči", yes:"ano", no:"ne", salt:"Sůl otisků", saltNote:"Otisk hodnoty = SHA-256(sůl + původní hodnota); zobrazeno prvních 24 znaků.", counts:"Znečitelněno / ponecháno", sig:"Elektronický podpis v originále", cols:["#","Typ","Str.","Maska","Otisk SHA-256","Zákonný důvod"], none:"Žádný údaj není označen k znečitelnění.", page:"Strana" },
+      kbdNext:"Další nález", kbdPrev:"Předchozí nález", kbdRedact:"Znečitelnit vybraný", kbdKeep:"Ponechat vybraný",
       profiles:{ registr:"Registr smluv (340/2015)", infoact:"InfZ (106/1999)", court:"Justiční rozhodnutí (vyhl. 403/2022 Sb.)", internal:"Interní AI (pseudonymy)", publicai:"Veřejná / externí AI", custom:"Vlastní pravidla" },
-      modes:{ box:"Nevratné začernění", xxxx:"Náhrada XXXX", label:"Třída [OSOBA]", pseudo:"Konzistentní TICKET_001" },
+      modes:{ box:"Znečitelnění (nevratné)", xxxx:"Náhrada XXXX", label:"Třída [OSOBA]", pseudo:"Pseudonymizace [OSOBA_001]" },
       suspicions:{ high:"Vysoké — méně promeškaných", medium:"Střední — kompromis", low:"Nízké — méně falešných poplachů" },
       cats:{ rc:"Rodné číslo", ico:"IČO", dic:"DIČ", account:"Účet / IBAN", phone:"Telefon", email:"E-mail", address:"Adresa / PSČ", dob:"Datum narození", name:"Jména a tituly", idcard:"Číslo dokladu", datovka:"Datová schránka", spz:"SPZ", geo:"Souřadnice", sigcert:"Podpisový certifikát", katastr:"Katastr nemovitostí", zahr_iban:"Zahraniční IBAN / SWIFT", doklady_extra:"Další doklady (pas, ŘP, ZTP)", secrets:"Tajemství", ticket:"Ticket / JIRA", system:"Interní systém", project:"Projekt", incident:"Incident / HD", casefile:"Č.j. / řízení", status:"Stav produkce", orgunit:"Orgán / útvar", host:"Interní URL / host", ip:"Privátní IP", credential:"Klíč / heslo" },
       tips:{
@@ -1014,12 +1004,12 @@ Orgán: OBÚ.
       name:"Znečitelně", tagline:"Redaction for agencies and public AI",
       themeDark:"Dark mode", themeLight:"Light mode",
       privacy:"Nothing is uploaded. Detection, redaction and process analysis stay on this device.",
-      trySample:"Try the sample contract", movieTutorial:"Video tutorial", newFile:"New file",
-      drop:"Drag & drop files (PDF, DOCX, XLSX, TXT, scans…)",
+      trySample:"Try the sample document", movieTutorial:"Video tutorial", newFile:"New document",
+      drop:"Drag & drop documents (PDF, DOCX, XLSX, TXT, scans…)",
       dropHint:"Or pick from storage. Supports PDF, DOCX, XLSX, TXT, spreadsheets and scans.",
       dropHintOcr:"Or pick from storage. Scanned documents and images supported via OCR.",
       enableOcr:"Enable OCR for image-only scans (slower, downloads ~15 MB of language data)",
-      browse:"Choose file", profile:"Publication profile", mode:"Output mode",
+      browse:"Choose document", profile:"Publication profile", mode:"Processing mode",
       suspicion:"Suspicion",
       categories:"Categories", secrets:"Trade secrets",
       systemsDict:"Internal systems and integrations",
@@ -1057,23 +1047,23 @@ Orgán: OBÚ.
       leakBad:"After redaction, patterns remain that a public AI could still misuse.",
       stripMeta:"Strip metadata",
       pdfaDecl:"PDF/A-2b declaration (XMP) – not certified conformance", pdfaNote:"The PDF only carries a PDF/A declaration (XMP); it is not certified PDF/A – embedded fonts and an OutputIntent are missing.", pdfaFontWarn:"Unembedded fonts found on page(s) {n}; these pages should be converted to raster for secure export.", pdfaFail:"Could not embed the PDF/A declaration.",
-      queueLbl:"File queue", queueAll:"Export all reviewed", queueNone:"No file in the queue has been reviewed yet.", queueDone:"Files exported: {n}", queueBad:"File “{f}” could not be loaded.", queueRemove:"Remove from queue", errPdfPassword:"PDF is password-protected. Please remove the password before processing.", errPdfInvalid:"PDF file is damaged or incomplete.", errFileEmpty:"File “{f}” is empty (0 bytes).", errFileTooLarge:"File “{f}” is too large (maximum is 100 MB).", errFileBinary:"File “{f}” is in an unsupported binary format.", errDocOld:"Legacy .doc format (Word 97-2003) should be saved as .docx or .pdf.", errImageNeedOcr:"Image processing (scans) requires OCR enabled in settings.",
+      queueLbl:"Dávková fronta", queueAll:"Export batch (ZIP)", queueNone:"No document in the queue has been reviewed yet.", queueDone:"Documents exported: {n}", queueBad:"Document “{f}” could not be loaded.", queueRemove:"Remove from queue", errPdfPassword:"PDF is password-protected. Please remove the password before processing.", errPdfInvalid:"PDF file is damaged or incomplete.", errFileEmpty:"Document “{f}” is empty (0 bytes).", errFileTooLarge:"Document “{f}” is too large (maximum is 100 MB).", errFileBinary:"Document “{f}” is in an unsupported binary format.", errDocOld:"Legacy .doc format (Word 97-2003) should be saved as .docx or .pdf.", errImageNeedOcr:"Image processing (scans) requires OCR enabled in settings.",
       truePdfRedact:"Truly remove redacted text from PDF (not just an image)",
       truePdfRedactHint:"Keeps the rest of the document as searchable text, in every output mode (black-box, XXXX, label, and pseudonym alike). Pages that can't be safely verified are still converted to an image.",
       morphBtn:"Declension: find all cases in text",
       morphTip:"Finds all grammatical cases, inflections and forms of this name in the document and unifies their pseudonym token.",
       morphToast:"Declension: found and matched {n} other inflected forms.",
       pdfSearchableVerified:"Secure searchable PDF: verified clean text layer with 0 redacted values.",
-      aiPack:"AI pack", includeOutline:"Attach process outline",
+      aiPack:"AI pack (ZIP)", includeOutline:"Attach process outline",
       publicGlossary:"Glossary without original values (for public AI)",
       readyPublic:"Reasonable to review for public AI",
       readyInternal:"Better for internal AI / further review",
       verdict:"Verdict",
       operator:"Responsible officer", operatorPh:"name / staff ID",
       original:"Original", result:"Proposal", previewChanges:"Preview changes", originalVersion:"Original version", redact:"Redact", keep:"Keep",
-      acceptAll:"Accept all", rejectAll:"Reject all", keepOfficials:"Keep public bodies",
-      reviewed:"Reviewed", secondEyes:"Second review", export:"Export", audit:"Audit JSON",
-      clear:"New session", noHits:"No hits.", confirmExport:"Sensitive data will be removed irreversibly.",
+      acceptAll:"Redact all", rejectAll:"Keep all", keepOfficials:"Keep public bodies",
+      reviewed:"Reviewed", secondEyes:"Second review", export:"Redact & export", audit:"Audit JSON",
+      clear:"Close document", noHits:"No hits.", confirmExport:"Sensitive data will be removed irreversibly.",
       diffTitle:"Text comparison before and after redaction",
       diffRemovedTitle:"Removed words for approval ({n})",
       diffNoRemoved:"No words are marked for redaction.",
@@ -1128,10 +1118,12 @@ Orgán: OBÚ.
       expertMode:"Show technical hit details", processToggle:"Show process breakdown",
       movieAdvancedHelp:"Start advanced walkthrough (video)",
       processAnalysisLabel:"Workflow exposure risk analysis",
-      quickMode:"Quick mode (hide advanced controls)",
+      quickMode:"Quick mode (compact view)",
+      toggleQuick:"Toggle view (Compact / Full)",
+      quickOn:"⚡ Compact view", quickOff:"⚡ Full view",
       fastApprove:"Accelerated approval",
       processHint:"The step/role/system estimate is attached to the AI pack as a separate file. It does not affect document redaction.",
-      barPosition:"Toolbar position", barPosBottom:"Bottom", barPosTop:"Top", barPosLeft:"Left", barPosRight:"Right",
+      barPosition:"Toolbar position", barPosBottom:"Bottom", barPosTop:"Top",
       settings:"Settings", apply:"Apply", cancel:"Cancel", confirmTitle:"Irreversible export",
       residual:"A suspicious string remains in the document.", residualOk:"No suspicious string remains in the document.",
       exported:"Export complete", walk:"of",
@@ -1142,21 +1134,21 @@ Orgán: OBÚ.
       legalOpts:{ trade:"Trade secret (§ 504 Civil Code)", gdpr:"Personal data (Art. 6 GDPR)", security:"Security protection", custom:"Custom basis…" },
       legalShort:{ trade:"§ 504 CC", gdpr:"Art. 6 GDPR", security:"Security", custom:"Custom" },
       legalCustomPh:"describe the basis",
-      legalTip:"Legal basis for redacting this item. Pre-filled from finding type and profile; included in the audit JSON and the Record.",
-      recordBtn:"Record (PDF)",
+      legalTip:"Legal basis for redacting this item. Pre-filled from finding type and profile; included in the audit JSON and the Record. Changes automatically propagate across all occurrences of the same entity.",
+      recordBtn:"Redaction record",
       recordTip:"Internal sensitive document: list of redacted items (mask + SHA-256 digest) with legal bases. Do not publish.",
       recordNeedPdfLib:"Cannot create the record — pdf-lib did not load (network).",
       sigWarning:"Warning: the document contains an electronic signature. Anonymisation creates a new copy and the original cryptographic signature will be destroyed. It cannot be used for an authorised conversion.",
-      record:{ title:"Anonymisation record", internal:"INTERNAL DOCUMENT - SENSITIVE", notice:"This record is for internal use and audit only. Instead of original values it holds only a mask (first character and length) and a salted SHA-256 digest; low-entropy values (e.g. birth numbers) may still be recoverable, so do not publish it.", file:"File", operator:"Responsible officer", date:"Generated", profile:"Profile", mode:"Output mode", rules:"Ruleset version", hashIn:"Input SHA-256", hashOut:"Output SHA-256", notExported:"- (not exported yet)", reviewed:"Reviewed", fourEyes:"Four eyes", yes:"yes", no:"no", salt:"Digest salt", saltNote:"Digest = SHA-256(salt + original value); first 24 characters shown.", counts:"Redacted / kept", sig:"E-signature in original", cols:["#","Type","Pg.","Mask","SHA-256 digest","Legal basis"], none:"No item is marked for redaction.", page:"Page" },
+      record:{ title:"Redaction record", internal:"INTERNAL DOCUMENT - SENSITIVE", notice:"This record is for internal use and audit only. Instead of original values it holds only a mask (first character and length) and a salted SHA-256 digest; low-entropy values (e.g. birth numbers) may still be recoverable, so do not publish it.", file:"Document", operator:"Responsible officer", date:"Generated", profile:"Profile", mode:"Processing mode", rules:"Ruleset version", hashIn:"Input SHA-256", hashOut:"Output SHA-256", notExported:"- (not exported yet)", reviewed:"Reviewed", fourEyes:"Four eyes", yes:"yes", no:"no", salt:"Digest salt", saltNote:"Digest = SHA-256(salt + original value); first 24 characters shown.", counts:"Redacted / kept", sig:"E-signature in original", cols:["#","Type","Pg.","Mask","SHA-256 digest","Legal basis"], none:"No item is marked for redaction.", page:"Page" },
       kbdNext:"Next hit", kbdPrev:"Previous hit", kbdRedact:"Redact selected", kbdKeep:"Keep selected",
       profiles:{ registr:"Register of Contracts (340/2015)", infoact:"Info Act (106/1999)", court:"Court Decisions (Decree 403/2022)", internal:"Internal AI (pseudonyms)", publicai:"Public / external AI", custom:"Custom rules" },
-      modes:{ box:"Irreversible black-box", xxxx:"Replace with XXXX", label:"Class [PERSON]", pseudo:"Consistent TICKET_001" },
+      modes:{ box:"Redaction (irreversible)", xxxx:"Replace with XXXX", label:"Class [PERSON]", pseudo:"Pseudonymisation [PERSON_001]" },
       suspicions:{ high:"High — fewer misses", medium:"Medium — compromise", low:"Low — fewer false positives" },
       cats:{ rc:"Birth number (RČ)", ico:"Company ID (IČO)", dic:"VAT ID (DIČ)", account:"Account / IBAN", phone:"Phone", email:"Email", address:"Address / postcode", dob:"Date of birth", name:"Names and titles", idcard:"ID document", datovka:"Data mailbox", spz:"Licence plate", geo:"Coordinates", sigcert:"Signature certificate", katastr:"Land registry (cadastre)", zahr_iban:"Foreign IBAN / SWIFT", doklady_extra:"Other documents (passport, licence, ZTP)", secrets:"Trade secrets", ticket:"Ticket / JIRA", system:"Internal system", project:"Project", incident:"Incident / HD", casefile:"Case file no.", status:"Production status", orgunit:"Body / unit", host:"Internal URL / host", ip:"Private IP", credential:"Key / password" },
       tips:{
         lang:"Switch language (CS / EN).", theme:"Switch light / dark mode.", help:"How redaction works.", features:"What the app can do.", changelog:"Version and change history.", sample:"A fictitious contract with a birth number, IČO and IBAN.", movie:"Guided walkthrough of the sample contract — pause, 1×/1.75×, skip step.",
         settings:"Profile, mode, suspicion and categories — editable during review too.",
-        quickMode:"Hides the hit list, output preview and process breakdown. Nothing is lost, it's just not shown.",
+        quickMode:"Hides the hit list and process breakdown for focused review. Nothing is lost, it's just streamlined.",
         fastApprove:"Hides Reviewed and Second review, and does not require an officer name on export.",
         ocr:"When a PDF is a scan (no text layer), Tesseract.js reads the text directly from the image. The first run downloads the Czech language model (~15 MB). All processing stays in the browser.",
         browse:"Searchable PDF, DOCX, XLSX or TXT.",
@@ -1166,8 +1158,8 @@ Orgán: OBÚ.
         reviewed:"Export stays locked without a human review.", exportLocked:"Tick Reviewed first.",
         previewChanges:"Shows the document as it will be exported — accepted hits are replaced.",
         originalVersion:"Shows the original text with highlighted hits.",
-        export:"Downloads an irreversibly redacted file. XLSX/PDF author metadata is cleared.", audit:"Downloads an audit log with cryptographic hashes and a summary of masked hits to document integrity.",
-        aiPack:"TXT + process outline + token glossary. The public glossary has no original strings.",
+        export:"Downloads an irreversibly redacted document. XLSX/PDF author metadata is cleared.", audit:"Downloads an audit log with cryptographic hashes and a summary of masked hits to document integrity.",
+        aiPack:"Unified AI pack (ZIP) with text, process outline and token glossary.",
         stripMeta:"The file quietly keeps the author, company and edit history even after the visible text is redacted. This function clears those hidden traces so the file itself doesn't give away who sent it or where from.",
         operator:"Name or staff ID is written into the audit JSON — who approved the export. Not required with accelerated approval.",
         includeOutline:"Attaches a markdown outline of inferred steps, roles and systems to the AI pack. It does not change document redaction.",
@@ -1175,17 +1167,17 @@ Orgán: OBÚ.
         confirmExport:"After confirm, sensitive data is removed from the output file irreversibly. The original stays on this device until you start a new session.",
         hashIn:"SHA-256 of the original file. The same digest is stored in the audit JSON so you can later prove what was exported.",
         cancelExport:"Closes the dialog without downloading. Checkbox choices are kept for the next export.",
-        goExport:"Downloads the redacted file in the same format. PDF/XLSX author metadata may be cleared.",
+        goExport:"Downloads the redacted document in the same format. PDF/XLSX author metadata may be cleared.",
         goAiPack:"Downloads plain text, an optional process outline and a token glossary — meant for a public AI.",
         expertMode:"For each hit, shows what triggered it (checksum, dictionary, pattern) and its internal entity key. Doesn't affect redaction itself, just adds detail for review.",
         process:"Local estimate of steps, roles and ticket links — nothing is sent to a cloud.",
         processAnalysis:"Infers steps, roles and systems from the text and flags if a workflow could still be reconstructed after redaction. Experimental, for extra-sensitive cases — heavier to compute.",
-        clear:"Drops the document from memory.", visual:"Switch between text and rendered PDF pages with finding overlays.", addSelection:"Select text in the original.",
+        clear:"Closes the open document and returns to start screen.", visual:"Switch between text and rendered PDF pages with finding overlays.", addSelection:"Select text in the original.",
         high:"Strong evidence (checksum, label, dictionary).", medium:"Heuristic — check for false positives.",
         suspicion:"High: catches more (risk of false positives). Low: stricter (risk of misses). Medium: compromise.",
         cats:{ rc:"Birth number with checksum.", ico:"8-digit company ID.", dic:"VAT ID.", account:"Czech account and IBAN.", phone:"Czech phone number.", email:"Email.", address:"Street, square, seat and postcode.", dob:"Date of birth in context — not a contract date.", name:"Titled, declined and initialised names.", idcard:"ID / passport number.", datovka:"Data mailbox ID.", spz:"Licence plate including EL.", geo:"Coordinates.", sigcert:"Personal certificate serial number and fingerprint, the serialNumber attribute and raw signature data. Inside a visible stamp only the signer name is covered — the frame, organisation, CA and date stay.", katastr:"Parcel numbers (parc. č. 123/4), ownership sheets (LV 456) and cadastral areas (k.ú. Nové Město).", zahr_iban:"Foreign IBANs (SK, DE, AT, PL…) verified by checksum, and SWIFT/BIC codes.", doklady_extra:"Passport, driving licence and ZTP card numbers — found by label or context.", secrets:"Your own secret phrases.", ticket:"JIRA-like IDs. Dictionary prefixes win.", system:"Names from your dictionary plus system/module/integration phrases.", project:"Ticket prefix or project name.", incident:"HD / INC / ops number.", casefile:"Case file no.", status:"Production status", orgunit:"Body / unit", host:"Internal URL / host", ip:"Private IPv4 (10/8, 192.168/16, 172.16/12).", credential:"Key / password" },
         profiles:{ registr:"Goes into the central Register of Contracts — redact per Act 340/2015 (personal data, trade secrets).", infoact:"A reply to a request under the Freedom of Information Act (106/1999).", court:"Publishing court decisions under Decree 403/2022 Coll. (exemptions for judges, public prosecutors, court seats, and legal citations).", internal:"For an internal tool with restricted access — values become consistent pseudonyms, not fully removed.", publicai:"The strictest profile — no company, systems or specific numbers, suited to public AI tools.", custom:"Set your own categories and dictionaries." },
-        modes:{ box:"The text is physically removed / blacked out in the file — it cannot be recovered.", xxxx:"Replaces the hit with an XXXX string of the same length.", label:"Replaces the hit with a generic category tag, e.g. [PERSON] or [ADDRESS].", pseudo:"The same value gets the same pseudonym (TICKET_001) throughout the document, so links stay readable." }
+        modes:{ box:"The text is physically redacted and removed from the file — it cannot be recovered.", xxxx:"Replaces the hit with an XXXX string of the same length.", label:"Replaces the hit with a generic category tag, e.g. [PERSON] or [ADDRESS].", pseudo:"The same real entity gets the same inflected token ([PERSON_001], etc.) throughout the document, so links stay readable." }
       }
     }
   };
@@ -1208,7 +1200,7 @@ Orgán: OBÚ.
     quickMode: (localStorage.getItem("znec-quick") === "1" || localStorage.getItem("znec-quick") === "0")
       ? localStorage.getItem("znec-quick") === "1"
       : (window.matchMedia ? window.matchMedia("(max-width: 720px)").matches : false),
-    barPos: (["top","bottom","left","right"].includes(localStorage.getItem("znec-barpos")) ? localStorage.getItem("znec-barpos") : "top"),
+    barPos: (["top","bottom"].includes(localStorage.getItem("znec-barpos")) ? localStorage.getItem("znec-barpos") : "bottom"),
     fastApprove: localStorage.getItem("znec-fastapprove") === "1",
     ocrEnabled: localStorage.getItem("znec-ocr") !== "0",
     operator: "", sigDetected: false, fileName: "", kind: "text", text: "", sourceBuf: null,
@@ -3886,6 +3878,16 @@ Orgán: OBÚ.
     return "0000000000000000000000000000000000000000000000000000000000000000";
   }
   function download(name, blob){
+    if (S._batchFiles && typeof S._batchFiles === "object") {
+      let finalName = name;
+      let counter = 1;
+      while (S._batchFiles[finalName]) {
+        finalName = name.replace(/(\.[^.]+$)/, `_${counter}$1`);
+        counter++;
+      }
+      S._batchFiles[finalName] = blob;
+      return;
+    }
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
@@ -4002,7 +4004,7 @@ Orgán: OBÚ.
       <label class="field">${t.suspicion} <button type="button" class="help-i" data-tip="${t.tips.suspicion}">?</button></label>
       <select id="${p}selSuspicion">${Object.entries(t.suspicions).map(([k,v])=>`<option value="${k}" ${S.suspicion===k?"selected":""}>${v}</option>`).join("")}</select>
       <label class="field">${t.barPosition}</label>
-      <select id="${p}selBarPos">${[["top",t.barPosTop],["bottom",t.barPosBottom],["left",t.barPosLeft],["right",t.barPosRight]].map(([k,v])=>`<option value="${k}" ${S.barPos===k?"selected":""}>${v}</option>`).join("")}</select>
+      <select id="${p}selBarPos">${[["bottom",t.barPosBottom],["top",t.barPosTop]].map(([k,v])=>`<option value="${k}" ${S.barPos===k?"selected":""}>${v}</option>`).join("")}</select>
       <p class="lbl">${t.layerPii}</p>
       <div class="cats">${PII_KEYS.map(k=>`<label><input type="checkbox" data-cat="${k}" ${S.enabled[k]?"checked":""} /> <span>${t.cats[k]}</span> <button type="button" class="help-i" data-tip="${t.tips.cats[k]}">?</button></label>`).join("")}</div>
       <p class="lbl">${t.layerOrg}</p>
@@ -4133,11 +4135,10 @@ Orgán: OBÚ.
     };
   }
   function reviewSkipped(){
-    return !!(S.quickMode || S.fastApprove);
+    return !!S.fastApprove;
   }
   function applyQuickMode(){
     document.body.classList.toggle("quick-mode", !!S.quickMode);
-    applyFastApprove();
   }
   function applyFastApprove(){
     document.body.classList.toggle("fast-approve", !!S.fastApprove);
@@ -4611,6 +4612,7 @@ Orgán: OBÚ.
       <span class="badge">${red} ${t.toRedact}</span>
       <span class="badge">${S.hits.length-red} ${t.kept}</span>
       <span class="badge">${S.seen.size} ${t.walk} ${S.hits.length}</span>
+      <button class="btn btn-sm btn-sec" id="btnToggleQuick" data-tip="${t.tips.quickMode}">${S.quickMode ? t.quickOff : t.quickOn}</button>
       <button class="btn btn-sm btn-sec" id="btnClear" data-tip="${t.tips.clear}">${t.clear}</button>`;
     const residualEl = $("residual");
     if (residualEl) {
@@ -4663,8 +4665,25 @@ Orgán: OBÚ.
         </div>
         ${sel.type === "name" ? `<button type="button" class="btn btn-sm btn-sec" id="btnMorphExpand" style="width:100%;margin-top:8px" data-tip="${escAttr(t.morphTip)}">🔍 ${esc(t.morphBtn)}</button>` : ""}`;
       $("btnR").onclick = () => patch(sel.id, true); $("btnK").onclick = () => patch(sel.id, false);
-      $("selLegal").onchange = (e) => { sel.legalBasis = e.target.value; paintReview(); };
-      $("inLegal").oninput = (e) => { sel.legalCustom = e.target.value; };
+      $("selLegal").onchange = (e) => {
+        const val = e.target.value;
+        sel.legalBasis = val;
+        if (sel.entityKey) {
+          S.hits.forEach(h => {
+            if (h.entityKey === sel.entityKey) h.legalBasis = val;
+          });
+        }
+        paintReview();
+      };
+      $("inLegal").oninput = (e) => {
+        const val = e.target.value;
+        sel.legalCustom = val;
+        if (sel.entityKey) {
+          S.hits.forEach(h => {
+            if (h.entityKey === sel.entityKey) h.legalCustom = val;
+          });
+        }
+      };
       if ($("btnMorphExpand")) {
         $("btnMorphExpand").onclick = () => {
           const beforeCount = S.hits.length;
@@ -4677,15 +4696,18 @@ Orgán: OBÚ.
 
     } else $("inspector").innerHTML = "";
     paintQuickHitBar(sel, t);
-    $("lblRes").textContent = t.result; $("result").textContent = replaced;
+    if ($("lblRes")) $("lblRes").textContent = t.result;
+    if ($("result")) $("result").textContent = replaced;
     if ($("lblProc")) $("lblProc").textContent = t.processTitle;
     if ($("processPane")) $("processPane").classList.toggle("hidden", !S.processAnalysis);
     if ($("processBox") && S.processAnalysis) $("processBox").innerHTML = processHTML(proc);
     const exportReady = !!(S.reviewed || reviewSkipped());
     $("bar").innerHTML = `<div class="bar-inner">
-      <button class="btn btn-sm btn-eq btn-sec" id="btnAll">${t.acceptAll}</button>
-      <button class="btn btn-sm btn-eq btn-sec" id="btnNone">${t.rejectAll}</button>
-      <button class="btn btn-sm btn-sec" id="btnOff" data-tip="${t.tips.keepOfficials}">${t.keepOfficials}</button>
+      <div class="btn-group bulk-group" role="group" aria-label="${esc(t.acceptAll)} / ${esc(t.rejectAll)}">
+        <button class="btn btn-sm btn-eq btn-sec" id="btnAll">${t.acceptAll}</button>
+        <button class="btn btn-sm btn-eq btn-sec" id="btnNone">${t.rejectAll}</button>
+        <button class="btn btn-sm btn-sec" id="btnOff" data-tip="${t.tips.keepOfficials}">${t.keepOfficials}</button>
+      </div>
       <label class="check" data-tip="${t.tips.reviewed}"><input type="checkbox" id="chkRev" ${S.reviewed?"checked":""}/> ${t.reviewed}</label>
       <label class="check"><input type="checkbox" id="chk2" ${S.secondEyes?"checked":""}/> ${t.secondEyes}</label>
       <div class="view-switch" role="group" aria-label="${esc(t.previewChanges)} / ${esc(t.originalVersion)}">
@@ -4694,10 +4716,19 @@ Orgán: OBÚ.
       </div>
       <span data-tip="${exportReady?t.tips.export:t.tips.exportLocked}"><button class="btn" id="btnExp" ${exportReady?"":"disabled"}>${t.export}</button></span>
       <span data-tip="${exportReady?(t.tips.aiPack||t.aiPack):t.tips.exportLocked}"><button class="btn btn-sec" id="btnAi" ${exportReady?"":"disabled"}>${t.aiPack}</button></span>
-      <button class="btn btn-sm btn-ghost btn-eq" id="btnAudit" type="button" data-tip="${t.tips.audit}" aria-describedby="tip">${t.audit}</button>
-      <span data-tip="${exportReady?escAttr(t.recordTip):t.tips.exportLocked}"><button class="btn btn-sm btn-ghost" id="btnRecord" type="button" ${exportReady?"":"disabled"}>🔒 ${t.recordBtn}</button></span>
     </div>`;
-    $("btnClear").onclick = reset;
+    $("btnToggleQuick").onclick = () => {
+      S.quickMode = !S.quickMode;
+      try { localStorage.setItem("znec-quick", S.quickMode ? "1" : "0"); } catch (_) {}
+      applyQuickMode();
+      paintReview();
+    };
+    $("btnClear").onclick = () => {
+      if (S.hits && S.hits.length && !confirm(S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.")) {
+        return;
+      }
+      reset();
+    };
     $("btnAll").onclick = () => { S.hits.forEach(h=>h.accept=true); paintReview(); };
     $("btnNone").onclick = () => { S.hits.forEach(h=>h.accept=false); paintReview(); };
     $("btnOff").onclick = () => {
@@ -4713,13 +4744,6 @@ Orgán: OBÚ.
     $("btnViewOrig").onclick = () => setDocView("original");
     $("btnExp").onclick = () => openExport(false);
     $("btnAi").onclick = () => openExport(true);
-    $("btnAudit").onclick = () => download("znecitelne-audit.json", new Blob([JSON.stringify(buildAudit(),null,2)], {type:"application/json"}));
-    $("btnRecord").onclick = async () => {
-      try {
-        const bytes = await exportProtocolPdf();
-        download((S.fileName||"document").replace(/\.[^.]+$/,"")+"-protokol.pdf", new Blob([bytes], {type:"application/pdf"}));
-      } catch (e) { toast(e.message||String(e)); }
-    };
     bindTips();
     requestAnimationFrame(updateBarHeightVar);
   }
@@ -4771,10 +4795,12 @@ Orgán: OBÚ.
   function applyBarPos(){
     const bar = $("bar");
     const qbar = $("quickHitBar");
-    if (bar) bar.setAttribute("data-pos", S.barPos || "top");
-    if (qbar) qbar.setAttribute("data-pos", S.barPos || "top");
+    const pos = (S.barPos === "top") ? "top" : "bottom";
+    S.barPos = pos;
+    if (bar) bar.setAttribute("data-pos", pos);
+    if (qbar) qbar.setAttribute("data-pos", pos);
     document.body.classList.remove("bar-pos-bottom","bar-pos-top","bar-pos-left","bar-pos-right");
-    document.body.classList.add("bar-pos-"+(S.barPos || "top"));
+    document.body.classList.add("bar-pos-"+pos);
     updateHeaderHeightVar();
     updateBarHeightVar();
   }
@@ -4790,12 +4816,7 @@ Orgán: OBÚ.
 
     const qbar = $("quickHitBar");
     const showingQuick = S.quickMode && qbar && !qbar.classList.contains("hidden") && document.body.classList.contains("hit-selected");
-    const pos = S.barPos || "top";
 
-    if (pos === "left" || pos === "right") {
-      document.documentElement.style.setProperty("--bar-h", "0px");
-      return;
-    }
     let total = exportH;
     if (showingQuick) total += Math.ceil(qbar.getBoundingClientRect().height) + 8;
     document.documentElement.style.setProperty("--bar-h", Math.max(total ? 56 : 0, total)+"px");
@@ -5685,6 +5706,8 @@ Orgán: OBÚ.
         publicGlossary: S.publicGlossary
       };
       S._batchExport = true;
+      S._batchFiles = {};
+      const batchAudits = [];
       try {
         for (const it of ready) {
           if (!it || !it.snap || !it.snap.reviewed) continue;
@@ -5700,6 +5723,7 @@ Orgán: OBÚ.
             if (ok) {
               const exportedHash = S.hashOut;
               it.snap = { ...it.snap, hashOut: exportedHash };
+              batchAudits.push(buildAudit());
               done++;
             } else {
               failed++;
@@ -5714,7 +5738,21 @@ Orgán: OBÚ.
             if (itemReturnState) restoreState(itemReturnState);
           }
         }
+        if (done > 0 && S._batchFiles) {
+          const flateLib = window.fflate || (typeof fflate !== "undefined" ? fflate : null);
+          if (flateLib && typeof flateLib.zipSync === "function") {
+            const zipEntries = {};
+            for (const [fname, fblob] of Object.entries(S._batchFiles)) {
+              zipEntries[fname] = new Uint8Array(await fblob.arrayBuffer());
+            }
+            zipEntries["audit-davka.json"] = flateLib.strToU8(JSON.stringify(batchAudits, null, 2));
+            const zipBytes = flateLib.zipSync(zipEntries);
+            S._batchFiles = null;
+            download("znecitelne-davka.zip", new Blob([zipBytes], {type:"application/zip"}));
+          }
+        }
       } finally {
+        S._batchFiles = null;
         S._batchExport = false;
         restoreState(batchReturnState);
         if (keepItem) {
@@ -6611,42 +6649,47 @@ Orgán: OBÚ.
         </p>
       </div>`;
 
-    if (S.quickMode) {
-      $("exportSheet").innerHTML = `<h2 data-tip="${tip("confirmExport")}">${t.confirmTitle}</h2>
-        <p style="color:var(--muted)" data-tip="${tip("confirmExport")}">${t.confirmExport}</p>
-        ${diffHtml}
-        <p class="mono" style="font-size:11px;color:var(--muted);word-break:break-all" data-tip="${tip("hashIn")}">SHA-256 ${esc(S.hashIn)}</p>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn" id="goExp" data-tip="${tip(aiPack?"goAiPack":"goExport")}">${t.diffApproveExport}</button>
-          <button class="btn btn-sec" id="noExp" data-tip="${tip("cancelExport")}">${t.cancel}</button>
-        </div>`;
-      $("noExp").onclick = () => $("exportModal").classList.add("hidden");
-      $("goExp").onclick = doExport;
-      bindTips();
-      return;
-    }
+    const isAi = !!aiPack;
+    const optionsHtml = S.quickMode ? "" : `
+      ${S.fastApprove ? "" : `<label class="field" data-tip="${tip("operator")}">${t.operator} ${help("operator")}</label>
+      <input type="text" id="opIn" value="${esc(S.operator)}" placeholder="${escAttr(t.operatorPh)}" data-tip="${tip("operator")}" />`}
+      ${!isAi ? `
+        <label class="check" data-tip="${tip("stripMeta")}"><input type="checkbox" id="exMeta" ${S.stripMeta?"checked":""}/> ${t.stripMeta} ${help("stripMeta")}</label>
+        <label class="check"><input type="checkbox" id="exPdfa" ${S.pdfaDecl?"checked":""}/> ${t.pdfaDecl}</label>
+      ` : `
+        <label class="check" data-tip="${tip("includeOutline")}"><input type="checkbox" id="exOut" ${S.includeOutline?"checked":""}/> ${t.includeOutline} ${help("includeOutline")}</label>
+        <label class="check" data-tip="${tip("publicGlossary")}"><input type="checkbox" id="exGloss" ${S.publicGlossary?"checked":""}/> ${t.publicGlossary} ${help("publicGlossary")}</label>
+      `}
+    `;
+
     $("exportSheet").innerHTML = `<h2 data-tip="${tip("confirmExport")}">${t.confirmTitle}</h2>
       <p style="color:var(--muted)" data-tip="${tip("confirmExport")}">${t.confirmExport}</p>
       ${diffHtml}
-      ${S.fastApprove?"":`<label class="field" data-tip="${tip("operator")}">${t.operator} ${help("operator")}</label>
-      <input type="text" id="opIn" value="${esc(S.operator)}" placeholder="${escAttr(t.operatorPh)}" data-tip="${tip("operator")}" />`}
-      <label class="check" data-tip="${tip("stripMeta")}"><input type="checkbox" id="exMeta" ${S.stripMeta?"checked":""}/> ${t.stripMeta} ${help("stripMeta")}</label>
-      <label class="check"><input type="checkbox" id="exPdfa" ${S.pdfaDecl?"checked":""}/> ${t.pdfaDecl}</label>
-      <label class="check" data-tip="${tip("includeOutline")}"><input type="checkbox" id="exOut" ${S.includeOutline?"checked":""}/> ${t.includeOutline} ${help("includeOutline")}</label>
-      <label class="check" data-tip="${tip("publicGlossary")}"><input type="checkbox" id="exGloss" ${S.publicGlossary?"checked":""}/> ${t.publicGlossary} ${help("publicGlossary")}</label>
+      ${optionsHtml}
       <p class="mono" style="font-size:11px;color:var(--muted);word-break:break-all" data-tip="${tip("hashIn")}">SHA-256 ${esc(S.hashIn)}</p>
-      <p style="font-size:12px;color:var(--muted)" data-tip="${tip(aiPack?"goAiPack":"goExport")}">v${RULES}${aiPack?" · AI pack":""}</p>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <button class="btn" id="goExp" data-tip="${tip(aiPack?"goAiPack":"goExport")}">${t.diffApproveExport}</button>
+      <p style="font-size:12px;color:var(--muted)" data-tip="${tip(isAi?"goAiPack":"goExport")}">v${RULES}${isAi?" · AI balíček (ZIP)":""}</p>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn" id="goExp" data-tip="${tip(isAi?"goAiPack":"goExport")}">${t.diffApproveExport}</button>
         <button class="btn btn-sec" id="noExp" data-tip="${tip("cancelExport")}">${t.cancel}</button>
+        <span style="flex:1"></span>
+        <button class="btn btn-sm btn-ghost btn-eq" id="btnAudit" type="button" data-tip="${tip("audit")}">${t.audit}</button>
+        <button class="btn btn-sm btn-ghost" id="btnRecord" type="button" data-tip="${escAttr(t.recordTip)}">🔒 ${t.recordBtn}</button>
       </div>`;
+
     const opIn = $("opIn"); if (opIn) opIn.oninput = (e) => S.operator = e.target.value;
-    $("exMeta").onchange = (e) => { S.stripMeta = e.target.checked; };
-    $("exPdfa").onchange = (e) => { S.pdfaDecl = e.target.checked; try { localStorage.setItem("znec-pdfa", e.target.checked ? "1" : "0"); } catch (_) {} };
-    $("exOut").onchange = (e) => { S.includeOutline = e.target.checked; };
-    $("exGloss").onchange = (e) => { S.publicGlossary = e.target.checked; };
+    const exMeta = $("exMeta"); if (exMeta) exMeta.onchange = (e) => { S.stripMeta = e.target.checked; };
+    const exPdfa = $("exPdfa"); if (exPdfa) exPdfa.onchange = (e) => { S.pdfaDecl = e.target.checked; try { localStorage.setItem("znec-pdfa", e.target.checked ? "1" : "0"); } catch (_) {} };
+    const exOut = $("exOut"); if (exOut) exOut.onchange = (e) => { S.includeOutline = e.target.checked; };
+    const exGloss = $("exGloss"); if (exGloss) exGloss.onchange = (e) => { S.publicGlossary = e.target.checked; };
     $("noExp").onclick = () => $("exportModal").classList.add("hidden");
     $("goExp").onclick = doExport;
+    $("btnAudit").onclick = () => download("znecitelne-audit.json", new Blob([JSON.stringify(buildAudit(),null,2)], {type:"application/json"}));
+    $("btnRecord").onclick = async () => {
+      try {
+        const bytes = await exportProtocolPdf();
+        download((S.fileName||"document").replace(/\.[^.]+$/,"")+"-protokol.pdf", new Blob([bytes], {type:"application/pdf"}));
+      } catch (e) { toast(e.message||String(e)); }
+    };
     bindTips();
   }
   /*
@@ -6872,18 +6915,37 @@ Orgán: OBÚ.
         }
       }
       if (S._aiPack) {
-        download(base+"-ai.txt", new Blob([replaced], {type:"text/plain;charset=utf-8"}));
-        if (S.includeOutline) download(base+"-process.md", new Blob([processMarkdown(info)], {type:"text/markdown;charset=utf-8"}));
         const gloss = buildGlossary(S.hits, packMode, S.lang, S.publicGlossary);
-        download(base+"-glossary.json", new Blob([JSON.stringify({
+        const glossJson = JSON.stringify({
           product:"Znečitelně", rulesVersion:RULES, public:!!S.publicGlossary,
           note: S.publicGlossary ? "Original values omitted for public AI." : "Previews are truncated.",
           tokens: gloss, leakScan: info.leaks, verdict: info.verdict
-        }, null, 2)], {type:"application/json"}));
-        if (window.PDFLib) {
-          const bytes = await exportTextPdf(replaced+"\n\n---\n"+processMarkdown(info), S.fileName+" AI pack");
-          S.hashOut = await sha256(bytes);
-          download(base+"-ai.pdf", new Blob([bytes], {type:"application/pdf"}));
+        }, null, 2);
+
+        const flateLib = window.fflate || (typeof fflate !== "undefined" ? fflate : null);
+        if (flateLib && typeof flateLib.zipSync === "function") {
+          const zipEntries = {};
+          zipEntries[base + "-ai.txt"] = flateLib.strToU8(replaced);
+          if (S.includeOutline) {
+            zipEntries[base + "-osnova.md"] = flateLib.strToU8(processMarkdown(info));
+          }
+          zipEntries[base + "-slovnik.json"] = flateLib.strToU8(glossJson);
+          if (window.PDFLib) {
+            const bytes = await exportTextPdf(replaced+"\n\n---\n"+processMarkdown(info), S.fileName+" AI pack");
+            S.hashOut = await sha256(bytes);
+            zipEntries[base + "-ai.pdf"] = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+          }
+          const zipBytes = flateLib.zipSync(zipEntries);
+          download(base + "-ai-pack.zip", new Blob([zipBytes], {type:"application/zip"}));
+        } else {
+          download(base+"-ai.txt", new Blob([replaced], {type:"text/plain;charset=utf-8"}));
+          if (S.includeOutline) download(base+"-process.md", new Blob([processMarkdown(info)], {type:"text/markdown;charset=utf-8"}));
+          download(base+"-glossary.json", new Blob([glossJson], {type:"application/json"}));
+          if (window.PDFLib) {
+            const bytes = await exportTextPdf(replaced+"\n\n---\n"+processMarkdown(info), S.fileName+" AI pack");
+            S.hashOut = await sha256(bytes);
+            download(base+"-ai.pdf", new Blob([bytes], {type:"application/pdf"}));
+          }
         }
       }
       if (pdfaNotes.length) S._exportNotice = ((S._exportNotice || t.exported) + " " + pdfaNotes[0]).trim();
@@ -7490,7 +7552,7 @@ Orgán: OBÚ.
       },
       highlight: () => {
         const m = Array.from($("orig").querySelectorAll(".mk-preview")).filter(e => /TICKET/i.test(e.textContent));
-        return m.length ? m : $("result");
+        return m.length ? m : $("orig");
       },
       holdMs: 9000
     },
@@ -7577,7 +7639,7 @@ Orgán: OBÚ.
       holdMs: 9500
     },
     {
-      setup: () => { closeSettings(); },
+      setup: () => { closeSettings(); openExport(false); },
       caption: () => movieCaption(
         "Tlačítko „Audit JSON“ stáhne technický protokol. Slouží k pozdějšímu formálnímu doložení rozsahu anonymizace, aniž byste si museli ukládat citlivý originál.",
         "The 'Audit JSON' button downloads a technical protocol. It serves as later formal proof of the redaction scope without the need to store the sensitive original."
@@ -7586,7 +7648,7 @@ Orgán: OBÚ.
       holdMs: 8500
     },
     {
-      setup: () => { closeSettings(); },
+      setup: () => { if ($("exportModal")) $("exportModal").classList.add("hidden"); closeSettings(); },
       chapter: () => movieCaption("Kapitola 7 — Pokročilé funkce", "Chapter 7 — Advanced functions"),
       caption: () => movieCaption(
         "Následující funkce jsou pokročilé a pro běžnou agendu je nebudete potřebovat. Tlačítkem ⏭️ posunete tutoriál o krok dál, křížkem ✖️ ho ukončíte.",
@@ -7607,8 +7669,8 @@ Orgán: OBÚ.
     {
       setup: () => { openSettings(); },
       caption: () => movieCaption(
-        "Ovládací lištu si můžete přesunout (nahoru/dolů/do stran) podle toho, jak vám to vyhovuje. Na samotnou anonymizaci to nemá vliv.",
-        "You can move the toolbar (top/bottom/sides) to whatever is most comfortable for you. It does not affect the redaction itself."
+        "Ovládací lištu si můžete přesunout (nahoru/dolů) podle toho, jak vám to vyhovuje. Na samotnou anonymizaci to nemá vliv.",
+        "You can move the toolbar (top/bottom) to whatever is most comfortable for you. It does not affect the redaction itself."
       ),
       highlight: "m_selBarPos",
       holdMs: 7000

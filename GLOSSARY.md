@@ -38,7 +38,7 @@ _Avoid_: Šablona, Nastavení, Exportní předvolba
 
 **Režim zpracování**:
 Globální způsob transformace nálezů v dokumentu vymezený profilem publikace (buď plné Znečitelnění, nebo Pseudonymizace).
-_Avoid_: Metoda, Akce
+_Avoid_: Metoda, Akce, Režim výstupu
 
 **Stav schválení**:
 Přezkum dokumentu uživatelem před exportem (např. ruční kontrola, princip čtyř očí nebo zrychlené schvalování) potvrzující správnost navržených zásahů.
@@ -49,7 +49,7 @@ Strojově čitelný záznam o provedené anonymizaci obsahující kryptografick�
 _Avoid_: Log, Protokol o změnách, Historie úprav
 
 **AI balíček**:
-Ucelený exportní soubor pro jazykové modely obsahující jak pseudonymizovaný text dokumentu, tak strukturovaný přehled rolí, systémů a kroků procesu bez úniku identit.
+Ucelený exportní archiv (ZIP) pro jazykové modely obsahující jak pseudonymizovaný text dokumentu, tak strukturovaný přehled rolí, systémů a kroků procesu bez úniku identit.
 _Avoid_: Exportní archiv, Kontejner, Datový balík
 
 **Dávková fronta**:
@@ -61,7 +61,7 @@ Grafické zobrazení elektronického podpisu v dokumentu, u něhož se anonymizu
 _Avoid_: Elektronický podpis (pro vizuální prvek), Razítko, Podpisová pečeť
 
 **Projektový slovník**:
-Externí soubor s interními názvy systémů, kódovými označeními projektů a organizačních jednotek, který se do aplikace načítá jednorázově pro dané sezení bez trvalého ukládání v prohlížeči.
+Sada interních názvů systémů, kódových označení projektů a organizačních jednotek zadaná v nastavení nebo načtená ze souboru jednorázově pro dané sezení bez trvalého ukládání v prohlížeči.
 _Avoid_: Uživatelské nastavení, Globální slovník, Interní databáze
 
 **Dokumentová mezipaměť entit**:
