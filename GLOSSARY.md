@@ -72,3 +72,12 @@ _Avoid_: Entity Cache, Globální registr nálezů
 Frekvenčně vážená databáze vlastních jmen integrovaná v aplikaci, sloužící k deterministickému ověřování a doplňování personálních nálezů.
 _Avoid_: Jmenný slovník, Seznam osob, Gazetteer
 
+**Administrativní návěští**:
+Strukturní zarážka v úředních a správních dokumentech (např. *Zapsal:*, *Schválil:*, *Přítomni:*, *Omluveni:*, *Odpovídá:*, *Termín:*), která uvozuje agendovou rubriku a slouží jako dopředný kontextový spouštěč pro následující personální údaje, ale sama je z nálezu striktně vyloučena.
+_Avoid_: Hlavička, Titulek, Popisek pole, Prefiks jména
+
+**Slovesná desambiguace**:
+Morfologické odlišení minulých a trpných slovesných participií (např. *schválil*, *omluven*, *zahájil*) od homonymních českých příjmení slovesného původu (*Pospíšil*, *Navrátil*) prostřednictvím Onomastického registru a syntaktických valenčních vazeb.
+_Avoid_: Blacklist sloves, Zakázaná slova, Hardcoded filtrace
+
+

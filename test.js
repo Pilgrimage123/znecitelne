@@ -567,10 +567,11 @@ try {
   const binaryDecodeCode = scriptContent.slice(scriptContent.indexOf("function decodeTextBuffer("), scriptContent.indexOf("function extractRtfText("));
 
   const parseRCCode = scriptContent.slice(scriptContent.indexOf("function parseRC("), scriptContent.indexOf("function pageOf("));
+  const verbParticipleCode = scriptContent.slice(scriptContent.indexOf("const RE_AGENDA_APELATIVA ="), scriptContent.indexOf("const RE_CZECH_SURNAMES ="));
   const isLikelyCode = scriptContent.slice(scriptContent.indexOf("function isLikelyNonPersonName("), scriptContent.indexOf("function detect("));
   const declinedCode = scriptContent.slice(scriptContent.indexOf("function declinedPersonTokenBase("), scriptContent.indexOf("function makeReplacer("));
 
-  vm.runInContext(rtfCode + "\n" + findAllCode + "\n" + dictReCode + "\n" + assertPdfCode + "\n" + docxRelCode + "\n" + toBytesCode + "\n" + binaryDecodeCode + "\n" + parseRCCode + "\n" + isLikelyCode + "\n" + declinedCode, sandbox);
+  vm.runInContext(rtfCode + "\n" + findAllCode + "\n" + dictReCode + "\n" + assertPdfCode + "\n" + docxRelCode + "\n" + toBytesCode + "\n" + binaryDecodeCode + "\n" + parseRCCode + "\n" + verbParticipleCode + "\n" + isLikelyCode + "\n" + declinedCode, sandbox);
 
   // 1. RTF extraction preserves file paths with escaped backslashes
   const rtfPath = sandbox.extractRtfText("{\\rtf1 C:\\\\temp\\\\file.txt}");
@@ -1467,6 +1468,53 @@ try {
     check(
       !ocrShortNovak,
       `Short token N0vák (length 5 < 6) must NOT trigger OCR fuzzy match (got: ${JSON.stringify(ocrShortHits)})`
+    );
+
+    // Ticket 06: Strukturní hranice textu a slovesná desambiguace (ADR-0005)
+    const testMinutesSnippet = `Zápis z porady ředitelů č. 32 SBS 51822/2026
+ze dne 14. září 2026
+Zapsal: Ing. Mgr. Jiří Fröhlich
+Schválil: PhDr. JUDr. Vítězslav Urbanec, Ph.D.
+Přítomni: Ing. Martin Štemberka, Ph.D., Ing. Mgr. Jiří Fröhlich, Ing. Dušan Havel, MPA
+Omluveni: Ing. Radim Mžyk
+Poradu zahájil předseda ČBÚ.`;
+    const minutesHits = detect(testMinutesSnippet, { name: true }, []);
+    const minutesNameValues = minutesHits.filter(h => h.type === "name").map(h => h.value);
+    const forbiddenLabels = ["schválil", "omluven", "omluveni", "poradu", "porady", "zapsal", "přítomni"];
+    for (const f of forbiddenLabels) {
+      check(
+        !minutesNameValues.some(v => v.toLowerCase().includes(f)),
+        `Administrative label or agenda token "${f}" must NOT be detected as person name in minutes snippet (got: ${JSON.stringify(minutesNameValues)})`
+      );
+    }
+    check(
+      minutesNameValues.some(v => v.includes("Jiří Fröhlich")),
+      `Jiří Fröhlich must be detected in minutes snippet (got: ${JSON.stringify(minutesNameValues)})`
+    );
+    check(
+      minutesNameValues.some(v => v.includes("Vítězslav Urbanec")),
+      `Vítězslav Urbanec must be detected in minutes snippet (got: ${JSON.stringify(minutesNameValues)})`
+    );
+    check(
+      minutesNameValues.some(v => v.includes("Radim Mžyk")),
+      `Radim Mžyk must be detected in minutes snippet (got: ${JSON.stringify(minutesNameValues)})`
+    );
+
+    // Real Czech surnames of verbal origin must remain protected and detected
+    const verbalSurnamesSnippet = "Jednání vedl Jan Pospíšil a dohodu schválil Petr Navrátil.";
+    const verbalHits = detect(verbalSurnamesSnippet, { name: true }, []);
+    const verbalValues = verbalHits.filter(h => h.type === "name").map(h => h.value);
+    check(
+      verbalValues.some(v => v.includes("Pospíšil")),
+      `Real surname Pospíšil must be detected as person name (got: ${JSON.stringify(verbalValues)})`
+    );
+    check(
+      verbalValues.some(v => v.includes("Navrátil")),
+      `Real surname Navrátil must be detected as person name (got: ${JSON.stringify(verbalValues)})`
+    );
+    check(
+      !verbalValues.some(v => v.toLowerCase().includes("schválil")),
+      `Verb schválil must NOT be detected as person name in: "${verbalSurnamesSnippet}" (got: ${JSON.stringify(verbalValues)})`
     );
 
     // 6. Zero-Network integrity (ADR-0002)

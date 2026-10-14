@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-14
+
+- Strukturní hranice textu a slovesná desambiguace v personálních nálezech (ADR-0005):
+  - **Rekonstrukce řádkových zlomů v PDF textové vrstvě (`pageTextFromItems`, `mapPageGlyphs`):** Odstraněno plošné spojování textových položek mezerou (`" "`). Při detekci významného vertikálního poklesu baseline ($\Delta y > 0{,}45 \times \text{fontH}$) mezi sousedními položkami se do extrahovaného textu i mapy glyfů vkládá znak nového řádku (`\n`). Tím se zabraňuje slévání záhlaví, seznamů a administrativních rubrik do jednoho souvislého řádku.
+  - **Inteligentní slovesná a participiální desambiguace (`isCzechVerbOrParticiple`):** Implementováno morfologické rozpoznávání minulých tvarů sloves (l-participle `-il`, `-ila`, `-al`, `-ěl`, `-ul`), trpných příčestí (`-en`, `-ena`, `-eni`, `-án`) a kmenů typických úředních sloves (*schválil*, *omluven*, *zapsal*, *zahájil*, *projednal*, *odpovídá*). Rozpoznávání je svázáno s onomastickým registrem (`isOnomasticName`, `NAMES`): skutečná historická příjmení slovesného původu (*Pospíšil*, *Navrátil*, *Zapletal*, *Vybíral*) zůstávají plně zachována a chráněna, zatímco běžná administrativní slovesa jsou spolehlivě odmítnuta jako osoby.
+  - **Ochrana administrativních návěští a potlačení agendových apelativ:** Regulární výraz pro titulovaná jména byl ohraničen horizontálními bílými znaky `[ \t]+` a negativním dopředným pohledem `(?!\p{Lu}\p{Ll}*:)`, aby nedocházelo ke spolknutí následujících návěští se dvojtečkou (*Schválil:*, *Omluveni:*). Běžná jednací apelativa (*porada*, *poradu*, *poradě*, *zasedání*, *jednání*, *úkol*) byla doplněna do `SENTENCE_INITIAL_APELATIVA` a `isLikelyNonPersonName`.
+  - **Sanitace mezipaměti entit (`EntityPropagationCache`):** Generování pádových paradigmat a zpětná validace v mezipaměti entit nově filtruje agendová apelativa a slovesné tvary, čímž se eliminuje lavinové šíření falešných pozitiv do celého dokumentu.
+  - **Regresní testovací brána:** Do `test.js` a in-app `selfTest()` doplněny testy pro reálné úryvky zápisů z porad, desambiguaci sloves a zachování skutečných slovesných příjmení.
+
 ## 2026-10-13
 
 - Bezpečný audit kódu a výkonnostní optimalizace:

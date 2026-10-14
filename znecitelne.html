@@ -727,8 +727,9 @@ body.movie-active #settingsSheet {
   const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];
   const KEYS = PII_KEYS.concat(ORG_KEYS);
 
-  const RULES = "2026.10.05-ai31";
+  const RULES = "2026.10.14-ai39";
   const CHANGELOG = [
+    { version: "2026.10.14-ai39", notes: { cs: "Strukturní hranice textu a slovesná desambiguace v personálních nálezech (ADR-0005): rekonstrukce řádkových zlomů (\\n) v PDF textové vrstvě podle delta y baseline, inteligentní slovesná a participiální desambiguace (l-participle, pasivní příčestí, administrativní slovesné kmeny) provázaná s paměťovým trie onomastického registru se zachováním skutečných slovesných příjmení (Pospíšil, Navrátil), potlačení administrativních návěští (Schválil:, Omluveni:) a agendových apelativ (porada, poradu, zasedání) z falešně pozitivních detekcí osob i celodokumentové mezipaměti entit.", en: "Structural text boundaries and verbal disambiguation in personal entity findings (ADR-0005): PDF line-break reconstruction (\\n) via baseline vertical delta tracking, intelligent verbal and participle disambiguation (l-participles, passive participles, administrative stems) against the in-memory onomastic trie preserving authentic verbal surnames (Pospíšil, Navrátil), suppression of administrative labels (Schválil:, Omluveni:) and agenda nouns (porada, poradu, zasedání) from false-positive person detection and entity propagation cache." } },
     { version: "2026.10.13-ai38", notes: { cs: "Bezpečný audit kódu a výkonnostní optimalizace: jednoprůchodový lineární apply() O(L+H), ohraničený 200znakový kontextový lookback v isSentenceStart(), mapové O(1) indexování duplicit v detect(), binární vyhledávání intervalů v EntityPropagationCache a exportXlsxFile, reverzní shlukování řádků v pdfWordQuads, memoizace kontroly úniků v paintReview(), konsolidace docxMakeWork a terminologické zarovnání dle GLOSSARY.md.", en: "Safe code audit and performance optimization: single-pass linear apply() O(L+H), bounded 200-char context lookback in isSentenceStart(), Map-based O(1) duplicate indexing in detect(), binary search interval indexing in EntityPropagationCache and exportXlsxFile, reverse line clustering in pdfWordQuads, memoized leak analysis in paintReview(), docxMakeWork consolidation, and terminology alignment per GLOSSARY.md." } },
     { version: "2026.10.13-ai37", notes: { cs: "Klientská hybridní detekce vlastních jmen (ADR-0004): Onomastický registr v paměťovém trie přes fflate (offline bez sítě dle ADR-0002), desambiguace větných verzálek a kontextové triggery pro úřední a procesní role, Dokumentová mezipaměť entit (EntityPropagationCache) pro celo-dokumentové šíření skloňovaných tvarů dle ADR-0003, profil publikace Justiční rozhodnutí (vyhl. 403/2022 Sb.) s autoritním whitelistem soudců, sídel a judikatury, a OCR fuzzy tolerance pro digitalizované dokumenty.", en: "Client-side hybrid Czech propria detection (ADR-0004): Onomastic registry in an in-memory trie via fflate (offline Zero-Network ADR-0002), sentence boundary disambiguation and contextual triggers for procedural/official roles, Document Entity Propagation Cache (EntityPropagationCache) for whole-document declension spreading per ADR-0003, Court Decisions publication profile (Decree 403/2022 Coll.) with statutory whitelist for judges, seats and case citations, and OCR fuzzy tolerance for digitized records." } },
     { version: "2026.10.13-ai36", notes: { cs: "Oprava falešných detekcí a skloňování v morfologické expanzi: validace kandidátů pomocí isLikelyNonPersonName (ochrana běžných slov a geografických názvů), podpora post-nominálních titulů s interpunkcí u pádových pseudonymizačních tokenů a sjednocení samotestů se specifikací ADR-0003.", en: "Fix false positive person detections and morphological expansion: candidate validation via isLikelyNonPersonName (protecting common words and place names), support for post-nominal titles and punctuation in declined pseudonym tokens, and regression self-test alignment with ADR-0003." } },
@@ -1404,7 +1405,25 @@ Orgán: OBÚ.
     if (/ová$/u.test(t)) return t.replace(/ová$/u, "");
     return t;
   }
-  const RE_CZECH_SURNAMES = /(?:ová|ský|cká|cký|ek|ík|ák|ář|íř|ec|áč|ič|ný|ná|lý|lá|tý|tá|vý|vá|chý|chá|mý|má|eš|oš|uš|iš|il|ál|el|ů|íl|ír|ka|da|ra|la|ta|va)$/iu;
+  const RE_AGENDA_APELATIVA = /^(?:porad|jednán|zasedán|program|úkol|kontrol|předpis|zpráv|usnesen|rozhodnut|přehled|vývoj|činnost|řízení|hlášenk)[a-záčďéěíňóřšťúůýž]*$/iu;
+  const RE_PAST_L_PARTICIPLE = /^[a-záčďéěíňóřšťúůýž]{3,}(?:il|ila|ilo|ili|ily|al|ala|alo|ali|aly|el|ela|elo|eli|ely|ěl|ěla|ělo|ěli|ěly|ul|ula|ulo|uli|uly|l|la|lo|li|ly)$/iu;
+  const RE_PASSIVE_PARTICIPLE = /^[a-záčďéěíňóřšťúůýž]{3,}(?:en|ena|eno|eni|eny|án|ána|áno|áni|ány|t|ta|to|ti|ty)$/iu;
+  const ADMIN_VERB_STEMS = /^(?:schvál|omluv|zaps|zaháj|projedn|informov|odpovíd|zprac|předlož|odroč|přeruš|rozhod|zamít|ulož|usnes|zvol|stanov|vyzv|vyhotov|podeps)[a-záčďéěíňóřšťúůýž]*$/iu;
+
+  function isCzechVerbOrParticiple(word) {
+    if (!word) return false;
+    const st = typeof stripTitle === "function" ? stripTitle(word) : word;
+    const low = st.toLocaleLowerCase("cs").replace(/[.,;:!?]/g, "").trim();
+    const hasName = (typeof NAMES !== "undefined" && NAMES && NAMES.has(low)) ||
+                    (typeof isOnomasticName === "function" && isOnomasticName(low));
+    if (hasName) return false;
+    if (typeof ADMIN_VERB_STEMS !== "undefined" && ADMIN_VERB_STEMS.test(low)) return true;
+    if (typeof RE_PAST_L_PARTICIPLE !== "undefined" && RE_PAST_L_PARTICIPLE.test(low)) return true;
+    if (typeof RE_PASSIVE_PARTICIPLE !== "undefined" && RE_PASSIVE_PARTICIPLE.test(low) && /^(?:o|po|za|z|před|při|od|u|do|vy|na|roz|pře|se)/i.test(low)) return true;
+    return false;
+  }
+
+  const RE_CZECH_SURNAMES = /(?:ová|ský|cká|cký|ek|ík|ák|ář|íř|ec|áč|ič|ný|ná|lý|lá|tý|tá|vý|vá|chý|chá|mý|má|eš|oš|uš|iš|ů|íl|ír|ka|da|ra|la|ta|va)$/iu;
   function looksName(token){
     if (!token) return false;
     const t = stripTitle(token);
@@ -1412,8 +1431,11 @@ Orgán: OBÚ.
     const low = t.toLocaleLowerCase("cs");
     if (NAMES.has(low) || isOnomasticName(low)) return true;
     if (/^\p{Lu}\.$/u.test(t)) return true;
+    if (isCzechVerbOrParticiple(low)) return false;
+    if (RE_AGENDA_APELATIVA.test(low) && !NAMES.has(low) && !isOnomasticName(low)) return false;
     const stem = stemNamePart(t);
     if (NAMES.has(stem) || isOnomasticName(stem)) return true;
+    if (isCzechVerbOrParticiple(stem)) return false;
     return RE_CZECH_SURNAMES.test(t) || RE_CZECH_SURNAMES.test(stem);
   }
   const ROLE_WORDS_SET = new Set([
@@ -1607,7 +1629,7 @@ Orgán: OBÚ.
     const parts = raw.split(/\s+/).map(stripTitle).filter(Boolean)
       .filter(p => {
         const low = p.toLocaleLowerCase("cs").replace(/[.,]/g, "");
-        return !TITLES.includes(low) && !ROLE_WORDS_SET.has(low);
+        return !TITLES.includes(low) && !ROLE_WORDS_SET.has(low) && !isCzechVerbOrParticiple(low) && !(RE_AGENDA_APELATIVA.test(low) && !NAMES.has(low) && !isOnomasticName(low));
       });
     if (!parts.length) return [];
     const forms = new Set();
@@ -1672,27 +1694,33 @@ Orgán: OBÚ.
 
     isConfirmedEntity(h) {
       if (h.type !== "name") return false;
-      if (h.reasons && h.reasons.some(r => r.startsWith("trigger:") || r === "dict" || r === "titled")) return true;
       const clean = String(h.value || "").replace(/,.*$/, "").trim();
       const parts = clean.split(/\s+/).map(stripTitle).filter(Boolean)
         .filter(p => {
           const low = p.toLocaleLowerCase("cs").replace(/[.,]/g, "");
-          return !TITLES.includes(low) && !ROLE_WORDS_SET.has(low);
+          return !TITLES.includes(low) && !ROLE_WORDS_SET.has(low) && !isCzechVerbOrParticiple(low) && !(RE_AGENDA_APELATIVA.test(low) && !NAMES.has(low) && !isOnomasticName(low));
         });
+      if (parts.length === 1) {
+        const low = parts[0].toLocaleLowerCase("cs").replace(/[.,]/g, "");
+        if (isCzechVerbOrParticiple(low) || (RE_AGENDA_APELATIVA.test(low) && !NAMES.has(low) && !isOnomasticName(low))) return false;
+        return isOnomasticName(parts[0]) || NAMES.has(low);
+      }
+      if (h.reasons && h.reasons.some(r => r.startsWith("trigger:") || r === "dict" || r === "titled")) return true;
       if (parts.length >= 2) return true;
-      if (parts.length === 1 && isOnomasticName(parts[0])) return true;
       return false;
     }
 
     isPrimaryHit(h) {
       if (!h || h.type !== "name") return false;
-      if (h.reasons && h.reasons.some(r => r.startsWith("trigger:") || r === "titled")) return true;
       const clean = String(h.value || "").replace(/,.*$/, "").trim();
       const parts = clean.split(/\s+/).map(stripTitle).filter(Boolean)
         .filter(p => {
           const low = p.toLocaleLowerCase("cs").replace(/[.,]/g, "");
-          return !TITLES.includes(low) && !ROLE_WORDS_SET.has(low);
+          return !TITLES.includes(low) && !ROLE_WORDS_SET.has(low) && !isCzechVerbOrParticiple(low) && !(RE_AGENDA_APELATIVA.test(low) && !NAMES.has(low) && !isOnomasticName(low));
         });
+      if (h.reasons && h.reasons.some(r => r.startsWith("trigger:") || r === "titled")) {
+        return parts.length >= 1;
+      }
       return parts.length >= 2;
     }
 
@@ -2121,19 +2149,51 @@ Orgán: OBÚ.
       "září",
       "říjen",
       "listopad",
-      "prosinec"
+      "prosinec",
+      "porada",
+      "poradu",
+      "poradě",
+      "porady",
+      "zasedání",
+      "jednání",
+      "program",
+      "kontrola",
+      "úkol",
+      "úkoly",
+      "schválil",
+      "schválila",
+      "schváleno",
+      "omluven",
+      "omluvena",
+      "omluveni",
+      "omluveno",
+      "zapsal",
+      "zapsala",
+      "přítomen",
+      "přítomna",
+      "přítomni",
+      "odpovídá",
+      "zpracoval",
+      "zpracovala",
+      "zpracuje",
+      "uloženo",
+      "různé"
     ]);
 
-    if (!name.includes(" ") && commonWords.has(name)) return true;
+    const checkVerb = typeof isCzechVerbOrParticiple === "function" ? isCzechVerbOrParticiple : () => false;
+    const checkAgenda = (w) => (typeof RE_AGENDA_APELATIVA !== "undefined" && RE_AGENDA_APELATIVA) ? RE_AGENDA_APELATIVA.test(w) : false;
+    const checkName = (w) => (typeof NAMES !== "undefined" && NAMES && NAMES.has(w)) || (typeof isOnomasticName === "function" && isOnomasticName(w));
+
+    if (!name.includes(" ") && (commonWords.has(name) || checkVerb(name) || (checkAgenda(name) && !checkName(name)))) return true;
 
     // Sentence-initial token desambiguation
     if (Number.isInteger(start) && start >= 0 && isSentenceStart(src, start)) {
       if (!name.includes(" ")) {
-        if (SENTENCE_INITIAL_APELATIVA.has(name) || commonWords.has(name)) return true;
+        if (SENTENCE_INITIAL_APELATIVA.has(name) || commonWords.has(name) || checkVerb(name) || (checkAgenda(name) && !checkName(name))) return true;
       } else {
         const parts = name.split(" ");
         const isKnownFirstName = (typeof FIRST_NAMES !== "undefined" && FIRST_NAMES) ? FIRST_NAMES.has(parts[0]) : (typeof NAMES !== "undefined" && NAMES ? NAMES.has(parts[0]) : false);
-        if (SENTENCE_INITIAL_APELATIVA.has(parts[0]) && (!isKnownFirstName || commonWords.has(parts[1]) || SENTENCE_INITIAL_APELATIVA.has(parts[1]))) {
+        if ((SENTENCE_INITIAL_APELATIVA.has(parts[0]) || checkVerb(parts[0]) || (checkAgenda(parts[0]) && !checkName(parts[0]))) && (!isKnownFirstName || commonWords.has(parts[1]) || SENTENCE_INITIAL_APELATIVA.has(parts[1]) || checkVerb(parts[1]))) {
           return true;
         }
       }
@@ -2216,7 +2276,16 @@ Orgán: OBÚ.
     "přístup", "postup", "způsob", "systém", "technika", "stavba", "práce",
     "termín", "lhůta", "doba", "den", "měsíc", "rok", "datum",
     "částka", "cena", "platba", "poplatek", "úhrada", "náklad", "náklady", "odměna", "pokuta",
-    "ředitel", "vedoucí", "starosta", "primátor", "ministr", "předseda"
+    "ředitel", "vedoucí", "starosta", "primátor", "ministr", "předseda",
+    "porada", "poradu", "poradě", "porady", "poradou", "poradám", "poradách", "poradami",
+    "zasedání", "jednání", "program", "kontrola", "úkol", "úkoly",
+    "schválil", "schválila", "schválili", "schváleno",
+    "omluven", "omluvena", "omluveni", "omluveno",
+    "zapsal", "zapsala", "zapsáno",
+    "přítomen", "přítomna", "přítomni",
+    "zahájil", "zahájila", "zahájeno",
+    "informoval", "informovala", "informováno",
+    "odpovídá", "zpracoval", "zpracovala", "zpracuje", "uloženo", "různé"
   ]);
 
   function detect(text, enabled, secrets, options){
@@ -2459,11 +2528,36 @@ Orgán: OBÚ.
 
       const titlePat = TITLES.map(tp => tp.split("").map(c => "["+c.toUpperCase()+c.toLowerCase()+"]").join("")).join("|");
       const postTitles = "Ph\\.?D\\.?|CSc\\.?|DrSc\\.?|DiS\\.?|MBA|LL\\.?M\\.?|MPA|DSc\\.?|Th\\.?D\\.?";
-      add(findAll(t, new RegExp("(?<![\\p{L}\\p{N}])(?:"+titlePat+")\\.?,?\\s+(?:(?:"+titlePat+")\\.?,?\\s+)*(?:(?!(?:"+titlePat+")\\b)\\p{Lu}\\p{Ll}+)(?:[ \\t]+(?:(?!(?:"+titlePat+")\\b)\\p{Lu}\\p{Ll}+)){0,3}(?:\\s*,\\s*(?:"+postTitles+"))?(?!\\s+(?:"+titlePat+")\\b)","gu"), "name"), ["titled"]);
+      const rawTitledHits = findAll(t, new RegExp("(?<![\\p{L}\\p{N}])(?:"+titlePat+")\\.?,?\\s+(?:(?:"+titlePat+")\\.?,?\\s+)*(?:(?!(?:"+titlePat+")\\b)(?!\\p{Lu}\\p{Ll}*:)\\p{Lu}\\p{Ll}+)(?:[ \\t]+(?:(?!(?:"+titlePat+")\\b)(?!\\p{Lu}\\p{Ll}*:)\\p{Lu}\\p{Ll}+)){0,3}(?:\\s*,\\s*(?:"+postTitles+"))?(?!\\s+(?:"+titlePat+")\\b)","gu"), "name").map(h => {
+        let val = h.value;
+        const postMatch = val.match(/,\s*(?:Ph\.?D\.?|CSc\.?|DrSc\.?|DiS\.?|MBA|LL\.?M\.?|MPA|DSc\.?|Th\.?D\.?)$/i);
+        const postStr = postMatch ? postMatch[0] : "";
+        const prePost = postMatch ? val.slice(0, val.length - postStr.length) : val;
+        const words = prePost.split(/([ \t]+)/);
+        let trimmed = false;
+        while (words.length > 1) {
+          const lastWord = words[words.length - 1];
+          if (/^[ \t]+$/.test(lastWord)) { words.pop(); continue; }
+          const low = lastWord.toLocaleLowerCase("cs").replace(/[.,;:!?]/g, "");
+          if (isCzechVerbOrParticiple(low) || (RE_AGENDA_APELATIVA.test(low) && !NAMES.has(low) && !isOnomasticName(low))) {
+            words.pop();
+            trimmed = true;
+          } else {
+            break;
+          }
+        }
+        if (trimmed) {
+          const newVal = words.join("") + postStr;
+          h.end = h.start + newVal.length;
+          h.value = newVal;
+        }
+        return h;
+      });
+      add(rawTitledHits, ["titled"]);
       add(findAll(t, /(?<![\p{L}\p{N}])\p{Lu}\.\s+\p{Lu}\p{Ll}{2,}(?![\p{L}\p{N}])/gu, "name", v => looksName(v.split(/\s+/).pop()||"")), ["initials"]);
       add(findAll(t, /(?<![\p{L}\p{N}])\p{Lu}\p{Ll}{2,}(?:ová|á)\s+roz\.\s+\p{Lu}\p{Ll}{2,}/gu, "name"), ["format","label:roz"]);
       add(findAll(t, /(?<![\p{L}\p{N}])\p{Lu}\p{Ll}{3,}(?:ovi|em|ové)(?![\p{L}\p{N}])/gu, "name", v => looksName(v)), ["declined"]);
-      const roleWords = new Set(["v","dne","na","pro","při","the","this","zástupce","ředitel","ředitelka","objednatel","zhotovitel","jednatel","jednatelka","předseda","předsedkyně","místopředseda","starosta","starostka","primátor","primátorka","ministr","ministryně","náměstek","náměstkyně","kupující","prodávající","žalobce","žalovaná","žalovaný","dlužník","věřitel","správce","vlastník","žadatel"]);
+      const roleWords = new Set(["v","dne","na","pro","při","the","this","zástupce","ředitel","ředitelka","objednatel","zhotovitel","jednatel","jednatelka","předseda","předsedkyně","místopředseda","starosta","starostka","primátor","primátorka","ministr","ministryně","náměstek","náměstkyně","kupující","prodávající","žalobce","žalovaná","žalovaný","dlužník","věřitel","správce","vlastník","žadatel","zapsal","zapsala","schválil","schválila","omluven","omluvena","omluveni","přítomen","přítomna","přítomni","odpovídá","zpracoval","zpracovala","zpracuje","porada","poradu","poradě","porady","termín"]);
 
       // Procedural and social role triggers (Ticket 02)
       function ciPat(s) {
@@ -2480,7 +2574,11 @@ Orgán: OBÚ.
         'obžalovaný', 'obžalovaného', 'obžalovanému', 'obžalovaným', 'obžalovaná', 'obžalované', 'obžalovanou',
         'poškozený', 'poškozeného', 'poškozenému', 'poškozeným', 'poškozená', 'poškozené', 'poškozenou',
         'jednatel', 'jednatele', 'jednateli', 'jednatelem', 'jednatelka', 'jednatelky', 'jednatelce', 'jednatelku', 'jednatelkou',
-        'pan', 'pana', 'panu', 'panem', 'paní'
+        'pan', 'pana', 'panu', 'panem', 'paní',
+        'zapsal', 'zapsala', 'schválil', 'schválila', 'schváleno',
+        'omluven', 'omluvena', 'omluveni', 'omluveno',
+        'přítomen', 'přítomna', 'přítomni',
+        'odpovídá', 'zpracoval', 'zpracovala', 'zpracuje'
       ];
       const roleTriggersPattern = roleWordsList.map(ciPat).join('|');
       const namePartPattern = '\\p{Lu}[\\p{L}\x27-]+';
@@ -2620,15 +2718,18 @@ Orgán: OBÚ.
         }
       }
 
-      add(findAll(t, new RegExp("(?<![\\p{L}\\p{N}])\\p{Lu}\\p{Ll}{2,}\\s+\\p{Lu}\\p{Ll}{2,}(?:\\s*,\\s*(?:"+postTitles+"))?(?![\\p{L}\\p{N}])", "gu"), "name", (v) => {
+      add(findAll(t, new RegExp("(?<![\\p{L}\\p{N}])(?!\\p{Lu}\\p{Ll}*:)\\p{Lu}\\p{Ll}{2,}[ \\t]+(?!\\p{Lu}\\p{Ll}*:)\\p{Lu}\\p{Ll}{2,}(?:\\s*,\\s*(?:"+postTitles+"))?(?![\\p{L}\\p{N}])", "gu"), "name", (v) => {
         const clean = v.replace(/,.*$/, "").trim();
-        const p = clean.split(/\s+/);
+        const p = clean.split(/[ \t]+/);
         const first = (p[0]||"").toLocaleLowerCase("cs");
-        const second = p[1]||"";
-        if (roleWords.has(first)) return false;
-        if (sus === "low") return (NAMES.has(first) || looksName(p[0])) && looksName(second);
+        const second = (p[1]||"").toLocaleLowerCase("cs");
+        if (roleWords.has(first) || roleWords.has(second)) return false;
+        if (isCzechVerbOrParticiple(first) || isCzechVerbOrParticiple(second)) return false;
+        if ((RE_AGENDA_APELATIVA.test(first) && !NAMES.has(first) && !isOnomasticName(first)) ||
+            (RE_AGENDA_APELATIVA.test(second) && !NAMES.has(second) && !isOnomasticName(second))) return false;
+        if (sus === "low") return (NAMES.has(first) || looksName(p[0])) && looksName(p[1]);
         if (sus === "high") return true;
-        return NAMES.has(first) || looksName(p[0]) || looksName(second);
+        return NAMES.has(first) || looksName(p[0]) || looksName(p[1]);
       }).map(h => {
         h.reasons = ["format"];
         return h;
@@ -5577,16 +5678,50 @@ Orgán: OBÚ.
     return pdfjsLib.getDocument(options).promise;
   }
   function pageTextFromItems(items){
-    return items.map(it => it.str||"").filter(Boolean).join(" ");
+    let text = "";
+    let lastIt = null;
+    for (const it of (items || [])) {
+      if (!it || !it.str) continue;
+      let sep = " ";
+      if (lastIt) {
+        if (it._ocr && lastIt._ocr) {
+          const dy = Math.abs((it._pdfYTop || 0) - (lastIt._pdfYTop || 0));
+          const avgH = ((it._pdfH || 10) + (lastIt._pdfH || 10)) / 2 || 10;
+          if (dy > avgH * 0.45) sep = "\n";
+        } else if (it.transform && lastIt.transform) {
+          const dy = Math.abs(it.transform[5] - lastIt.transform[5]);
+          const fontH = Math.hypot(it.transform[2], it.transform[3]) || 10;
+          if (dy > fontH * 0.45) sep = "\n";
+        }
+      }
+      if (text) text += sep;
+      text += it.str;
+      lastIt = it;
+    }
+    return text;
   }
   function mapPageGlyphs(items, scale, vp){
     let text = "";
     const map = [];
+    let lastIt = null;
     for (const it of items) {
       if (!it || !it.str) continue;
-      if (text) text += " ";
+      let sep = " ";
+      if (lastIt) {
+        if (it._ocr && lastIt._ocr) {
+          const dy = Math.abs((it._pdfYTop || 0) - (lastIt._pdfYTop || 0));
+          const avgH = ((it._pdfH || 10) + (lastIt._pdfH || 10)) / 2 || 10;
+          if (dy > avgH * 0.45) sep = "\n";
+        } else if (it.transform && lastIt.transform) {
+          const dy = Math.abs(it.transform[5] - lastIt.transform[5]);
+          const fontH = Math.hypot(it.transform[2], it.transform[3]) || 10;
+          if (dy > fontH * 0.45) sep = "\n";
+        }
+      }
+      if (text) text += sep;
       const baseStart = text.length;
       text += it.str;
+      lastIt = it;
       const len = it.str.length;
       if (!len) continue;
       if (it._ocr) {
@@ -5912,7 +6047,7 @@ Orgán: OBÚ.
                 width:    (w.bbox.x1 - w.bbox.x0) / ocrScale
               }));
 
-            body = finalItems.map(it => it.str).join(" ");
+            body = pageTextFromItems(finalItems);
           } catch (e) {
             console.warn("OCR failed for page " + i + ":", e);
             body = pageTextFromItems(compact);
@@ -8040,6 +8175,45 @@ Orgán: OBÚ.
     expect("role trigger full name", "svědek Jiří Kovář vypověděl", "medium", "name", "Jiří Kovář");
     expect("role trigger lone surname", "svědek Kovář vypověděl", "medium", "name", "Kovář");
     expect("administrative trigger foreign name", "obžalovaný John Smith, nar. 1980, bytem v Praze", "medium", "name", "John Smith");
+    // Ticket 06: Strukturní hranice textu a slovesná desambiguace (ADR-0005)
+    cases.push({
+      name: "administrative verb schvalil not person",
+      ok: (() => {
+        const h = detect("Schválil: PhDr. JUDr. Vítězslav Urbanec, Ph.D.", enabled, secrets).filter(x => x.type === "name");
+        return !h.some(x => /Schválil/i.test(x.value)) && h.some(x => /Urbanec/.test(x.value));
+      })(),
+      type: "name",
+      includes: "Urbanec without Schválil",
+      got: detect("Schválil: PhDr. JUDr. Vítězslav Urbanec, Ph.D.", enabled, secrets).map(x => x.value)
+    });
+    cases.push({
+      name: "passive participle omluveni not person",
+      ok: (() => {
+        const h = detect("Omluveni: Ing. Radim Mžyk", enabled, secrets).filter(x => x.type === "name");
+        return !h.some(x => /Omluveni/i.test(x.value)) && h.some(x => /Mžyk/.test(x.value));
+      })(),
+      type: "name",
+      includes: "Mžyk without Omluveni",
+      got: detect("Omluveni: Ing. Radim Mžyk", enabled, secrets).map(x => x.value)
+    });
+    expectNone("agenda noun poradu not person", "Poradu zahájil předseda ČBÚ.", "medium", "name");
+    expectNone("agenda noun porada not person", "Zápis z porady ředitelů.", "medium", "name");
+    expect("administrative trigger forward name", "Schválil: PhDr. JUDr. Vítězslav Urbanec, Ph.D.", "medium", "name", "Vítězslav Urbanec");
+    expect("administrative trigger omluveni forward name", "Omluveni: Ing. Radim Mžyk", "medium", "name", "Radim Mžyk");
+    expect("verbal origin surname preserved Pospisil", "Jednání vedl Jan Pospíšil.", "medium", "name", "Jan Pospíšil");
+    expect("verbal origin surname preserved Navratil", "Dohodu podepsal Petr Navrátil.", "medium", "name", "Petr Navrátil");
+    cases.push({
+      name: "meeting minutes header labels and agenda vocabulary excluded from person names",
+      ok: (() => {
+        const docSnippet = "Zápis z porady ředitelů č. 32 SBS 51822/2026\nze dne 14. září 2026\nZapsal: Ing. Mgr. Jiří Fröhlich\nSchválil: PhDr. JUDr. Vítězslav Urbanec, Ph.D.\nPřítomni: Ing. Martin Štemberka, Ph.D., Ing. Mgr. Jiří Fröhlich, Ing. Dušan Havel, MPA\nOmluveni: Ing. Radim Mžyk\nPoradu zahájil předseda ČBÚ.";
+        const hits = detect(docSnippet, enabled, []);
+        const forbidden = ["schválil", "omluven", "omluveni", "poradu", "porady", "zapsal", "přítomni"];
+        return hits.filter(h => h.type === "name").every(h => !forbidden.some(f => h.value.toLowerCase().includes(f)));
+      })(),
+      type: "name",
+      includes: "clean meeting minutes",
+      got: detect("Zapsal: Ing. Mgr. Jiří Fröhlich\nSchválil: PhDr. JUDr. Vítězslav Urbanec, Ph.D.\nOmluveni: Ing. Radim Mžyk\nPoradu zahájil předseda ČBÚ.", enabled, []).filter(h => h.type === "name").map(h => h.value)
+    });
     expect("ip", "server 10.12.8.4 uvnitř", "medium", "ip", "10.12.8.4");
     expect("host", "viz https://ais.internal/ticket/1", "medium", "host", "ais.internal");
     expect("geo", "stanoviště 50.087465, 14.421253", "medium", "geo", "50.087465");
@@ -8496,6 +8670,7 @@ Orgán: OBÚ.
     window.applyCourtProfileRules = applyCourtProfileRules;
     window.filterCourtDecisionsWhitelist = filterCourtDecisionsWhitelist;
     window.isSentenceStart = isSentenceStart;
+    window.isCzechVerbOrParticiple = isCzechVerbOrParticiple;
     window.apply = apply;
   }
   if (typeof queueMicrotask === "function") {
