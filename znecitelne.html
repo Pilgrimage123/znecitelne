@@ -727,8 +727,9 @@ body.movie-active #settingsSheet {
   const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];
   const KEYS = PII_KEYS.concat(ORG_KEYS);
 
-  const RULES = "2026.10.14-ai39";
+  const RULES = "2026.10.14-ai40";
   const CHANGELOG = [
+    { version: "2026.10.14-ai40", notes: { cs: "Ochrana toponym a hydrologických apelativ (Červená Voda, důlní vody): rozšíření isLikelyNonPersonName o úplná pádová paradigmata významných českých víceslovných obcí (Červená Voda, Bílá Voda, Dobrá Voda, Kutná Hora atd.), lingvistické vzorce pro toponymické fráze a hydrologické kolokace (důlní vody, odpadní vody, vypouštěných vod), územní zarážky (v obci, k.ú.), zpřísnění vstupního síta Dokumentové mezipaměti entit pro formátové kandidáty a case-sensitive vyhledávání u jednoslovné propagace.", en: "Protection of toponyms and hydrological collocations (Červená Voda, mine water): expansion of isLikelyNonPersonName with full declensions of prominent Czech compound municipalities (Červená Voda, Bílá Voda, Dobrá Voda, Kutná Hora, etc.), linguistic patterns for toponymic phrases and hydrological collocations (mine waters, waste water, discharged waters), territorial guards (v obci, k.ú.), stricter admission gate for format candidates in EntityPropagationCache, and case-sensitive matching for single-word propagation." } },
     { version: "2026.10.14-ai39", notes: { cs: "Strukturní hranice textu a slovesná desambiguace v personálních nálezech (ADR-0005): rekonstrukce řádkových zlomů (\\n) v PDF textové vrstvě podle delta y baseline, inteligentní slovesná a participiální desambiguace (l-participle, pasivní příčestí, administrativní slovesné kmeny) provázaná s paměťovým trie onomastického registru se zachováním skutečných slovesných příjmení (Pospíšil, Navrátil), potlačení administrativních návěští (Schválil:, Omluveni:) a agendových apelativ (porada, poradu, zasedání) z falešně pozitivních detekcí osob i celodokumentové mezipaměti entit.", en: "Structural text boundaries and verbal disambiguation in personal entity findings (ADR-0005): PDF line-break reconstruction (\\n) via baseline vertical delta tracking, intelligent verbal and participle disambiguation (l-participles, passive participles, administrative stems) against the in-memory onomastic trie preserving authentic verbal surnames (Pospíšil, Navrátil), suppression of administrative labels (Schválil:, Omluveni:) and agenda nouns (porada, poradu, zasedání) from false-positive person detection and entity propagation cache." } },
     { version: "2026.10.13-ai38", notes: { cs: "Bezpečný audit kódu a výkonnostní optimalizace: jednoprůchodový lineární apply() O(L+H), ohraničený 200znakový kontextový lookback v isSentenceStart(), mapové O(1) indexování duplicit v detect(), binární vyhledávání intervalů v EntityPropagationCache a exportXlsxFile, reverzní shlukování řádků v pdfWordQuads, memoizace kontroly úniků v paintReview(), konsolidace docxMakeWork a terminologické zarovnání dle GLOSSARY.md.", en: "Safe code audit and performance optimization: single-pass linear apply() O(L+H), bounded 200-char context lookback in isSentenceStart(), Map-based O(1) duplicate indexing in detect(), binary search interval indexing in EntityPropagationCache and exportXlsxFile, reverse line clustering in pdfWordQuads, memoized leak analysis in paintReview(), docxMakeWork consolidation, and terminology alignment per GLOSSARY.md." } },
     { version: "2026.10.13-ai37", notes: { cs: "Klientská hybridní detekce vlastních jmen (ADR-0004): Onomastický registr v paměťovém trie přes fflate (offline bez sítě dle ADR-0002), desambiguace větných verzálek a kontextové triggery pro úřední a procesní role, Dokumentová mezipaměť entit (EntityPropagationCache) pro celo-dokumentové šíření skloňovaných tvarů dle ADR-0003, profil publikace Justiční rozhodnutí (vyhl. 403/2022 Sb.) s autoritním whitelistem soudců, sídel a judikatury, a OCR fuzzy tolerance pro digitalizované dokumenty.", en: "Client-side hybrid Czech propria detection (ADR-0004): Onomastic registry in an in-memory trie via fflate (offline Zero-Network ADR-0002), sentence boundary disambiguation and contextual triggers for procedural/official roles, Document Entity Propagation Cache (EntityPropagationCache) for whole-document declension spreading per ADR-0003, Court Decisions publication profile (Decree 403/2022 Coll.) with statutory whitelist for judges, seats and case citations, and OCR fuzzy tolerance for digitized records." } },
@@ -1705,8 +1706,15 @@ Orgán: OBÚ.
         if (isCzechVerbOrParticiple(low) || (RE_AGENDA_APELATIVA.test(low) && !NAMES.has(low) && !isOnomasticName(low))) return false;
         return isOnomasticName(parts[0]) || NAMES.has(low);
       }
-      if (h.reasons && h.reasons.some(r => r.startsWith("trigger:") || r === "dict" || r === "titled")) return true;
-      if (parts.length >= 2) return true;
+      if (parts.length >= 2) {
+        if (h.reasons && h.reasons.some(r => r.startsWith("trigger:") || r === "dict" || r === "titled")) return true;
+        const low0 = parts[0].toLocaleLowerCase("cs").replace(/[.,]/g, "");
+        const low1 = parts[parts.length - 1].toLocaleLowerCase("cs").replace(/[.,]/g, "");
+        const s0 = typeof stemNamePart === "function" ? stemNamePart(low0) : low0;
+        const s1 = typeof stemNamePart === "function" ? stemNamePart(low1) : low1;
+        return NAMES.has(low0) || isOnomasticName(low0) || NAMES.has(s0) || isOnomasticName(s0) ||
+               NAMES.has(low1) || isOnomasticName(low1) || NAMES.has(s1) || isOnomasticName(s1);
+      }
       return false;
     }
 
@@ -1807,7 +1815,9 @@ Orgán: OBÚ.
         const sortedForms = Array.from(ent.forms).filter(f => f && f.length >= 3).sort((a, b) => b.length - a.length);
         for (const form of sortedForms) {
           const escForm = form.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          const re = new RegExp("(?<![\\p{L}\\p{N}])" + escForm + "(?![\\p{L}\\p{N}])", "giu");
+          const re = form.includes(" ")
+            ? new RegExp("(?<![\\p{L}\\p{N}])" + escForm + "(?![\\p{L}\\p{N}])", "giu")
+            : new RegExp("(?<![\\p{L}\\p{N}])" + escForm + "(?![\\p{L}\\p{N}])", "gu");
           let m;
           while ((m = re.exec(this.text)) !== null) {
             const start = m.index;
@@ -2102,7 +2112,7 @@ Orgán: OBÚ.
   // Exact-phrase filtering avoids a global surname blacklist.
   function isLikelyNonPersonName(value, src, start, end, reasons){
     if (!value || !src) return false;
-    if (reasons && reasons.some(r => r.startsWith("trigger:") || r === "ocr:fuzzy")) return false;
+    if (reasons && reasons.some(r => r.startsWith("trigger:") || r === "ocr:fuzzy" || r === "titled")) return false;
 
     const normalize = s => s
       .normalize("NFC")
@@ -2177,7 +2187,17 @@ Orgán: OBÚ.
       "zpracovala",
       "zpracuje",
       "uloženo",
-      "různé"
+      "různé",
+      "voda",
+      "vody",
+      "vodě",
+      "vodu",
+      "vodou",
+      "vodo",
+      "vodách",
+      "vodám",
+      "vodami",
+      "vod"
     ]);
 
     const checkVerb = typeof isCzechVerbOrParticiple === "function" ? isCzechVerbOrParticiple : () => false;
@@ -2185,6 +2205,10 @@ Orgán: OBÚ.
     const checkName = (w) => (typeof NAMES !== "undefined" && NAMES && NAMES.has(w)) || (typeof isOnomasticName === "function" && isOnomasticName(w));
 
     if (!name.includes(" ") && (commonWords.has(name) || checkVerb(name) || (checkAgenda(name) && !checkName(name)))) return true;
+
+    // Water & environmental collocations (e.g. "důlní vody", "odpadní vody", "vypouštěných vod")
+    const RE_WATER_COLLOCATIONS = /^(?:důlní|důlních|důlním|důlními|odpadní|odpadních|odpadním|odpadními|povrchov[éá]|povrchových|povrchovým|povrchovými|podzemní|podzemních|podzemním|podzemními|pitn[áé]|pitných|pitným|pitnými|užitkov[áé]|užitkových|užitkovým|užitkovými|splaškov[éá]|splaškových|splaškovým|splaškovými|dešťov[éá]|dešťových|dešťovým|dešťovými|minerální|minerálních|minerálním|minerálními|léčiv[éá]|léčivých|léčivým|léčivými|vypouštěn[éá]|vypouštěných|vypouštěným|vypouštěnými|chladicí|chladicích|chladicím|chladicími|průmyslov[éá]|průmyslových|průmyslovým|průmyslovými|stékající|stékajících|technologick[éá]|technologických|provozní|provozních)\s+(?:vod[aeyu]|vodou|vodách|vodám|vodami|vod)$/iu;
+    if (RE_WATER_COLLOCATIONS.test(name)) return true;
 
     // Sentence-initial token desambiguation
     if (Number.isInteger(start) && start >= 0 && isSentenceStart(src, start)) {
@@ -2199,22 +2223,83 @@ Orgán: OBÚ.
       }
     }
 
-    // Geographic-name variants. Keep names like "Jan Hora" and "Petr Černý".
+    // Geographic-name variants and compound municipality names. Keep real names like "Jan Hora" and "Petr Černý".
     const locations = new Set([
-      "černá hora",
-      "černé hoře",
-      "černé hory",
-      "černou horu",
-      "černou horou"
+      "černá hora", "černé hory", "černé hoře", "černou horu", "černou horou",
+      "červená voda", "červené vody", "červené vodě", "červenou vodu", "červenou vodou",
+      "bílá voda", "bílé vody", "bílé vodě", "bílou vodu", "bílou vodou",
+      "dobrá voda", "dobré vody", "dobré vodě", "dobrou vodu", "dobrou vodou",
+      "černá voda", "černé vody", "černé vodě", "černou vodu", "černou vodou",
+      "stará voda", "staré vody", "staré vodě", "starou vodu", "starou vodou",
+      "suchá voda", "suché vody", "suché vodě", "suchou vodu", "suchou vodou",
+      "hojná voda", "hojné vody", "hojné vodě", "hojnou vodu", "hojnou vodou",
+      "kutná hora", "kutné hory", "kutné hoře", "kutnou horu", "kutnou horou",
+      "krásná hora", "krásné hory", "krásné hoře", "krásnou horu", "krásnou horou",
+      "zlaté hory", "zlatých hor", "zlatým horám", "zlatých horách", "zlatými horami",
+      "zelená hora", "zelené hory", "zelené hoře", "zelenou horu", "zelenou horou",
+      "bílá hora", "bílé hory", "bílé hoře", "bílou horu", "bílou horou",
+      "nová ves", "nové vsi", "novou ves", "novou vsí",
+      "stará ves", "staré vsi", "starou ves", "starou vsí",
+      "dlouhá ves", "dlouhé vsi", "dlouhou ves", "dlouhou vsí",
+      "velká ves", "velké vsi", "velkou ves", "velkou vsí",
+      "malá ves", "malé vsi", "malou ves", "malou vsí",
+      "nové město", "nového města", "novému městu", "novém městě", "novým městem",
+      "staré město", "starého města", "starému městu", "starém městě", "starým městem",
+      "havlíčkův brod", "havlíčkova brodu", "havlíčkovu brodu", "havlíčkově brodě", "havlíčkovým brodem",
+      "český brod", "českého brodu", "českému brodu", "českém brodě", "českým brodem",
+      "uherský brod", "uherského brodu", "uherskému brodu", "uherském brodě", "uherským brodem",
+      "železný brod", "železného brodu", "železnému brodu", "železném brodě", "železným brodem",
+      "vyšší brod", "vyššího brodu", "vyššímu brodu", "vyšším brodě", "vyšším brodem",
+      "jindřichův hradec", "jindřichova hradce", "jindřichovu hradci", "jindřichově hradci", "jindřichovým hradcem",
+      "hradec králové", "hradce králové", "hradci králové", "hradcem králové",
+      "karlovy vary", "karlových var", "karlovým varům", "karlových varech", "karlovými vary",
+      "mariánské lázně", "mariánských lázní", "mariánským lázním", "mariánských lázních", "mariánskými lázněmi",
+      "františkovy lázně", "františkových lázní", "františkovým lázním", "františkových lázních", "františkovými lázněmi",
+      "janské lázně", "janských lázní", "janským lázním", "janských lázních", "janskými lázněmi",
+      "mladá boleslav", "mladé boleslavi", "mladou boleslav", "mladou boleslaví",
+      "česká lípa", "české lípy", "české lípě", "českou lípu", "českou lípou",
+      "česká třebová", "české třebové", "českou třebovou",
+      "moravská třebová", "moravské třebové", "moravskou třebovou",
+      "české budějovice", "českých budějovic", "českým budějovicím", "českých budějovicích", "českými budějovicemi",
+      "vysoké mýto", "vysokého mýta", "vysokému mýtu", "vysokém mýtě", "vysokým mýtem",
+      "valašské meziříčí", "valašského meziříčí", "valašskému meziříčí", "valašském meziříčí", "valašským meziříčím",
+      "uherské hradiště", "uherského hradiště", "uherskému hradišti", "uherském hradišti", "uherským hradištěm",
+      "nový jičín", "nového jičína", "novému jičínu", "novém jičíně", "novým jičínem",
+      "dvůr králové", "dvora králové", "dvoru králové", "dvoře králové", "dvorem králové",
+      "královo pole", "králova pole", "královu poli", "králově poli", "královým polem",
+      "malá strana", "malé strany", "malé straně", "malou stranu", "malou stranou",
+      "špindlerův mlýn", "špindlerova mlýna", "špindlerovu mlýnu", "špindlerově mlýně", "špindlerovým mlýnem",
+      "pec pod sněžkou", "peci pod sněžkou",
+      "rožnov pod radhoštěm"
     ]);
 
     if (locations.has(name)) return true;
 
+    // General compound toponym pattern: [Adjective] + [Toponymic noun] without first names
+    const RE_TOPONYM_ADJECTIVE = /^(?:červen[ýáé]|čern[ýáé]|bíl[ýáé]|modr[ýáé]|zelen[ýáé]|žlut[ýáé]|star[ýáé]|nov[ýáé]|velk[ýáé]|mal[ýáé]|vysok[ýáé]|hlubok[ýáé]|dlouh[ýáé]|krátk[ýáé]|horn[í]|doln[í]|předn[í]|zadn[í]|středn[í]|kutn[áé]|dobr[ýáé]|such[ýáé]|hojn[áé]|krásn[ýáé]|zlat[ýáé]|česk[ýáé]|moravsk[ýáé]|slezsk[ýáé]|hrub[ýáé]|tepl[ýáé]|studen[ýáé]|divok[ýáé]|tich[ýáé])(?:ho|mu|m|ou|ch|mi)?$/iu;
+    const RE_TOPONYM_NOUN = /^(?:vod[aeyu]|vodou|vodách|vodám|vodami|vod|hor[aeyu]|hoře|horou|horách|horám|horami|hor|ves|vsi|vsí|měst[oau]|městě|městem|měst|městech|městům|městy|lhot[aeyu]|lhotě|lhotou|lhotách|lhotám|lhot|újezd[au]?|újezdem|újezdě|brod[u]?|brodem|brodě|mýt[oau]|mýtě|mýtem|pol[ei]|polem|polích|údolí|údolím|vrch[u]?|vrchem|vrchu|stran[aeyu]|straně|stranou|lázn[ěí]|lázním|lázních|lázněmi|mlýn[au]?|mlýnem|mlýně|hrádek|hrádku|hrádkem|potok[au]?|potokem|potoku|řek[aeyu]|řece|řekou)$/iu;
+
+    if (name.includes(" ")) {
+      const parts = name.split(/\s+/);
+      if (parts.length === 2 && RE_TOPONYM_ADJECTIVE.test(parts[0]) && RE_TOPONYM_NOUN.test(parts[1])) {
+        const isFirst0 = (typeof FIRST_NAMES !== "undefined" && FIRST_NAMES) ? FIRST_NAMES.has(parts[0]) : (typeof NAMES !== "undefined" && NAMES ? NAMES.has(parts[0]) : false);
+        const isFirst1 = (typeof FIRST_NAMES !== "undefined" && FIRST_NAMES) ? FIRST_NAMES.has(parts[1]) : (typeof NAMES !== "undefined" && NAMES ? NAMES.has(parts[1]) : false);
+        if (!isFirst0 && !isFirst1) return true;
+      }
+    }
+
     if (Number.isInteger(start) && Number.isInteger(end) && start >= 0 && end <= src.length) {
+      if (start > 0) {
+        const prefix = src.slice(Math.max(0, start - 40), start);
+        if (/(?:\bv\s+)?\b(?:obci?|měst[oau]|městys[ui]?|k\.?\s*ú\.?|katastr|katastrální(?:ho|m|mu)?\s+území|okres[ue]?|kraj[ie]?|povodí|řece?|řek[au]?|potok[au]?)\s+$/iu.test(prefix)) {
+          const isFirst0 = (typeof FIRST_NAMES !== "undefined" && FIRST_NAMES) ? FIRST_NAMES.has(name.split(/\s+/)[0]) : false;
+          if (!isFirst0) return true;
+        }
+      }
       const beforeWord = (src.slice(Math.max(0, start - 30), start).trim().split(/\s+/).pop() || "");
       const afterWord = (src.slice(end, Math.min(src.length, end + 30)).trim().split(/\s+/)[0] || "");
-      if (beforeWord && locations.has(normalize(beforeWord + " " + candidate))) return true;
-      if (afterWord && locations.has(normalize(candidate + " " + afterWord))) return true;
+      if (beforeWord && (locations.has(normalize(beforeWord + " " + candidate)) || RE_WATER_COLLOCATIONS.test(normalize(beforeWord + " " + candidate)))) return true;
+      if (afterWord && (locations.has(normalize(candidate + " " + afterWord)) || RE_WATER_COLLOCATIONS.test(normalize(candidate + " " + afterWord)))) return true;
     }
 
     return false;
@@ -8158,6 +8243,10 @@ Orgán: OBÚ.
       includes: "Termín excluded",
       got: [String(isLikelyNonPersonName("Termín", "Termín", 0, 6))]
     });
+    expectNone("geographic phrase Cervena Voda is not a person", "Červená Voda je obec.", "medium", "name");
+    expectNone("water management collocations dulni vody is not a person", "Zpráva zmiňuje důlní vody jako samostatnou kategorii vypouštěných vod.", "medium", "name");
+    expectNone("combined user case Cervena Voda and dulni vody", "Pořád app dělá chyby, např. v této větě identifikuje \"vody\" jako osobu. Zpráva zmiňuje   důlní   vody jako samostatnou kategorii   vypouštěných   vod. podobně si myslí, že \"Červená Voda\" je osoba.", "medium", "name");
+    expect("person surname Voda with title is preserved", "Ing. Petr Voda podepsal zápis.", "medium", "name", "Ing. Petr Voda");
     expect("czech surname cerny", "sešel se s Janem Černým.", "medium", "name", "Černým");
     expect("czech surname svoboda", "jednání vedl Petr Svoboda.", "medium", "name", "Petr Svoboda");
     expect("czech surname novotna", "podepsala Jana Novotná.", "medium", "name", "Jana Novotná");

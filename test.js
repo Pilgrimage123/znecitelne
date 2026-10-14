@@ -1517,6 +1517,36 @@ Poradu zahájil předseda ČBÚ.`;
       `Verb schválil must NOT be detected as person name in: "${verbalSurnamesSnippet}" (got: ${JSON.stringify(verbalValues)})`
     );
 
+    // Ticket 07: Ochrana toponym a hydrologických apelativ (Červená Voda, důlní vody)
+    const userMsgSnippet = 'Pořád app dělá chyby, např. v této větě identifikuje "vody" jako osobu. Zpráva\nzmiňuje   důlní   vody jako samostatnou kategorii   vypouštěných   vod. podobně si myslí, že "Červená Voda" je osoba.';
+    const userHits = detect(userMsgSnippet, { name: true }, []);
+    const userNameHits = userHits.filter(h => h.type === "name");
+    check(
+      userNameHits.length === 0,
+      `User sentence with Cervena Voda and dulni vody must have 0 name hits (got: ${JSON.stringify(userNameHits.map(h => h.value))})`
+    );
+
+    const waterSnippet = "Zpráva zmiňuje   důlní   vody jako samostatnou kategorii   vypouštěných   vod.";
+    const waterHits = detect(waterSnippet, { name: true }, []).filter(h => h.type === "name");
+    check(
+      waterHits.length === 0,
+      `Hydrological collocation "důlní vody" and "vypouštěných vod" must NOT trigger person hit (got: ${JSON.stringify(waterHits.map(h => h.value))})`
+    );
+
+    const cervenaVodaSnippet = "V obci Červená Voda došlo k události.";
+    const cvHits = detect(cervenaVodaSnippet, { name: true }, []).filter(h => h.type === "name");
+    check(
+      cvHits.length === 0,
+      `Toponym "Červená Voda" must NOT trigger person hit (got: ${JSON.stringify(cvHits.map(h => h.value))})`
+    );
+
+    const realVodaSnippet = "Ing. Petr Voda podepsal zápis a pan Voda byl přítomen.";
+    const realVodaHits = detect(realVodaSnippet, { name: true }, []).filter(h => h.type === "name");
+    check(
+      realVodaHits.length >= 2,
+      `Real person mentions with titles/roles "Ing. Petr Voda" and "pan Voda" MUST be detected (got: ${JSON.stringify(realVodaHits.map(h => h.value))})`
+    );
+
     // 6. Zero-Network integrity (ADR-0002)
     check(
       canonical.includes("const ONOMASTIC_PAYLOAD_B64 = "),
