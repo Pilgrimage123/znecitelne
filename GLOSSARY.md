@@ -17,7 +17,7 @@ Sjednocená reálná entita (např. konkrétní fyzická osoba nebo firma), kter
 _Avoid_: Objekt, Záznam, Výskyt
 
 **Pseudonymizační token**:
-Konzistentní zástupný identifikátor přiřazený entitě (např. `[OSOBA_1]`, `[OSOBĚ_1]`, `[OSOBOU_1]`), který zachovává přirozené české skloňování, vztahy a plynulost textu bez vyzrazení identity.
+Konzistentní zástupný identifikátor přiřazený entitě (např. `[OSOBA_001]`, `[OSOBĚ_001]`, `[OSOBOU_001]`), který zachovává přirozené české skloňování, vztahy a plynulost textu bez vyzrazení identity.
 _Avoid_: Maska, Náhrada, Zástupný symbol, Hash, Rigidní strojová značka
 
 **Znečitelnění**:
@@ -79,5 +79,18 @@ _Avoid_: Hlavička, Titulek, Popisek pole, Prefiks jména
 **Slovesná desambiguace**:
 Morfologické odlišení minulých a trpných slovesných participií (např. *schválil*, *omluven*, *zahájil*) od homonymních českých příjmení slovesného původu (*Pospíšil*, *Navrátil*) prostřednictvím Onomastického registru a syntaktických valenčních vazeb.
 _Avoid_: Blacklist sloves, Zakázaná slova, Hardcoded filtrace
+
+**Rychlý režim**:
+Vizuální zobrazení uživatelského rozhraní optimalizované pro přímočaré procházení a revizi nalezených údajů v textu s kompaktním ovládáním; jeho aktivace nijak neobchází povinnost formálního schválení dokumentu před exportem.
+_Avoid_: Zrychlený režim, Expresní režim, Zjednodušený export
+
+**Zrychlené schvalování**:
+Explicitní volba v nastavení dokumentu umožňující export i bez provedení kroků ruční kontroly nebo principu čtyř očí; její využití je vždy zaznamenáno v auditním protokolu.
+_Avoid_: Obcházení kontroly, Automatické schválení, Skip review
+
+**Zákonný důvod znečitelnění**:
+Právní titul (např. ochrana osobních údajů dle GDPR, obchodní tajemství, bankovní tajemství, utajovaná informace nebo jiný zákonem stanovený důvod), na jehož základě je nález začerněn či pseudonymizován; je evidován v auditním protokolu a provázán se všemi výskyty téže entity v dokumentu.
+_Avoid_: Důvod začernění, Právní status, Právní štítek
+
 
 

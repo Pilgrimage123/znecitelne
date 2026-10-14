@@ -867,7 +867,7 @@ Orgán: OBÚ.
       leakBad:"Po anonymizaci zbývají vzory, které by veřejná AI ještě mohla zneužít.",
       stripMeta:"Odstranit metadata",
       pdfaDecl:"Deklarace PDF/A-2b + sRGB OutputIntent (preflight stále nutný)", pdfaNote:"PDF/A metadata a sRGB OutputIntent byly vloženy; shoda stále není certifikována bez externího preflightu.", pdfaFontWarn:"Nevložené fonty nalezeny na stránkách {n}; tyto stránky se mají při bezpečném exportu převést na raster.", pdfaFail:"PDF/A metadata nebo OutputIntent se nepodařilo vložit.",
-      queueLbl:"Dávková fronta", queueAll:"Exportovat dávku (ZIP)", queueNone:"Žádný dokument ve frontě zatím není zkontrolovaný.", queueDone:"Exportováno dokumentů: {n}", queueBad:"Dokument „{f}“ se nepodařilo načíst.", queueRemove:"Odebrat z fronty", errPdfPassword:"PDF je chráněno heslem. Před zpracováním heslo odstraňte.", errPdfInvalid:"Soubor PDF je poškozený nebo neúplný.", errFileEmpty:"Dokument „{f}“ je prázdný (0 B).", errFileTooLarge:"Dokument „{f}“ je příliš velký (maximum je 100 MB).", errFileBinary:"Dokument „{f}“ je v nepodporovaném binárním formátu.", errDocOld:"Starší formát .doc (Word 97-2003) uložte prosím jako .docx nebo .pdf.", errImageNeedOcr:"Zpracování obrázku (skenu) vyžaduje zapnutí OCR v nastavení.",
+      queueLbl:"Dávková fronta", queueAll:"Exportovat dávkovou frontu (ZIP)", queueNone:"Žádný dokument ve frontě zatím není zkontrolovaný.", queueDone:"Exportováno dokumentů: {n}", queueBad:"Dokument „{f}“ se nepodařilo načíst.", queueRemove:"Odebrat z fronty", errPdfPassword:"PDF je chráněno heslem. Před zpracováním heslo odstraňte.", errPdfInvalid:"Soubor PDF je poškozený nebo neúplný.", errFileEmpty:"Dokument „{f}“ je prázdný (0 B).", errFileTooLarge:"Dokument „{f}“ je příliš velký (maximum je 100 MB).", errFileBinary:"Dokument „{f}“ je v nepodporovaném binárním formátu.", errDocOld:"Starší formát .doc (Word 97-2003) uložte prosím jako .docx nebo .pdf.", errImageNeedOcr:"Zpracování obrázku (skenu) vyžaduje zapnutí OCR v nastavení.",
       truePdfRedact:"Při anonymizaci PDF zůstává textová vrstva",
       truePdfRedactHint:"Zachová prohledávatelný text mimo začerněné nebo nahrazené úseky, ve všech režimech výstupu (začernění, XXXX, štítek i pseudonym). Stránky, které nelze bezpečně ověřit, se přesto převedou na obrázek.",
       morphBtn:"Skloňování: dohledat všechny pády v textu",
@@ -1047,7 +1047,7 @@ Orgán: OBÚ.
       leakBad:"After redaction, patterns remain that a public AI could still misuse.",
       stripMeta:"Strip metadata",
       pdfaDecl:"PDF/A-2b declaration (XMP) – not certified conformance", pdfaNote:"The PDF only carries a PDF/A declaration (XMP); it is not certified PDF/A – embedded fonts and an OutputIntent are missing.", pdfaFontWarn:"Unembedded fonts found on page(s) {n}; these pages should be converted to raster for secure export.", pdfaFail:"Could not embed the PDF/A declaration.",
-      queueLbl:"Dávková fronta", queueAll:"Export batch (ZIP)", queueNone:"No document in the queue has been reviewed yet.", queueDone:"Documents exported: {n}", queueBad:"Document “{f}” could not be loaded.", queueRemove:"Remove from queue", errPdfPassword:"PDF is password-protected. Please remove the password before processing.", errPdfInvalid:"PDF file is damaged or incomplete.", errFileEmpty:"Document “{f}” is empty (0 bytes).", errFileTooLarge:"Document “{f}” is too large (maximum is 100 MB).", errFileBinary:"Document “{f}” is in an unsupported binary format.", errDocOld:"Legacy .doc format (Word 97-2003) should be saved as .docx or .pdf.", errImageNeedOcr:"Image processing (scans) requires OCR enabled in settings.",
+      queueLbl:"Dávková fronta", queueAll:"Export batch queue (ZIP)", queueNone:"No document in the queue has been reviewed yet.", queueDone:"Documents exported: {n}", queueBad:"Document “{f}” could not be loaded.", queueRemove:"Remove from queue", errPdfPassword:"PDF is password-protected. Please remove the password before processing.", errPdfInvalid:"PDF file is damaged or incomplete.", errFileEmpty:"Document “{f}” is empty (0 bytes).", errFileTooLarge:"Document “{f}” is too large (maximum is 100 MB).", errFileBinary:"Document “{f}” is in an unsupported binary format.", errDocOld:"Legacy .doc format (Word 97-2003) should be saved as .docx or .pdf.", errImageNeedOcr:"Image processing (scans) requires OCR enabled in settings.",
       truePdfRedact:"Truly remove redacted text from PDF (not just an image)",
       truePdfRedactHint:"Keeps the rest of the document as searchable text, in every output mode (black-box, XXXX, label, and pseudonym alike). Pages that can't be safely verified are still converted to an image.",
       morphBtn:"Declension: find all cases in text",
@@ -5749,6 +5749,13 @@ Orgán: OBÚ.
             const zipBytes = flateLib.zipSync(zipEntries);
             S._batchFiles = null;
             download("znecitelne-davka.zip", new Blob([zipBytes], {type:"application/zip"}));
+          } else {
+            const filesToDownload = Object.entries(S._batchFiles);
+            S._batchFiles = null;
+            for (const [fname, fblob] of filesToDownload) {
+              download(fname, fblob);
+            }
+            download("audit-davka.json", new Blob([JSON.stringify(batchAudits, null, 2)], {type:"application/json"}));
           }
         }
       } finally {
@@ -6921,6 +6928,7 @@ Orgán: OBÚ.
           note: S.publicGlossary ? "Original values omitted for public AI." : "Previews are truncated.",
           tokens: gloss, leakScan: info.leaks, verdict: info.verdict
         }, null, 2);
+        const auditJson = JSON.stringify(buildAudit(), null, 2);
 
         const flateLib = window.fflate || (typeof fflate !== "undefined" ? fflate : null);
         if (flateLib && typeof flateLib.zipSync === "function") {
@@ -6930,6 +6938,7 @@ Orgán: OBÚ.
             zipEntries[base + "-osnova.md"] = flateLib.strToU8(processMarkdown(info));
           }
           zipEntries[base + "-slovnik.json"] = flateLib.strToU8(glossJson);
+          zipEntries[base + "-audit.json"] = flateLib.strToU8(auditJson);
           if (window.PDFLib) {
             const bytes = await exportTextPdf(replaced+"\n\n---\n"+processMarkdown(info), S.fileName+" AI pack");
             S.hashOut = await sha256(bytes);
@@ -6939,8 +6948,9 @@ Orgán: OBÚ.
           download(base + "-ai-pack.zip", new Blob([zipBytes], {type:"application/zip"}));
         } else {
           download(base+"-ai.txt", new Blob([replaced], {type:"text/plain;charset=utf-8"}));
-          if (S.includeOutline) download(base+"-process.md", new Blob([processMarkdown(info)], {type:"text/markdown;charset=utf-8"}));
-          download(base+"-glossary.json", new Blob([glossJson], {type:"application/json"}));
+          if (S.includeOutline) download(base+"-osnova.md", new Blob([processMarkdown(info)], {type:"text/markdown;charset=utf-8"}));
+          download(base+"-slovnik.json", new Blob([glossJson], {type:"application/json"}));
+          download(base+"-audit.json", new Blob([auditJson], {type:"application/json"}));
           if (window.PDFLib) {
             const bytes = await exportTextPdf(replaced+"\n\n---\n"+processMarkdown(info), S.fileName+" AI pack");
             S.hashOut = await sha256(bytes);

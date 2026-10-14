@@ -1561,6 +1561,79 @@ Poradu zahájil předseda ČBÚ.`;
       !canonical.includes("https://cdn.jsdelivr.net/npm/tesseract.js") && !canonical.includes("https://unpkg.com/tesseract.js"),
       "Tesseract and OCR components must not load via remote CDN (Zero-Network ADR-0002)"
     );
+
+    // 7. Unified client-side ZIP exports, approval decoupling, and entity legal basis consistency (ADR-0006)
+    check(
+      canonical.includes('zipEntries[base + "-ai.txt"]') &&
+      canonical.includes('zipEntries[base + "-osnova.md"]') &&
+      canonical.includes('zipEntries[base + "-slovnik.json"]') &&
+      canonical.includes('zipEntries[base + "-audit.json"]') &&
+      canonical.includes('download(base + "-ai-pack.zip"'),
+      "AI pack export must package text, outline, glossary, and audit into unified ZIP via fflate (ADR-0006)"
+    );
+
+    check(
+      canonical.includes('download(base+"-osnova.md"') &&
+      canonical.includes('download(base+"-slovnik.json"') &&
+      canonical.includes('download(base+"-audit.json"'),
+      "AI pack fallback without fflate must download files with canonical Czech names and audit protocol"
+    );
+
+    check(
+      canonical.includes('download("znecitelne-davka.zip"') &&
+      canonical.includes('zipEntries["audit-davka.json"]') &&
+      canonical.includes('download("audit-davka.json"'),
+      "Batch export must create unified ZIP with summary audit-davka.json and provide safe uncompressed fallback (ADR-0006)"
+    );
+
+    const reviewSkippedFn = canonical.match(/function reviewSkipped\(\)\s*\{[\s\S]*?\n  \}/)?.[0] || "";
+    check(
+      Boolean(reviewSkippedFn) && !reviewSkippedFn.includes("quickMode") && reviewSkippedFn.includes("fastApprove"),
+      "reviewSkipped must strictly depend on fastApprove and decouple quickMode from approval bypass (ADR-0006)"
+    );
+
+    check(
+      canonical.includes('queueAll:"Exportovat dávkovou frontu (ZIP)"') &&
+      canonical.includes('queueAll:"Export batch queue (ZIP)"') &&
+      !canonical.includes('queueAll:"Exportovat dávku (ZIP)"'),
+      "Queue export button label must use canonical 'dávková fronta' / 'batch queue' per GLOSSARY.md avoiding bare 'dávka'"
+    );
+
+    // Entity legal basis propagation test
+    const multiMentionDoc = "Ing. Petr Novák podepsal smlouvu. Později pan Novák doplnil přílohu.";
+    const multiMentionHits = detect(multiMentionDoc, { name: true }, []);
+    const novakEntityHits = multiMentionHits.filter(h => h.type === "name");
+    check(
+      novakEntityHits.length >= 2,
+      `Multi-mention document must detect both mentions of entity Novák (got: ${novakEntityHits.length})`
+    );
+    const primaryKey = novakEntityHits[0]?.entityKey;
+    check(
+      Boolean(primaryKey) && novakEntityHits.every(h => h.entityKey === primaryKey),
+      `All detected mentions of Novák must share identical entityKey (got: ${JSON.stringify(novakEntityHits.map(h => h.entityKey))})`
+    );
+    // Simulate inspector legal basis change propagation
+    novakEntityHits[0].legalBasis = "trade";
+    multiMentionHits.forEach(h => {
+      if (h.entityKey === primaryKey) h.legalBasis = "trade";
+    });
+    check(
+      novakEntityHits.every(h => h.legalBasis === "trade"),
+      "Changing legal basis on entity must propagate to all hits sharing the same entityKey (ADR-0006)"
+    );
+
+    // GLOSSARY.md synchronization check
+    const glossaryContent = readFileSync("GLOSSARY.md", "utf8");
+    check(
+      glossaryContent.includes("[OSOBA_001]") && !glossaryContent.includes("[OSOBA_1]"),
+      "GLOSSARY.md must declare three-digit zero-padded token format [OSOBA_001]"
+    );
+    check(
+      glossaryContent.includes("**Rychlý režim**:") &&
+      glossaryContent.includes("**Zrychlené schvalování**:") &&
+      glossaryContent.includes("**Zákonný důvod znečitelnění**:"),
+      "GLOSSARY.md must define canonical terms Rychlý režim, Zrychlené schvalování, and Zákonný důvod znečitelnění"
+    );
   }
 } catch (stErr) {
   failures.push("Canonical selfTest execution failed: " + (stErr.message || String(stErr)));
