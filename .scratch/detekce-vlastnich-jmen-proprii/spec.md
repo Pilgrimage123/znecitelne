@@ -129,8 +129,8 @@ Architektura testů navazuje na existující testovací sadu v automatizovaném 
 ## Further Notes
 
 - Řešení plně respektuje a doplňuje stávající architektonická rozhodnutí:
-  - [ADR-0001: Dual-Layer Sanitized PDF](file:///c:/Users/kocnaro/.gemini/antigravity/scratch/znecitelne/docs/adr/0001-dual-layer-sanitized-pdf.md)
-  - [ADR-0002: Zero-Network Offline Processing](file:///c:/Users/kocnaro/.gemini/antigravity/scratch/znecitelne/docs/adr/0002-zero-network-offline-processing.md)
-  - [ADR-0003: Natural Czech Declension Pseudonym Tokens](file:///c:/Users/kocnaro/.gemini/antigravity/scratch/znecitelne/docs/adr/0003-natural-czech-declension-pseudonym-tokens.md)
-  - [ADR-0004: Client-Side Hybrid Propria Detection and Entity Cache](file:///c:/Users/kocnaro/.gemini/antigravity/scratch/znecitelne/docs/adr/0004-client-side-hybrid-propria-detection.md)
-- Všechny termíny důsledně dodržují kanonický slovník [GLOSSARY.md](file:///c:/Users/kocnaro/.gemini/antigravity/scratch/znecitelne/GLOSSARY.md).
+  - [ADR-0001: Dual-Layer Sanitized PDF](../../docs/adr/0001-dual-layer-sanitized-pdf.md)
+  - [ADR-0002: Zero-Network Offline Processing](../../docs/adr/0002-zero-network-offline-processing.md)
+  - [ADR-0003: Natural Czech Declension Pseudonym Tokens](../../docs/adr/0003-natural-czech-declension-pseudonym-tokens.md)
+  - [ADR-0004: Client-Side Hybrid Propria Detection and Entity Cache](../../docs/adr/0004-client-side-hybrid-propria-detection.md)
+- Všechny termíny důsledně dodržují kanonický slovník [GLOSSARY.md](../../GLOSSARY.md).

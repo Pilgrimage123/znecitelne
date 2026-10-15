@@ -1,4 +1,12 @@
 node_modules/
 .agents/
 .worktrees/
-
+.venv/
+__pycache__/
+*.py
+*.xlsx
+*.csv
+*.jsonl
+*.bak*
+*.log
+.scratch/ares_vr_cache/

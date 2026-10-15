@@ -2,6 +2,7 @@
 <html lang="cs">
 <head>
 <meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; worker-src 'self' blob:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none';" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="theme-color" content="#1f3348" />
 <meta name="description" content="Lokální anonymizace dokumentů pro české státní firmy a přípravu textu pro veřejnou AI. Jeden HTML soubor. Žádný cloud." />
@@ -649,6 +650,10 @@ body.movie-active #settingsSheet {
         <h2 class="lbl" id="lblProc"></h2>
         <div class="process" id="processBox"></div>
       </div>
+      <div class="pane hidden" style="margin-top:12px" id="mediaPane">
+        <h2 class="lbl" id="lblMedia">Obrázky a podpisy</h2>
+        <div class="media-box" id="mediaBox" style="font-size:12px;display:flex;flex-direction:column;gap:6px"></div>
+      </div>
     </aside>
   </div>
 </section>
@@ -714,8 +719,9 @@ body.movie-active #settingsSheet {
   const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];
   const KEYS = PII_KEYS.concat(ORG_KEYS);
 
-  const RULES = "2026.10.15-ai42";
+  const RULES = "2026.10.15-ai43";
   const CHANGELOG = [
+    { version: "2026.10.15-ai43", notes: { cs: "Bezpečnostní audit, Zero-Network CSP, modulární ES architektura a šifrované sezení (ADR-0008, ADR-0009, ADR-0010): Vynucení offline režimu striktní Content-Security-Policy (CSP) dle ADR-0002, modularizace kódu do čistých ES modulů v src/, odstranění křehkého vyřezávání kódu v test.js ve prospěch přímých importů, nedestruktivní XML sanitizace XLSX přes fflate se 100% zachováním stylů, vzorců a grafů, šifrovaný export/import sezení (.znecitelne-session) pomocí AES-GCM + PBKDF2 pro druhou kontrolu, zobrazení panelu médií/podpisů a úplná hygiena repozitáře.", en: "Security audit, Zero-Network CSP, modular ES architecture and encrypted session (ADR-0008, ADR-0009, ADR-0010): Strict Content-Security-Policy (CSP) enforcing Zero-Network per ADR-0002, modular ES codebase in src/, direct imports in test suite replacing fragile source slicing, non-destructive XML sanitization of XLSX via fflate preserving 100% of formatting, formulas and charts, encrypted session package (.znecitelne-session) via AES-GCM + PBKDF2 for four-eyes review, media/signature inspector pane, and full repository hygiene." } },
     { version: "2026.10.15-ai42", notes: { cs: "Terminologie anonymizace a výchozí horní poloha ovládací lišty (ADR-0007): Sjednocení akčních sloves a prvků v UI na kanonické termíny anonymizace / anonymizovat (tlačítka Anonymizovat, Vše anonymizovat, Anonymizovat a exportovat, Zákonný důvod anonymizace, Protokol o anonymizaci) při zachování názvu aplikace Znečitelně a mezinárodního anglického standardu Redact/Redaction. Nastavení výchozí polohy ovládací lišty nahoře (barPos: 'top') pro nová sezení s respektováním dříve uložené uživatelské volby.", en: "Anonymisation terminology alignment and top toolbar default (ADR-0007): UI action verbs and labels unified to canonical anonymisation terminology (Anonymizovat, Vše anonymizovat, Anonymizovat a exportovat, Zákonný důvod anonymizace, Protokol o anonymizaci) while preserving product brand Znečitelně and standard English 'Redact/Redaction'. Toolbar position now defaults to top (barPos: 'top') for new sessions while preserving explicit localStorage preferences." } },
     { version: "2026.10.14-ai41", notes: { cs: "Vyjasnění konfliktů, nekonzistencí a zpřehlednění UI (ADR-0006): klientské ZIP balení pro export AI balíčku a dávkové fronty přes fflate s garancí nulového blokování prohlížečem, striktní oddělení Rychlého režimu od schvalovacího procesu (quickMode neobchází review) s přímým přepínačem v liště recenze, odstranění duplicitního panelu Návrh (#resultPane), horizontální zjednodušení akční lišty s odstraněním svislých pozic Vlevo/Vpravo, seskupení hromadných akcí, přesun druhotných auditních výstupů (Audit JSON, Protokol o znečitelnění) do exportního dialogu, automatická propagace zákonného důvodu na celou entitu (entityKey) a terminologické sladění s GLOSSARY.md.", en: "Resolution of conflicts, inconsistencies, and UI decluttering (ADR-0006): client-side ZIP packaging for AI pack and batch queue exports via fflate eliminating browser download blockers, strict decoupling of Quick mode from approval gates (quickMode preserves mandatory review) with an inline toolbar switch, removal of duplicate Proposal pane (#resultPane), horizontal toolbar simplification removing buggy left/right positions, grouped bulk actions, integration of secondary audit outputs (Audit JSON, Redaction Record) into the export modal, automatic propagation of legal bases across whole entities (entityKey), and terminology alignment per GLOSSARY.md." } },
     { version: "2026.10.14-ai40", notes: { cs: "Ochrana toponym a hydrologických apelativ (Červená Voda, důlní vody): rozšíření isLikelyNonPersonName o úplná pádová paradigmata významných českých víceslovných obcí (Červená Voda, Bílá Voda, Dobrá Voda, Kutná Hora atd.), lingvistické vzorce pro toponymické fráze a hydrologické kolokace (důlní vody, odpadní vody, vypouštěných vod), územní zarážky (v obci, k.ú.), zpřísnění vstupního síta Dokumentové mezipaměti entit pro formátové kandidáty a case-sensitive vyhledávání u jednoslovné propagace.", en: "Protection of toponyms and hydrological collocations (Červená Voda, mine water): expansion of isLikelyNonPersonName with full declensions of prominent Czech compound municipalities (Červená Voda, Bílá Voda, Dobrá Voda, Kutná Hora, etc.), linguistic patterns for toponymic phrases and hydrological collocations (mine waters, waste water, discharged waters), territorial guards (v obci, k.ú.), stricter admission gate for format candidates in EntityPropagationCache, and case-sensitive matching for single-word propagation." } },
@@ -3333,7 +3339,85 @@ Orgán: OBÚ.
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
     return xlsxToText(XLSX.read(u8, { type:"array" }));
   }
+
+  function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = true) {
+    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+    if (!flate || !flate.unzipSync) return { ok: false, reason: "fflate missing" };
+
+    const replacer = bindReplacer(mode, lang, hits);
+    const map = new Map();
+    effectiveHits(hits).forEach(h => {
+      if (h.value && !map.has(h.value)) map.set(h.value, replacer(h));
+    });
+
+    const files = flate.unzipSync(new Uint8Array(sourceBuf.slice(0)));
+    for (const k of Object.keys(files)) {
+      const norm = k.replace(/\\/g, "/");
+      if (norm !== k) {
+        files[norm] = files[k];
+        delete files[k];
+      }
+    }
+    const dec = new TextDecoder("utf-8"), enc = new TextEncoder();
+    const values = Array.from(map.keys()).filter(Boolean).sort((a,b) => b.length - a.length);
+
+    // 1. In-place XML string replacement in xl/sharedStrings.xml
+    if (files["xl/sharedStrings.xml"] && values.length) {
+      let xml = dec.decode(files["xl/sharedStrings.xml"]);
+      xml = xml.replace(/(<t(?:\s+[^>]*)?>)([\s\S]*?)(<\/t>)/g, (match, openTag, textContent, closeTag) => {
+        let replaced = textContent;
+        values.forEach(v => {
+          if (replaced.includes(v)) {
+            replaced = replaced.replaceAll(v, map.get(v));
+          }
+        });
+        return openTag + replaced + closeTag;
+      });
+      files["xl/sharedStrings.xml"] = enc.encode(xml);
+    }
+
+    // 2. In-place XML string replacement in worksheets for inline strings
+    const sheetRe = /^xl\/worksheets\/sheet\d+\.xml$/i;
+    for (const name of Object.keys(files)) {
+      if (sheetRe.test(name) && values.length) {
+        let xml = dec.decode(files[name]);
+        if (xml.includes("<t>") || xml.includes("<is>")) {
+          xml = xml.replace(/(<t(?:\s+[^>]*)?>)([\s\S]*?)(<\/t>)/g, (match, openTag, textContent, closeTag) => {
+            let replaced = textContent;
+            values.forEach(v => {
+              if (replaced.includes(v)) {
+                replaced = replaced.replaceAll(v, map.get(v));
+              }
+            });
+            return openTag + replaced + closeTag;
+          });
+          files[name] = enc.encode(xml);
+        }
+      }
+    }
+
+    // 3. Strip metadata in docProps/core.xml if requested
+    if (stripMeta && files["docProps/core.xml"]) {
+      let xml = dec.decode(files["docProps/core.xml"]);
+      xml = xml.replace(/<dc:creator>[\s\S]*?<\/dc:creator>/gi, "<dc:creator></dc:creator>")
+               .replace(/<cp:lastModifiedBy>[\s\S]*?<\/cp:lastModifiedBy>/gi, "<cp:lastModifiedBy></cp:lastModifiedBy>");
+      if (xml.includes("<dc:description>")) {
+        xml = xml.replace(/<dc:description>[\s\S]*?<\/dc:description>/gi, "<dc:description>Znečitelně — metadata stripped</dc:description>");
+      } else if (xml.includes("</cp:coreProperties>")) {
+        xml = xml.replace("</cp:coreProperties>", "<dc:description>Znečitelně — metadata stripped</dc:description></cp:coreProperties>");
+      }
+      files["docProps/core.xml"] = enc.encode(xml);
+    }
+
+    const bytes = flate.zipSync(files, { level: 6 });
+    return { ok: true, bytes };
+  }
+
   function exportXlsxFile(sourceBuf, hits, mode, lang){
+    if (window.fflate && typeof exportXlsxFileFflate === "function") {
+      const fflateRes = exportXlsxFileFflate(sourceBuf, hits, mode, lang, S.stripMeta);
+      if (fflateRes && fflateRes.ok) return fflateRes.bytes;
+    }
     const wb = XLSX.read(sourceBuf.slice(0), { type:"array" });
     const { cellMap } = xlsxToText(wb);
     const replacer = bindReplacer(mode, lang, hits);
@@ -3877,6 +3961,151 @@ Orgán: OBÚ.
       }
     } catch (_) {}
     return "0000000000000000000000000000000000000000000000000000000000000000";
+  }
+
+  const FORMAT_ID = "znecitelne-session";
+  const FORMAT_VERSION = 1;
+  const PBKDF2_ITERATIONS = 100000;
+
+  function sessionBufferToBase64(buf) {
+    const bytes = new Uint8Array(buf);
+    let binary = "";
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+
+  function sessionBase64ToBuffer(b64) {
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+
+  async function sessionDeriveKey(password, saltBytes, usage) {
+    const subtle = globalThis.crypto.subtle;
+    const enc = new TextEncoder();
+    const keyMaterial = await subtle.importKey(
+      "raw",
+      enc.encode(password),
+      { name: "PBKDF2" },
+      false,
+      ["deriveKey"]
+    );
+    return subtle.deriveKey(
+      {
+        name: "PBKDF2",
+        salt: saltBytes,
+        iterations: PBKDF2_ITERATIONS,
+        hash: "SHA-256",
+      },
+      keyMaterial,
+      { name: "AES-GCM", length: 256 },
+      false,
+      usage
+    );
+  }
+
+  async function exportSession(state, password) {
+    if (!password || typeof password !== "string") {
+      throw new Error("Password is required for encrypting session");
+    }
+    const subtle = globalThis.crypto.subtle;
+    const salt = new Uint8Array(16);
+    globalThis.crypto.getRandomValues(salt);
+
+    const iv = new Uint8Array(12);
+    globalThis.crypto.getRandomValues(iv);
+
+    const key = await sessionDeriveKey(password, salt, ["encrypt"]);
+
+    const payload = {
+      doc: {
+        fileName: state.fileName,
+        kind: state.kind,
+        text: state.text,
+        pages: state.pages,
+        reviewed: state.reviewed,
+        approvalState: state.approvalState || (state.reviewed ? "approved" : "unreviewed"),
+        cellMap: state.cellMap,
+        sigDetected: state.sigDetected
+      },
+      hits: state.hits,
+      seen: Array.from(state.seen || []),
+      profile: state.profile,
+      replaceMode: state.replaceMode || state.mode,
+      lang: state.lang,
+      legalReason: state.legalReason,
+      auditTrail: state.auditTrail || []
+    };
+
+    const enc = new TextEncoder();
+    const plaintextBytes = enc.encode(JSON.stringify(payload));
+
+    const cipherBuffer = await subtle.encrypt(
+      { name: "AES-GCM", iv },
+      key,
+      plaintextBytes
+    );
+
+    const envelope = {
+      format: FORMAT_ID,
+      version: FORMAT_VERSION,
+      timestamp: new Date().toISOString(),
+      kdf: {
+        algorithm: "PBKDF2",
+        iterations: PBKDF2_ITERATIONS,
+        hash: "SHA-256",
+        salt: sessionBufferToBase64(salt)
+      },
+      cipher: {
+        algorithm: "AES-GCM",
+        iv: sessionBufferToBase64(iv),
+        data: sessionBufferToBase64(cipherBuffer)
+      }
+    };
+
+    return JSON.stringify(envelope, null, 2);
+  }
+
+  async function importSession(envelopeJsonOrObj, password) {
+    if (!password || typeof password !== "string") {
+      throw new Error("Password is required for decrypting session");
+    }
+    const envelope = typeof envelopeJsonOrObj === "string" ? JSON.parse(envelopeJsonOrObj) : envelopeJsonOrObj;
+    if (!envelope || envelope.format !== FORMAT_ID) {
+      throw new Error("Invalid session format: expected " + FORMAT_ID);
+    }
+    if (envelope.version !== FORMAT_VERSION) {
+      throw new Error("Unsupported session version: " + envelope.version);
+    }
+
+    const saltBytes = new Uint8Array(sessionBase64ToBuffer(envelope.kdf.salt));
+    const ivBytes = new Uint8Array(sessionBase64ToBuffer(envelope.cipher.iv));
+    const cipherBytes = sessionBase64ToBuffer(envelope.cipher.data);
+
+    const key = await sessionDeriveKey(password, saltBytes, ["decrypt"]);
+
+    const subtle = globalThis.crypto.subtle;
+    let decryptedBuffer;
+    try {
+      decryptedBuffer = await subtle.decrypt(
+        { name: "AES-GCM", iv: ivBytes },
+        key,
+        cipherBytes
+      );
+    } catch (err) {
+      throw new Error("Decryption failed: incorrect password or corrupted data");
+    }
+
+    const dec = new TextDecoder("utf-8");
+    const jsonStr = dec.decode(decryptedBuffer);
+    const data = JSON.parse(jsonStr);
+
+    return data;
   }
   function download(name, blob){
     if (S._batchFiles && typeof S._batchFiles === "object") {
@@ -4702,6 +4931,34 @@ Orgán: OBÚ.
     if ($("lblProc")) $("lblProc").textContent = t.processTitle;
     if ($("processPane")) $("processPane").classList.toggle("hidden", !S.processAnalysis);
     if ($("processBox") && S.processAnalysis) $("processBox").innerHTML = processHTML(proc);
+    if ($("mediaPane") && $("mediaBox")) {
+      const hasSig = !!S.sigDetected;
+      let docxMediaCount = 0;
+      if (S.kind === "docx" && S.sourceBuf && window.fflate) {
+        try {
+          const files = window.fflate.unzipSync(new Uint8Array(S.sourceBuf.slice(0)));
+          docxMediaCount = Object.keys(files).filter(k => /^word\/(?:media|embeddings)\//i.test(k)).length;
+        } catch (_) {}
+      }
+      const showMedia = hasSig || docxMediaCount > 0;
+      $("mediaPane").classList.toggle("hidden", !showMedia);
+      if (showMedia) {
+        let mediaHtml = "";
+        if (hasSig) {
+          mediaHtml += `<div style="background:var(--bg-subtle);padding:6px 8px;border-radius:4px;border-left:3px solid var(--accent)">
+            <strong>${S.lang === 'cs' ? 'Digitální podpis / certifikát' : 'Digital signature / certificate'}</strong>
+            <p style="margin:2px 0 0;color:var(--muted)">${S.lang === 'cs' ? 'V dokumentu byl detekován podpis. Při exportu bude v souladu s bezpečnostní politikou odstraněn.' : 'Signature detected. Will be stripped upon export per security policy.'}</p>
+          </div>`;
+        }
+        if (docxMediaCount > 0) {
+          mediaHtml += `<div style="background:var(--bg-subtle);padding:6px 8px;border-radius:4px;border-left:3px solid var(--accent)">
+            <strong>${S.lang === 'cs' ? 'Vložené objekty a média' : 'Embedded objects & media'} (${docxMediaCount})</strong>
+            <p style="margin:2px 0 0;color:var(--muted)">${S.lang === 'cs' ? 'Detekovány vložené obrázky. Odstraňují se pro zamezení úniku naskenovaných podpisů či razítek.' : 'Embedded images detected. Stripped to prevent graphic signature or stamp leakage.'}</p>
+          </div>`;
+        }
+        $("mediaBox").innerHTML = mediaHtml;
+      }
+    }
     const exportReady = !!(S.reviewed || reviewSkipped());
     $("bar").innerHTML = `<div class="bar-inner">
       <div class="btn-group bulk-group" role="group" aria-label="${esc(t.acceptAll)} / ${esc(t.rejectAll)}">
@@ -4717,6 +4974,7 @@ Orgán: OBÚ.
       </div>
       <span data-tip="${exportReady?t.tips.export:t.tips.exportLocked}"><button class="btn" id="btnExp" ${exportReady?"":"disabled"}>${t.export}</button></span>
       <span data-tip="${exportReady?(t.tips.aiPack||t.aiPack):t.tips.exportLocked}"><button class="btn btn-sec" id="btnAi" ${exportReady?"":"disabled"}>${t.aiPack}</button></span>
+      <button type="button" class="btn btn-sm btn-sec" id="btnExportSession" data-tip="${S.lang==='cs'?'Uložit šifrované sezení pro druhou kontrolu (.znecitelne-session)':'Export encrypted session for four-eyes review (.znecitelne-session)'}">💾 ${S.lang==='cs'?'Předat pro 4 oči':'Export session'}</button>
     </div>`;
     $("btnToggleQuick").onclick = () => {
       S.quickMode = !S.quickMode;
@@ -4745,6 +5003,27 @@ Orgán: OBÚ.
     $("btnViewOrig").onclick = () => setDocView("original");
     $("btnExp").onclick = () => openExport(false);
     $("btnAi").onclick = () => openExport(true);
+    const btnSess = $("btnExportSession");
+    if (btnSess) {
+      btnSess.onclick = async () => {
+        const pwd = prompt(S.lang === "cs" ? "Zadejte heslo pro zašifrování sezení (pro druhou kontrolu):" : "Enter password to encrypt session (for second review):");
+        if (!pwd) return;
+        const pwdConfirm = prompt(S.lang === "cs" ? "Potvrďte heslo:" : "Confirm password:");
+        if (pwd !== pwdConfirm) {
+          alert(S.lang === "cs" ? "Hesla se neshodují." : "Passwords do not match.");
+          return;
+        }
+        try {
+          const envelopeJson = await exportSession(S, pwd);
+          const blob = new Blob([envelopeJson], { type: "application/json" });
+          const baseName = (S.fileName || "dokument").replace(/\.[^/.]+$/, "");
+          download(`${baseName}.znecitelne-session`, blob);
+          toast(S.lang === "cs" ? "Šifrované sezení bylo uloženo." : "Encrypted session saved.");
+        } catch (err) {
+          alert((S.lang === "cs" ? "Chyba při exportu sezení: " : "Error exporting session: ") + (err.message || String(err)));
+        }
+      };
+    }
     bindTips();
     requestAnimationFrame(updateBarHeightVar);
   }
@@ -5443,6 +5722,40 @@ Orgán: OBÚ.
   async function onFile(file){
     $("errLand").classList.add("hidden");
     $("errLand").textContent = "";
+    if (file && (file.name.endsWith(".znecitelne-session") || file.name.endsWith(".json"))) {
+      try {
+        const text = await (file.text ? file.text() : new TextDecoder().decode(file.buffer ? new Uint8Array(file.buffer) : toBytes(file)));
+        if (text.includes('"format": "znecitelne-session"') || text.includes('"format":"znecitelne-session"')) {
+          const pwd = prompt(S.lang === "cs" ? "Zadejte heslo pro otevření šifrovaného sezení:" : "Enter password to decrypt session:");
+          if (!pwd) return false;
+          const sessionData = await importSession(text, pwd);
+          S.fileName = sessionData.doc.fileName;
+          S.kind = sessionData.doc.kind;
+          S.text = sessionData.doc.text;
+          S.pages = sessionData.doc.pages || [sessionData.doc.text];
+          S.reviewed = sessionData.doc.reviewed ?? true;
+          S.secondEyes = true;
+          S.cellMap = sessionData.doc.cellMap || [];
+          S.sigDetected = !!sessionData.doc.sigDetected;
+          S.hits = sessionData.hits || [];
+          S.seen = new Set(sessionData.seen || []);
+          if (sessionData.profile) S.profile = sessionData.profile;
+          if (sessionData.replaceMode) S.mode = sessionData.replaceMode;
+          if (sessionData.lang) S.lang = sessionData.lang;
+          if (sessionData.legalReason) S.legalReason = sessionData.legalReason;
+          S.sourceBuf = null;
+          render();
+          toast(S.lang === "cs" ? "Sezení bylo úspěšně načteno pro druhou kontrolu." : "Session loaded for second-eye review.");
+          return true;
+        }
+      } catch (err) {
+        const msg = (S.lang === "cs" ? "Chyba dešifrování sezení: " : "Session decryption error: ") + (err.message || String(err));
+        $("errLand").textContent = msg;
+        $("errLand").classList.remove("hidden");
+        toast(msg);
+        return false;
+      }
+    }
     try {
       const doc = await ingestDocument(file, {
         ocrEnabled: S.ocrEnabled,

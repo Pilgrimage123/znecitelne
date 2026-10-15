@@ -31,12 +31,35 @@ const requiredMarkers = [
   "./lib/tesseract/core/tesseract-core-simd.wasm",
   "./lib/tesseract/core/tesseract-core-lstm.wasm",
   "./lib/tesseract/core/tesseract-core-simd-lstm.wasm",
+  "Content-Security-Policy",
   "./lib/tesseract/lang/ces.traineddata.gz",
 ];
 
 for (const marker of requiredMarkers) {
   if (!html.includes(marker)) {
     throw new Error(`Canonical app is missing required marker: ${marker}`);
+  }
+}
+
+const requiredModules = [
+  "src/core/rules.js",
+  "src/core/i18n.js",
+  "src/core/onomastic.js",
+  "src/core/morphology.js",
+  "src/core/propagation.js",
+  "src/core/detector.js",
+  "src/formats/rtf.js",
+  "src/formats/odt.js",
+  "src/formats/xlsx.js",
+  "src/formats/docx.js",
+  "src/formats/pdf.js",
+  "src/crypto/session.js",
+  "src/worker/worker.js"
+];
+
+for (const mod of requiredModules) {
+  if (!existsSync(resolve(root, mod))) {
+    throw new Error(`Missing source module: ${mod}`);
   }
 }
 

@@ -92,5 +92,15 @@ _Avoid_: Obcházení kontroly, Automatické schválení, Skip review
 Právní titul (např. ochrana osobních údajů dle GDPR, obchodní tajemství, bankovní tajemství, utajovaná informace nebo jiný zákonem stanovený důvod), na jehož základě je nález začerněn či pseudonymizován; je evidován v auditním protokolu a provázán se všemi výskyty téže entity v dokumentu.
 _Avoid_: Zákonný důvod znečitelnění, Důvod začernění, Právní status, Právní štítek
 
+**Předávací balíček sezení**:
+Kryptograficky zabezpečený exportní soubor zachycující rozpracovaný stav dokumentu, potvrzené nálezy a auditní záznam, určený pro bezpečné předání druhému kontrolorovi v rámci principu čtyř očí bez trvalého ukládání v prohlížeči.
+_Avoid_: Uložená relace, Session backup, Projektový soubor, Stav úlohy
+
+**Ovládací lišta**:
+Trvalý pruh uživatelského rozhraní sdružující klíčové ovládací prvky pro schvalování, přepínání náhledu a nevratný export dokumentu, jehož výchozí poloha je v horní části obrazovky pod záhlavím s možností přesunu do spodní části.
+_Avoid_: Button bar, Toolbar, Lišta tlačítek, Spodní lišta, Plovoucí lišta
+
+
+
 
 

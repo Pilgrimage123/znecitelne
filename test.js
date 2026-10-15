@@ -1,6 +1,57 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+// Initialize fflate in node environment for module testing
+const fflateCode = readFileSync("./lib/fflate.js", "utf8");
+const fflateModule = { exports: {} };
+new Function("module", "exports", fflateCode)(fflateModule, fflateModule.exports);
+globalThis.fflate = fflateModule.exports;
+
+import {
+  PII_KEYS, ORG_KEYS, KEYS, RULES, CHANGELOG, LABEL, TICKET_STOP, STATUS_GENERIC,
+  NAMES, FIRST_NAMES, TITLES, PUBLIC, SAMPLE
+} from "./src/core/rules.js";
+import {
+  stripTitle, ONOMASTIC_PAYLOAD_B64, createOnomasticTrie, initOnomasticRegistry,
+  isOnomasticName
+} from "./src/core/onomastic.js";
+import {
+  stemNamePart, isCzechVerbOrParticiple, looksName, nameKey, canonToken,
+  systemCore, accountKey, nameInitial, clusterNameKeys, declineCzechFirstName,
+  declineCzechSurname, generateCzechNameForms, isLikelyNonPersonName, isSentenceStart,
+  declinedPersonTokenBase, RE_AGENDA_APELATIVA, RE_PAST_L_PARTICIPLE, RE_PASSIVE_PARTICIPLE,
+  ADMIN_VERB_STEMS, RE_CZECH_SURNAMES, ROLE_WORDS_SET
+} from "./src/core/morphology.js";
+import { createEntityPropagationCache, expandCzechNameMorphology, alignDictEntity } from "./src/core/propagation.js";
+import {
+  digits, parseRC, pageOf, toBytes, isValidICO, isValidDIC, ibanOk,
+  IBAN_LEN, SWIFT_CC, ibanForeignOk, isPublic, tokenizeCtx, ctxSlice,
+  matchNeedles, ctxHas, ctxWhich, isContractDateCtx, makeWork, mapSpan,
+  parseDict, dictRe, urlSpans, spanInUrl, trimUrlValue, trimHitValue,
+  findAll, scoreHit, finalizeHit, projectPrefixes, detect,
+  applyCourtProfileRules, filterCourtDecisionsWhitelist, tokenBase, nextSuffix,
+  makeReplacer, bindReplacer, buildGlossary, resolveHits, effectiveHits,
+  visibleHits, topHits, apply
+} from "./src/core/detector.js";
+import { decodeTextBuffer, isBinaryBuffer, extractRtfText } from "./src/formats/rtf.js";
+import { extractOdtText } from "./src/formats/odt.js";
+import { xlsxToText, extractXlsx, exportXlsxFile, exportXlsxFileFflate, stripWorkbookMeta } from "./src/formats/xlsx.js";
+import {
+  docxRelationshipSourcePart, docxNormalizeZipPath, docxResolveRelTarget,
+  docxRelativeZipPath, docxSetTextPreservingSpace, docxMakeWork,
+  docxReplaceInXml, docxStripVisualObjects, docxStripMediaRelationships,
+  docxRemoveMediaParts, docxAssertNoEmbeddedMedia, docxAssertNoDanglingRelationships,
+  docxStripMeta, exportDocxFile, extractDocxTextWithFflate
+} from "./src/formats/docx.js";
+import {
+  pdfWordQuads, pdfHasSignatureBytes, verifySanitizedPdfText, assertSecurePdfBytes
+} from "./src/formats/pdf.js";
+import {
+  IngestErrorCode, DocumentIngestionError, localizeIngestError,
+  buildCanonicalDocument, applyDocumentToState, ingestDocument, ingestDocumentBatch
+} from "./src/formats/ingest.js";
+import { exportSession, importSession } from "./src/crypto/session.js";
+
 const canonical = readFileSync("znecitelne.html", "utf8");
 const server = readFileSync("server.js", "utf8");
 const metadata = JSON.parse(readFileSync("metadata.json", "utf8"));
@@ -264,50 +315,10 @@ check(
 
 // Unit tests exercising deepened Document Ingestion module through its seam
 try {
-  const scriptContent = canonical.match(/<script>([\s\S]*?)<\/script>/)?.[1] || "";
-  const vm = await import("node:vm");
-  const sandbox = {
-    TextDecoder,
-    TextEncoder,
-    Uint8Array,
-    ArrayBuffer,
-    console,
-    Math,
-    String,
-    Number,
-    Object,
-    Error,
-    window: {},
-    document: {},
-    S: { lang: "cs", ocrEnabled: false },
-    sha256: async () => "mockhash"
-  };
-  vm.createContext(sandbox);
-  vm.runInContext(
-    `
-    function toBytes(buf){
-      if (!buf) return new Uint8Array(0);
-      if (buf instanceof Uint8Array) return buf;
-      if (buf instanceof ArrayBuffer) return new Uint8Array(buf);
-      if (ArrayBuffer.isView(buf)) return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
-      return new Uint8Array(0);
-    }
-    ` +
-    scriptContent.slice(
-      scriptContent.indexOf("const IngestErrorCode ="),
-      scriptContent.indexOf("function extractOdtText(")
-    ) +
-    scriptContent.slice(
-      scriptContent.indexOf("function isImageFile("),
-      scriptContent.indexOf("const Q = { items:")
-    ),
-    sandbox
-  );
-
   // 1. Structured domain error on empty document
   let caught = null;
   try {
-    await sandbox.ingestDocument({ name: "empty.txt", buffer: new ArrayBuffer(0) });
+    await ingestDocument({ name: "empty.txt", buffer: new ArrayBuffer(0) });
   } catch (e) {
     caught = e;
   }
@@ -316,7 +327,7 @@ try {
   // 2. Structured domain error on legacy .doc
   caught = null;
   try {
-    await sandbox.ingestDocument({ name: "stary.doc", buffer: new Uint8Array([1, 2, 3]).buffer });
+    await ingestDocument({ name: "stary.doc", buffer: new Uint8Array([1, 2, 3]).buffer });
   } catch (e) {
     caught = e;
   }
@@ -326,7 +337,7 @@ try {
   caught = null;
   try {
     const binaryBytes = new Uint8Array([0x41, 0x42, 0x00, 0x43]);
-    await sandbox.ingestDocument({ name: "unknown.bin", buffer: binaryBytes.buffer });
+    await ingestDocument({ name: "unknown.bin", buffer: binaryBytes.buffer });
   } catch (e) {
     caught = e;
   }
@@ -335,16 +346,16 @@ try {
   // 4. Valid document extraction produces canonical immutable Dokument
   const sampleText = "Dobrý den, anonymizace dokumentu.";
   const sampleBuf = new TextEncoder().encode(sampleText).buffer;
-  const doc = await sandbox.ingestDocument({ name: "smlouva.txt", buffer: sampleBuf });
+  const doc = await ingestDocument({ name: "smlouva.txt", buffer: sampleBuf });
   check(doc && doc.text === sampleText, "ingestDocument must extract clean normalized text");
   check(doc && doc.kind === "text", "ingestDocument must identify text kind");
   check(doc && Array.isArray(doc.pages) && doc.pages.length === 1, "ingestDocument must guarantee uniform pages array");
   check(doc && Array.isArray(doc.cellMap) && doc.cellMap.length === 0, "ingestDocument must guarantee uniform cellMap array");
-  check(doc && doc.hashIn === "mockhash", "ingestDocument must guarantee computed hashIn");
+  check(doc && typeof doc.hashIn === "string", "ingestDocument must guarantee computed hashIn");
   check(Object.isFrozen(doc), "ingestDocument must return an immutable frozen Dokument");
 
   // 5. Batch ingestion reports per-item results without halting on failure
-  const batch = await sandbox.ingestDocumentBatch([
+  const batch = await ingestDocumentBatch([
     { name: "valid.txt", buffer: sampleBuf },
     { name: "invalid.doc", buffer: new Uint8Array([1, 2]).buffer }
   ]);
@@ -357,32 +368,6 @@ try {
 
 // Jednotkové testy modulu dekonflikce nálezů (resolveHits, effectiveHits, visibleHits) přes kanonické rozhraní
 try {
-  const scriptContent = canonical.match(/<script>([\s\S]*?)<\/script>/)?.[1] || "";
-  const vm = await import("node:vm");
-  const deconflictSandbox = {
-    Number,
-    Boolean,
-    String,
-    Array,
-    Map,
-    Set,
-    Math,
-    console,
-    LABEL: { cs: { name: "OSOBA", ticket: "TICKET" } },
-    STATUS_GENERIC: { cs: { prod: "PROD" } },
-    canonToken: (s) => String(s).toLowerCase()
-  };
-  vm.createContext(deconflictSandbox);
-  vm.runInContext(
-    scriptContent.slice(
-      scriptContent.indexOf("function tokenBase("),
-      scriptContent.indexOf("function xlsxToText(")
-    ),
-    deconflictSandbox
-  );
-
-  const { resolveHits, effectiveHits, visibleHits, topHits, apply, buildGlossary } = deconflictSandbox;
-
   // 1. Schválený nález má přednost před delším neschváleným nálezem
   const approvedVsLonger = resolveHits([
     { id: 1, start: 0, end: 30, value: "neco dlouheho neovereneho", accept: false },
@@ -539,81 +524,47 @@ try {
 
 // Regression tests for proactive bug fixes
 try {
-  const scriptContent = canonical.match(/<script>([\s\S]*?)<\/script>/)?.[1] || "";
-  const vm = await import("node:vm");
-  const sandbox = {
-    TextDecoder,
-    TextEncoder,
-    Uint8Array,
-    ArrayBuffer,
-    console,
-    Math,
-    String,
-    Number,
-    Object,
-    Error,
-    RegExp,
-    window: {},
-    document: {}
-  };
-  vm.createContext(sandbox);
-
-  const rtfCode = scriptContent.slice(scriptContent.indexOf("function extractRtfText("), scriptContent.indexOf("function extractOdtText("));
-  const findAllCode = scriptContent.slice(scriptContent.indexOf("function findAll("), scriptContent.indexOf("function scoreHit("));
-  const dictReCode = scriptContent.slice(scriptContent.indexOf("function dictRe("), scriptContent.indexOf("const URL_TOKEN_RE ="));
-  const assertPdfCode = scriptContent.slice(scriptContent.indexOf("function assertSecurePdfBytes("), scriptContent.indexOf("async function exportPdfTrueRedact("));
-  const docxRelCode = scriptContent.slice(scriptContent.indexOf("function docxNormalizeZipPath("), scriptContent.indexOf("function docxSetTextPreservingSpace("));
-  const toBytesCode = scriptContent.slice(scriptContent.indexOf("function toBytes("), scriptContent.indexOf("function isValidICO("));
-  const binaryDecodeCode = scriptContent.slice(scriptContent.indexOf("function decodeTextBuffer("), scriptContent.indexOf("function extractRtfText("));
-
-  const parseRCCode = scriptContent.slice(scriptContent.indexOf("function parseRC("), scriptContent.indexOf("function pageOf("));
-  const verbParticipleCode = scriptContent.slice(scriptContent.indexOf("const RE_AGENDA_APELATIVA ="), scriptContent.indexOf("const RE_CZECH_SURNAMES ="));
-  const isLikelyCode = scriptContent.slice(scriptContent.indexOf("function isLikelyNonPersonName("), scriptContent.indexOf("function detect("));
-  const declinedCode = scriptContent.slice(scriptContent.indexOf("function declinedPersonTokenBase("), scriptContent.indexOf("function makeReplacer("));
-
-  vm.runInContext(rtfCode + "\n" + findAllCode + "\n" + dictReCode + "\n" + assertPdfCode + "\n" + docxRelCode + "\n" + toBytesCode + "\n" + binaryDecodeCode + "\n" + parseRCCode + "\n" + verbParticipleCode + "\n" + isLikelyCode + "\n" + declinedCode, sandbox);
-
   // 1. RTF extraction preserves file paths with escaped backslashes
-  const rtfPath = sandbox.extractRtfText("{\\rtf1 C:\\\\temp\\\\file.txt}");
+  const rtfPath = extractRtfText("{\\rtf1 C:\\\\temp\\\\file.txt}");
   check(rtfPath === "C:\\temp\\file.txt", "extractRtfText must preserve literal backslashes and path segments in RTF");
 
   // 2. findAll tracks exact capture group start offset even when token matches prefix label
-  const hits = sandbox.findAll("secret: secret", /(?:secret)\s*[:=]\s*(\S+)/i, "credential", null, 1);
+  const hits = findAll("secret: secret", /(?:secret)\s*[:=]\s*(\S+)/i, "credential", null, 1);
   check(hits.length === 1 && hits[0].start === 8 && hits[0].value === "secret", "findAll must use exact capture group offset instead of matching prefix label");
 
   // 3. dictRe maintains word boundaries for multi-word phrases
-  const multiRe = sandbox.dictRe("Projekt Atlas");
+  const multiRe = dictRe("Projekt Atlas");
   check(!multiRe.test("MůjProjekt Atlas") && multiRe.test("Projekt Atlas"), "dictRe must enforce word boundaries on multi-word phrases");
 
   // 4. assertSecurePdfBytes detects hex-encoded names
   let caughtHex = false;
   try {
-    sandbox.assertSecurePdfBytes(new TextEncoder().encode("%PDF-1.4\n1 0 obj\n/#41croForm <<>>\nendobj\n%%EOF"));
+    assertSecurePdfBytes(new TextEncoder().encode("%PDF-1.4\n1 0 obj\n/#41croForm <<>>\nendobj\n%%EOF"));
   } catch (_) {
     caughtHex = true;
   }
   check(caughtHex, "assertSecurePdfBytes must reject hex-encoded forbidden names");
 
   // 5. docxResolveRelTarget ignores internal fragment/bookmark targets without producing dangling relation errors
-  const internalAnchor = sandbox.docxResolveRelTarget("word/document.xml", "#_Toc123");
+  const internalAnchor = docxResolveRelTarget("word/document.xml", "#_Toc123");
   check(internalAnchor === null, "docxResolveRelTarget must return null for internal anchor references (#...)");
 
   // 6. UTF-16BE text without BOM is properly detected and decoded rather than treated as unsupported binary
   const utf16beBytes = new Uint8Array([0x00, 0x41, 0x00, 0x68, 0x00, 0x6f, 0x00, 0x6a]);
-  check(!sandbox.isBinaryBuffer(utf16beBytes), "isBinaryBuffer must not reject UTF-16BE text without BOM as binary");
-  check(sandbox.decodeTextBuffer(utf16beBytes) === "Ahoj", "decodeTextBuffer must correctly decode UTF-16BE text without BOM");
+  check(!isBinaryBuffer(utf16beBytes), "isBinaryBuffer must not reject UTF-16BE text without BOM as binary");
+  check(decodeTextBuffer(utf16beBytes) === "Ahoj", "decodeTextBuffer must correctly decode UTF-16BE text without BOM");
 
   // 7. parseRC properly accepts 10-digit birth numbers where 9-digit prefix mod 11 is 10 (check digit 0)
-  check(sandbox.parseRC("850101/0090") === true, "parseRC must accept valid 10-digit birth number with mod 10 exception");
-  check(sandbox.parseRC("850101/0091") === null, "parseRC must reject 10-digit birth number with mismatched check digit");
+  check(parseRC("850101/0090") === true, "parseRC must accept valid 10-digit birth number with mod 10 exception");
+  check(parseRC("850101/0091") === null, "parseRC must reject 10-digit birth number with mismatched check digit");
 
   // 8. declinedPersonTokenBase correctly declines names with post-nominal titles and trailing punctuation
   check(
-    sandbox.declinedPersonTokenBase("OSOBA", { type: "name", value: "Janem Novákem, MBA" }, "cs") === "OSOBOU",
+    declinedPersonTokenBase("OSOBA", { type: "name", value: "Janem Novákem, MBA" }, "cs") === "OSOBOU",
     "declinedPersonTokenBase must correctly return OSOBOU for names with post-nominal titles"
   );
   check(
-    sandbox.declinedPersonTokenBase("OSOBA", { type: "name", value: "Janu Novákovi, Ph.D." }, "cs") === "OSOBĚ",
+    declinedPersonTokenBase("OSOBA", { type: "name", value: "Janu Novákovi, Ph.D." }, "cs") === "OSOBĚ",
     "declinedPersonTokenBase must correctly return OSOBĚ for names with post-nominal titles"
   );
 
@@ -621,11 +572,11 @@ try {
   const locPhrase = "Jednání se týká Černé Hory.";
   const horyIdx = locPhrase.indexOf("Hory");
   check(
-    sandbox.isLikelyNonPersonName("Hory", locPhrase, horyIdx, horyIdx + 4) === true,
+    isLikelyNonPersonName("Hory", locPhrase, horyIdx, horyIdx + 4) === true,
     "isLikelyNonPersonName must identify location sub-token preceded by Černé as non-person"
   );
   check(
-    sandbox.isLikelyNonPersonName("duben", "Termín je duben.", 10, 15) === true,
+    isLikelyNonPersonName("duben", "Termín je duben.", 10, 15) === true,
     "isLikelyNonPersonName must identify standalone month word as non-person"
   );
 } catch (regErr) {
@@ -821,41 +772,7 @@ check(
 
 // Unit tests exercising Onomastic Registry and Trie through its testing seams
 try {
-  const fflateCode = readFileSync("./lib/fflate.js", "utf8");
-  const vm = await import("node:vm");
-  const fflateCtx = { self: {} };
-  vm.runInNewContext(fflateCode, fflateCtx);
-  const fflateLib = fflateCtx.self.fflate;
-
-  const onomasticSandbox = {
-    window: { fflate: fflateLib },
-    fflate: fflateLib,
-    atob: (s) => Buffer.from(s, "base64").toString("binary"),
-    btoa: (s) => Buffer.from(s, "binary").toString("base64"),
-    TextEncoder,
-    TextDecoder,
-    Uint8Array,
-    ArrayBuffer,
-    Set,
-    Map,
-    Object,
-    String,
-    Boolean,
-    console
-  };
-  vm.createContext(onomasticSandbox);
-
-  const scriptContent = canonical.match(/<script>([\s\S]*?)<\/script>/)?.[1] || "";
-  const trieDef = scriptContent.slice(
-    scriptContent.indexOf("function stripTitle(token){"),
-    scriptContent.indexOf("function nameKey(value){")
-  );
-  vm.runInContext(
-    `const NAMES = new Set();\n` + trieDef,
-    onomasticSandbox
-  );
-
-  const trie = onomasticSandbox.initOnomasticRegistry();
+  const trie = initOnomasticRegistry();
   check(Boolean(trie && typeof trie.has === "function"), "initOnomasticRegistry must return initialized trie");
 
   // Top Czech surnames & first names from prompt
@@ -867,7 +784,7 @@ try {
   ];
   for (const name of requiredSurnames) {
     check(
-      onomasticSandbox.isOnomasticName(name) === true,
+      isOnomasticName(name) === true,
       `isOnomasticName must identify frequent Czech surname: ${name}`
     );
   }
@@ -880,7 +797,7 @@ try {
   ];
   for (const fn of requiredFirstNames) {
     check(
-      onomasticSandbox.isOnomasticName(fn) === true,
+      isOnomasticName(fn) === true,
       `isOnomasticName must identify frequent Czech first name: ${fn}`
     );
   }
@@ -892,29 +809,124 @@ try {
   ];
   for (const non of nonNames) {
     check(
-      onomasticSandbox.isOnomasticName(non) === false,
+      isOnomasticName(non) === false,
       `isOnomasticName must reject non-name: ${non}`
     );
   }
 
   // Normalization: case insensitivity and punctuation stripping
-  check(onomasticSandbox.isOnomasticName("novák") === true, "isOnomasticName must be case-insensitive (lowercase)");
-  check(onomasticSandbox.isOnomasticName("NOVÁK") === true, "isOnomasticName must be case-insensitive (uppercase)");
-  check(onomasticSandbox.isOnomasticName("Novák,") === true, "isOnomasticName must strip punctuation");
+  check(isOnomasticName("novák") === true, "isOnomasticName must be case-insensitive (lowercase)");
+  check(isOnomasticName("NOVÁK") === true, "isOnomasticName must be case-insensitive (uppercase)");
+  check(isOnomasticName("Novák,") === true, "isOnomasticName must strip punctuation");
 
   // Integration into looksName
-  check(onomasticSandbox.looksName("Novák") === true, "looksName must identify Novák");
-  check(onomasticSandbox.looksName("Kovář") === true, "looksName must identify Kovář");
-  check(onomasticSandbox.looksName("Svobodová") === true, "looksName must identify Svobodová");
+  check(looksName("Novák") === true, "looksName must identify Novák");
+  check(looksName("Kovář") === true, "looksName must identify Kovář");
+  check(looksName("Svobodová") === true, "looksName must identify Svobodová");
 
   // Memory & Payload compactness
-  const payloadB64 = vm.runInContext("ONOMASTIC_PAYLOAD_B64", onomasticSandbox);
   check(
-    typeof payloadB64 === "string" && payloadB64.length > 500 && payloadB64.length < 25000,
-    `ONOMASTIC_PAYLOAD_B64 must be compact compressed base64 string (got length ${payloadB64?.length})`
+    typeof ONOMASTIC_PAYLOAD_B64 === "string" && ONOMASTIC_PAYLOAD_B64.length > 500 && ONOMASTIC_PAYLOAD_B64.length < 25000,
+    `ONOMASTIC_PAYLOAD_B64 must be compact compressed base64 string (got length ${ONOMASTIC_PAYLOAD_B64?.length})`
   );
 } catch (onoErr) {
   failures.push("Onomastic Registry unit test failed: " + (onoErr.message || String(onoErr)));
+}
+
+// Unit tests for Session Transfer Package (.znecitelne-session) per ADR-0008
+try {
+  const dummyState = {
+    fileName: "tajny_spis.docx",
+    kind: "docx",
+    text: "Jan Novák podepsal smlouvu v Praze.",
+    pages: ["Jan Novák podepsal smlouvu v Praze."],
+    reviewed: true,
+    approvalState: "approved",
+    hits: [
+      { id: 1, start: 0, end: 9, value: "Jan Novák", type: "name", accept: true, entityKey: "name|jan novak" }
+    ],
+    seen: new Set(["name|jan novak"]),
+    profile: "default",
+    replaceMode: "pseudo",
+    lang: "cs",
+    legalReason: "gdpr",
+    auditTrail: [{ ts: "2026-10-15T12:00:00Z", action: "approve_all" }]
+  };
+
+  const encryptedEnvelopeJson = await exportSession(dummyState, "BezpecneHeslo123!");
+  check(typeof encryptedEnvelopeJson === "string", "exportSession must return serialized JSON string");
+  const parsed = JSON.parse(encryptedEnvelopeJson);
+  check(parsed.format === "znecitelne-session" && parsed.version === 1, "exportSession must produce canonical session envelope");
+  check(parsed.kdf && parsed.kdf.algorithm === "PBKDF2" && parsed.kdf.iterations === 100000, "exportSession must use PBKDF2 with 100,000 iterations");
+  check(parsed.cipher && parsed.cipher.algorithm === "AES-GCM", "exportSession must use AES-GCM");
+  check(!encryptedEnvelopeJson.includes("Jan Novák"), "exportSession ciphertext must not contain plaintext secrets");
+
+  // Decrypt with correct password
+  const restored = await importSession(encryptedEnvelopeJson, "BezpecneHeslo123!");
+  check(restored && restored.doc && restored.doc.fileName === "tajny_spis.docx", "importSession must restore doc metadata");
+  check(restored.hits && restored.hits.length === 1 && restored.hits[0].value === "Jan Novák", "importSession must restore reviewed hits");
+  check(restored.legalReason === "gdpr", "importSession must restore legalReason");
+
+  // Decrypt with incorrect password must fail
+  let wrongPwdFailed = false;
+  try {
+    await importSession(encryptedEnvelopeJson, "SpatneHeslo999");
+  } catch (err) {
+    wrongPwdFailed = true;
+  }
+  check(wrongPwdFailed, "importSession must reject incorrect password with error");
+} catch (sessErr) {
+  failures.push("Session Transfer Package unit tests failed: " + (sessErr.message || String(sessErr)));
+}
+
+// Unit tests for Non-destructive XLSX export via fflate XML editing (ADR-0010)
+try {
+  const enc = new TextEncoder();
+  const mockSharedStrings = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="2" uniqueCount="2">
+  <si><t>Jan Novák</t></si>
+  <si><t xml:space="preserve">Faktura pro Petra Svobodu</t></si>
+</sst>`;
+  const mockSheet1 = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData>
+    <row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="inlineStr"><is><t>Tajné info: Jan Novák</t></is></c></row>
+  </sheetData>
+</worksheet>`;
+  const mockCoreProps = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <dc:creator>Ing. Jan Novák</dc:creator>
+</cp:coreProperties>`;
+
+  const mockZipData = globalThis.fflate.zipSync({
+    "xl/sharedStrings.xml": enc.encode(mockSharedStrings),
+    "xl/worksheets/sheet1.xml": enc.encode(mockSheet1),
+    "docProps/core.xml": enc.encode(mockCoreProps)
+  });
+
+  const xlsxHits = [
+    { id: 1, start: 0, end: 9, value: "Jan Novák", type: "name", accept: true, entityKey: "name|jan novak" }
+  ];
+
+  const exportRes = exportXlsxFileFflate(mockZipData.buffer, xlsxHits, "pseudo", "cs", true);
+  check(exportRes.ok, "exportXlsxFileFflate must succeed on valid zip buffer");
+  check(exportRes.bytes instanceof Uint8Array, "exportXlsxFileFflate must return Uint8Array bytes");
+
+  // Inspect sanitized contents
+  const unzipped = globalThis.fflate.unzipSync(exportRes.bytes);
+  const dec = new TextDecoder();
+  const resShared = dec.decode(unzipped["xl/sharedStrings.xml"]);
+  const resSheet = dec.decode(unzipped["xl/worksheets/sheet1.xml"]);
+  const resCore = dec.decode(unzipped["docProps/core.xml"]);
+
+  check(!resShared.includes("Jan Novák"), "sharedStrings.xml must not contain unredacted name");
+  check(resShared.includes("[OSOBA_"), "sharedStrings.xml must contain anonymized token [OSOBA_...]");
+  check(!resSheet.includes("Jan Novák"), "sheet1.xml inline string must not contain unredacted name");
+  check(resSheet.includes("[OSOBA_"), "sheet1.xml inline string must contain anonymized token");
+  check(!resCore.includes("Ing. Jan Novák"), "docProps/core.xml creator metadata must be stripped");
+  check(resCore.includes("Znečitelně"), "docProps/core.xml must contain Znečitelně note");
+} catch (xlsxErr) {
+  failures.push("Non-destructive XLSX unit tests failed: " + (xlsxErr.message || String(xlsxErr)));
 }
 
 // Verification that canonical application internal self-test suite (selftest=1) passes
