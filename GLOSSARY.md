@@ -20,9 +20,9 @@ _Avoid_: Objekt, Záznam, Výskyt
 Konzistentní zástupný identifikátor přiřazený entitě (např. `[OSOBA_001]`, `[OSOBĚ_001]`, `[OSOBOU_001]`), který zachovává přirozené české skloňování, vztahy a plynulost textu bez vyzrazení identity.
 _Avoid_: Maska, Náhrada, Zástupný symbol, Hash, Rigidní strojová značka
 
-**Znečitelnění**:
+**Anonymizace**:
 Nevratné odstranění nebo začernění nálezu v dokumentu tak, aby původní údaj nebyl rekonstruovatelný ani z textové, ani z vizuální vrstvy.
-_Avoid_: Začernění (pouze jako vizuální podoba), Cenzura, Skrytí, Promazání
+_Avoid_: Znečitelnění (mimo vlastní název aplikace), Začernění (pouze jako vizuální podoba), Cenzura, Skrytí, Promazání
 
 **Sanitizovaný export**:
 Výsledný vygenerovaný soubor, z něhož byly fyzicky odstraněny všechny potvrzené citlivé údaje a volitelně i skrytá metadata.
@@ -37,7 +37,7 @@ Přednastavená sada detekčních pravidel a chování (např. Registr smluv, GD
 _Avoid_: Šablona, Nastavení, Exportní předvolba
 
 **Režim zpracování**:
-Globální způsob transformace nálezů v dokumentu vymezený profilem publikace (buď plné Znečitelnění, nebo Pseudonymizace).
+Globální způsob transformace nálezů v dokumentu vymezený profilem publikace (buď plná Anonymizace, nebo Pseudonymizace).
 _Avoid_: Metoda, Akce, Režim výstupu
 
 **Stav schválení**:
@@ -88,9 +88,9 @@ _Avoid_: Zrychlený režim, Expresní režim, Zjednodušený export
 Explicitní volba v nastavení dokumentu umožňující export i bez provedení kroků ruční kontroly nebo principu čtyř očí; její využití je vždy zaznamenáno v auditním protokolu.
 _Avoid_: Obcházení kontroly, Automatické schválení, Skip review
 
-**Zákonný důvod znečitelnění**:
+**Zákonný důvod anonymizace**:
 Právní titul (např. ochrana osobních údajů dle GDPR, obchodní tajemství, bankovní tajemství, utajovaná informace nebo jiný zákonem stanovený důvod), na jehož základě je nález začerněn či pseudonymizován; je evidován v auditním protokolu a provázán se všemi výskyty téže entity v dokumentu.
-_Avoid_: Důvod začernění, Právní status, Právní štítek
+_Avoid_: Zákonný důvod znečitelnění, Důvod začernění, Právní status, Právní štítek
 
 
 

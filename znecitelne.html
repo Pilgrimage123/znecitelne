@@ -714,8 +714,9 @@ body.movie-active #settingsSheet {
   const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];
   const KEYS = PII_KEYS.concat(ORG_KEYS);
 
-  const RULES = "2026.10.14-ai41";
+  const RULES = "2026.10.15-ai42";
   const CHANGELOG = [
+    { version: "2026.10.15-ai42", notes: { cs: "Terminologie anonymizace a výchozí horní poloha ovládací lišty (ADR-0007): Sjednocení akčních sloves a prvků v UI na kanonické termíny anonymizace / anonymizovat (tlačítka Anonymizovat, Vše anonymizovat, Anonymizovat a exportovat, Zákonný důvod anonymizace, Protokol o anonymizaci) při zachování názvu aplikace Znečitelně a mezinárodního anglického standardu Redact/Redaction. Nastavení výchozí polohy ovládací lišty nahoře (barPos: 'top') pro nová sezení s respektováním dříve uložené uživatelské volby.", en: "Anonymisation terminology alignment and top toolbar default (ADR-0007): UI action verbs and labels unified to canonical anonymisation terminology (Anonymizovat, Vše anonymizovat, Anonymizovat a exportovat, Zákonný důvod anonymizace, Protokol o anonymizaci) while preserving product brand Znečitelně and standard English 'Redact/Redaction'. Toolbar position now defaults to top (barPos: 'top') for new sessions while preserving explicit localStorage preferences." } },
     { version: "2026.10.14-ai41", notes: { cs: "Vyjasnění konfliktů, nekonzistencí a zpřehlednění UI (ADR-0006): klientské ZIP balení pro export AI balíčku a dávkové fronty přes fflate s garancí nulového blokování prohlížečem, striktní oddělení Rychlého režimu od schvalovacího procesu (quickMode neobchází review) s přímým přepínačem v liště recenze, odstranění duplicitního panelu Návrh (#resultPane), horizontální zjednodušení akční lišty s odstraněním svislých pozic Vlevo/Vpravo, seskupení hromadných akcí, přesun druhotných auditních výstupů (Audit JSON, Protokol o znečitelnění) do exportního dialogu, automatická propagace zákonného důvodu na celou entitu (entityKey) a terminologické sladění s GLOSSARY.md.", en: "Resolution of conflicts, inconsistencies, and UI decluttering (ADR-0006): client-side ZIP packaging for AI pack and batch queue exports via fflate eliminating browser download blockers, strict decoupling of Quick mode from approval gates (quickMode preserves mandatory review) with an inline toolbar switch, removal of duplicate Proposal pane (#resultPane), horizontal toolbar simplification removing buggy left/right positions, grouped bulk actions, integration of secondary audit outputs (Audit JSON, Redaction Record) into the export modal, automatic propagation of legal bases across whole entities (entityKey), and terminology alignment per GLOSSARY.md." } },
     { version: "2026.10.14-ai40", notes: { cs: "Ochrana toponym a hydrologických apelativ (Červená Voda, důlní vody): rozšíření isLikelyNonPersonName o úplná pádová paradigmata významných českých víceslovných obcí (Červená Voda, Bílá Voda, Dobrá Voda, Kutná Hora atd.), lingvistické vzorce pro toponymické fráze a hydrologické kolokace (důlní vody, odpadní vody, vypouštěných vod), územní zarážky (v obci, k.ú.), zpřísnění vstupního síta Dokumentové mezipaměti entit pro formátové kandidáty a case-sensitive vyhledávání u jednoslovné propagace.", en: "Protection of toponyms and hydrological collocations (Červená Voda, mine water): expansion of isLikelyNonPersonName with full declensions of prominent Czech compound municipalities (Červená Voda, Bílá Voda, Dobrá Voda, Kutná Hora, etc.), linguistic patterns for toponymic phrases and hydrological collocations (mine waters, waste water, discharged waters), territorial guards (v obci, k.ú.), stricter admission gate for format candidates in EntityPropagationCache, and case-sensitive matching for single-word propagation." } },
     { version: "2026.10.14-ai39", notes: { cs: "Strukturní hranice textu a slovesná desambiguace v personálních nálezech (ADR-0005): rekonstrukce řádkových zlomů (\\n) v PDF textové vrstvě podle delta y baseline, inteligentní slovesná a participiální desambiguace (l-participle, pasivní příčestí, administrativní slovesné kmeny) provázaná s paměťovým trie onomastického registru se zachováním skutečných slovesných příjmení (Pospíšil, Navrátil), potlačení administrativních návěští (Schválil:, Omluveni:) a agendových apelativ (porada, poradu, zasedání) z falešně pozitivních detekcí osob i celodokumentové mezipaměti entit.", en: "Structural text boundaries and verbal disambiguation in personal entity findings (ADR-0005): PDF line-break reconstruction (\\n) via baseline vertical delta tracking, intelligent verbal and participle disambiguation (l-participles, passive participles, administrative stems) against the in-memory onomastic trie preserving authentic verbal surnames (Pospíšil, Navrátil), suppression of administrative labels (Schválil:, Omluveni:) and agenda nouns (porada, poradu, zasedání) from false-positive person detection and entity propagation cache." } },
@@ -820,7 +821,7 @@ Orgán: OBÚ.
 
   const I18N = {
     cs: {
-      name:"Znečitelně", tagline:"Znečitelnění pro úřady i veřejnou AI",
+      name:"Znečitelně", tagline:"Anonymizace pro úřady i veřejnou AI",
       themeDark:"Tmavý režim", themeLight:"Světlý režim",
       privacy:"Soubor nikam neodesíláme. Detekce, začernění i analýza postupu běží v tomto zařízení.",
       trySample:"Vyzkoušet vzorový dokument", movieTutorial:"Video tutoriál", newFile:"Nový dokument",
@@ -880,10 +881,10 @@ Orgán: OBÚ.
       readyInternal:"Spíš pro interní AI / další kontrolu",
       verdict:"Verdikt",
       operator:"Odpovědný pracovník", operatorPh:"jméno / služební číslo",
-      original:"Originál", result:"Návrh", previewChanges:"Preview změn", originalVersion:"Původní verze", redact:"Znečitelnit", keep:"Ponechat",
-      acceptAll:"Vše znečitelnit", rejectAll:"Vše ponechat", keepOfficials:"Ponechat instituce",
-      reviewed:"Zkontrolováno", secondEyes:"Druhá kontrola", export:"Znečitelnit a exportovat", audit:"Audit JSON",
-      clear:"Zavřít dokument", noHits:"Nic se nenašlo.", confirmExport:"Citlivé údaje budou nevratně znečitelněny.",
+      original:"Originál", result:"Návrh", previewChanges:"Preview změn", originalVersion:"Původní verze", redact:"Anonymizovat", keep:"Ponechat",
+      acceptAll:"Vše anonymizovat", rejectAll:"Vše ponechat", keepOfficials:"Ponechat instituce",
+      reviewed:"Zkontrolováno", secondEyes:"Druhá kontrola", export:"Anonymizovat a exportovat", audit:"Audit JSON",
+      clear:"Zavřít dokument", noHits:"Nic se nenašlo.", confirmExport:"Citlivé údaje budou nevratně anonymizovány.",
       diffTitle:"Porovnání textu před a po redakci",
       diffRemovedTitle:"Odstraněná slova ke schválení ({n})",
       diffNoRemoved:"Žádná slova nejsou označena k odstranění.",
@@ -942,7 +943,7 @@ Orgán: OBÚ.
       toggleQuick:"Přepnout zobrazení (Kompaktní / Plný přehled)",
       quickOn:"⚡ Kompaktní režim", quickOff:"⚡ Plný přehled",
       fastApprove:"Zrychlené schvalování",
-      processHint:"Odhad kroků, rolí a systémů se přiloží k AI balíčku jako samostatný soubor. Neovlivňuje znečitelnění dokumentu.",
+      processHint:"Odhad kroků, rolí a systémů se přiloží k AI balíčku jako samostatný soubor. Neovlivňuje anonymizaci dokumentu.",
       barPosition:"Umístění lišty", barPosBottom:"Dole", barPosTop:"Nahoře",
       settings:"Nastavení", apply:"Použít", cancel:"Zrušit", confirmTitle:"Nevratný export",
       residual:"V dokumentu zůstal podezřelý řetězec.", residualOk:"Žádný podezřelý řetězec v dokumentu nezůstal.",
@@ -950,19 +951,19 @@ Orgán: OBÚ.
       exportedMixed:"Export hotov — {n} stránka/y musely být z bezpečnostních důvodů převedeny na obrázek",
       exportedDocx:"Export DOCX hotov se zachovaným formátováním. Obrázky, VML/OLE a vložené binární objekty byly z bezpečnostních důvodů odstraněny; citlivé názvy media partů se nepřenášejí.", docxFallback:"DOCX se nepodařilo bezpečně přepsat se zachováním formátování ({r}) — exportován prostý text (TXT/PDF).",
       scanWarning:"{n} stránek nemá textovou vrstvu a nebylo možné je prohledat — zapněte OCR",
-      legalLabel:"Zákonný důvod znečitelnění",
+      legalLabel:"Zákonný důvod anonymizace",
       legalOpts:{ trade:"Obchodní tajemství (§ 504 OZ)", gdpr:"Osobní údaje (čl. 6 GDPR)", security:"Ochrana bezpečnosti", custom:"Vlastní důvod…" },
       legalShort:{ trade:"§ 504 OZ", gdpr:"čl. 6 GDPR", security:"Bezpečnost", custom:"Vlastní" },
       legalCustomPh:"popište důvod",
-      legalTip:"Právní důvod, proč se údaj znečitelňuje. Předvyplní se podle typu nálezu a profilu, jde do auditního JSON a do Protokolu. Změna se automaticky aplikuje na všechny výskyty téže entity.",
-      recordBtn:"Protokol o znečitelnění",
-      recordTip:"Interní citlivý dokument: seznam znečitelněných údajů (maska + otisk SHA-256) se zákonnými důvody. Nezveřejňujte.",
+      legalTip:"Právní důvod, proč se údaj anonymizuje. Předvyplní se podle typu nálezu a profilu, jde do auditního JSON a do Protokolu. Změna se automaticky aplikuje na všechny výskyty téže entity.",
+      recordBtn:"Protokol o anonymizaci",
+      recordTip:"Interní citlivý dokument: seznam anonymizovaných údajů (maska + otisk SHA-256) se zákonnými důvody. Nezveřejňujte.",
       recordNeedPdfLib:"Protokol nelze vytvořit — knihovna pdf-lib se nenačetla (síť).",
-      sigWarning:"Pozor: Dokument obsahuje elektronický podpis. Znečitelněním vznikne nová kopie a původní kryptografický podpis bude zničen. Nelze použít pro autorizovanou konverzi.",
-      record:{ title:"Protokol o znečitelnění", internal:"INTERNÍ DOKUMENT – CITLIVÝ", notice:"Tento protokol je určen pouze pro interní potřebu a audit. Místo původních hodnot obsahuje jen masku (první znak a délku) a solený otisk SHA-256; u údajů s malou entropií (např. rodné číslo) nelze vyloučit zpětné dohledání, proto protokol nezveřejňujte.", file:"Dokument", operator:"Odpovědný pracovník", date:"Vygenerováno", profile:"Profil", mode:"Režim zpracování", rules:"Verze pravidel", hashIn:"SHA-256 vstupu", hashOut:"SHA-256 výstupu", notExported:"— (dokument zatím nebyl exportován)", reviewed:"Zkontrolováno", fourEyes:"Čtyři oči", yes:"ano", no:"ne", salt:"Sůl otisků", saltNote:"Otisk hodnoty = SHA-256(sůl + původní hodnota); zobrazeno prvních 24 znaků.", counts:"Znečitelněno / ponecháno", sig:"Elektronický podpis v originále", cols:["#","Typ","Str.","Maska","Otisk SHA-256","Zákonný důvod"], none:"Žádný údaj není označen k znečitelnění.", page:"Strana" },
-      kbdNext:"Další nález", kbdPrev:"Předchozí nález", kbdRedact:"Znečitelnit vybraný", kbdKeep:"Ponechat vybraný",
+      sigWarning:"Pozor: Dokument obsahuje elektronický podpis. Anonymizací vznikne nová kopie a původní kryptografický podpis bude zničen. Nelze použít pro autorizovanou konverzi.",
+      record:{ title:"Protokol o anonymizaci", internal:"INTERNÍ DOKUMENT – CITLIVÝ", notice:"Tento protokol je určen pouze pro interní potřebu a audit. Místo původních hodnot obsahuje jen masku (první znak a délku) a solený otisk SHA-256; u údajů s malou entropií (např. rodné číslo) nelze vyloučit zpětné dohledání, proto protokol nezveřejňujte.", file:"Dokument", operator:"Odpovědný pracovník", date:"Vygenerováno", profile:"Profil", mode:"Režim zpracování", rules:"Verze pravidel", hashIn:"SHA-256 vstupu", hashOut:"SHA-256 výstupu", notExported:"— (dokument zatím nebyl exportován)", reviewed:"Zkontrolováno", fourEyes:"Čtyři oči", yes:"ano", no:"ne", salt:"Sůl otisků", saltNote:"Otisk hodnoty = SHA-256(sůl + původní hodnota); zobrazeno prvních 24 znaků.", counts:"Anonymizováno / ponecháno", sig:"Elektronický podpis v originále", cols:["#","Typ","Str.","Maska","Otisk SHA-256","Zákonný důvod"], none:"Žádný údaj není označen k anonymizaci.", page:"Strana" },
+      kbdNext:"Další nález", kbdPrev:"Předchozí nález", kbdRedact:"Anonymizovat vybraný", kbdKeep:"Ponechat vybraný",
       profiles:{ registr:"Registr smluv (340/2015)", infoact:"InfZ (106/1999)", court:"Justiční rozhodnutí (vyhl. 403/2022 Sb.)", internal:"Interní AI (pseudonymy)", publicai:"Veřejná / externí AI", custom:"Vlastní pravidla" },
-      modes:{ box:"Znečitelnění (nevratné)", xxxx:"Náhrada XXXX", label:"Třída [OSOBA]", pseudo:"Pseudonymizace [OSOBA_001]" },
+      modes:{ box:"Anonymizace (nevratná)", xxxx:"Náhrada XXXX", label:"Třída [OSOBA]", pseudo:"Pseudonymizace [OSOBA_001]" },
       suspicions:{ high:"Vysoké — méně promeškaných", medium:"Střední — kompromis", low:"Nízké — méně falešných poplachů" },
       cats:{ rc:"Rodné číslo", ico:"IČO", dic:"DIČ", account:"Účet / IBAN", phone:"Telefon", email:"E-mail", address:"Adresa / PSČ", dob:"Datum narození", name:"Jména a tituly", idcard:"Číslo dokladu", datovka:"Datová schránka", spz:"SPZ", geo:"Souřadnice", sigcert:"Podpisový certifikát", katastr:"Katastr nemovitostí", zahr_iban:"Zahraniční IBAN / SWIFT", doklady_extra:"Další doklady (pas, ŘP, ZTP)", secrets:"Tajemství", ticket:"Ticket / JIRA", system:"Interní systém", project:"Projekt", incident:"Incident / HD", casefile:"Č.j. / řízení", status:"Stav produkce", orgunit:"Orgán / útvar", host:"Interní URL / host", ip:"Privátní IP", credential:"Klíč / heslo" },
       tips:{
@@ -1200,7 +1201,7 @@ Orgán: OBÚ.
     quickMode: (localStorage.getItem("znec-quick") === "1" || localStorage.getItem("znec-quick") === "0")
       ? localStorage.getItem("znec-quick") === "1"
       : (window.matchMedia ? window.matchMedia("(max-width: 720px)").matches : false),
-    barPos: (["top","bottom"].includes(localStorage.getItem("znec-barpos")) ? localStorage.getItem("znec-barpos") : "bottom"),
+    barPos: (["top","bottom"].includes(localStorage.getItem("znec-barpos")) ? localStorage.getItem("znec-barpos") : "top"),
     fastApprove: localStorage.getItem("znec-fastapprove") === "1",
     ocrEnabled: localStorage.getItem("znec-ocr") !== "0",
     operator: "", sigDetected: false, fileName: "", kind: "text", text: "", sourceBuf: null,
@@ -4004,7 +4005,7 @@ Orgán: OBÚ.
       <label class="field">${t.suspicion} <button type="button" class="help-i" data-tip="${t.tips.suspicion}">?</button></label>
       <select id="${p}selSuspicion">${Object.entries(t.suspicions).map(([k,v])=>`<option value="${k}" ${S.suspicion===k?"selected":""}>${v}</option>`).join("")}</select>
       <label class="field">${t.barPosition}</label>
-      <select id="${p}selBarPos">${[["bottom",t.barPosBottom],["top",t.barPosTop]].map(([k,v])=>`<option value="${k}" ${S.barPos===k?"selected":""}>${v}</option>`).join("")}</select>
+      <select id="${p}selBarPos">${[["top",t.barPosTop],["bottom",t.barPosBottom]].map(([k,v])=>`<option value="${k}" ${S.barPos===k?"selected":""}>${v}</option>`).join("")}</select>
       <p class="lbl">${t.layerPii}</p>
       <div class="cats">${PII_KEYS.map(k=>`<label><input type="checkbox" data-cat="${k}" ${S.enabled[k]?"checked":""} /> <span>${t.cats[k]}</span> <button type="button" class="help-i" data-tip="${t.tips.cats[k]}">?</button></label>`).join("")}</div>
       <p class="lbl">${t.layerOrg}</p>

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-15
+
+- Terminologie anonymizace a výchozí horní poloha ovládací lišty (ADR-0007):
+  - **Sjednocení akčních sloves a prvků v českém UI:** Uživatelské rozhraní bylo plně sjednoceno na kanonické termíny anonymizace / anonymizovat (*Anonymizovat*, *Vše anonymizovat*, *Anonymizovat a exportovat*, *Zákonný důvod anonymizace*, *Protokol o anonymizaci*, *Anonymizace (nevratná)* u režimu `box`) při zachování značky aplikace *Znečitelně* a mezinárodního standardu *Redact/Redaction* v anglické lokalizaci.
+  - **Kanonická aktualizace v GLOSSARY.md:** Povýšení pojmu *Anonymizace* na kanonický doménový termín pro nevratné odstranění/začernění údajů, začlenění „znečitelnění“ do `_Avoid_` (mimo název aplikace), aktualizace definice *Režimu zpracování* a zavedení pojmu *Zákonný důvod anonymizace*.
+  - **Výchozí horní poloha lišty (`barPos = "top"`):** Nová sezení a čisté prohlížeče mají ovládací lištu defaultně umístěnu nahoře pod hlavičkou pro bezprostřední viditelnost stavu a akcí u dlouhých spisů. Explicitní uživatelská volba v `localStorage` zůstává plně respektována.
+  - **Záznam ADR-0007 a integrační testy:** Zaznamenáno v `docs/adr/0007-terminologie-anonymizace-a-vychozi-lista-nahore.md` a v `test.js` rozšířena testovací brána o ověřování nových UI termínů i výchozí polohy lišty.
+
 ## 2026-10-14
 
 - Jednotné klientské ZIP exporty, oddělení schvalování a ergonomie UI (ADR-0006):

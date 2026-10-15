@@ -1631,8 +1631,25 @@ Poradu zahájil předseda ČBÚ.`;
     check(
       glossaryContent.includes("**Rychlý režim**:") &&
       glossaryContent.includes("**Zrychlené schvalování**:") &&
-      glossaryContent.includes("**Zákonný důvod znečitelnění**:"),
-      "GLOSSARY.md must define canonical terms Rychlý režim, Zrychlené schvalování, and Zákonný důvod znečitelnění"
+      glossaryContent.includes("**Zákonný důvod anonymizace**:") &&
+      glossaryContent.includes("**Anonymizace**:"),
+      "GLOSSARY.md must define canonical terms Rychlý režim, Zrychlené schvalování, Zákonný důvod anonymizace, and Anonymizace"
+    );
+
+    // 8. Terminology shift to Anonymizace and default top toolbar position (ADR-0007)
+    check(
+      canonical.includes('barPos: (["top","bottom"].includes(localStorage.getItem("znec-barpos")) ? localStorage.getItem("znec-barpos") : "top")'),
+      "Default toolbar position must be 'top' for fresh sessions (ADR-0007)"
+    );
+    check(
+      canonical.includes('tagline:"Anonymizace pro úřady i veřejnou AI"') &&
+      canonical.includes('redact:"Anonymizovat"') &&
+      canonical.includes('acceptAll:"Vše anonymizovat"') &&
+      canonical.includes('export:"Anonymizovat a exportovat"') &&
+      canonical.includes('legalLabel:"Zákonný důvod anonymizace"') &&
+      canonical.includes('recordBtn:"Protokol o anonymizaci"') &&
+      canonical.includes('confirmExport:"Citlivé údaje budou nevratně anonymizovány."'),
+      "Czech UI must use canonical Anonymizovat / Anonymizace terminology per ADR-0007"
     );
   }
 } catch (stErr) {
