@@ -237,8 +237,14 @@ check(
   "file loader must support DOCX and ODT MIME types"
 );
 check(
-  htmlSourceIncludes("async function getOcrWorker()"),
-  "PDF text extractor must lazily initialize OCR worker only when needed"
+  htmlSourceIncludes("async function getOcrWorker()") &&
+  htmlSourceIncludes("Promise.race([createPromise, errPromise, timeoutPromise])") &&
+  htmlSourceIncludes("async function safeOcrRecognize("),
+  "PDF text extractor must protect OCR worker initialization and recognition with timeouts and error handling"
+);
+check(
+  htmlSourceIncludes("_ocrSafetyTimer = setTimeout("),
+  "OCR progress indicator must include safety auto-dismissal timer to prevent hanging ad infinitum"
 );
 check(
   htmlSourceIncludes("async function ingestDocument(") &&

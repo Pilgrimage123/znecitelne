@@ -207,15 +207,22 @@ function download(name, blob){
     _toastTimer = setTimeout(() => { if (t) t.style.display = "none"; _toastTimer = null; }, 2400);
   }
   let _ocrProgressTimer = null;
+  let _ocrSafetyTimer = null;
   function showOcrProgress(msg) {
     if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
     if (_ocrProgressTimer) { clearTimeout(_ocrProgressTimer); _ocrProgressTimer = null; }
+    if (_ocrSafetyTimer) { clearTimeout(_ocrSafetyTimer); _ocrSafetyTimer = null; }
     const t = $("toast");
     if (!t) return;
     t.textContent = String(msg || "");
     t.style.display = "block";
+    _ocrSafetyTimer = setTimeout(() => {
+      if (t && t.textContent === String(msg || "")) t.style.display = "none";
+      _ocrSafetyTimer = null;
+    }, 20000);
   }
   function hideOcrProgress() {
+    if (_ocrSafetyTimer) { clearTimeout(_ocrSafetyTimer); _ocrSafetyTimer = null; }
     _ocrProgressTimer = setTimeout(() => {
       const t = $("toast");
       if (t) t.style.display = "none";

@@ -142,10 +142,26 @@ export const IngestErrorCode = Object.freeze({
     let ocrWorker = null;
     let text = "";
     let items = [];
+    let initTimer = null;
     try {
       reportProgress(t === "cs" ? "OCR: spouštím rozpoznávání textu…" : "OCR: running recognition…");
-      ocrWorker = await Tesseract.createWorker("ces", 1, {
-        ...((window.__libLocal && window.__libLocal.tesseract) ? { workerPath:"./lib/tesseract/worker.min.js", corePath:"./lib/tesseract/core/", langPath:"./lib/tesseract/lang/" } : {}),
+      const timeoutPromise = new Promise((_, reject) => {
+        initTimer = setTimeout(() => reject(new Error("OCR worker init timeout (10s)")), 10000);
+      });
+      let workerErrReject;
+      const errPromise = new Promise((_, reject) => {
+        workerErrReject = reject;
+      });
+      const localOpts = (window.__libLocal && window.__libLocal.tesseract) ? {
+        workerPath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/worker.min.js", location.href).href : "./lib/tesseract/worker.min.js",
+        corePath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/core/", location.href).href : "./lib/tesseract/core/",
+        langPath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/lang/", location.href).href : "./lib/tesseract/lang/"
+      } : {};
+      const createPromise = Tesseract.createWorker("ces", 1, {
+        ...localOpts,
+        errorHandler: err => {
+          if (workerErrReject) workerErrReject(new Error(typeof err === "string" ? err : ((err && err.message) || "OCR error")));
+        },
         logger: m => {
           if (m.status === "recognizing text") {
             reportProgress((t === "cs" ? "OCR: rozpoznávám text" : "OCR: recognizing text") +
@@ -153,7 +169,18 @@ export const IngestErrorCode = Object.freeze({
           }
         }
       });
-      const { data: ocrData } = await ocrWorker.recognize(canvas);
+      ocrWorker = await Promise.race([createPromise, errPromise, timeoutPromise]);
+      let rTimer = null;
+      const recTimeout = new Promise((_, reject) => {
+        rTimer = setTimeout(() => reject(new Error("OCR recognition timeout")), 30000);
+      });
+      let ocrData;
+      try {
+        const res = await Promise.race([ocrWorker.recognize(canvas), recTimeout]);
+        ocrData = res.data;
+      } finally {
+        if (rTimer) clearTimeout(rTimer);
+      }
       items = (ocrData.words || []).filter(w => w.text && w.text.trim() && (w.confidence || 0) > 20).map(w => ({
         str: w.text,
         _ocr: true,
@@ -169,7 +196,10 @@ export const IngestErrorCode = Object.freeze({
       console.warn("OCR on image failed:", e);
       throw new Error("OCR: " + (e.message || String(e)));
     } finally {
-      if (ocrWorker) await ocrWorker.terminate();
+      if (initTimer) clearTimeout(initTimer);
+      if (ocrWorker) {
+        try { await ocrWorker.terminate(); } catch (_) {}
+      }
       hideOcrProgress();
     }
 

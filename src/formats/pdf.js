@@ -547,13 +547,43 @@ export function pdfWorker(){
     let text = "";
 
     let ocrWorker = null;
+    let ocrDisabled = false;
+    async function safeOcrRecognize(worker, target, timeoutMs = 25000) {
+      let rTimer = null;
+      const timeoutPromise = new Promise((_, reject) => {
+        rTimer = setTimeout(() => reject(new Error("OCR recognize timeout")), timeoutMs);
+      });
+      try {
+        return await Promise.race([worker.recognize(target), timeoutPromise]);
+      } finally {
+        if (rTimer) clearTimeout(rTimer);
+      }
+    }
     async function getOcrWorker(){
       if (ocrWorker) return ocrWorker;
-      if (!S.ocrEnabled || !window.Tesseract) return null;
+      if (ocrDisabled || !S.ocrEnabled || !window.Tesseract) return null;
+      let initTimer = null;
       try {
         showOcrProgress(S.lang === "cs" ? "OCR: inicializuji jazykový model…" : "OCR: loading language model…");
-        ocrWorker = await Tesseract.createWorker("ces", 1, {
-          ...((window.__libLocal && window.__libLocal.tesseract) ? { workerPath:"./lib/tesseract/worker.min.js", corePath:"./lib/tesseract/core/", langPath:"./lib/tesseract/lang/" } : {}),
+        const timeoutPromise = new Promise((_, reject) => {
+          initTimer = setTimeout(() => reject(new Error("OCR init timeout")), 8000);
+        });
+        let workerErrReject;
+        const errPromise = new Promise((_, reject) => {
+          workerErrReject = reject;
+        });
+
+        const localOpts = (window.__libLocal && window.__libLocal.tesseract) ? {
+          workerPath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/worker.min.js", location.href).href : "./lib/tesseract/worker.min.js",
+          corePath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/core/", location.href).href : "./lib/tesseract/core/",
+          langPath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/lang/", location.href).href : "./lib/tesseract/lang/"
+        } : {};
+
+        const createPromise = Tesseract.createWorker("ces", 1, {
+          ...localOpts,
+          errorHandler: err => {
+            if (workerErrReject) workerErrReject(new Error(typeof err === "string" ? err : ((err && err.message) || "OCR error")));
+          },
           logger: m => {
             if (m.status === "loading language traineddata") {
               showOcrProgress((S.lang === "cs" ? "OCR: stahuji jazykový model" : "OCR: downloading model") +
@@ -566,13 +596,18 @@ export function pdfWorker(){
             }
           }
         });
+
+        ocrWorker = await Promise.race([createPromise, errPromise, timeoutPromise]);
         showOcrProgress(S.lang === "cs" ? "OCR: připraveno" : "OCR: ready");
         return ocrWorker;
       } catch (e) {
         console.warn("Tesseract OCR init failed:", e);
         ocrWorker = null;
+        ocrDisabled = true;
         hideOcrProgress();
         return null;
+      } finally {
+        if (initTimer) clearTimeout(initTimer);
       }
     }
 
@@ -606,7 +641,7 @@ export function pdfWorker(){
             await page.render({ canvasContext: ctx, viewport: vp }).promise;
 
             showOcrProgress((t === "cs" ? "OCR: stránka " : "OCR: page ") + i + "/" + pdf.numPages + "…");
-            const { data: ocrData } = await activeWorker.recognize(canvas);
+            const { data: ocrData } = await safeOcrRecognize(activeWorker, canvas);
 
             finalItems = (ocrData.words || [])
               .filter(w => w.text && w.text.trim() && (w.confidence || 0) > 25)
@@ -656,7 +691,7 @@ export function pdfWorker(){
               const ch = Math.min(canvas.height, Math.max(8, Math.ceil(r.h)));
               crop.width = cw; crop.height = ch;
               crop.getContext("2d").drawImage(canvas, r.x, r.y, r.w, r.h, 0, 0, cw, ch);
-              const { data: ocrData } = await sigWorker.recognize(crop);
+              const { data: ocrData } = await safeOcrRecognize(sigWorker, crop);
               const words = (ocrData.words || []).filter(w => w.text && w.text.trim() && (w.confidence || 0) > 20);
               const line = words.map(w => w.text).join(" ").replace(/\s+/g, " ").trim();
               const pageH = page.getViewport({ scale: 1 }).height;
@@ -698,8 +733,8 @@ export function pdfWorker(){
     } finally {
       if (ocrWorker) {
         try { await ocrWorker.terminate(); } catch (_) {}
-        hideOcrProgress();
       }
+      hideOcrProgress();
     }
 
     return { text, pages };

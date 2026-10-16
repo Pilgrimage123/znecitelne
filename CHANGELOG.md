@@ -2,6 +2,11 @@
 
 ## 2026-10-16
 
+- Oprava zamrznutí OCR inicializace („OCR: inicializuji jazykový model…“ ad infinitum):
+  - **Ošetření pádu a zablokování v Tesseract.js:** V distribučním balíčku `lib/tesseract.min.js` opraveno tiché selhání při chybě načítání jazykového modelu (`loadLanguage` / `initialize`), které způsobovalo, že Promise vrácený z `Tesseract.createWorker` zůstal trvale viset bez vyřešení či zamítnutí.
+  - **Defenzivní timeouty a error handling v PDF a obrázcích (`src/formats/pdf.js`, `src/formats/ingest.js`):** Inicializace OCR workeru i samotné rozpoznávání jsou obaleny přes `Promise.race` s explicitním timeoutem (8 s pro inicializaci modelu, 25–30 s pro rozpoznání stránky/razítka). V případě selhání (např. spuštění přes `file:///` protokol bez možnosti stahování assetů či nedostupnost knihoven) je worker okamžitě označen jako neaktivní pro daný dokument, aby nezdržoval další stránky.
+  - **Bezpečné skrytí ukazatele průběhu a auto-dismissal pojistka (`src/ui/app.js`):** Blok `finally` v `extractPdf` nyní volá `hideOcrProgress()` vždy a v `showOcrProgress` je zaveden 20s bezpečnostní auto-dismissal časovač, který zabraňuje trvalému setrvání informačního toastu na obrazovce.
+
 - Architektonická konsolidace, modulární build pipeline a zpřísnění bezpečnosti exportů (ADR-0008, ADR-0009):
   - **Skutečný deterministický build pipeline (`build.js` / ADR-0009):** Vývoj je plně centralizován v čistých ES modulech v `src/`. Skript `build.js` v čistém Node.js deterministicky sestavuje distribuční soubor `znecitelne.html` s kompletní validací markerů a integritních kontrol. Odstraněn zastaralý a křehký `scripts/split_monolith.js`.
   - **Bezpečná nedestruktivní XML sanitizace tabulek XLSX (`src/formats/xlsx.js`):** Nahrazen naivní regex za zpracování napříč běhy (`replaceAcrossRuns`) s podporou `DOMParser` a unescape fallbackem. Bezpečně řeší split runy `<r><t>` v `<si>` sdílených řetězců, XML entity (`&amp;`, `&quot;`, `&lt;`, `&gt;`), cached hodnoty textových vzorců `<c t="str"><f>...<v>` a komentáře v `xl/comments*.xml`.
