@@ -1566,6 +1566,79 @@ function generateCzechNameForms(nameVal) {
     }
     return Array.from(forms).filter(f => f && f.length >= 3);
   }
+
+
+  // Static sets and patterns for isLikelyNonPersonName (hoisted to avoid per-call allocations)
+  const COMMON_NON_PERSON_WORDS = new Set([
+    "termín", "smlouva", "objednatel", "zhotovitel", "dodavatel", "odběratel", "kupující", "prodávající",
+    "pondělí", "úterý", "středa", "čtvrtek", "pátek", "sobota", "neděle", "leden", "únor", "březen",
+    "duben", "květen", "červen", "červenec", "srpen", "září", "říjen", "listopad", "prosinec",
+    "porada", "poradu", "poradě", "porady", "zasedání", "jednání", "program", "kontrola", "úkol", "úkoly",
+    "schválil", "schválila", "schváleno", "omluven", "omluvena", "omluveni", "omluveno", "zapsal", "zapsala",
+    "přítomen", "přítomna", "přítomni", "odpovídá", "zpracoval", "zpracovala", "zpracuje", "uloženo",
+    "různé", "voda", "vody", "vodě", "vodu", "vodou", "vodo", "vodách", "vodám", "vodami", "vod"
+  ]);
+
+  const RE_WATER_COLLOCATIONS = /^(?:důlní|důlních|důlním|důlními|odpadní|odpadních|odpadním|odpadními|povrchov[éá]|povrchových|povrchovým|povrchovými|podzemní|podzemních|podzemním|podzemními|pitn[áé]|pitných|pitným|pitnými|užitkov[áé]|užitkových|užitkovým|užitkovými|splaškov[éá]|splaškových|splaškovým|splaškovými|dešťov[éá]|dešťových|dešťovým|dešťovými|minerální|minerálních|minerálním|minerálními|léčiv[éá]|léčivých|léčivým|léčivými|vypouštěn[éá]|vypouštěných|vypouštěným|vypouštěnými|chladicí|chladicích|chladicím|chladicími|průmyslov[éá]|průmyslových|průmyslovým|průmyslovými|stékající|stékajících|technologick[éá]|technologických|provozní|provozních)\s+(?:vod[aeyu]|vodou|vodách|vodám|vodami|vod)$/iu;
+
+  const TOPONYM_LOCATIONS_SET = new Set([
+    "černá hora", "černé hory", "černé hoře", "černou horu", "černou horou",
+    "červená voda", "červené vody", "červené vodě", "červenou vodu", "červenou vodou",
+    "bílá voda", "bílé vody", "bílé vodě", "bílou vodu", "bílou vodou",
+    "dobrá voda", "dobré vody", "dobré vodě", "dobrou vodu", "dobrou vodou",
+    "černá voda", "černé vody", "černé vodě", "černou vodu", "černou vodou",
+    "stará voda", "staré vody", "staré vodě", "starou vodu", "starou vodou",
+    "suchá voda", "suché vody", "suché vodě", "suchou vodu", "suchou vodou",
+    "hojná voda", "hojné vody", "hojné vodě", "hojnou vodu", "hojnou vodou",
+    "kutná hora", "kutné hory", "kutné hoře", "kutnou horu", "kutnou horou",
+    "krásná hora", "krásné hory", "krásné hoře", "krásnou horu", "krásnou horou",
+    "zlaté hory", "zlatých hor", "zlatým horám", "zlatých horách", "zlatými horami",
+    "zelená hora", "zelené hory", "zelené hoře", "zelenou horu", "zelenou horou",
+    "bílá hora", "bílé hory", "bílé hoře", "bílou horu", "bílou horou",
+    "nová ves", "nové vsi", "novou ves", "novou vsí",
+    "stará ves", "staré vsi", "starou ves", "starou vsí",
+    "dlouhá ves", "dlouhé vsi", "dlouhou ves", "dlouhou vsí",
+    "velká ves", "velké vsi", "velkou ves", "velkou vsí",
+    "malá ves", "malé vsi", "malou ves", "malou vsí",
+    "nové město", "nového města", "novému městu", "novém městě", "novým městem",
+    "staré město", "starého města", "starému městu", "starém městě", "starým městem",
+    "havlíčkův brod", "havlíčkova brodu", "havlíčkovu brodu", "havlíčkově brodě", "havlíčkovým brodem",
+    "český brod", "českého brodu", "českému brodu", "českém brodě", "českým brodem",
+    "uherský brod", "uherského brodu", "uherskému brodu", "uherském brodě", "uherským brodem",
+    "železný brod", "železného brodu", "železnému brodu", "železném brodě", "železným brodem",
+    "vyšší brod", "vyššího brodu", "vyššímu brodu", "vyšším brodě", "vyšším brodem",
+    "jindřichův hradec", "jindřichova hradce", "jindřichovu hradci", "jindřichově hradci", "jindřichovým hradcem",
+    "hradec králové", "hradce králové", "hradci králové", "hradcem králové",
+    "karlovy vary", "karlových var", "karlovým varům", "karlových varech", "karlovými vary",
+    "mariánské lázně", "mariánských lázní", "mariánským lázním", "mariánských lázních", "mariánskými lázněmi",
+    "františkovy lázně", "františkových lázní", "františkovým lázním", "františkových lázních", "františkovými lázněmi",
+    "janské lázně", "janských lázní", "janským lázním", "janských lázních", "janskými lázněmi",
+    "mladá boleslav", "mladé boleslavi", "mladou boleslav", "mladou boleslaví",
+    "česká lípa", "české lípy", "české lípě", "českou lípu", "českou lípou",
+    "česká třebová", "české třebové", "českou třebovou",
+    "moravská třebová", "moravské třebové", "moravskou třebovou",
+    "české budějovice", "českých budějovic", "českým budějovicím", "českých budějovicích", "českými budějovicemi",
+    "vysoké mýto", "vysokého mýta", "vysokému mýtu", "vysokém mýtě", "vysokým mýtem",
+    "valašské meziříčí", "valašského meziříčí", "valašskému meziříčí", "valašském meziříčí", "valašským meziříčím",
+    "uherské hradiště", "uherského hradiště", "uherskému hradišti", "uherském hradišti", "uherským hradištěm",
+    "nový jičín", "nového jičína", "novému jičínu", "novém jičíně", "novým jičínem",
+    "dvůr králové", "dvora králové", "dvoru králové", "dvoře králové", "dvorem králové",
+    "královo pole", "králova pole", "královu poli", "králově poli", "královým polem",
+    "malá strana", "malé strany", "malé straně", "malou stranu", "malou stranou",
+    "špindlerův mlýn", "špindlerova mlýna", "špindlerovu mlýnu", "špindlerově mlýně", "špindlerovým mlýnem",
+    "pec pod sněžkou", "peci pod sněžkou",
+    "rožnov pod radhoštěm"
+  ]);
+
+  const RE_TOPONYM_ADJECTIVE = /^(?:červen[ýáé]|čern[ýáé]|bíl[ýáé]|modr[ýáé]|zelen[ýáé]|žlut[ýáé]|star[ýáé]|nov[ýáé]|velk[ýáé]|mal[ýáé]|vysok[ýáé]|hlubok[ýáé]|dlouh[ýáé]|krátk[ýáé]|horn[í]|doln[í]|předn[í]|zadn[í]|středn[í]|kutn[áé]|dobr[ýáé]|such[ýáé]|hojn[áé]|krásn[ýáé]|zlat[ýáé]|česk[ýáé]|moravsk[ýáé]|slezsk[ýáé]|hrub[ýáé]|tepl[ýáé]|studen[ýáé]|divok[ýáé]|tich[ýáé])(?:ho|mu|m|ou|ch|mi)?$/iu;
+  const RE_TOPONYM_NOUN = /^(?:vod[aeyu]|vodou|vodách|vodám|vodami|vod|hor[aeyu]|hoře|horou|horách|horám|horami|hor|ves|vsi|vsí|měst[oau]|městě|městem|měst|městech|městům|městy|lhot[aeyu]|lhotě|lhotou|lhotách|lhotám|lhot|újezd[au]?|újezdem|újezdě|brod[u]?|brodem|brodě|mýt[oau]|mýtě|mýtem|pol[ei]|polem|polích|údolí|údolím|vrch[u]?|vrchem|vrchu|stran[aeyu]|straně|stranou|lázn[ěí]|lázním|lázních|lázněmi|mlýn[au]?|mlýnem|mlýně|hrádek|hrádku|hrádkem|potok[au]?|potokem|potoku|řek[aeyu]|řece|řekou)$/iu;
+
+  const RE_MUNICIPALITY_PREFIX = /(?:\bv\s+)?\b(?:obci?|měst[oau]|městys[ui]?|k\.?\s*ú\.?|katastr|katastrální(?:ho|m|mu)?\s+území|okres[ue]?|kraj[ie]?|povodí|řece?|řek[au]?|potok[au]?)\s+$/iu;
+
+  const TOPONYM_WORDS_SET = new Set();
+  TOPONYM_LOCATIONS_SET.forEach(loc => {
+    loc.split(/\s+/).forEach(w => { if (w.length >= 3) TOPONYM_WORDS_SET.add(w); });
+  });
 function isLikelyNonPersonName(value, src, start, end, reasons){
     if (!value || !src) return false;
     if (reasons && reasons.some(r => r.startsWith("trigger:") || r === "ocr:fuzzy" || r === "titled")) return false;
@@ -1586,155 +1659,31 @@ function isLikelyNonPersonName(value, src, start, end, reasons){
       : value;
     const name = normalize(candidate || value);
 
-    // Common standalone words that must not be treated as person names.
-    // Never blacklist common surnames globally.
-    const commonWords = new Set([
-      "termín",
-      "smlouva",
-      "objednatel",
-      "zhotovitel",
-      "dodavatel",
-      "odběratel",
-      "kupující",
-      "prodávající",
-      "pondělí",
-      "úterý",
-      "středa",
-      "čtvrtek",
-      "pátek",
-      "sobota",
-      "neděle",
-      "leden",
-      "únor",
-      "březen",
-      "duben",
-      "květen",
-      "červen",
-      "červenec",
-      "srpen",
-      "září",
-      "říjen",
-      "listopad",
-      "prosinec",
-      "porada",
-      "poradu",
-      "poradě",
-      "porady",
-      "zasedání",
-      "jednání",
-      "program",
-      "kontrola",
-      "úkol",
-      "úkoly",
-      "schválil",
-      "schválila",
-      "schváleno",
-      "omluven",
-      "omluvena",
-      "omluveni",
-      "omluveno",
-      "zapsal",
-      "zapsala",
-      "přítomen",
-      "přítomna",
-      "přítomni",
-      "odpovídá",
-      "zpracoval",
-      "zpracovala",
-      "zpracuje",
-      "uloženo",
-      "různé",
-      "voda",
-      "vody",
-      "vodě",
-      "vodu",
-      "vodou",
-      "vodo",
-      "vodách",
-      "vodám",
-      "vodami",
-      "vod"
-    ]);
-
     const checkVerb = typeof isCzechVerbOrParticiple === "function" ? isCzechVerbOrParticiple : () => false;
     const checkAgenda = (w) => (typeof RE_AGENDA_APELATIVA !== "undefined" && RE_AGENDA_APELATIVA) ? RE_AGENDA_APELATIVA.test(w) : false;
     const checkName = (w) => (typeof NAMES !== "undefined" && NAMES && NAMES.has(w)) || (typeof isOnomasticName === "function" && isOnomasticName(w));
 
-    if (!name.includes(" ") && (commonWords.has(name) || checkVerb(name) || (checkAgenda(name) && !checkName(name)))) return true;
+    if (!name.includes(" ") && (COMMON_NON_PERSON_WORDS.has(name) || checkVerb(name) || (checkAgenda(name) && !checkName(name)))) return true;
 
     // Water & environmental collocations (e.g. "důlní vody", "odpadní vody", "vypouštěných vod")
-    const RE_WATER_COLLOCATIONS = /^(?:důlní|důlních|důlním|důlními|odpadní|odpadních|odpadním|odpadními|povrchov[éá]|povrchových|povrchovým|povrchovými|podzemní|podzemních|podzemním|podzemními|pitn[áé]|pitných|pitným|pitnými|užitkov[áé]|užitkových|užitkovým|užitkovými|splaškov[éá]|splaškových|splaškovým|splaškovými|dešťov[éá]|dešťových|dešťovým|dešťovými|minerální|minerálních|minerálním|minerálními|léčiv[éá]|léčivých|léčivým|léčivými|vypouštěn[éá]|vypouštěných|vypouštěným|vypouštěnými|chladicí|chladicích|chladicím|chladicími|průmyslov[éá]|průmyslových|průmyslovým|průmyslovými|stékající|stékajících|technologick[éá]|technologických|provozní|provozních)\s+(?:vod[aeyu]|vodou|vodách|vodám|vodami|vod)$/iu;
     if (RE_WATER_COLLOCATIONS.test(name)) return true;
 
     // Sentence-initial token desambiguation
     if (Number.isInteger(start) && start >= 0 && isSentenceStart(src, start)) {
       if (!name.includes(" ")) {
-        if (SENTENCE_INITIAL_APELATIVA.has(name) || commonWords.has(name) || checkVerb(name) || (checkAgenda(name) && !checkName(name))) return true;
+        if (SENTENCE_INITIAL_APELATIVA.has(name) || COMMON_NON_PERSON_WORDS.has(name) || checkVerb(name) || (checkAgenda(name) && !checkName(name))) return true;
       } else {
         const parts = name.split(" ");
         const isKnownFirstName = (typeof FIRST_NAMES !== "undefined" && FIRST_NAMES) ? FIRST_NAMES.has(parts[0]) : (typeof NAMES !== "undefined" && NAMES ? NAMES.has(parts[0]) : false);
-        if ((SENTENCE_INITIAL_APELATIVA.has(parts[0]) || checkVerb(parts[0]) || (checkAgenda(parts[0]) && !checkName(parts[0]))) && (!isKnownFirstName || commonWords.has(parts[1]) || SENTENCE_INITIAL_APELATIVA.has(parts[1]) || checkVerb(parts[1]))) {
+        if ((SENTENCE_INITIAL_APELATIVA.has(parts[0]) || checkVerb(parts[0]) || (checkAgenda(parts[0]) && !checkName(parts[0]))) && (!isKnownFirstName || COMMON_NON_PERSON_WORDS.has(parts[1]) || SENTENCE_INITIAL_APELATIVA.has(parts[1]) || checkVerb(parts[1]))) {
           return true;
         }
       }
     }
 
-    // Geographic-name variants and compound municipality names. Keep real names like "Jan Hora" and "Petr Černý".
-    const locations = new Set([
-      "černá hora", "černé hory", "černé hoře", "černou horu", "černou horou",
-      "červená voda", "červené vody", "červené vodě", "červenou vodu", "červenou vodou",
-      "bílá voda", "bílé vody", "bílé vodě", "bílou vodu", "bílou vodou",
-      "dobrá voda", "dobré vody", "dobré vodě", "dobrou vodu", "dobrou vodou",
-      "černá voda", "černé vody", "černé vodě", "černou vodu", "černou vodou",
-      "stará voda", "staré vody", "staré vodě", "starou vodu", "starou vodou",
-      "suchá voda", "suché vody", "suché vodě", "suchou vodu", "suchou vodou",
-      "hojná voda", "hojné vody", "hojné vodě", "hojnou vodu", "hojnou vodou",
-      "kutná hora", "kutné hory", "kutné hoře", "kutnou horu", "kutnou horou",
-      "krásná hora", "krásné hory", "krásné hoře", "krásnou horu", "krásnou horou",
-      "zlaté hory", "zlatých hor", "zlatým horám", "zlatých horách", "zlatými horami",
-      "zelená hora", "zelené hory", "zelené hoře", "zelenou horu", "zelenou horou",
-      "bílá hora", "bílé hory", "bílé hoře", "bílou horu", "bílou horou",
-      "nová ves", "nové vsi", "novou ves", "novou vsí",
-      "stará ves", "staré vsi", "starou ves", "starou vsí",
-      "dlouhá ves", "dlouhé vsi", "dlouhou ves", "dlouhou vsí",
-      "velká ves", "velké vsi", "velkou ves", "velkou vsí",
-      "malá ves", "malé vsi", "malou ves", "malou vsí",
-      "nové město", "nového města", "novému městu", "novém městě", "novým městem",
-      "staré město", "starého města", "starému městu", "starém městě", "starým městem",
-      "havlíčkův brod", "havlíčkova brodu", "havlíčkovu brodu", "havlíčkově brodě", "havlíčkovým brodem",
-      "český brod", "českého brodu", "českému brodu", "českém brodě", "českým brodem",
-      "uherský brod", "uherského brodu", "uherskému brodu", "uherském brodě", "uherským brodem",
-      "železný brod", "železného brodu", "železnému brodu", "železném brodě", "železným brodem",
-      "vyšší brod", "vyššího brodu", "vyššímu brodu", "vyšším brodě", "vyšším brodem",
-      "jindřichův hradec", "jindřichova hradce", "jindřichovu hradci", "jindřichově hradci", "jindřichovým hradcem",
-      "hradec králové", "hradce králové", "hradci králové", "hradcem králové",
-      "karlovy vary", "karlových var", "karlovým varům", "karlových varech", "karlovými vary",
-      "mariánské lázně", "mariánských lázní", "mariánským lázním", "mariánských lázních", "mariánskými lázněmi",
-      "františkovy lázně", "františkových lázní", "františkovým lázním", "františkových lázních", "františkovými lázněmi",
-      "janské lázně", "janských lázní", "janským lázním", "janských lázních", "janskými lázněmi",
-      "mladá boleslav", "mladé boleslavi", "mladou boleslav", "mladou boleslaví",
-      "česká lípa", "české lípy", "české lípě", "českou lípu", "českou lípou",
-      "česká třebová", "české třebové", "českou třebovou",
-      "moravská třebová", "moravské třebové", "moravskou třebovou",
-      "české budějovice", "českých budějovic", "českým budějovicím", "českých budějovicích", "českými budějovicemi",
-      "vysoké mýto", "vysokého mýta", "vysokému mýtu", "vysokém mýtě", "vysokým mýtem",
-      "valašské meziříčí", "valašského meziříčí", "valašskému meziříčí", "valašském meziříčí", "valašským meziříčím",
-      "uherské hradiště", "uherského hradiště", "uherskému hradišti", "uherském hradišti", "uherským hradištěm",
-      "nový jičín", "nového jičína", "novému jičínu", "novém jičíně", "novým jičínem",
-      "dvůr králové", "dvora králové", "dvoru králové", "dvoře králové", "dvorem králové",
-      "královo pole", "králova pole", "královu poli", "králově poli", "královým polem",
-      "malá strana", "malé strany", "malé straně", "malou stranu", "malou stranou",
-      "špindlerův mlýn", "špindlerova mlýna", "špindlerovu mlýnu", "špindlerově mlýně", "špindlerovým mlýnem",
-      "pec pod sněžkou", "peci pod sněžkou",
-      "rožnov pod radhoštěm"
-    ]);
-
-    if (locations.has(name)) return true;
+    if (TOPONYM_LOCATIONS_SET.has(name)) return true;
 
     // General compound toponym pattern: [Adjective] + [Toponymic noun] without first names
-    const RE_TOPONYM_ADJECTIVE = /^(?:červen[ýáé]|čern[ýáé]|bíl[ýáé]|modr[ýáé]|zelen[ýáé]|žlut[ýáé]|star[ýáé]|nov[ýáé]|velk[ýáé]|mal[ýáé]|vysok[ýáé]|hlubok[ýáé]|dlouh[ýáé]|krátk[ýáé]|horn[í]|doln[í]|předn[í]|zadn[í]|středn[í]|kutn[áé]|dobr[ýáé]|such[ýáé]|hojn[áé]|krásn[ýáé]|zlat[ýáé]|česk[ýáé]|moravsk[ýáé]|slezsk[ýáé]|hrub[ýáé]|tepl[ýáé]|studen[ýáé]|divok[ýáé]|tich[ýáé])(?:ho|mu|m|ou|ch|mi)?$/iu;
-    const RE_TOPONYM_NOUN = /^(?:vod[aeyu]|vodou|vodách|vodám|vodami|vod|hor[aeyu]|hoře|horou|horách|horám|horami|hor|ves|vsi|vsí|měst[oau]|městě|městem|měst|městech|městům|městy|lhot[aeyu]|lhotě|lhotou|lhotách|lhotám|lhot|újezd[au]?|újezdem|újezdě|brod[u]?|brodem|brodě|mýt[oau]|mýtě|mýtem|pol[ei]|polem|polích|údolí|údolím|vrch[u]?|vrchem|vrchu|stran[aeyu]|straně|stranou|lázn[ěí]|lázním|lázních|lázněmi|mlýn[au]?|mlýnem|mlýně|hrádek|hrádku|hrádkem|potok[au]?|potokem|potoku|řek[aeyu]|řece|řekou)$/iu;
-
     if (name.includes(" ")) {
       const parts = name.split(/\s+/);
       if (parts.length === 2 && RE_TOPONYM_ADJECTIVE.test(parts[0]) && RE_TOPONYM_NOUN.test(parts[1])) {
@@ -1747,15 +1696,18 @@ function isLikelyNonPersonName(value, src, start, end, reasons){
     if (Number.isInteger(start) && Number.isInteger(end) && start >= 0 && end <= src.length) {
       if (start > 0) {
         const prefix = src.slice(Math.max(0, start - 40), start);
-        if (/(?:\bv\s+)?\b(?:obci?|měst[oau]|městys[ui]?|k\.?\s*ú\.?|katastr|katastrální(?:ho|m|mu)?\s+území|okres[ue]?|kraj[ie]?|povodí|řece?|řek[au]?|potok[au]?)\s+$/iu.test(prefix)) {
+        if (RE_MUNICIPALITY_PREFIX.test(prefix)) {
           const isFirst0 = (typeof FIRST_NAMES !== "undefined" && FIRST_NAMES) ? FIRST_NAMES.has(name.split(/\s+/)[0]) : false;
           if (!isFirst0) return true;
         }
       }
-      const beforeWord = (src.slice(Math.max(0, start - 30), start).trim().split(/\s+/).pop() || "");
-      const afterWord = (src.slice(end, Math.min(src.length, end + 30)).trim().split(/\s+/)[0] || "");
-      if (beforeWord && (locations.has(normalize(beforeWord + " " + candidate)) || RE_WATER_COLLOCATIONS.test(normalize(beforeWord + " " + candidate)))) return true;
-      if (afterWord && (locations.has(normalize(candidate + " " + afterWord)) || RE_WATER_COLLOCATIONS.test(normalize(candidate + " " + afterWord)))) return true;
+      const mayBeToponymOrWater = TOPONYM_WORDS_SET.has(name) || name.includes("vod") || name.includes("hor");
+      if (mayBeToponymOrWater) {
+        const beforeWord = (src.slice(Math.max(0, start - 30), start).trim().split(/\s+/).pop() || "");
+        const afterWord = (src.slice(end, Math.min(src.length, end + 30)).trim().split(/\s+/)[0] || "");
+        if (beforeWord && (TOPONYM_LOCATIONS_SET.has(normalize(beforeWord + " " + candidate)) || RE_WATER_COLLOCATIONS.test(normalize(beforeWord + " " + candidate)))) return true;
+        if (afterWord && (TOPONYM_LOCATIONS_SET.has(normalize(candidate + " " + afterWord)) || RE_WATER_COLLOCATIONS.test(normalize(candidate + " " + afterWord)))) return true;
+      }
     }
 
     return false;
@@ -1765,6 +1717,13 @@ function isLikelyNonPersonName(value, src, start, end, reasons){
   const RE_ABBR_BEFORE = /(?:např|tzv|tj|t\.j|tzn|atd|apod|popř|resp|s\.r\.o|a\.s|v\.o\.s|spol|č|č\.j|čj|sp\.?\s*zn|odst|písm|sb|str|sv|r|nar|hod|min|st|p|ing|mgr|bc|mudr|judr|mvdr|phdr|rndr|pharmdr|thdr|doc|prof)\.$/iu;
 function isSentenceStart(text, start) {
     if (!text || start <= 0) return true;
+    let i = start - 1;
+    while (i >= 0 && (text.charCodeAt(i) === 32 || text.charCodeAt(i) === 9)) i--;
+    if (i < 0) return true;
+    const ch = text.charAt(i);
+    if (ch !== "." && ch !== "?" && ch !== "!" && ch !== "…" && ch !== "\n" && ch !== "\r" && ch !== "\"" && ch !== "»" && ch !== "”" && ch !== "’" && ch !== ")" && ch !== "]" && ch !== "—" && ch !== "–" && ch !== "-" && ch !== "*") {
+      return false;
+    }
     const windowStart = Math.max(0, start - 200);
     const prefix = text.slice(windowStart, start);
     if (windowStart === 0 && /^\s*$/.test(prefix)) return true;
@@ -1834,6 +1793,7 @@ class EntityPropagationCache {
       this.text = text || "";
       this.hits = hits ? hits : [];
       this.entities = new Map();
+      this.formToKey = new Map();
       this.init();
     }
 
@@ -1880,6 +1840,22 @@ class EntityPropagationCache {
       return parts.length >= 2;
     }
 
+    _addFormsToEntity(ent, forms, key) {
+      for (let i = 0; i < forms.length; i++) {
+        const f = forms[i];
+        if (!f || f.length < 3) continue;
+        if (ent.forms.has(f)) continue;
+        ent.forms.add(f);
+        const lower = f.toLocaleLowerCase("cs");
+        if (!this.formToKey.has(lower)) {
+          this.formToKey.set(lower, key);
+        }
+        const isMulti = f.includes(" ");
+        const components = lower.match(/[\p{L}\p{N}]{2,}/gu) || [];
+        ent.parsedForms.push({ f, lower, isMulti, components });
+      }
+    }
+
     collectConfirmedEntities() {
       const names = this.hits.filter(h => h.type === "name");
       names.forEach(h => {
@@ -1890,12 +1866,13 @@ class EntityPropagationCache {
             entityKey: key,
             baseName: h.value,
             forms: new Set(),
+            parsedForms: [],
             sourceHits: []
           });
         }
         const ent = this.entities.get(key);
         ent.sourceHits.push(h);
-        this.generateParadigm(h.value).forEach(f => ent.forms.add(f));
+        this._addFormsToEntity(ent, this.generateParadigm(h.value), key);
       });
     }
 
@@ -1907,12 +1884,13 @@ class EntityPropagationCache {
           entityKey: key,
           baseName: hit.value,
           forms: new Set(),
+          parsedForms: [],
           sourceHits: []
         });
       }
       const ent = this.entities.get(key);
       ent.sourceHits.push(hit);
-      this.generateParadigm(hit.value).forEach(f => ent.forms.add(f));
+      this._addFormsToEntity(ent, this.generateParadigm(hit.value), key);
       return ent;
     }
 
@@ -1959,24 +1937,53 @@ class EntityPropagationCache {
         existingSpans.splice(low, 0, span);
       };
 
+      const textWords = new Set();
+      const lowerText = this.text.toLocaleLowerCase("cs");
+      const reW = /[\p{L}\p{N}]+/gu;
+      let wm;
+      while ((wm = reW.exec(lowerText)) !== null) {
+        textWords.add(wm[0]);
+      }
+
       const multiWordMap = new Map();
       const singleWordMap = new Map();
       const multiWordForms = [];
       const singleWordForms = [];
 
       for (const [key, ent] of this.entities.entries()) {
-        for (const f of ent.forms) {
-          if (!f || f.length < 3) continue;
-          if (f.includes(" ")) {
+        if (!ent.parsedForms || ent.parsedForms.length === 0) {
+          ent.parsedForms = [];
+          for (const f of ent.forms) {
+            if (!f || f.length < 3) continue;
+            const isMulti = f.includes(" ");
             const lower = f.toLocaleLowerCase("cs");
-            if (!multiWordMap.has(lower)) {
-              multiWordMap.set(lower, key);
-              multiWordForms.push(f);
+            if (!this.formToKey.has(lower)) this.formToKey.set(lower, key);
+            const components = lower.match(/[\p{L}\p{N}]{2,}/gu) || [];
+            ent.parsedForms.push({ f, lower, isMulti, components });
+          }
+        }
+
+        const pfList = ent.parsedForms;
+        for (let i = 0; i < pfList.length; i++) {
+          const pf = pfList[i];
+          let allPresent = true;
+          for (let c = 0; c < pf.components.length; c++) {
+            if (!textWords.has(pf.components[c])) {
+              allPresent = false;
+              break;
+            }
+          }
+          if (!allPresent) continue;
+
+          if (pf.isMulti) {
+            if (!multiWordMap.has(pf.lower)) {
+              multiWordMap.set(pf.lower, key);
+              multiWordForms.push(pf.f);
             }
           } else {
-            if (!singleWordMap.has(f)) {
-              singleWordMap.set(f, key);
-              singleWordForms.push(f);
+            if (!singleWordMap.has(pf.f)) {
+              singleWordMap.set(pf.f, key);
+              singleWordForms.push(pf.f);
             }
           }
         }
@@ -2038,17 +2045,7 @@ class EntityPropagationCache {
         }
       }
 
-      const formToKey = new Map();
-      for (const [key, ent] of this.entities.entries()) {
-        for (const f of ent.forms) {
-          if (!f) continue;
-          const lowerForm = f.toLocaleLowerCase("cs");
-          if (!formToKey.has(lowerForm)) {
-            formToKey.set(lowerForm, key);
-          }
-        }
-      }
-
+      const formToKey = this.formToKey;
       this.hits.forEach(h => {
         if (h.type === "name") {
           const valClean = String(h.value || "").replace(/,.*$/, "").trim().toLocaleLowerCase("cs");
@@ -4813,7 +4810,8 @@ function pdfWorker(){
       return "local";
     })();
     return window.__pdfWorkerReady;
-  }async function getPdfDocument(data){
+  }
+async function getPdfDocument(data){
     await pdfWorker();
     const bytes = (data instanceof Uint8Array)
       ? new Uint8Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength))
@@ -5103,7 +5101,8 @@ function pdfWorker(){
   }
   function shouldCoverVisibleStamps(){
     return !S.enabled || S.enabled.sigcert !== false;
-  }async function extractPdf(data){
+  }
+async function extractPdf(data){
     let pdf;
     try {
       pdf = await getPdfDocument(data);
@@ -5280,7 +5279,8 @@ function pdfWorker(){
 async function exportPdfTrueRedact(source, hits, title, mode, lang){
     const bytes = await exportPdfRaster(source, hits, title, mode, lang);
     return { bytes: assertSecurePdfBytes(bytes), rasterPages: new Set() };
-  }async function exportPdfRaster(source, hits, title, mode, lang){
+  }
+async function exportPdfRaster(source, hits, title, mode, lang){
     const pdf = await getPdfDocument(source);
     const { PDFDocument } = PDFLib;
     const doc = await PDFDocument.create();
@@ -5487,7 +5487,8 @@ function base64ToUint8Array(base64){
     });
 
     return result;
-  }function addSrgbOutputIntent(pdfDoc){
+  }
+function addSrgbOutputIntent(pdfDoc){
     const { PDFName } = PDFLib;
     const iccBytes = base64ToUint8Array(SRGB_ICC_PROFILE_BASE64);
     if (!iccBytes.length) throw new Error("Missing sRGB ICC profile");
@@ -5515,7 +5516,8 @@ function base64ToUint8Array(base64){
     pdfDoc.catalog.set(PDFName.of("OutputIntents"), pdfDoc.context.obj([intentRef]));
 
     return { iccRef, intentRef };
-  }async function applyPdfaDeclaration(bytes){
+  }
+async function applyPdfaDeclaration(bytes){
     const { PDFDocument, PDFName } = PDFLib;
     const doc = await PDFDocument.load(bytes, { updateMetadata:false });
 
@@ -6875,7 +6877,8 @@ let MOVIE_TIMER = null;
     }
     S.movie = true;
     syncSettingsForms();
-  }async function startMovieTutorial(script){
+  }
+async function startMovieTutorial(script){
     movieCancelPlayback();
     movieClearSelectMenu();
     movieCloseTitleCard();
@@ -7009,7 +7012,8 @@ let MOVIE_TIMER = null;
     const idx = S.movieStepIndex || 0;
     if (idx <= 0) return;
     await movieGoTo(idx - 1);
-  }function exitMovieTutorial(keepDoc){
+  }
+function exitMovieTutorial(keepDoc){
     MOVIE_GENERATION++;
     MOVIE_TRANSITION_LOCK = false;
     movieCancelPlayback();

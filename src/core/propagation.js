@@ -12,6 +12,7 @@ export class EntityPropagationCache {
       this.text = text || "";
       this.hits = hits ? hits : [];
       this.entities = new Map();
+      this.formToKey = new Map();
       this.init();
     }
 
@@ -58,6 +59,22 @@ export class EntityPropagationCache {
       return parts.length >= 2;
     }
 
+    _addFormsToEntity(ent, forms, key) {
+      for (let i = 0; i < forms.length; i++) {
+        const f = forms[i];
+        if (!f || f.length < 3) continue;
+        if (ent.forms.has(f)) continue;
+        ent.forms.add(f);
+        const lower = f.toLocaleLowerCase("cs");
+        if (!this.formToKey.has(lower)) {
+          this.formToKey.set(lower, key);
+        }
+        const isMulti = f.includes(" ");
+        const components = lower.match(/[\p{L}\p{N}]{2,}/gu) || [];
+        ent.parsedForms.push({ f, lower, isMulti, components });
+      }
+    }
+
     collectConfirmedEntities() {
       const names = this.hits.filter(h => h.type === "name");
       names.forEach(h => {
@@ -68,12 +85,13 @@ export class EntityPropagationCache {
             entityKey: key,
             baseName: h.value,
             forms: new Set(),
+            parsedForms: [],
             sourceHits: []
           });
         }
         const ent = this.entities.get(key);
         ent.sourceHits.push(h);
-        this.generateParadigm(h.value).forEach(f => ent.forms.add(f));
+        this._addFormsToEntity(ent, this.generateParadigm(h.value), key);
       });
     }
 
@@ -85,12 +103,13 @@ export class EntityPropagationCache {
           entityKey: key,
           baseName: hit.value,
           forms: new Set(),
+          parsedForms: [],
           sourceHits: []
         });
       }
       const ent = this.entities.get(key);
       ent.sourceHits.push(hit);
-      this.generateParadigm(hit.value).forEach(f => ent.forms.add(f));
+      this._addFormsToEntity(ent, this.generateParadigm(hit.value), key);
       return ent;
     }
 
@@ -137,24 +156,53 @@ export class EntityPropagationCache {
         existingSpans.splice(low, 0, span);
       };
 
+      const textWords = new Set();
+      const lowerText = this.text.toLocaleLowerCase("cs");
+      const reW = /[\p{L}\p{N}]+/gu;
+      let wm;
+      while ((wm = reW.exec(lowerText)) !== null) {
+        textWords.add(wm[0]);
+      }
+
       const multiWordMap = new Map();
       const singleWordMap = new Map();
       const multiWordForms = [];
       const singleWordForms = [];
 
       for (const [key, ent] of this.entities.entries()) {
-        for (const f of ent.forms) {
-          if (!f || f.length < 3) continue;
-          if (f.includes(" ")) {
+        if (!ent.parsedForms || ent.parsedForms.length === 0) {
+          ent.parsedForms = [];
+          for (const f of ent.forms) {
+            if (!f || f.length < 3) continue;
+            const isMulti = f.includes(" ");
             const lower = f.toLocaleLowerCase("cs");
-            if (!multiWordMap.has(lower)) {
-              multiWordMap.set(lower, key);
-              multiWordForms.push(f);
+            if (!this.formToKey.has(lower)) this.formToKey.set(lower, key);
+            const components = lower.match(/[\p{L}\p{N}]{2,}/gu) || [];
+            ent.parsedForms.push({ f, lower, isMulti, components });
+          }
+        }
+
+        const pfList = ent.parsedForms;
+        for (let i = 0; i < pfList.length; i++) {
+          const pf = pfList[i];
+          let allPresent = true;
+          for (let c = 0; c < pf.components.length; c++) {
+            if (!textWords.has(pf.components[c])) {
+              allPresent = false;
+              break;
+            }
+          }
+          if (!allPresent) continue;
+
+          if (pf.isMulti) {
+            if (!multiWordMap.has(pf.lower)) {
+              multiWordMap.set(pf.lower, key);
+              multiWordForms.push(pf.f);
             }
           } else {
-            if (!singleWordMap.has(f)) {
-              singleWordMap.set(f, key);
-              singleWordForms.push(f);
+            if (!singleWordMap.has(pf.f)) {
+              singleWordMap.set(pf.f, key);
+              singleWordForms.push(pf.f);
             }
           }
         }
@@ -216,17 +264,7 @@ export class EntityPropagationCache {
         }
       }
 
-      const formToKey = new Map();
-      for (const [key, ent] of this.entities.entries()) {
-        for (const f of ent.forms) {
-          if (!f) continue;
-          const lowerForm = f.toLocaleLowerCase("cs");
-          if (!formToKey.has(lowerForm)) {
-            formToKey.set(lowerForm, key);
-          }
-        }
-      }
-
+      const formToKey = this.formToKey;
       this.hits.forEach(h => {
         if (h.type === "name") {
           const valClean = String(h.value || "").replace(/,.*$/, "").trim().toLocaleLowerCase("cs");
