@@ -1,4 +1,4 @@
-import { bindReplacer, effectiveHits } from "../core/detector.js";
+import { bindReplacer, effectiveHits, makeWork } from "../core/detector.js";
 
 const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships";
   const DOCX_W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
@@ -60,17 +60,24 @@ const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationship
    * The replacement is assigned to the first affected text node; subsequent
    * affected nodes are reduced to their remaining local text.
    */
-  export function docxReplaceInXml(xml, map, tagName, found){
+  export function docxReplaceInXml(xml, map, tagName, found, occurrenceTracker){
     const doc = new DOMParser().parseFromString(xml, "application/xml");
     if (doc.getElementsByTagName("parsererror").length) throw new Error("XML");
-    const values = Array.from(map.keys()).filter(Boolean).sort((a,b) => b.length - a.length);
-    const paras = Array.from(doc.getElementsByTagNameNS(DOCX_W_NS, "p"));
+    const values = Array.from((occurrenceTracker?.allValues || map.keys())).filter(Boolean).sort((a,b) => b.length - a.length);
+    let paras = Array.from(doc.getElementsByTagNameNS(DOCX_W_NS, "p"));
+    if (!paras.length) {
+      const DRAWING_A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main";
+      paras = Array.from(doc.getElementsByTagNameNS(DRAWING_A_NS, "p"));
+    }
+    if (!paras.length) {
+      paras = Array.from(doc.getElementsByTagName("p"));
+    }
     let changed = false;
 
     paras.forEach(p => {
-      const nodes = Array.from(p.getElementsByTagNameNS(DOCX_W_NS, "*")).filter(n => {
+      const nodes = Array.from(p.getElementsByTagName("*")).filter(n => {
         let a = n.parentNode;
-        while (a && !(a.localName === "p" && a.namespaceURI === DOCX_W_NS)) a = a.parentNode;
+        while (a && a.localName !== "p") a = a.parentNode;
         if (a !== p) return false;
         const name = n.localName;
         return name === tagName || name === "tab" || name === "noBreakHyphen" || name === "softHyphen" || name === "br";
@@ -108,8 +115,13 @@ const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationship
           }
           if (free) {
             for (let k = ix; k < end; k++) used[k] = true;
-            matches.push({ s: ix, e: end, rep: map.get(v) });
-            found.add(v);
+            const repObj = occurrenceTracker
+              ? occurrenceTracker.getReplacement(v)
+              : (map.has(v) ? { replace: true, value: map.get(v) } : { replace: false });
+            if (repObj.replace) {
+              matches.push({ s: ix, e: end, rep: repObj.value });
+              if (found) found.add(v);
+            }
           }
           from = end;
         }
@@ -128,8 +140,13 @@ const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationship
             }
             if (free) {
               for (let k = origStart; k < origEnd; k++) used[k] = true;
-              matches.push({ s: origStart, e: origEnd, rep: map.get(v) });
-              found.add(v);
+              const repObj = occurrenceTracker
+                ? occurrenceTracker.getReplacement(v)
+                : (map.has(v) ? { replace: true, value: map.get(v) } : { replace: false });
+              if (repObj.replace) {
+                matches.push({ s: origStart, e: origEnd, rep: repObj.value });
+                if (found) found.add(v);
+              }
             }
             wFrom = wEnd;
           }
@@ -272,8 +289,36 @@ const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationship
     return xml;
   }
 
+  export function docxStripAuthorInitials(xml) {
+    return xml
+      .replace(/\s+(?:w:)?author="[^"]*"/g, "")
+      .replace(/\s+(?:w:)?initials="[^"]*"/g, "");
+  }
+
+  export function getOrderedDocxPartNames(files, partRe) {
+    const headers = [], body = [], footers = [], comments = [], charts = [], diagrams = [], others = [];
+    for (const name of Object.keys(files)) {
+      if (!partRe.test(name)) continue;
+      const lower = name.toLowerCase();
+      if (/^word\/header\d*\.xml$/i.test(lower)) headers.push(name);
+      else if (lower === "word/document.xml") body.push(name);
+      else if (/^word\/(footnotes|endnotes|footer\d*)\.xml$/i.test(lower)) footers.push(name);
+      else if (/^word\/comments\w*\.xml$/i.test(lower)) comments.push(name);
+      else if (/^word\/charts\/chart\d*\.xml$/i.test(lower)) charts.push(name);
+      else if (/^word\/diagrams\/data\d*\.xml$/i.test(lower)) diagrams.push(name);
+      else others.push(name);
+    }
+    headers.sort();
+    footers.sort();
+    comments.sort();
+    charts.sort();
+    diagrams.sort();
+    return [...headers, ...body, ...footers, ...comments, ...charts, ...diagrams, ...others];
+  }
+
   export async function exportDocxFile(sourceBuf, hits, mode, lang){
-    if (!window.fflate) return { ok:false, reason:"fflate" };
+    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+    if (!flate) return { ok:false, reason:"fflate" };
 
     const replacer = bindReplacer(mode, lang, hits);
     const map = new Map();
@@ -281,7 +326,33 @@ const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationship
       if (h.value && !map.has(h.value)) map.set(h.value, replacer(h));
     });
 
-    const files = fflate.unzipSync(new Uint8Array(sourceBuf.slice(0)));
+    const occCounts = new Map();
+    const hitsByValue = new Map();
+    (hits || []).forEach(h => {
+      if (!h || !h.value) return;
+      if (!hitsByValue.has(h.value)) hitsByValue.set(h.value, []);
+      hitsByValue.get(h.value).push(h);
+    });
+
+    const occurrenceTracker = {
+      allValues: Array.from(hitsByValue.keys()),
+      getReplacement(v) {
+        const list = hitsByValue.get(v) || [];
+        const idx = occCounts.get(v) || 0;
+        occCounts.set(v, idx + 1);
+        if (idx < list.length) {
+          const hit = list[idx];
+          if (hit.accept === false) return { replace: false };
+          return { replace: true, value: replacer(hit) };
+        }
+        if (list.length > 0 && list.every(h => h.accept !== false)) {
+          return { replace: true, value: replacer(list[list.length - 1]) };
+        }
+        return { replace: false };
+      }
+    };
+
+    const files = flate.unzipSync(new Uint8Array(sourceBuf.slice(0)));
     for (const k of Object.keys(files)) {
       const norm = k.replace(/\\/g, "/");
       if (norm !== k) {
@@ -291,30 +362,45 @@ const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationship
     }
     const dec = new TextDecoder("utf-8"), enc = new TextEncoder();
     const found = new Set();
-    const partRe = /^word\/(document|header\d*|footer\d*|footnotes|endnotes|comments\w*)\.xml$/i;
+    const partRe = /^word\/(document|header\d*|footer\d*|footnotes|endnotes|comments\w*|charts\/chart\d*|diagrams\/data\d*)\.xml$/i;
+    const stripMeta = (typeof S !== "undefined" && S.stripMeta !== undefined) ? S.stripMeta : true;
 
-    for (const name of Object.keys(files)) {
-      if (partRe.test(name)) {
-        let xml = dec.decode(files[name]);
+    const orderedParts = getOrderedDocxPartNames(files, partRe);
+    for (const name of orderedParts) {
+      let xml = dec.decode(files[name]);
 
-        const a = docxReplaceInXml(xml, map, "t", found);
-        if (a) xml = a;
+      let strippedMetaInPart = false;
+      if (stripMeta) {
+        const strippedXml = docxStripAuthorInitials(xml);
+        if (strippedXml !== xml) {
+          xml = strippedXml;
+          strippedMetaInPart = true;
+        }
+      }
 
-        const b = docxReplaceInXml(xml, map, "delText", found);
-        if (b) xml = b;
+      const a = docxReplaceInXml(xml, map, "t", found, occurrenceTracker);
+      if (a) xml = a;
 
-        /*
-         * True media lockdown: no image/OLE/VML object survives the exported DOCX.
-         * This is intentionally unconditional for the anonymisation export.
-         */
-        const stripped = docxStripVisualObjects(xml);
-        if (stripped.removed) xml = stripped.xml;
+      const b = docxReplaceInXml(xml, map, "delText", found, occurrenceTracker);
+      if (b) xml = b;
 
-        if (a || b || stripped.removed) files[name] = enc.encode(xml);
-      } else if (S.stripMeta && /^docProps\/(core|app)\.xml$/.test(name)) {
-        files[name] = enc.encode(docxStripMeta(name, dec.decode(files[name])));
-      } else if (S.stripMeta && name === "docProps/custom.xml") {
-        files[name] = enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"/>');
+      /*
+       * True media lockdown: no image/OLE/VML object survives the exported DOCX.
+       * This is intentionally unconditional for the anonymisation export.
+       */
+      const stripped = docxStripVisualObjects(xml);
+      if (stripped.removed) xml = stripped.xml;
+
+      if (a || b || stripped.removed || strippedMetaInPart) files[name] = enc.encode(xml);
+    }
+
+    if (stripMeta) {
+      for (const name of Object.keys(files)) {
+        if (/^docProps\/(core|app)\.xml$/.test(name)) {
+          files[name] = enc.encode(docxStripMeta(name, dec.decode(files[name])));
+        } else if (name === "docProps/custom.xml") {
+          files[name] = enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"/>');
+        }
       }
     }
 
@@ -329,9 +415,9 @@ const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationship
     docxAssertNoEmbeddedMedia(files);
     docxAssertNoDanglingRelationships(files, dec);
 
-    const bytes = fflate.zipSync(files, { level: 6 });
+    const bytes = flate.zipSync(files, { level: 6 });
 
-    if (window.mammoth) {
+    if (typeof window !== "undefined" && window.mammoth) {
       const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
       const chk = (await window.mammoth.extractRawText({ arrayBuffer: buf })).value || "";
       const left = Array.from(map.entries()).filter(([v, rep]) => !rep.includes(v) && chk.includes(v));

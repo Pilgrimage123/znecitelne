@@ -93,7 +93,7 @@ Právní titul (např. ochrana osobních údajů dle GDPR, obchodní tajemství,
 _Avoid_: Zákonný důvod znečitelnění, Důvod začernění, Právní status, Právní štítek
 
 **Předávací balíček sezení**:
-Kryptograficky zabezpečený exportní soubor zachycující rozpracovaný stav dokumentu, potvrzené nálezy a auditní záznam, určený pro bezpečné předání druhému kontrolorovi v rámci principu čtyř očí bez trvalého ukládání v prohlížeči.
+Kryptograficky zabezpečený exportní soubor zachycující rozpracovaný stav dokumentu včetně volitelného zapouzdření původního binárního podkladu dokumentu, potvrzené nálezy a auditní záznam, určený pro bezpečné předání druhému kontrolorovi v rámci principu čtyř očí a umožňující identický sanitizovaný export v původním formátu bez trvalého ukládání v prohlížeči.
 _Avoid_: Uložená relace, Session backup, Projektový soubor, Stav úlohy
 
 **Ovládací lišta**:

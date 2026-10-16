@@ -856,7 +856,7 @@ try {
   const encryptedEnvelopeJson = await exportSession(dummyState, "BezpecneHeslo123!");
   check(typeof encryptedEnvelopeJson === "string", "exportSession must return serialized JSON string");
   const parsed = JSON.parse(encryptedEnvelopeJson);
-  check(parsed.format === "znecitelne-session" && parsed.version === 1, "exportSession must produce canonical session envelope");
+  check(parsed.format === "znecitelne-session" && (parsed.version === 1 || parsed.version === 2), "exportSession must produce canonical session envelope");
   check(parsed.kdf && parsed.kdf.algorithm === "PBKDF2" && parsed.kdf.iterations === 100000, "exportSession must use PBKDF2 with 100,000 iterations");
   check(parsed.cipher && parsed.cipher.algorithm === "AES-GCM", "exportSession must use AES-GCM");
   check(!encryptedEnvelopeJson.includes("Jan Novák"), "exportSession ciphertext must not contain plaintext secrets");
@@ -1667,6 +1667,190 @@ Poradu zahájil předseda ČBÚ.`;
 } catch (stErr) {
   failures.push("Canonical selfTest execution failed: " + (stErr.message || String(stErr)));
 }
+
+// ============================================================================
+// FÁZE 7: Regresní testy pro novou architekturu a bezpečnostní záruky
+// ============================================================================
+
+// 1. XLSX XML sanitizace (split runs, XML entity, formula cells)
+try {
+  const enc = new TextEncoder();
+  const dec = new TextDecoder("utf-8");
+
+  // A) Split runs across <r><t> in <si>
+  const mockSharedWithSplitRuns = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="1" uniqueCount="1">
+  <si><r><t>Jan </t></r><r><rPr><b/></rPr><t>Novák</t></r></si>
+</sst>`;
+
+  const mockZipSplitRuns = globalThis.fflate.zipSync({
+    "xl/sharedStrings.xml": enc.encode(mockSharedWithSplitRuns)
+  });
+
+  const splitRunHits = [
+    { id: 1, start: 0, end: 9, value: "Jan Novák", type: "name", accept: true, entityKey: "name|jan novak" }
+  ];
+
+  const exportSplitRes = exportXlsxFileFflate(mockZipSplitRuns.buffer, splitRunHits, "pseudo", "cs", true);
+  check(exportSplitRes.ok, "exportXlsxFileFflate must succeed on split runs in sharedStrings.xml");
+  const unzippedSplit = globalThis.fflate.unzipSync(exportSplitRes.bytes);
+  const resSplit = dec.decode(unzippedSplit["xl/sharedStrings.xml"]);
+  check(!resSplit.includes("Jan Novák") && !resSplit.includes("Novák"), "sharedStrings.xml must not retain split run name");
+  check(resSplit.includes("[OSOBA_"), "sharedStrings.xml with split runs must contain anonymized token [OSOBA_...]");
+
+  // B) XML entity handling (&amp;, &quot;, &lt;, &gt;)
+  const mockSharedWithEntities = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="1" uniqueCount="1">
+  <si><t>Dodavatel: Novák &amp; Synové spol. s r.o.</t></si>
+</sst>`;
+
+  const mockZipEntities = globalThis.fflate.zipSync({
+    "xl/sharedStrings.xml": enc.encode(mockSharedWithEntities)
+  });
+
+  const entityHits = [
+    { id: 1, start: 11, end: 25, value: "Novák & Synové", type: "org", accept: true, entityKey: "org|novak & synove" }
+  ];
+
+  const exportEntityRes = exportXlsxFileFflate(mockZipEntities.buffer, entityHits, "pseudo", "cs", true);
+  check(exportEntityRes.ok, "exportXlsxFileFflate must succeed on XML entities in sharedStrings.xml");
+  const unzippedEntity = globalThis.fflate.unzipSync(exportEntityRes.bytes);
+  const resEntity = dec.decode(unzippedEntity["xl/sharedStrings.xml"]);
+  check(!resEntity.includes("Novák &amp; Synové") && !resEntity.includes("Novák & Synové"), "XML entity string must be sanitized");
+  check(resEntity.includes("[ORG"), "XML entity string must be replaced with organization token");
+
+  // C) Sanitization of formula cached results <c t="str"><f>... and <v>...
+  const mockSheetWithFormula = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData>
+    <row r="1">
+      <c r="A1" t="str">
+        <f>CONCATENATE("Jan ", "Novák")</f>
+        <v>Jan Novák</v>
+      </c>
+    </row>
+  </sheetData>
+</worksheet>`;
+
+  const mockZipFormula = globalThis.fflate.zipSync({
+    "xl/worksheets/sheet1.xml": enc.encode(mockSheetWithFormula)
+  });
+
+  const exportFormulaRes = exportXlsxFileFflate(mockZipFormula.buffer, splitRunHits, "pseudo", "cs", true);
+  check(exportFormulaRes.ok, "exportXlsxFileFflate must succeed on worksheet with formulas");
+  const unzippedFormula = globalThis.fflate.unzipSync(exportFormulaRes.bytes);
+  const resFormulaSheet = dec.decode(unzippedFormula["xl/worksheets/sheet1.xml"]);
+  check(!resFormulaSheet.includes("<v>Jan Novák</v>"), "Formula cached value <v>Jan Novák</v> must be sanitized");
+  check(resFormulaSheet.includes("[OSOBA_"), "Formula cell must contain sanitized token in cached value or formula");
+} catch (errXlsx) {
+  failures.push("FÁZE 7 XLSX XML sanitization tests failed: " + (errXlsx.message || String(errXlsx)));
+}
+
+// 2. Klastrování jmen v morfologii (clusterNameKeys must not merge Novák and Nováček)
+try {
+  const hitsToCluster = [
+    { type: "name", value: "Jan Novák", entityKey: "name|jan novak" },
+    { type: "name", value: "Petr Nováček", entityKey: "name|petr novacek" },
+    { type: "name", value: "Novák" },
+    { type: "name", value: "Nováček" }
+  ];
+  clusterNameKeys(hitsToCluster);
+  check(hitsToCluster[2].entityKey === "name|jan novak", "Short mention Novák must cluster to Jan Novák");
+  check(hitsToCluster[3].entityKey === "name|petr novacek", "Short mention Nováček must cluster to Petr Nováček");
+  check(hitsToCluster[2].entityKey !== hitsToCluster[3].entityKey, "clusterNameKeys must NOT merge Novák and Nováček");
+
+  const kovarCluster = [
+    { type: "name", value: "Karel Kovář", entityKey: "name|karel kovar" },
+    { type: "name", value: "Jiří Kovářík", entityKey: "name|jiri kovarik" },
+    { type: "name", value: "Kovář" },
+    { type: "name", value: "Kovářík" }
+  ];
+  clusterNameKeys(kovarCluster);
+  check(kovarCluster[2].entityKey !== kovarCluster[3].entityKey, "clusterNameKeys must NOT merge Kovář and Kovářík");
+} catch (errCluster) {
+  failures.push("FÁZE 7 clusterNameKeys regression tests failed: " + (errCluster.message || String(errCluster)));
+}
+
+// 3. Předávací balíček sezení (sourceBuf serialization + version 1 and 2 support)
+try {
+  const binaryPayload = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 42, 99, 128, 255]);
+  const sessionWithBinary = {
+    fileName: "tajny_spis.pdf",
+    kind: "pdf",
+    text: "Přísně tajný obsah dokumentu",
+    pages: ["Přísně tajný obsah dokumentu"],
+    reviewed: true,
+    hits: [{ type: "name", value: "Karel Novák", accept: true }],
+    sourceBuf: binaryPayload
+  };
+
+  // Test Version 2 (compressed)
+  const envV2 = await exportSession(sessionWithBinary, "TajneHeslo789!", { version: 2 });
+  const parsedV2 = JSON.parse(envV2);
+  check(parsedV2.version === 2, "exportSession with version 2 option must produce version: 2");
+  check(parsedV2.compression === "zlib", "exportSession version 2 must set compression: 'zlib'");
+  const restoredV2 = await importSession(envV2, "TajneHeslo789!");
+  check(restoredV2.doc && restoredV2.doc.sourceBuf instanceof Uint8Array, "importSession v2 must restore sourceBuf as Uint8Array");
+  check(restoredV2.doc.sourceBuf.length === binaryPayload.length, "Restored sourceBuf length must match original");
+  check(restoredV2.doc.sourceBuf[8] === 42, "Restored sourceBuf bytes must match original");
+
+  // Test Version 1 (uncompressed backward compatibility)
+  const envV1 = await exportSession(sessionWithBinary, "TajneHeslo789!", { version: 1 });
+  const parsedV1 = JSON.parse(envV1);
+  check(parsedV1.version === 1, "exportSession with version 1 option must produce version: 1");
+  const restoredV1 = await importSession(envV1, "TajneHeslo789!");
+  check(restoredV1.doc && restoredV1.doc.sourceBuf instanceof Uint8Array, "importSession v1 must restore sourceBuf as Uint8Array");
+  check(restoredV1.doc.sourceBuf[8] === 42, "Restored sourceBuf bytes v1 must match original");
+} catch (errSess) {
+  failures.push("FÁZE 7 session transfer binary substrate tests failed: " + (errSess.message || String(errSess)));
+}
+
+// 4. Výkonnost propagace (EntityPropagationCache.scan benchmark on 30 entities across 50,000 characters)
+try {
+  const czechFirstNames = ["Jan", "Petr", "Pavel", "Karel", "Josef", "Tomáš", "Jiří", "Lukáš", "Martin", "Michal"];
+  const czechSurnames = ["Novák", "Svoboda", "Novotný", "Dvořák", "Černý", "Procházka", "Kučera", "Veselý", "Horák", "Němec"];
+  const benchmarkHits = [];
+  let baseText = "Začátek rozsáhlého spisu pro testování výkonu. ";
+
+  // Generate 30 distinct confirmed entities
+  let hitId = 1;
+  for (let i = 0; i < 30; i++) {
+    const fn = czechFirstNames[i % czechFirstNames.length];
+    const sn = czechSurnames[Math.floor(i / 3) % czechSurnames.length] + (i > 9 ? `ov_${i}` : "");
+    const fullName = `${fn} ${sn}`;
+    const start = baseText.length;
+    baseText += `V řízení vystupoval svědek ${fullName}, nar. 1985. `;
+    const end = start + fullName.length;
+    benchmarkHits.push({
+      id: hitId++,
+      type: "name",
+      value: fullName,
+      start,
+      end,
+      reasons: ["trigger:pan"],
+      confidence: "high",
+      accept: true,
+      entityKey: `name|${nameKey(fullName)}`
+    });
+  }
+
+  // Pad text to >= 50,000 characters with various mentions
+  while (baseText.length < 50000) {
+    baseText += "Dále bylo konstatováno, že pan Novák a pan Svoboda spolu s panem Kovářem projednali všechny body. ";
+  }
+
+  const cache = createEntityPropagationCache(baseText, benchmarkHits);
+  const t0 = performance.now();
+  const scanResults = cache.scan();
+  const elapsedMs = performance.now() - t0;
+
+  check(elapsedMs < 50, `EntityPropagationCache.scan() on 30 entities across 50,000 chars must complete in < 50 ms (took: ${elapsedMs.toFixed(2)} ms)`);
+  check(Array.isArray(scanResults), "cache.scan() must return array of new hits");
+} catch (errBench) {
+  failures.push("FÁZE 7 propagation performance benchmark failed: " + (errBench.message || String(errBench)));
+}
+
+
 
 if (failures.length) {
   console.error("Quality gate failed:");

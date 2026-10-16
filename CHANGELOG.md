@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-16
+
+- Architektonická konsolidace, modulární build pipeline a zpřísnění bezpečnosti exportů (ADR-0008, ADR-0009):
+  - **Skutečný deterministický build pipeline (`build.js` / ADR-0009):** Vývoj je plně centralizován v čistých ES modulech v `src/`. Skript `build.js` v čistém Node.js deterministicky sestavuje distribuční soubor `znecitelne.html` s kompletní validací markerů a integritních kontrol. Odstraněn zastaralý a křehký `scripts/split_monolith.js`.
+  - **Bezpečná nedestruktivní XML sanitizace tabulek XLSX (`src/formats/xlsx.js`):** Nahrazen naivní regex za zpracování napříč běhy (`replaceAcrossRuns`) s podporou `DOMParser` a unescape fallbackem. Bezpečně řeší split runy `<r><t>` v `<si>` sdílených řetězců, XML entity (`&amp;`, `&quot;`, `&lt;`, `&gt;`), cached hodnoty textových vzorců `<c t="str"><f>...<v>` a komentáře v `xl/comments*.xml`.
+  - **Granulární sekvenční schvalování a očista revizí v DOCX (`src/formats/docx.js`):** Export zachovává pořadí průchodu dokumentem (`getOrderedDocxPartNames`) a díky `occurrenceTracker` spolehlivě rozlišuje schválené (`accept: true`) a zamítnuté (`accept: false`) výskyty téhož řetězce. Rozšířen rozsah sanitizace na grafy a diagramy; při zapnutém `stripMeta` jsou z revizí a komentářů odstraněny atributy `w:author` a `w:initials`.
+  - **Zpřísnění verifikace PDF a fail-closed ochrana (`src/formats/pdf.js`):** Ve `verifySanitizedPdfText` je odstraněno tiché polykání chyb dekomprese u `/FlateDecode` streamů (fail-closed architektura). Doplněna detekce citlivých řetězců v UTF-8, Windows-1250 / Latin1, ASCII transliteraci i UTF-16BE hex formátu. Do bezpečnostního preflightu `assertSecurePdfBytes` přidány zakázané tokeny `/ObjStm`, `/Launch` a `/RichMedia`.
+  - **Předávací balíček sezení v2 s binárním substrátem (`src/crypto/session.js` / ADR-0008):** Rozšířen formát šifrovaného sezení `.znecitelne-session` na verzi 2 s kompresí `fflate.zlibSync` a dávkovým Base64 přenosem původního binárního dokumentu (`sourceBuf`). Druhý kontrolor tak může po rozšifrování okamžitě provést export do původního formátu (PDF, DOCX, XLSX). Zajištěna plná zpětná kompatibilita pro import sezení verze 1.
+  - **Výkonnostní zrychlení propagace a zpřesnění morfologie (`src/core/`):** Metoda `EntityPropagationCache.scan()` zredukována ze stovek vnořených kompilací RegExpů na dva jednoprůchodové sjednocené alternační výrazy (víceslovný `giu` a jednoslovný `gu`), benchmark pro 30 entit na 50 000 znacích probíhá pod 5 ms. V `clusterNameKeys` nahrazeno nebezpečné prefixové porovnávání ověřeným pádovým/přechýleným kmenovým párováním (`isSameCzechSurname`), čímž se zamezilo chybnému slučování různých osob (např. *Novák* vs. *Nováček*). Ve funkci `declinedPersonTokenBase` opraveno řazení akuzativních tvarů na `-u` a cizích příjmení na `-i` (*Rossi*, *Bondi*).
+
 ## 2026-10-15
 
 - Terminologie anonymizace a výchozí horní poloha ovládací lišty (ADR-0007):

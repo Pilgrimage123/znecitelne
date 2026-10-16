@@ -37,7 +37,12 @@ export function stripTitle(token){
     };
   }
 
-  let ONOMASTIC_TRIE = null;
+  export let ONOMASTIC_TRIE = null;
+
+  export function getOnomasticTrie() {
+    if (!ONOMASTIC_TRIE) initOnomasticRegistry();
+    return ONOMASTIC_TRIE;
+  }
 
   export function initOnomasticRegistry() {
     if (ONOMASTIC_TRIE) return ONOMASTIC_TRIE;

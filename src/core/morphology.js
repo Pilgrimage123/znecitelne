@@ -96,6 +96,16 @@ export function stemNamePart(token){
     const m = String(value||"").match(/(?<![\p{L}\p{N}])(\p{Lu})\.(?=\s|$)/u);
     return m ? m[1].toLocaleLowerCase("cs") : "";
   }
+  export function isSameCzechSurname(sur, stem) {
+    if (!sur || !stem) return false;
+    if (sur === stem) return true;
+    const surForms = declineCzechSurname(sur).map(nameKey);
+    if (surForms.includes(stem)) return true;
+    const stemForms = declineCzechSurname(stem).map(nameKey);
+    if (stemForms.includes(sur)) return true;
+    return false;
+  }
+
   export function clusterNameKeys(hits){
     const names = hits.filter(h => h.type==="name");
     const full = names.filter(h => nameKey(h.value).split(" ").length>=2);
@@ -107,7 +117,7 @@ export function stemNamePart(token){
       const cands = full.filter(f => {
         const words = nameKey(f.value).split(" ").filter(Boolean);
         const sur = words[words.length-1] || "";
-        if (sur!==stem && !sur.startsWith(stem) && !stem.startsWith(sur)) return false;
+        if (!isSameCzechSurname(sur, stem)) return false;
         if (initial) return (words[0]||"").charAt(0)===initial;
         return true;
       });
@@ -559,15 +569,4 @@ export function stemNamePart(token){
     "odpovídá", "zpracoval", "zpracovala", "zpracuje", "uloženo", "různé"
   ]);
 
-
-  export function declinedPersonTokenBase(base, h, lang){
-    if (lang !== "cs" || h.type !== "name" || base !== "OSOBA") return base;
-    const clean = String(h.value || "").replace(/,.*$/, "").trim();
-    const words = clean.toLocaleLowerCase("cs").replace(/[.,;:!?]/g, "").split(/\s+/).filter(Boolean);
-    const last = words[words.length - 1] || "";
-    // Instrumental: Janem Novákem, Janou Novákovou, Kovářem, Černým, Jiřím.
-    if (/(?:em|ou|ovou|ým|ím)$/u.test(last)) return "OSOBOU";
-    // Dative/locative: Janu Novákovi, Janovi Novákovi, Kovářovi, Černému, Marii.
-    if (/(?:ovi|u|i|ému|ě)$/u.test(last)) return "OSOBĚ";
-    return base;
-  }
+export { declinedPersonTokenBase } from "./detector.js";

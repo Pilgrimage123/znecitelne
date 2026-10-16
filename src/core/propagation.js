@@ -1,9 +1,11 @@
 import {
   stemNamePart, looksName, nameKey, declineCzechSurname, generateCzechNameForms,
-  isLikelyNonPersonName, isCzechVerbOrParticiple, RE_AGENDA_APELATIVA, ROLE_WORDS_SET
+  isLikelyNonPersonName, isCzechVerbOrParticiple, RE_AGENDA_APELATIVA, ROLE_WORDS_SET,
+  systemCore, canonToken
 } from "./morphology.js";
 import { stripTitle, isOnomasticName } from "./onomastic.js";
 import { FIRST_NAMES, TITLES, NAMES } from "./rules.js";
+import { pageOf, parseDict } from "./detector.js";
 
 export class EntityPropagationCache {
     constructor(text, hits) {
@@ -135,47 +137,82 @@ export class EntityPropagationCache {
         existingSpans.splice(low, 0, span);
       };
 
+      const multiWordMap = new Map();
+      const singleWordMap = new Map();
+      const multiWordForms = [];
+      const singleWordForms = [];
+
       for (const [key, ent] of this.entities.entries()) {
-        const sortedForms = Array.from(ent.forms).filter(f => f && f.length >= 3).sort((a, b) => b.length - a.length);
-        for (const form of sortedForms) {
-          const escForm = form.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          const re = form.includes(" ")
-            ? new RegExp("(?<![\\p{L}\\p{N}])" + escForm + "(?![\\p{L}\\p{N}])", "giu")
-            : new RegExp("(?<![\\p{L}\\p{N}])" + escForm + "(?![\\p{L}\\p{N}])", "gu");
-          let m;
-          while ((m = re.exec(this.text)) !== null) {
-            const start = m.index;
-            const end = start + m[0].length;
-            const overlapping = findOverlapping(start, end);
-            if (overlapping.length > 0) {
-              overlapping.forEach(s => {
-                if (s.hit && s.hit.type === "name") {
-                  s.hit.entityKey = key;
-                  if (!this.isPrimaryHit(s.hit)) {
-                    if (!s.hit.reasons) s.hit.reasons = [];
-                    if (!s.hit.reasons.includes("propagation")) s.hit.reasons.push("propagation");
-                    s.hit.confidence = "high";
-                    s.hit.accept = true;
-                  }
-                }
-              });
-              continue;
+        for (const f of ent.forms) {
+          if (!f || f.length < 3) continue;
+          if (f.includes(" ")) {
+            const lower = f.toLocaleLowerCase("cs");
+            if (!multiWordMap.has(lower)) {
+              multiWordMap.set(lower, key);
+              multiWordForms.push(f);
             }
-            if (isLikelyNonPersonName(m[0], this.text, start, end)) continue;
-            const newHit = {
-              type: "name",
-              value: m[0],
-              start,
-              end,
-              reasons: ["propagation"],
-              confidence: "high",
-              entityKey: key,
-              accept: true,
-              page: pageOf(start)
-            };
-            insertSpan({ start, end, hit: newHit });
-            newHits.push(newHit);
+          } else {
+            if (!singleWordMap.has(f)) {
+              singleWordMap.set(f, key);
+              singleWordForms.push(f);
+            }
           }
+        }
+      }
+
+      multiWordForms.sort((a, b) => b.length - a.length);
+      singleWordForms.sort((a, b) => b.length - a.length);
+
+      const passes = [];
+      if (multiWordForms.length > 0) {
+        const escMulti = multiWordForms.map(f => f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+        const multiRe = new RegExp("(?<![\\p{L}\\p{N}])(?:" + escMulti + ")(?![\\p{L}\\p{N}])", "giu");
+        passes.push({ re: multiRe, map: multiWordMap, isMulti: true });
+      }
+      if (singleWordForms.length > 0) {
+        const escSingle = singleWordForms.map(f => f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+        const singleRe = new RegExp("(?<![\\p{L}\\p{N}])(?:" + escSingle + ")(?![\\p{L}\\p{N}])", "gu");
+        passes.push({ re: singleRe, map: singleWordMap, isMulti: false });
+      }
+
+      for (const { re, map, isMulti } of passes) {
+        let m;
+        while ((m = re.exec(this.text)) !== null) {
+          const matchedText = m[0];
+          const key = isMulti ? map.get(matchedText.toLocaleLowerCase("cs")) : map.get(matchedText);
+          if (!key) continue;
+
+          const start = m.index;
+          const end = start + matchedText.length;
+          const overlapping = findOverlapping(start, end);
+          if (overlapping.length > 0) {
+            overlapping.forEach(s => {
+              if (s.hit && s.hit.type === "name") {
+                s.hit.entityKey = key;
+                if (!this.isPrimaryHit(s.hit)) {
+                  if (!s.hit.reasons) s.hit.reasons = [];
+                  if (!s.hit.reasons.includes("propagation")) s.hit.reasons.push("propagation");
+                  s.hit.confidence = "high";
+                  s.hit.accept = true;
+                }
+              }
+            });
+            continue;
+          }
+          if (isLikelyNonPersonName(matchedText, this.text, start, end)) continue;
+          const newHit = {
+            type: "name",
+            value: matchedText,
+            start,
+            end,
+            reasons: ["propagation"],
+            confidence: "high",
+            entityKey: key,
+            accept: true,
+            page: pageOf(start)
+          };
+          insertSpan({ start, end, hit: newHit });
+          newHits.push(newHit);
         }
       }
 
@@ -229,8 +266,12 @@ export class EntityPropagationCache {
     const cache = createEntityPropagationCache(text, hits);
     return cache.propagate(triggerHit);
   }
-  export function alignDictEntity(h, src){
-    const dicts = parseDict(S.systems+"\n"+S.projects+"\n"+S.orgs).filter(d => d.name && d.name.length>=2);
+  export function alignDictEntity(h, src, options){
+    const s = options || ((typeof globalThis !== 'undefined' && globalThis.S) || (typeof S !== 'undefined' ? S : null)) || {};
+    const sys = (options && options.systems != null) ? options.systems : (s.systems || "");
+    const proj = (options && options.projects != null) ? options.projects : (s.projects || "");
+    const orgs = (options && options.orgs != null) ? options.orgs : (s.orgs || "");
+    const dicts = parseDict(sys + "\n" + proj + "\n" + orgs).filter(d => d.name && d.name.length >= 2);
     if (!dicts.length) return h;
     const val = h.value || "";
     const low = val.toLocaleLowerCase("cs");

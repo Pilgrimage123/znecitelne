@@ -1,9 +1,9 @@
 import { PII_KEYS, ORG_KEYS, KEYS, RULES, LABEL, TICKET_STOP, STATUS_GENERIC, PUBLIC, FIRST_NAMES, TITLES, NAMES } from "./rules.js";
-import { stripTitle, isOnomasticName, initOnomasticRegistry } from "./onomastic.js";
+import { stripTitle, isOnomasticName, initOnomasticRegistry, getOnomasticTrie, ONOMASTIC_TRIE } from "./onomastic.js";
 import {
   stemNamePart, isCzechVerbOrParticiple, looksName, nameKey, canonToken,
   systemCore, accountKey, nameInitial, clusterNameKeys, isLikelyNonPersonName,
-  isSentenceStart, declinedPersonTokenBase, RE_AGENDA_APELATIVA, ROLE_WORDS_SET,
+  isSentenceStart, RE_AGENDA_APELATIVA, ROLE_WORDS_SET,
   RE_CZECH_SURNAMES
 } from "./morphology.js";
 import { createEntityPropagationCache, expandCzechNameMorphology, alignDictEntity } from "./propagation.js";
@@ -480,10 +480,37 @@ export function detect(text, enabled, secrets, options){
         }
         return true;
       }
+      function trieFuzzyMatch1(node, word, i = 0, errors = 0) {
+        if (errors > 1) return false;
+        if (i === word.length) {
+          if (node.$ === 1 && errors <= 1) return true;
+          if (errors === 0) {
+            for (const ch in node) {
+              if (ch !== "$" && node[ch].$ === 1) return true;
+            }
+          }
+          return false;
+        }
+        const ch = word[i];
+        if (node[ch] && trieFuzzyMatch1(node[ch], word, i + 1, errors)) return true;
+        if (errors >= 1) return false;
+        if (trieFuzzyMatch1(node, word, i + 1, 1)) return true;
+        for (const k in node) {
+          if (k === "$" || k === ch) continue;
+          const child = node[k];
+          if (trieFuzzyMatch1(child, word, i + 1, 1)) return true;
+          if (trieFuzzyMatch1(child, word, i, 1)) return true;
+        }
+        return false;
+      }
+
       function fuzzyMatchKnownName(cand) {
         if (!cand || cand.length < 6) return false;
         const candLow = cand.toLocaleLowerCase("cs");
-        if (!ONOMASTIC_TRIE) initOnomasticRegistry();
+        const trie = getOnomasticTrie();
+        if (trie && trie.root) {
+          return trieFuzzyMatch1(trie.root, candLow);
+        }
         for (const name of NAMES) {
           if (name.length < 6) continue;
           if (Math.abs(name.length - candLow.length) > 1) continue;
@@ -1056,7 +1083,50 @@ export function detect(text, enabled, secrets, options){
     return String(n).padStart(3, "0");
   }
 
-export function makeReplacer(mode, lang){
+export function declinedPersonTokenBase(base, h, lang){
+    if (lang !== "cs" || !h || h.type !== "name" || base !== "OSOBA") return base;
+    const clean = String(h.value || "").replace(/,.*$/, "").trim();
+    const words = clean.toLocaleLowerCase("cs").replace(/[.,;:!?]/g, "").split(/\s+/).filter(Boolean);
+    if (!words.length) return base;
+    const first = words[0];
+    const last = words[words.length - 1];
+
+    // Accusative with first-name inflection:
+    // e.g. "Jana Svobodu" (first name in accusative/genitive -a/-e/-ho),
+    // or "Evu Novákovou" (first name in accusative -u).
+    if (words.length >= 2) {
+      if (/(?:u|a|e|ho)$/u.test(first) && !/(?:ovi|ou)$/u.test(first)) {
+        if (last.endsWith("u") || last.endsWith("ovou") || last.endsWith("ou")) {
+          return "OSOBA";
+        }
+      }
+    }
+
+    // Single-word or surname in accusative ending in -u (e.g. "Svobodu", "Evu"):
+    // Note: excludes -ou and -ovi which belong to instrumental and dative.
+    if (last.endsWith("u") && !last.endsWith("ou") && !last.endsWith("ovi")) {
+      return "OSOBA";
+    }
+
+    // Foreign surnames ending in -i (e.g. Rossi, Bondi, Visconti, Verdi, Mancini, etc.):
+    // In Czech singular masculine they are indeclinable nominatives -> "OSOBA"
+    if (/(?:rossi|bondi|visconti|verdi|puccini|ferrari|mancini|pellegrini|morandi|berlusconi)$/u.test(last) ||
+        (/[bdfgklmnprstvz]i$/u.test(last) && !/(?:marii|lucii|sofii|julii)$/u.test(last) && !last.endsWith("ovi"))) {
+      if (words.length === 1 || !/(?:u|ovi)$/u.test(first)) {
+        return "OSOBA";
+      }
+    }
+
+    // Instrumental: Janem Novákem, Janou Novákovou, Kovářem, Černým, Jiřím.
+    if (/(?:em|ou|ovou|ým|ím)$/u.test(last)) return "OSOBOU";
+
+    // Dative/locative: Janu Novákovi, Janovi Novákovi, Kovářovi, Černému, Marii.
+    if (/(?:ovi|i|ému|ě)$/u.test(last)) return "OSOBĚ";
+
+    return base;
+  }
+
+  export function makeReplacer(mode, lang){
     const counters = {}; const map = new Map();
     return (h) => {
       if (h.type==="status" && (mode==="label" || mode==="pseudo" || mode==="xxxx")) {

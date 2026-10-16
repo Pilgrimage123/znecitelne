@@ -25,26 +25,24 @@ npm test
 npm start
 ```
 
-`npm run build` is a validation build: it checks the canonical application and required local browser assets. It does not generate a second HTML entry point.
+Primary development takes place in modular ES code in `src/` (`src/core/`, `src/formats/`, `src/crypto/`, `src/ui/`, `src/worker/` and `src/template.html`).
 
-The server is only a static delivery layer. Document processing is performed in the browser.
+`npm run build` deterministically compiles `src/` into the standalone canonical distribution file `znecitelne.html` without external bundlers, preserving offline zero-network execution on `file:///`, and validates all runtime markers and assets.
+
+The server is only a static delivery layer. Document processing is performed entirely in the browser.
 
 ## Updating the application
 
-Edit `znecitelne.html` first.
+Make changes in the corresponding ES modules in `src/` (or `src/template.html` for markup/styles).
 
-Then run:
+Then build and verify:
 
 ```bash
 npm run build
 npm test
 ```
 
-The build fails if an obsolete `index.html` appears or if required local runtime assets are missing. Populate the bundle with `bash scripts/download_libs.sh` before expecting the offline gate to pass.
-
-## Important product invariant
-
-Do not introduce a second HTML application during refactors. New functionality belongs in the canonical implementation first, then extracted into modules only when the behavior is covered by regression tests.
+The build compiles `znecitelne.html` and verifies that all required markers, modules, and local assets in `./lib/` are present. Do not recreate `index.html` or edit `znecitelne.html` manually.
 
 ## Current security/privacy direction
 
