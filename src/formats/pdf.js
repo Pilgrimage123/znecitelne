@@ -530,7 +530,27 @@ export function pdfWorker(){
   function shouldCoverVisibleStamps(){
     return !S.enabled || S.enabled.sigcert !== false;
   }
-  export async function extractPdf(data){
+  let _canFetchLocalCache = null;
+export async function canFetchLocalAssets() {
+  if (_canFetchLocalCache !== null) return _canFetchLocalCache;
+  if (typeof window === "undefined" || !window.fetch) {
+    _canFetchLocalCache = false;
+    return false;
+  }
+  if (window.location && window.location.protocol === "file:") {
+    try {
+      await fetch("./lib/tesseract.min.js", { method: "HEAD" });
+      _canFetchLocalCache = true;
+    } catch (_) {
+      _canFetchLocalCache = false;
+    }
+  } else {
+    _canFetchLocalCache = true;
+  }
+  return _canFetchLocalCache;
+}
+
+export async function extractPdf(data){
     let pdf;
     try {
       pdf = await getPdfDocument(data);
@@ -562,6 +582,12 @@ export function pdfWorker(){
     async function getOcrWorker(){
       if (ocrWorker) return ocrWorker;
       if (ocrDisabled || !S.ocrEnabled || !window.Tesseract) return null;
+      const canFetch = await canFetchLocalAssets();
+      if (!canFetch) {
+        console.warn("OCR: local asset fetching is restricted under file:// protocol. Skipping OCR.");
+        ocrDisabled = true;
+        return null;
+      }
       let initTimer = null;
       try {
         showOcrProgress(S.lang === "cs" ? "OCR: inicializuji jazykový model…" : "OCR: loading language model…");
@@ -585,12 +611,19 @@ export function pdfWorker(){
             if (workerErrReject) workerErrReject(new Error(typeof err === "string" ? err : ((err && err.message) || "OCR error")));
           },
           logger: m => {
-            if (m.status === "loading language traineddata") {
-              showOcrProgress((S.lang === "cs" ? "OCR: stahuji jazykový model" : "OCR: downloading model") +
+            const cs = S.lang === "cs";
+            if (m.status === "loading tesseract core") {
+              showOcrProgress(cs ? "OCR: načítám jádro…" : "OCR: loading core…");
+            } else if (m.status === "initializing tesseract") {
+              showOcrProgress(cs ? "OCR: inicializuji jádro…" : "OCR: initializing core…");
+            } else if (m.status === "loading language traineddata") {
+              showOcrProgress((cs ? "OCR: stahuji jazykový model" : "OCR: downloading model") +
                 " (" + Math.round((m.progress || 0) * 100) + "%)…");
+            } else if (m.status === "initializing api") {
+              showOcrProgress(cs ? "OCR: inicializuji rozpoznávání…" : "OCR: initializing recognition…");
             } else if (m.status === "recognizing text") {
               showOcrProgress(
-                (S.lang === "cs" ? "OCR: rozpoznávám text" : "OCR: recognizing text") +
+                (cs ? "OCR: rozpoznávám text" : "OCR: recognizing text") +
                 " (" + Math.round((m.progress || 0) * 100) + "%)…"
               );
             }
@@ -669,8 +702,13 @@ export function pdfWorker(){
         const signatures = await pageSignatureMeta(page);
         let stampText = signatures.map(s => s.text).filter(Boolean).join(" ");
 
+        const hasVisibleSig = (signatures || []).some(sig => {
+          const rect = sig && sig.rect;
+          return rect && Math.abs(rect[2] - rect[0]) >= 8 && Math.abs(rect[3] - rect[1]) >= 8;
+        });
+
         let sigWorker = null;
-        if (signatures.length && !isScan && S.ocrEnabled) {
+        if (hasVisibleSig && !isScan && S.ocrEnabled) {
           sigWorker = await getOcrWorker();
         }
 

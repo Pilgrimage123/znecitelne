@@ -1,6 +1,6 @@
 import { toBytes } from "../core/detector.js";
 import { extractXlsx } from "./xlsx.js";
-import { pdfHasSignatureBytes, extractPdf } from "./pdf.js";
+import { pdfHasSignatureBytes, extractPdf, canFetchLocalAssets } from "./pdf.js";
 import { decodeTextBuffer, isBinaryBuffer, extractRtfText } from "./rtf.js";
 import { extractOdtText } from "./odt.js";
 import { extractDocxTextWithFflate } from "./docx.js";
@@ -144,6 +144,12 @@ export const IngestErrorCode = Object.freeze({
     let items = [];
     let initTimer = null;
     try {
+      const canFetch = await canFetchLocalAssets();
+      if (!canFetch) {
+        throw new Error(t === "cs"
+          ? "OCR v režimu souboru (file:///) není prohlížečem podporováno. Spusťte prosím aplikaci přes lokální server (např. 'npm start' -> http://localhost:3000)."
+          : "OCR under file:/// protocol is blocked by browser security. Please run via a local server (e.g. 'npm start' -> http://localhost:3000).");
+      }
       reportProgress(t === "cs" ? "OCR: spouštím rozpoznávání textu…" : "OCR: running recognition…");
       const timeoutPromise = new Promise((_, reject) => {
         initTimer = setTimeout(() => reject(new Error("OCR worker init timeout (10s)")), 10000);
