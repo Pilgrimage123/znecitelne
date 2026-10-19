@@ -938,6 +938,7 @@ try {
 }
 
 // Verification that canonical application internal self-test suite (selftest=1) passes
+let stSandbox = null;
 try {
   const scriptContent = canonical.match(/<script>([\s\S]*?)<\/script>/)?.[1] || "";
   const vm = await import("node:vm");
@@ -994,7 +995,7 @@ try {
   vm.runInNewContext(fflateCode, fflateHolder);
   const fflateObj = fflateHolder.self.fflate;
   windowObj.fflate = fflateObj;
-  const stSandbox = {
+  stSandbox = {
     window: windowObj,
     fflate: fflateObj,
     document: doc,
@@ -2088,6 +2089,69 @@ try {
 } catch (adr11Err) {
   failures.push("ADR-0011 PDF layout and occurrence tracking test failed: " + (adr11Err.message || String(adr11Err)));
 }
+
+// ADR-0012: Integrovaná pracovní lišta, entitní revize a adaptivní rozvržení
+try {
+  check(
+    canonical.includes('id="headerDocContext"') &&
+    canonical.includes('id="headerApproval"') &&
+    canonical.includes('id="headerExportGroup"'),
+    "ADR-0012: header must provide 3-zone workplace bar (context, approval, export)"
+  );
+
+  check(
+    canonical.includes('id="smartBanners"') &&
+    canonical.includes("function paintSmartBanners("),
+    "ADR-0012: review screen must feature smart action banners for active warnings"
+  );
+
+  check(
+    canonical.includes('id="entityList"') &&
+    canonical.includes('id="btnModeEntities"') &&
+    canonical.includes('id="btnModeHits"'),
+    "ADR-0012: review screen must support entity grouping with view mode switcher"
+  );
+
+  check(
+    canonical.includes("function groupHitsIntoEntities(") &&
+    canonical.includes("function paintEntities("),
+    "ADR-0012: app logic must implement entity aggregation and card rendering"
+  );
+
+  check(
+    canonical.includes('class="settings-tabs"') &&
+    canonical.includes("tabPaneProfile") &&
+    canonical.includes("tabPaneDicts") &&
+    canonical.includes("tabPaneFormats"),
+    "ADR-0012: settings modal must feature structured 3-tab layout"
+  );
+
+  check(
+    canonical.includes('id="btnViewOrig"') &&
+    canonical.includes('id="btnViewPreview"') &&
+    canonical.includes('doc-view-seg'),
+    "ADR-0012: document viewport header must house segmented view switch"
+  );
+
+  const groupEntitiesFn = stSandbox?.window?.groupHitsIntoEntities;
+  if (typeof groupEntitiesFn === "function") {
+    const testHits = [
+      { id: 1, type: "name", value: "Jan Novák", accept: true, entityKey: "name|jan novak" },
+      { id: 2, type: "name", value: "Jana Nováka", accept: true, entityKey: "name|jan novak" },
+      { id: 3, type: "name", value: "Janu Novákovi", accept: true, entityKey: "name|jan novak" },
+      { id: 4, type: "ico", value: "12345678", accept: false }
+    ];
+    const grouped = groupEntitiesFn(testHits);
+    check(grouped.length === 2, "groupHitsIntoEntities must group 4 hits into 2 distinct entities");
+    const personEntity = grouped.find(e => e.type === "name");
+    check(personEntity && personEntity.totalCount === 3, "person entity must aggregate 3 hits");
+    check(personEntity && personEntity.formsList.length === 3, "person entity must record 3 distinct case forms");
+    check(personEntity && personEntity.acceptState === "all", "person entity must report acceptState all when all hits accepted");
+  }
+} catch (adr12Err) {
+  failures.push("ADR-0012 test failed: " + (adr12Err.message || String(adr12Err)));
+}
+
 
 if (failures.length) {
   console.error("Quality gate failed:");

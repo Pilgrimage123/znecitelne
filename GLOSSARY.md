@@ -96,9 +96,13 @@ _Avoid_: Zákonný důvod znečitelnění, Důvod začernění, Právní status,
 Kryptograficky zabezpečený exportní soubor zachycující rozpracovaný stav dokumentu včetně volitelného zapouzdření původního binárního podkladu dokumentu, potvrzené nálezy a auditní záznam, určený pro bezpečné předání druhému kontrolorovi v rámci principu čtyř očí a umožňující identický sanitizovaný export v původním formátu bez trvalého ukládání v prohlížeči.
 _Avoid_: Uložená relace, Session backup, Projektový soubor, Stav úlohy
 
-**Ovládací lišta**:
-Trvalý pruh uživatelského rozhraní sdružující klíčové ovládací prvky pro schvalování, přepínání náhledu a nevratný export dokumentu, jehož výchozí poloha je v horní části obrazovky pod záhlavím s možností přesunu do spodní části.
-_Avoid_: Button bar, Toolbar, Lišta tlačítek, Spodní lišta, Plovoucí lišta
+**Pracovní lišta**:
+Sjednocený pruh uživatelského rozhraní v horní části obrazovky integrující kontext aktivního dokumentu, dávkovou frontu, stav schválení a primární akce pro sanitizovaný export.
+_Avoid_: Ovládací lišta, Toolbar, Button bar, Lišta tlačítek, Spodní lišta, Plovoucí lišta
+
+**Entitní seskupení**:
+Způsob prezentace nálezů v revizním panelu sdružující všechny tvarové a pádové varianty téže entity do jedné logické položky s možností společného schválení či vyřazení.
+_Avoid_: Sloučené nálezy, Skupina hitů, Shluky, Agregace výskytů
 
 **Pevný layout dokumentu**:
 Formát dokumentu (zejména PDF), v němž jsou pozice a rozměry slov vázány na absolutní souřadnice stránky a neumožňují přelévání textu (*text reflow*), kvůli čemuž je náhrada citlivých údajů striktně omezena původními rozměry nálezu.

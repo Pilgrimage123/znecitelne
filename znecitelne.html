@@ -17,8 +17,10 @@
   --focus: #0f5fa8;
   --header-bg: #1a2c40; --header-fg: #ffffff; --header-muted: #d7e0e8;
   --overlay: rgba(14,16,20,.6); --bar-bg: color-mix(in srgb, var(--surface) 97%, transparent);
-  --radius: 12px; --font: "Segoe UI", "Source Sans 3", system-ui, sans-serif;
-  --display: Georgia, "Times New Roman", serif; --mono: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  --radius-sm: 6px; --radius: 10px; --radius-lg: 14px;
+  --font: "Segoe UI", "Source Sans 3", system-ui, -apple-system, sans-serif;
+  --display: "Segoe UI", "Source Sans 3", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
   color-scheme: light;
 }
 html[data-theme="dark"] {
@@ -328,6 +330,155 @@ body.bar-pos-top .review { padding-top: calc(var(--bar-h, 72px) + 4px); }
   background: var(--surface); color: var(--fg); border-color: var(--border);
 }
 .toolbar .btn-ghost:hover { background: var(--bg-subtle); border-color: var(--accent); }
+
+/* --- Integrated Workplace Bar (Pracovní lišta) --- */
+.header-doc-context {
+  display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0;
+}
+.doc-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: color-mix(in srgb, var(--header-fg) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--header-fg) 28%, transparent);
+  padding: 4px 10px; border-radius: var(--radius-sm, 6px);
+  color: var(--header-fg); font-size: 13px; font-weight: 600;
+  max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.queue-dropdown select {
+  min-height: 32px; height: 32px; padding: 2px 8px; font-size: 12px; font-weight: 600;
+  border-radius: var(--radius-sm, 6px); background: var(--surface); color: var(--fg);
+  border-color: var(--border);
+}
+.header-approval {
+  display: flex; align-items: center; gap: 8px;
+}
+.header-approval .approval-check {
+  font-size: 13px; font-weight: 600; color: var(--header-fg); min-height: 32px; padding: 0 6px;
+  cursor: pointer;
+}
+.header-approval .badge {
+  background: color-mix(in srgb, var(--header-fg) 14%, transparent);
+  border-color: color-mix(in srgb, var(--header-fg) 32%, transparent);
+  color: var(--header-fg); font-size: 11px;
+}
+
+/* Split Export Button & Dropdown */
+.split-btn-group {
+  position: relative; display: inline-flex; align-items: stretch;
+}
+.btn-export {
+  background: var(--surface) !important; color: var(--primary) !important;
+  font-weight: 700 !important; border: 1.5px solid var(--surface) !important;
+  border-top-right-radius: 0 !important; border-bottom-right-radius: 0 !important;
+  min-height: 36px; padding: 0 14px;
+}
+.btn-export:hover { background: var(--bg) !important; }
+.btn-split-toggle {
+  background: color-mix(in srgb, var(--header-fg) 15%, var(--surface)) !important;
+  color: var(--primary) !important;
+  border: 1.5px solid var(--surface) !important;
+  border-left: 1px solid color-mix(in srgb, var(--primary) 20%, transparent) !important;
+  border-top-left-radius: 0 !important; border-bottom-left-radius: 0 !important;
+  padding: 0 10px !important; min-height: 36px; cursor: pointer;
+}
+.dropdown-menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 55;
+  background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(14,16,20,.24); min-width: 250px; padding: 6px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.dropdown-item {
+  display: block; width: 100%; text-align: left; padding: 8px 12px; font-size: 13px; font-weight: 500;
+  border: 0; background: transparent; color: var(--fg); border-radius: var(--radius-sm, 6px); cursor: pointer;
+}
+.dropdown-item:hover { background: var(--bg-subtle); color: var(--primary); }
+
+/* --- Segmented Controls & Document View --- */
+.doc-pane-header {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.seg-ctrl, .doc-view-seg {
+  display: inline-flex; align-items: stretch; border-radius: var(--radius-sm, 6px);
+  overflow: hidden; border: 1.5px solid var(--border); background: var(--bg-subtle);
+}
+.seg-btn {
+  border: 0; background: transparent; color: var(--muted); font-size: 12px; font-weight: 600;
+  padding: 6px 14px; cursor: pointer; line-height: 1.2; transition: background .15s, color .15s;
+}
+.seg-btn + .seg-btn { border-left: 1px solid var(--border); }
+.seg-btn:hover { color: var(--fg); background: color-mix(in srgb, var(--primary) 6%, transparent); }
+.seg-btn.on { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.08); font-weight: 700; }
+
+/* --- Smart Action Banners --- */
+.smart-banners { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.smart-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 10px 14px; border-radius: var(--radius); border: 1.5px solid var(--border);
+  background: var(--surface); box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.smart-banner-info { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.smart-banner-warn { border-color: var(--hit); background: color-mix(in srgb, var(--hit) 9%, var(--surface)); }
+.smart-banner-danger { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, var(--surface)); }
+.sb-content { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; }
+.sb-icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
+.sb-title { font-weight: 650; font-size: 13px; margin: 0; }
+.sb-desc { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
+
+/* --- Entity Cards & Review Aside --- */
+.aside-nav { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.view-mode-seg { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+.view-mode-seg .seg-btn { text-align: center; justify-content: center; }
+.bulk-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+.bulk-actions .btn { min-height: 32px; padding: 0 6px; font-size: 11px; white-space: nowrap; }
+
+.entities-container {
+  max-height: 48dvh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
+  border-radius: var(--radius); padding-right: 2px;
+}
+.entity-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.entity-card:hover { border-color: var(--accent); }
+.entity-card.sel { border-color: var(--focus); box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 25%, transparent); }
+.entity-card.ec-redact { border-left: 4px solid var(--hit); }
+.entity-card.ec-keep { border-left: 4px solid var(--ok); }
+.entity-card.ec-mixed { border-left: 4px solid var(--muted); }
+.ec-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; cursor: pointer; }
+.ec-title { font-weight: 650; font-size: 13px; color: var(--fg); margin: 0; }
+.ec-meta { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.ec-token { font-family: var(--mono); font-size: 11px; font-weight: 600; background: var(--bg-subtle); padding: 1px 5px; border-radius: 4px; }
+.ec-actions { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+.ec-actions .btn-sm { min-height: 28px; padding: 0 10px; font-size: 11px; }
+.ec-subhits {
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.ec-subhit {
+  display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 5px 8px;
+  border-radius: var(--radius-sm, 6px); background: var(--bg-subtle); cursor: pointer;
+}
+.ec-subhit:hover { background: color-mix(in srgb, var(--primary) 12%, var(--surface)); }
+.ec-badge-count { font-size: 11px; padding: 1px 6px; border-radius: 999px; background: var(--bg-subtle); font-weight: 600; }
+
+/* --- Settings Modal Tabs --- */
+.settings-tabs {
+  display: flex; gap: 4px; border-bottom: 1.5px solid var(--border); padding-bottom: 0; margin-bottom: 14px;
+}
+.settings-tab-btn {
+  padding: 8px 14px; font-size: 13px; font-weight: 600; border: 0; border-bottom: 2.5px solid transparent;
+  background: transparent; color: var(--muted); cursor: pointer; border-radius: 6px 6px 0 0;
+}
+.settings-tab-btn:hover { color: var(--fg); background: var(--bg-subtle); }
+.settings-tab-btn.active {
+  color: var(--primary); border-bottom-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+html[data-theme="dark"] .settings-tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* --- Landing Page Styling --- */
+.drop-icon { font-size: 36px; margin-bottom: 6px; }
+.landing-secondary-actions .btn { min-height: 42px; }
+
 @media (max-width: 720px) {
   .bar { padding-left: 10px; padding-right: 10px; }
   .bar-inner { gap: 6px; }
@@ -585,7 +736,7 @@ body.movie-active #settingsSheet {
 </div>
 <div id="movie-title-card"><div class="sheet"><h2 id="movie-title-h"></h2><p id="movie-title-p" style="color:var(--muted)"></p></div></div>
 <div id="movie-select-menu" aria-hidden="true"></div>
-<header class="app">
+<header class="app" id="appHeader">
   <div class="brand">
     <div class="mark">Z</div>
     <div>
@@ -593,8 +744,41 @@ body.movie-active #settingsSheet {
       <p class="tag" id="tagline"></p>
     </div>
   </div>
-  <div class="hdr-actions">
-    <button class="btn btn-sm btn-file" id="btnNewFile" type="button"><span class="plus" aria-hidden="true">+</span><span id="lblNewFile">Nový soubor</span></button>
+
+  <!-- Active Document info & Queue dropdown (shown during review) -->
+  <div class="header-doc-context hidden" id="headerDocContext">
+    <span class="doc-badge" id="headerDocBadge"><span id="headerDocName"></span></span>
+    <div class="queue-dropdown hidden" id="headerQueueWrap">
+      <select id="headerQueueSelect" aria-label="Dávková fronta"></select>
+    </div>
+    <button class="btn btn-sm btn-ghost" id="btnHeaderClear" type="button" title="Zavřít dokument">✕</button>
+  </div>
+
+  <!-- Center Approval / Risk indicator (shown during review) -->
+  <div class="header-approval hidden" id="headerApproval">
+    <span class="badge" id="badgePendingFindings"></span>
+    <label class="check approval-check" id="lblHeaderReviewed">
+      <input type="checkbox" id="chkRev" /> <span id="lblReviewedText">Zkontrolováno</span>
+    </label>
+    <label class="check approval-check hidden" id="lblHeaderSecondEyes">
+      <input type="checkbox" id="chk2" /> <span id="lblSecondEyesText">2. kontrola</span>
+    </label>
+  </div>
+
+  <div class="hdr-actions" id="hdrActions">
+    <!-- Split export button (shown during review) -->
+    <div class="split-btn-group hidden" id="headerExportGroup">
+      <button class="btn btn-sm btn-export" id="btnExp" type="button">Anonymizovat a exportovat</button>
+      <button class="btn btn-sm btn-export btn-split-toggle" id="btnExpMenuToggle" type="button" aria-haspopup="true" aria-expanded="false" title="Další možnosti exportu">▾</button>
+      <div class="dropdown-menu hidden" id="headerExportMenu" role="menu">
+        <button type="button" class="dropdown-item" id="menuExportAi">📦 AI balíček (ZIP)</button>
+        <button type="button" class="dropdown-item" id="menuExportSession">💾 Předat pro 4 oči (.znecitelne-session)</button>
+        <button type="button" class="dropdown-item" id="menuExportAudit">📋 Auditní protokol (JSON)</button>
+        <button type="button" class="dropdown-item" id="menuExportRecord">🔒 Protokol o anonymizaci (PDF)</button>
+      </div>
+    </div>
+
+    <button class="btn btn-sm btn-file" id="btnNewFile" type="button"><span class="plus" aria-hidden="true">+</span><span id="lblNewFile">Nový dokument</span></button>
     <button class="btn btn-sm btn-ghost" id="btnTheme" type="button" aria-pressed="false" aria-label="Tmavý režim">☾</button>
     <button class="btn btn-sm btn-ghost" id="btnSettings" type="button" aria-label="Nastavení">⚙</button>
     <button class="btn btn-sm btn-ghost" id="btnHtml" type="button">HTML</button>
@@ -614,20 +798,23 @@ body.movie-active #settingsSheet {
       </ol>
       <p class="privacy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span id="privacy"></span></p>
     </div>
-    <div class="card">
+    <div class="card landing-card">
       <div class="drop" id="drop">
-        <p style="font-weight:600;margin:0" id="dropTitle"></p>
-        <p style="color:var(--muted);font-size:14px;margin:8px 0 0" id="dropHint"></p>
+        <div class="drop-icon" aria-hidden="true">📄</div>
+        <p style="font-weight:600;font-size:17px;margin:0" id="dropTitle"></p>
+        <p style="color:var(--muted);font-size:14px;margin:8px 0 16px" id="dropHint"></p>
+        <button class="btn btn-file" id="btnBrowse" type="button">Vybrat dokument</button>
       </div>
       <input id="file" type="file" multiple hidden accept=".pdf,.docx,.xlsx,.xls,.ods,.odt,.rtf,.txt,.csv,.tsv,.json,.xml,.html,.htm,.md,.png,.jpg,.jpeg,.webp,.bmp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.text,application/rtf,text/rtf,text/plain,text/csv,image/*" />
-      <div class="stack">
-        <button class="btn" id="btnSample" type="button"></button>
-        <button class="btn btn-sec" id="btnMovie" type="button"></button>
-        <button class="btn btn-sec" id="btnBrowse" type="button"></button>
-        <button class="btn btn-ghost" id="btnFeatures" type="button"></button>
-        <button class="btn btn-ghost" id="btnChangelog" type="button"></button>
+      <div class="landing-secondary-actions" style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
+        <button class="btn btn-sec" id="btnSample" type="button"></button>
+        <div class="landing-links" style="display:flex;justify-content:center;gap:8px;margin-top:6px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" id="btnMovie" type="button"></button>
+          <button class="btn btn-ghost btn-sm" id="btnFeatures" type="button"></button>
+          <button class="btn btn-ghost btn-sm" id="btnChangelog" type="button"></button>
+        </div>
       </div>
-      <details class="settings" id="landingSettingsDetails">
+      <details class="settings hidden" id="landingSettingsDetails" style="display:none">
         <summary id="sumSettings"></summary>
         <div id="settingsMount"></div>
       </details>
@@ -637,26 +824,44 @@ body.movie-active #settingsSheet {
 </section>
 
 <section id="review" class="review hidden">
+  <!-- Hooks preserved for test and script compatibility -->
   <div id="queueBar" class="queue hidden" role="group"></div>
-  <div class="toolbar" id="toolbar"></div>
+  <div class="toolbar hidden" id="toolbar"></div>
   <p id="residual" class="ok hidden"></p>
   <p id="scanWarn" class="danger hidden"></p>
   <p id="sigWarn" class="danger hidden" role="alert"></p>
+
+  <!-- Smart Action Banners container -->
+  <div id="smartBanners" class="smart-banners"></div>
+
   <div class="work">
-    <div class="pane">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
-        <h2 class="lbl" style="margin:0" id="lblOrig"></h2>
-        <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-          <button class="btn btn-sm btn-sec btn-visual hidden" id="btnVisual" type="button"></button>
-          <button class="btn btn-sm btn-add-sel" id="btnAdd" type="button"></button>
-        </span>
+    <div class="pane doc-pane">
+      <div class="pane-header doc-pane-header">
+        <div class="doc-view-seg" role="group" aria-label="Režim zobrazení dokumentu">
+          <button type="button" class="seg-btn on" id="btnViewOrig">Původní text</button>
+          <button type="button" class="seg-btn" id="btnViewPreview">Náhled změn</button>
+          <button type="button" class="seg-btn hidden" id="btnVisual">Vizuální PDF</button>
+        </div>
+        <button class="btn btn-sm btn-add-sel" id="btnAdd" type="button">+ Anonymizovat výběr</button>
       </div>
       <pre class="doc" id="orig"></pre>
       <div id="pdfVisual" class="hidden" aria-label="PDF"></div>
     </div>
     <aside id="reviewAside">
-      <div class="filters" id="filters"></div>
-      <div class="hits" id="hitList"></div>
+      <div class="aside-nav">
+        <div class="seg-ctrl view-mode-seg" role="group" aria-label="Pohled na nálezy">
+          <button type="button" class="seg-btn on" id="btnModeEntities">Entitní přehled</button>
+          <button type="button" class="seg-btn" id="btnModeHits">Jednotlivé nálezy</button>
+        </div>
+        <div class="filters" id="filters"></div>
+        <div class="bulk-actions" id="bulkActions">
+          <button type="button" class="btn btn-sm btn-sec" id="btnAll">Vše anonymizovat</button>
+          <button type="button" class="btn btn-sm btn-sec" id="btnOff">Ponechat instituce</button>
+          <button type="button" class="btn btn-sm btn-sec" id="btnNone">Vše ponechat</button>
+        </div>
+      </div>
+      <div class="entities-container" id="entityList"></div>
+      <div class="hits hidden" id="hitList"></div>
       <div class="pane" id="inspector" style="margin-top:12px"></div>
       <div class="pane hidden" style="margin-top:12px" id="processPane">
         <h2 class="lbl" id="lblProc"></h2>
@@ -687,8 +892,13 @@ body.movie-active #settingsSheet {
   <div class="sheet" id="exportSheet"></div>
 </div>
 <div class="modal hidden" id="settingsModal">
-  <div class="sheet" id="settingsSheet" style="max-height:min(90dvh,720px);overflow:auto">
+  <div class="sheet" id="settingsSheet" style="max-height:min(90dvh,760px);overflow:auto">
     <h2 id="settingsTitle" style="margin-top:0"></h2>
+    <div class="settings-tabs" role="tablist">
+      <button type="button" class="settings-tab-btn active" data-tab="tabProfile" id="tabBtnProfile">Profil publikace</button>
+      <button type="button" class="settings-tab-btn" data-tab="tabDicts" id="tabBtnDicts">Projektové slovníky</button>
+      <button type="button" class="settings-tab-btn" data-tab="tabFormats" id="tabBtnFormats">Formáty a zabezpečení</button>
+    </div>
     <div id="settingsModalMount"></div>
     <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
       <button class="btn" id="btnSettingsApply" type="button"></button>
@@ -963,6 +1173,25 @@ const I18N = {
       exportedMixed:"Export hotov — {n} stránka/y musely být z bezpečnostních důvodů převedeny na obrázek",
       exportedDocx:"Export DOCX hotov se zachovaným formátováním. Obrázky, VML/OLE a vložené binární objekty byly z bezpečnostních důvodů odstraněny; citlivé názvy media partů se nepřenášejí.", docxFallback:"DOCX se nepodařilo bezpečně přepsat se zachováním formátování ({r}) — exportován prostý text (TXT/PDF).",
       scanWarning:"{n} stránek nemá textovou vrstvu a nebylo možné je prohledat — zapněte OCR",
+      viewEntities:"Entitní přehled", viewHits:"Jednotlivé nálezy",
+      entityOccurrences:"{n} výskytů", entityCases:"{n} tvarů / pádů",
+      entityRedactAll:"Anonymizovat entitu", entityKeepAll:"Ponechat entitu",
+      entityExpand:"Zobrazit výskyty", entityCollapse:"Skrýt výskyty",
+      tabProfile:"Profil publikace a citlivost", tabDicts:"Projektové slovníky", tabFormats:"Formáty a zabezpečení",
+      smartSigTitle:"Detekováno razítko elektronického podpisu",
+      smartSigDesc:"Vizuální razítko podpisu bude zachováno, začerní se pouze jméno podepsané osoby.",
+      smartScanTitle:"Naskenované stránky bez textu ({n})",
+      smartScanDesc:"Tyto stránky neobsahují strojově čitelný text a vyžadují OCR.",
+      smartScanBtn:"Spustit OCR",
+      smartRiskTitle:"Zbytková rizika v dokumentu",
+      smartRiskDesc:"Po navržené anonymizaci v textu stále zůstávají citlivé vzory.",
+      smartRiskBtn:"Zkontrolovat v textu",
+      exportMenuToggle:"Další možnosti exportu",
+      docQueueSwitch:"Dokument {cur} z {total}",
+      appBarBrand:"Znečitelně",
+      unreviewedCount:"{n} k posouzení",
+      approvedBadge:"Schváleno",
+      approveDoc:"Schválit dokument",
       legalLabel:"Zákonný důvod anonymizace",
       legalOpts:{ trade:"Obchodní tajemství (§ 504 OZ)", gdpr:"Osobní údaje (čl. 6 GDPR)", security:"Ochrana bezpečnosti", custom:"Vlastní důvod…" },
       legalShort:{ trade:"§ 504 OZ", gdpr:"čl. 6 GDPR", security:"Bezpečnost", custom:"Vlastní" },
@@ -1145,6 +1374,25 @@ const I18N = {
       exportedMixed:"Export complete — {n} page(s) had to be converted to an image for safety",
       exportedDocx:"DOCX export complete with formatting preserved. Images, VML/OLE and embedded binary objects were removed for safety; sensitive media part names are not carried into the output.", docxFallback:"The DOCX could not be safely rewritten with formatting preserved ({r}) — plain text (TXT/PDF) was exported instead.",
       scanWarning:"{n} page(s) have no text layer and could not be searched — turn on OCR",
+      viewEntities:"Entity view", viewHits:"Individual findings",
+      entityOccurrences:"{n} occurrences", entityCases:"{n} forms / cases",
+      entityRedactAll:"Redact entity", entityKeepAll:"Keep entity",
+      entityExpand:"Show occurrences", entityCollapse:"Hide occurrences",
+      tabProfile:"Publication profile", tabDicts:"Project dictionaries", tabFormats:"Formats & security",
+      smartSigTitle:"Digital signature stamp detected",
+      smartSigDesc:"Signature stamp visual frame preserved; only signer name will be redacted.",
+      smartScanTitle:"Scanned pages without text ({n})",
+      smartScanDesc:"These pages contain no machine-readable text and require OCR.",
+      smartScanBtn:"Run OCR",
+      smartRiskTitle:"Residual risks detected",
+      smartRiskDesc:"After proposed redaction, sensitive patterns still remain.",
+      smartRiskBtn:"Inspect in text",
+      exportMenuToggle:"More export options",
+      docQueueSwitch:"Document {cur} of {total}",
+      appBarBrand:"Znečitelně",
+      unreviewedCount:"{n} to review",
+      approvedBadge:"Approved",
+      approveDoc:"Approve document",
       legalLabel:"Legal basis for redaction",
       legalOpts:{ trade:"Trade secret (§ 504 Civil Code)", gdpr:"Personal data (Art. 6 GDPR)", security:"Security protection", custom:"Custom basis…" },
       legalShort:{ trade:"§ 504 CC", gdpr:"Art. 6 GDPR", security:"Security", custom:"Custom" },
@@ -7812,6 +8060,8 @@ const S = {
     analysisContext: "",
     docView: localStorage.getItem("znec-docview") === "preview" ? "preview" : "original",
     pdfVisual: false,
+    viewMode: localStorage.getItem("znec-viewmode") || "entities",
+    expandedEntities: new Set(),
     movie: false, movieStepIndex: 0
   };
   const i = () => I18N[S.lang];
@@ -8079,34 +8329,41 @@ function download(name, blob){
   function settingsHTML(prefix){
     const p = prefix || "";
     const t = i();
-    return `<label class="check"><input type="checkbox" id="${p}chkQuick" ${S.quickMode?"checked":""}/> ${t.quickMode} <button type="button" class="help-i" data-tip="${t.tips.quickMode}">?</button></label>
-      <label class="check"><input type="checkbox" id="${p}chkFast" ${S.fastApprove?"checked":""}/> ${t.fastApprove} <button type="button" class="help-i" data-tip="${t.tips.fastApprove}">?</button></label>
-      <label class="field">${t.profile} <button type="button" class="help-i" data-tip="${t.tips.cats.ico}">?</button></label>
-      <select id="${p}selProfile">${Object.entries(t.profiles).map(([k,v])=>`<option value="${k}" ${S.profile===k?"selected":""}>${v}</option>`).join("")}</select>
-      <label class="field">${t.mode}</label>
-      <select id="${p}selMode">${Object.entries(t.modes).map(([k,v])=>`<option value="${k}" ${S.mode===k?"selected":""}>${v}</option>`).join("")}</select>
-      <label class="field">${t.suspicion} <button type="button" class="help-i" data-tip="${t.tips.suspicion}">?</button></label>
-      <select id="${p}selSuspicion">${Object.entries(t.suspicions).map(([k,v])=>`<option value="${k}" ${S.suspicion===k?"selected":""}>${v}</option>`).join("")}</select>
-      <label class="field">${t.barPosition}</label>
-      <select id="${p}selBarPos">${[["top",t.barPosTop],["bottom",t.barPosBottom]].map(([k,v])=>`<option value="${k}" ${S.barPos===k?"selected":""}>${v}</option>`).join("")}</select>
-      <p class="lbl">${t.layerPii}</p>
-      <div class="cats">${PII_KEYS.map(k=>`<label><input type="checkbox" data-cat="${k}" ${S.enabled[k]?"checked":""} /> <span>${t.cats[k]}</span> <button type="button" class="help-i" data-tip="${t.tips.cats[k]}">?</button></label>`).join("")}</div>
-      <p class="lbl">${t.layerOrg}</p>
-      <div class="cats">${ORG_KEYS.map(k=>`<label><input type="checkbox" data-cat="${k}" ${S.enabled[k]?"checked":""} /> <span>${t.cats[k]}</span> <button type="button" class="help-i" data-tip="${t.tips.cats[k]}">?</button></label>`).join("")}</div>
-      <label class="field">${t.secrets}</label>
-      <textarea id="${p}taSecrets">${escAttr(S.secrets)}</textarea>
-      <label class="field">${t.systemsDict}</label>
-      <textarea id="${p}taSystems">${escAttr(S.systems)}</textarea>
-      <label class="field">${t.projectsDict}</label>
-      <textarea id="${p}taProjects">${escAttr(S.projects)}</textarea>
-      <label class="field">${t.orgsDict}</label>
-      <textarea id="${p}taOrgs">${escAttr(S.orgs)}</textarea>
-      <p class="dict-hint">${t.dictHint}</p>
-      <label class="check"><input type="checkbox" id="${p}chkMeta" ${S.stripMeta?"checked":""}/> ${t.stripMeta} <button type="button" class="help-i" data-tip="${t.tips.stripMeta}">?</button></label>
-      <label class="check"><input type="checkbox" id="${p}chkTrueRedact" ${S.truePdfRedact?"checked":""}/> ${t.truePdfRedact} <button type="button" class="help-i" data-tip="${t.truePdfRedactHint}">?</button></label>
-      <label class="check"><input type="checkbox" id="${p}chkOcr" ${S.ocrEnabled?"checked":""}/> ${t.enableOcr} <button type="button" class="help-i" data-tip="${t.tips.ocr}">?</button></label>
-      <label class="check"><input type="checkbox" id="${p}chkExpert" ${S.expertMode?"checked":""}/> ${t.expertMode} <button type="button" class="help-i" data-tip="${t.tips.expertMode}">?</button></label>
-      <label class="check"><input type="checkbox" id="${p}chkProcessAnalysis" ${S.processAnalysis?"checked":""}/> ${t.processAnalysisLabel} <button type="button" class="help-i" data-tip="${t.tips.processAnalysis}">?</button></label>`;
+    return `
+      <div class="settings-tab-pane" id="${p}tabPaneProfile">
+        <label class="field">${t.profile} <button type="button" class="help-i" data-tip="${t.tips.cats.ico}">?</button></label>
+        <select id="${p}selProfile">${Object.entries(t.profiles).map(([k,v])=>`<option value="${k}" ${S.profile===k?"selected":""}>${v}</option>`).join("")}</select>
+        <label class="field">${t.mode}</label>
+        <select id="${p}selMode">${Object.entries(t.modes).map(([k,v])=>`<option value="${k}" ${S.mode===k?"selected":""}>${v}</option>`).join("")}</select>
+        <label class="field">${t.suspicion} <button type="button" class="help-i" data-tip="${t.tips.suspicion}">?</button></label>
+        <select id="${p}selSuspicion">${Object.entries(t.suspicions).map(([k,v])=>`<option value="${k}" ${S.suspicion===k?"selected":""}>${v}</option>`).join("")}</select>
+        <label class="check" style="margin-top:12px"><input type="checkbox" id="${p}chkFast" ${S.fastApprove?"checked":""}/> ${t.fastApprove} <button type="button" class="help-i" data-tip="${t.tips.fastApprove}">?</button></label>
+        <label class="check"><input type="checkbox" id="${p}chkQuick" ${S.quickMode?"checked":""}/> ${t.quickMode} <button type="button" class="help-i" data-tip="${t.tips.quickMode}">?</button></label>
+        <p class="lbl" style="margin-top:16px">${t.layerPii}</p>
+        <div class="cats">${PII_KEYS.map(k=>`<label><input type="checkbox" data-cat="${k}" ${S.enabled[k]?"checked":""} /> <span>${t.cats[k]}</span> <button type="button" class="help-i" data-tip="${t.tips.cats[k]}">?</button></label>`).join("")}</div>
+        <p class="lbl">${t.layerOrg}</p>
+        <div class="cats">${ORG_KEYS.map(k=>`<label><input type="checkbox" data-cat="${k}" ${S.enabled[k]?"checked":""} /> <span>${t.cats[k]}</span> <button type="button" class="help-i" data-tip="${t.tips.cats[k]}">?</button></label>`).join("")}</div>
+      </div>
+      <div class="settings-tab-pane hidden" id="${p}tabPaneDicts">
+        <label class="field">${t.secrets}</label>
+        <textarea id="${p}taSecrets">${escAttr(S.secrets)}</textarea>
+        <label class="field">${t.systemsDict}</label>
+        <textarea id="${p}taSystems">${escAttr(S.systems)}</textarea>
+        <label class="field">${t.projectsDict}</label>
+        <textarea id="${p}taProjects">${escAttr(S.projects)}</textarea>
+        <label class="field">${t.orgsDict}</label>
+        <textarea id="${p}taOrgs">${escAttr(S.orgs)}</textarea>
+        <p class="dict-hint">${t.dictHint}</p>
+      </div>
+      <div class="settings-tab-pane hidden" id="${p}tabPaneFormats">
+        <label class="check"><input type="checkbox" id="${p}chkMeta" ${S.stripMeta?"checked":""}/> ${t.stripMeta} <button type="button" class="help-i" data-tip="${t.tips.stripMeta}">?</button></label>
+        <label class="check"><input type="checkbox" id="${p}chkTrueRedact" ${S.truePdfRedact?"checked":""}/> ${t.truePdfRedact} <button type="button" class="help-i" data-tip="${t.truePdfRedactHint}">?</button></label>
+        <label class="check"><input type="checkbox" id="${p}chkOcr" ${S.ocrEnabled?"checked":""}/> ${t.enableOcr} <button type="button" class="help-i" data-tip="${t.tips.ocr}">?</button></label>
+        <label class="check"><input type="checkbox" id="${p}chkExpert" ${S.expertMode?"checked":""}/> ${t.expertMode} <button type="button" class="help-i" data-tip="${t.tips.expertMode}">?</button></label>
+        <label class="check"><input type="checkbox" id="${p}chkProcessAnalysis" ${S.processAnalysis?"checked":""}/> ${t.processAnalysisLabel} <button type="button" class="help-i" data-tip="${t.tips.processAnalysis}">?</button></label>
+        <label class="field" style="margin-top:16px">${t.barPosition}</label>
+        <select id="${p}selBarPos">${[["top",t.barPosTop],["bottom",t.barPosBottom]].map(([k,v])=>`<option value="${k}" ${S.barPos===k?"selected":""}>${v}</option>`).join("")}</select>
+      </div>`;
   }
   function escAttr(s){
     return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -8309,16 +8566,38 @@ function download(name, blob){
     applyBarPos();
   }
 
-  function openSettings(){
+  function switchSettingsTab(tabId) {
+    document.querySelectorAll(".settings-tab-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.tab === tabId);
+    });
+    const paneProfile = $("m_tabPaneProfile");
+    const paneDicts = $("m_tabPaneDicts");
+    const paneFormats = $("m_tabPaneFormats");
+    if (paneProfile) paneProfile.classList.toggle("hidden", tabId !== "tabProfile");
+    if (paneDicts) paneDicts.classList.toggle("hidden", tabId !== "tabDicts");
+    if (paneFormats) paneFormats.classList.toggle("hidden", tabId !== "tabFormats");
+  }
+
+  function openSettings(activeTab = "tabProfile"){
     const t = i();
 
     SETTINGS_MODAL_SNAPSHOT = captureSettingsModalSnapshot();
 
     $("settingsTitle").textContent = t.settings;
+    if ($("tabBtnProfile")) $("tabBtnProfile").textContent = t.tabProfile || "Profil publikace";
+    if ($("tabBtnDicts")) $("tabBtnDicts").textContent = t.tabDicts || "Projektové slovníky";
+    if ($("tabBtnFormats")) $("tabBtnFormats").textContent = t.tabFormats || "Formáty a zabezpečení";
+
     $("btnSettingsApply").textContent = t.apply;
     $("btnSettingsClose").textContent = t.cancel;
     $("settingsModalMount").innerHTML = settingsHTML("m_");
     wireSettings($("settingsModalMount"), "m_");
+
+    document.querySelectorAll(".settings-tab-btn").forEach(btn => {
+      btn.onclick = () => switchSettingsTab(btn.dataset.tab);
+    });
+    switchSettingsTab(activeTab);
+
     $("settingsModal").classList.remove("hidden");
     bindTips();
   }
@@ -8499,6 +8778,358 @@ function download(name, blob){
       findings: items,
       auditTrail: S.auditTrail || []
     };
+  }function groupHitsIntoEntities(hits) {
+    const groups = new Map();
+    hits.forEach(h => {
+      const key = h.entityKey || `${h.type}|${(h.value || "").trim().toLocaleLowerCase("cs")}`;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          type: h.type,
+          canonicalValue: h.value || "",
+          hits: [],
+          forms: new Set(),
+          legalBasis: legalOf(h)
+        });
+      }
+      const g = groups.get(key);
+      g.hits.push(h);
+      if ((h.value || "").trim()) g.forms.add(h.value.trim());
+      if (h.value && h.value.length > g.canonicalValue.length) {
+        g.canonicalValue = h.value;
+      }
+    });
+
+    const replacer = bindReplacer(S.mode === "box" ? "pseudo" : S.mode, S.lang, hits);
+    return Array.from(groups.values()).map(g => {
+      const acceptedCount = g.hits.filter(h => h.accept).length;
+      const acceptState = acceptedCount === g.hits.length ? "all" : (acceptedCount === 0 ? "none" : "mixed");
+      const sampleHit = g.hits[0];
+      const token = sampleHit ? replacer(sampleHit) : "";
+      return {
+        ...g,
+        acceptState,
+        acceptedCount,
+        totalCount: g.hits.length,
+        formsList: Array.from(g.forms),
+        token
+      };
+    });
+  }
+
+  function patchEntity(entityKey, accept) {
+    S.hits.forEach(h => {
+      const k = h.entityKey || `${h.type}|${(h.value || "").trim().toLocaleLowerCase("cs")}`;
+      if (k === entityKey) {
+        h.accept = accept;
+        S.seen.add(h.id);
+      }
+    });
+    paintReview();
+  }
+
+  function paintEntities(entities, t) {
+    const container = $("entityList");
+    if (!container) return;
+    const filteredEntities = entities.filter(e => {
+      if (S.filter === "redact") return e.acceptState === "all" || e.acceptState === "mixed";
+      if (S.filter === "keep") return e.acceptState === "none";
+      return true;
+    });
+
+    if (!filteredEntities.length) {
+      container.innerHTML = `<p class="layer-note" style="text-align:center;padding:16px;">${esc(t.noHits)}</p>`;
+      return;
+    }
+
+    container.innerHTML = filteredEntities.map(e => {
+      const isExpanded = S.expandedEntities.has(e.key);
+      const catName = (t.cats && t.cats[e.type]) || (LABEL[S.lang] && LABEL[S.lang][e.type]) || e.type;
+      const badgeCls = e.acceptState === "all" ? "ec-redact" : (e.acceptState === "none" ? "ec-keep" : "ec-mixed");
+      const isSel = e.hits.some(h => h.id === S.selectedId);
+      const countLabel = (t.entityOccurrences || "{n} výskytů").replace("{n}", e.totalCount);
+      const formsSummary = e.formsList.length > 1
+        ? `${countLabel} (${e.formsList.length} tvarů: ${esc(e.formsList.join(", "))})`
+        : countLabel;
+
+      return `
+        <div class="entity-card ${badgeCls} ${isSel ? "sel" : ""}" data-ekey="${escAttr(e.key)}">
+          <div class="ec-header" data-etoggle="${escAttr(e.key)}">
+            <div style="flex:1;min-width:0">
+              <h3 class="ec-title">${esc(e.canonicalValue)}</h3>
+              <div class="ec-meta">
+                <span class="pill ${e.acceptState === "all" ? "pill-hit" : "pill-ok"}" style="font-size:9px;padding:1px 6px;">${esc(catName)}</span>
+                ${e.token ? `<span class="ec-token">${esc(e.token)}</span>` : ""}
+                <span class="ec-badge-count">${esc(formsSummary)}</span>
+              </div>
+            </div>
+            <span style="font-size:12px;color:var(--muted);padding-left:4px;">${isExpanded ? "▲" : "▼"}</span>
+          </div>
+          <div class="ec-actions">
+            <button type="button" class="btn btn-sm ${e.acceptState === "all" ? "btn-sec" : "btn-ghost"}" data-eact="redact" data-ekey="${escAttr(e.key)}">${esc(t.redact)}</button>
+            <button type="button" class="btn btn-sm ${e.acceptState === "none" ? "btn-sec" : "btn-ghost"}" data-eact="keep" data-ekey="${escAttr(e.key)}">${esc(t.keep)}</button>
+            <span style="flex:1"></span>
+            <button type="button" class="btn btn-sm btn-ghost" data-etoggle="${escAttr(e.key)}" style="font-size:11px;min-height:28px;padding:0 8px;">
+              ${isExpanded ? esc(t.entityCollapse || "Skrýt") : esc(t.entityExpand || "Výskyty")}
+            </button>
+          </div>
+          ${isExpanded ? `
+            <div class="ec-subhits">
+              ${e.hits.map(h => `
+                <div class="ec-subhit ${S.selectedId === h.id ? "mk-sel" : ""}" data-hid="${h.id}">
+                  <span class="mono" style="font-weight:600">${esc(h.value)}</span>
+                  <span style="display:inline-flex;gap:4px;align-items:center;">
+                    <span class="pill ${h.accept ? "pill-hit" : "pill-ok"}" style="font-size:8px;padding:1px 5px;">${h.accept ? t.redact : t.keep}</span>
+                    <span class="mono" style="color:var(--muted);font-size:10px">#${h.id}</span>
+                  </span>
+                </div>
+              `).join("")}
+            </div>
+          ` : ""}
+        </div>
+      `;
+    }).join("");
+
+    container.querySelectorAll("[data-etoggle]").forEach(el => {
+      el.onclick = (e) => {
+        e.stopPropagation();
+        const k = el.dataset.etoggle;
+        if (S.expandedEntities.has(k)) S.expandedEntities.delete(k);
+        else S.expandedEntities.add(k);
+        paintReview();
+      };
+    });
+
+    container.querySelectorAll("[data-eact]").forEach(b => {
+      b.onclick = (e) => {
+        e.stopPropagation();
+        const k = b.dataset.ekey;
+        const act = b.dataset.eact === "redact";
+        patchEntity(k, act);
+      };
+    });
+
+    container.querySelectorAll("[data-hid]").forEach(el => {
+      el.onclick = () => {
+        select(+el.dataset.hid);
+      };
+    });
+  }
+
+  function paintSmartBanners(leftovers, leaks, t) {
+    const container = $("smartBanners");
+    if (!container) return;
+    const banners = [];
+
+    if (S.kind === "pdf" && S.sigDetected) {
+      banners.push(`
+        <div class="smart-banner smart-banner-info">
+          <div class="sb-content">
+            <span class="sb-icon">🔏</span>
+            <div>
+              <h4 class="sb-title">${esc(t.smartSigTitle || "Detekováno razítko elektronického podpisu")}</h4>
+              <p class="sb-desc">${esc(t.smartSigDesc || "Vizuální razítko podpisu bude zachováno, začerní se pouze jméno podepsané osoby.")}</p>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    if (S.noTextPages > 0) {
+      banners.push(`
+        <div class="smart-banner smart-banner-warn">
+          <div class="sb-content">
+            <span class="sb-icon">📄</span>
+            <div>
+              <h4 class="sb-title">${esc((t.smartScanTitle || "Naskenované stránky bez textu ({n})").replace("{n}", S.noTextPages))}</h4>
+              <p class="sb-desc">${esc(t.smartScanDesc || "Tyto stránky neobsahují strojově čitelný text a vyžadují OCR.")}</p>
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-sec" id="btnBannerOcr">${esc(t.smartScanBtn || "Spustit OCR")}</button>
+        </div>
+      `);
+    }
+
+    if (leftovers.length > 0 || leaks.length > 0) {
+      banners.push(`
+        <div class="smart-banner smart-banner-danger">
+          <div class="sb-content">
+            <span class="sb-icon">⚠</span>
+            <div>
+              <h4 class="sb-title">${esc(t.smartRiskTitle || "Zbytková rizika v dokumentu")}</h4>
+              <p class="sb-desc">${esc(t.smartRiskDesc || "Po navržené anonymizaci v textu stále zůstávají citlivé vzory.")}</p>
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-sec" id="btnBannerInspect">${esc(t.smartRiskBtn || "Zkontrolovat")}</button>
+        </div>
+      `);
+    }
+
+    container.innerHTML = banners.join("");
+
+    if ($("btnBannerOcr")) {
+      $("btnBannerOcr").onclick = () => {
+        S.ocrEnabled = true;
+        localStorage.setItem("znec-ocr", "1");
+        toast(t.enableOcr || "OCR povoleno");
+        if (Q.cur >= 0 && Q.items[Q.cur]) {
+          void openQueueItem(Q.cur);
+        }
+      };
+    }
+    if ($("btnBannerInspect")) {
+      $("btnBannerInspect").onclick = () => {
+        if (leftovers.length && leftovers[0]) select(leftovers[0].id);
+        else if (leaks.length) {
+          if ($("processPane")) $("processPane").classList.remove("hidden");
+          $("processPane")?.scrollIntoView({ behavior: "smooth" });
+        }
+      };
+    }
+  }
+
+  function paintWorkBar(acceptedCount, totalCount, t) {
+    const isReviewActive = !!(S.text || (S.kind === "pdf" && S.sourceBuf));
+    const docContext = $("headerDocContext");
+    const approval = $("headerApproval");
+    const exportGroup = $("headerExportGroup");
+
+    if (docContext) docContext.classList.toggle("hidden", !isReviewActive);
+    if (approval) approval.classList.toggle("hidden", !isReviewActive);
+    if (exportGroup) exportGroup.classList.toggle("hidden", !isReviewActive);
+
+    if (!isReviewActive) return;
+
+    const docName = $("headerDocName");
+    if (docName) docName.textContent = S.fileName || "Dokument";
+
+    const queueWrap = $("headerQueueWrap");
+    const queueSel = $("headerQueueSelect");
+    if (queueWrap && queueSel) {
+      if (Q.items.length > 1) {
+        queueWrap.classList.remove("hidden");
+        queueSel.innerHTML = Q.items.map((it, idx) => {
+          const rev = idx === Q.cur ? S.reviewed : !!(it.snap && it.snap.reviewed);
+          return `<option value="${idx}" ${idx === Q.cur ? "selected" : ""}>${rev ? "✓ " : ""}${escAttr(it.name)}</option>`;
+        }).join("");
+        queueSel.onchange = (e) => {
+          const idx = +e.target.value;
+          if (idx !== Q.cur) void openQueueItem(idx);
+        };
+      } else {
+        queueWrap.classList.add("hidden");
+      }
+    }
+
+    const btnHdrClear = $("btnHeaderClear");
+    if (btnHdrClear) {
+      btnHdrClear.onclick = () => {
+        if (S.hits && S.hits.length && !confirm(S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.")) {
+          return;
+        }
+        reset();
+      };
+    }
+
+    const pendingBadge = $("badgePendingFindings");
+    if (pendingBadge) {
+      pendingBadge.textContent = `${totalCount - S.seen.size} ${t.unreviewedCount || "k posouzení"}`;
+    }
+
+    const chkRev = $("chkRev");
+    if (chkRev) {
+      chkRev.checked = !!S.reviewed;
+      chkRev.onchange = (e) => {
+        S.reviewed = e.target.checked;
+        paintReview();
+      };
+    }
+
+    const chk2 = $("chk2");
+    const lbl2 = $("lblHeaderSecondEyes");
+    if (lbl2 && chk2) {
+      lbl2.classList.toggle("hidden", !!S.fastApprove || !!S.quickMode);
+      chk2.checked = !!S.secondEyes;
+      chk2.onchange = (e) => {
+        S.secondEyes = e.target.checked;
+      };
+    }
+
+    const exportReady = !!(S.reviewed || reviewSkipped());
+    const btnExp = $("btnExp");
+    if (btnExp) {
+      btnExp.disabled = !exportReady;
+      btnExp.setAttribute("data-tip", exportReady ? t.tips.export : t.tips.exportLocked);
+      btnExp.onclick = () => openExport(false);
+    }
+
+    const btnExpToggle = $("btnExpMenuToggle");
+    const expMenu = $("headerExportMenu");
+    if (btnExpToggle && expMenu) {
+      btnExpToggle.disabled = !exportReady;
+      btnExpToggle.onclick = (e) => {
+        e.stopPropagation();
+        expMenu.classList.toggle("hidden");
+      };
+    }
+
+    const menuAi = $("menuExportAi");
+    if (menuAi) {
+      menuAi.onclick = () => {
+        expMenu?.classList.add("hidden");
+        openExport(true);
+      };
+    }
+
+    const menuSession = $("menuExportSession");
+    if (menuSession) {
+      menuSession.onclick = async () => {
+        expMenu?.classList.add("hidden");
+        const pwd = prompt(S.lang === "cs" ? "Zadejte heslo pro zašifrování sezení (pro druhou kontrolu):" : "Enter password to encrypt session (for second review):");
+        if (!pwd) return;
+        const pwdConfirm = prompt(S.lang === "cs" ? "Potvrďte heslo:" : "Confirm password:");
+        if (pwd !== pwdConfirm) {
+          alert(S.lang === "cs" ? "Hesla se neshodují." : "Passwords do not match.");
+          return;
+        }
+        try {
+          const envelopeJson = await exportSession(S, pwd);
+          const blob = new Blob([envelopeJson], { type: "application/json" });
+          const baseName = (S.fileName || "dokument").replace(/\.[^/.]+$/, "");
+          download(`${baseName}.znecitelne-session`, blob);
+          toast(S.lang === "cs" ? "Šifrované sezení bylo uloženo." : "Encrypted session saved.");
+        } catch (err) {
+          alert((S.lang === "cs" ? "Chyba při exportu sezení: " : "Error exporting session: ") + (err.message || String(err)));
+        }
+      };
+    }
+
+    const menuAudit = $("menuExportAudit");
+    if (menuAudit) {
+      menuAudit.onclick = () => {
+        expMenu?.classList.add("hidden");
+        download("znecitelne-audit.json", new Blob([JSON.stringify(buildAudit(), null, 2)], { type: "application/json" }));
+      };
+    }
+
+    const menuRecord = $("menuExportRecord");
+    if (menuRecord) {
+      menuRecord.onclick = async () => {
+        expMenu?.classList.add("hidden");
+        try {
+          const bytes = await exportProtocolPdf();
+          download((S.fileName || "document").replace(/\.[^.]+$/, "") + "-protokol.pdf", new Blob([bytes], { type: "application/pdf" }));
+        } catch (e) {
+          toast(e.message || String(e));
+        }
+      };
+    }
+
+    document.addEventListener("click", (e) => {
+      if (expMenu && !expMenu.classList.contains("hidden") && !e.target.closest("#headerExportGroup")) {
+        expMenu.classList.add("hidden");
+      }
+    }, { passive: true });
   }
 
   function paintReview(){
@@ -8566,14 +9197,74 @@ function download(name, blob){
     const sigWarn = $("sigWarn");
     if (S.kind === "pdf" && S.sigDetected) { sigWarn.classList.remove("hidden"); sigWarn.textContent = "⚠ " + t.sigWarning; }
     else { sigWarn.classList.add("hidden"); sigWarn.textContent = ""; }
+
+    paintSmartBanners(leftovers, leaks, t);
+    paintWorkBar(red, S.hits.length, t);
+
     const previewOn = S.docView === "preview";
-    $("lblOrig").textContent = previewOn ? t.previewChanges : t.original;
-    $("btnAdd").textContent = t.addSelection; $("btnAdd").setAttribute("data-tip", t.tips.addSelection);
-    $("orig").innerHTML = previewOn ? previewHTML() : origHTML();
-    $("orig").querySelectorAll("button.mk").forEach(b => b.onclick = () => select(+b.dataset.id));
+    if ($("lblOrig")) $("lblOrig").textContent = previewOn ? t.previewChanges : t.original;
+    if ($("btnAdd")) {
+      $("btnAdd").textContent = t.addSelection;
+      $("btnAdd").setAttribute("data-tip", t.tips.addSelection);
+    }
+    if ($("orig")) {
+      $("orig").innerHTML = previewOn ? previewHTML() : origHTML();
+      $("orig").querySelectorAll("button.mk").forEach(b => b.onclick = () => select(+b.dataset.id));
+    }
     paintPdfVisual();
+
+    // Segmented document view controls
+    const btnOrig = $("btnViewOrig");
+    const btnPrev = $("btnViewPreview");
+    const btnVis = $("btnVisual");
+    if (btnOrig) {
+      btnOrig.classList.toggle("on", !previewOn && !S.pdfVisual);
+      btnOrig.onclick = () => {
+        if (S.pdfVisual) S.pdfVisual = false;
+        setDocView("original");
+      };
+    }
+    if (btnPrev) {
+      btnPrev.classList.toggle("on", previewOn && !S.pdfVisual);
+      btnPrev.onclick = () => {
+        if (S.pdfVisual) S.pdfVisual = false;
+        setDocView("preview");
+      };
+    }
+    if (btnVis) {
+      btnVis.classList.toggle("on", !!S.pdfVisual);
+    }
+
+    // View mode: entities vs individual hits
+    const isEntities = S.viewMode !== "hits";
+    const btnModeEnt = $("btnModeEntities");
+    const btnModeH = $("btnModeHits");
+    if (btnModeEnt) {
+      btnModeEnt.classList.toggle("on", isEntities);
+      btnModeEnt.onclick = () => {
+        S.viewMode = "entities";
+        try { localStorage.setItem("znec-viewmode", "entities"); } catch (_) {}
+        paintReview();
+      };
+    }
+    if (btnModeH) {
+      btnModeH.classList.toggle("on", !isEntities);
+      btnModeH.onclick = () => {
+        S.viewMode = "hits";
+        try { localStorage.setItem("znec-viewmode", "hits"); } catch (_) {}
+        paintReview();
+      };
+    }
+    if ($("entityList")) $("entityList").classList.toggle("hidden", !isEntities);
+    if ($("hitList")) $("hitList").classList.toggle("hidden", isEntities);
+
     $("filters").innerHTML = ["all","redact","keep"].map(f => `<button type="button" class="chip ${S.filter===f?"on":""}" data-f="${f}">${f==="all"?t.filterAll:f==="redact"?t.filterRedact:t.filterKeep}</button>`).join("");
     $("filters").querySelectorAll("[data-f]").forEach(b => b.onclick = () => { S.filter = b.dataset.f; paintReview(); });
+
+    if (isEntities) {
+      paintEntities(groupHitsIntoEntities(S.hits), t);
+    }
+
     const list = filtered();
     $("hitList").innerHTML = list.map(h => {
       const catName = (t.cats && t.cats[h.type]) || (LABEL[S.lang] && LABEL[S.lang][h.type]) || h.type;
@@ -8674,49 +9365,63 @@ function download(name, blob){
       }
     }
     const exportReady = !!(S.reviewed || reviewSkipped());
-    $("bar").innerHTML = `<div class="bar-inner">
-      <div class="btn-group bulk-group" role="group" aria-label="${esc(t.acceptAll)} / ${esc(t.rejectAll)}">
-        <button class="btn btn-sm btn-eq btn-sec" id="btnAll">${t.acceptAll}</button>
-        <button class="btn btn-sm btn-eq btn-sec" id="btnNone">${t.rejectAll}</button>
-        <button class="btn btn-sm btn-sec" id="btnOff" data-tip="${t.tips.keepOfficials}">${t.keepOfficials}</button>
-      </div>
-      <label class="check" data-tip="${t.tips.reviewed}"><input type="checkbox" id="chkRev" ${S.reviewed?"checked":""}/> ${t.reviewed}</label>
-      <label class="check"><input type="checkbox" id="chk2" ${S.secondEyes?"checked":""}/> ${t.secondEyes}</label>
-      <div class="view-switch" role="group" aria-label="${esc(t.previewChanges)} / ${esc(t.originalVersion)}">
-        <button type="button" class="btn btn-sm ${previewOn?"on":""}" id="btnViewPreview" aria-pressed="${previewOn?"true":"false"}" data-tip="${t.tips.previewChanges}">${t.previewChanges}</button>
-        <button type="button" class="btn btn-sm ${previewOn?"":"on"}" id="btnViewOrig" aria-pressed="${previewOn?"false":"true"}" data-tip="${t.tips.originalVersion}">${t.originalVersion}</button>
-      </div>
-      <span data-tip="${exportReady?t.tips.export:t.tips.exportLocked}"><button class="btn" id="btnExp" ${exportReady?"":"disabled"}>${t.export}</button></span>
-      <span data-tip="${exportReady?(t.tips.aiPack||t.aiPack):t.tips.exportLocked}"><button class="btn btn-sec" id="btnAi" ${exportReady?"":"disabled"}>${t.aiPack}</button></span>
-      <button type="button" class="btn btn-sm btn-sec" id="btnExportSession" data-tip="${S.lang==='cs'?'Uložit šifrované sezení pro druhou kontrolu (.znecitelne-session)':'Export encrypted session for four-eyes review (.znecitelne-session)'}">💾 ${S.lang==='cs'?'Předat pro 4 oči':'Export session'}</button>
-    </div>`;
-    $("btnToggleQuick").onclick = () => {
-      S.quickMode = !S.quickMode;
-      try { localStorage.setItem("znec-quick", S.quickMode ? "1" : "0"); } catch (_) {}
-      applyQuickMode();
-      paintReview();
-    };
-    $("btnClear").onclick = () => {
-      if (S.hits && S.hits.length && !confirm(S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.")) {
-        return;
-      }
-      reset();
-    };
-    $("btnAll").onclick = () => { S.hits.forEach(h=>h.accept=true); paintReview(); };
-    $("btnNone").onclick = () => { S.hits.forEach(h=>h.accept=false); paintReview(); };
-    $("btnOff").onclick = () => {
+
+    // Bulk actions
+    const doAll = () => { S.hits.forEach(h=>h.accept=true); paintReview(); };
+    const doNone = () => { S.hits.forEach(h=>h.accept=false); paintReview(); };
+    const doOff = () => {
       S.hits.forEach(h => {
         const around = S.text.slice(Math.max(0,h.start-80), h.end+20);
         if (isPublic(h.value) || isPublic(around) || (h.type==="ico" && /státní podnik|ministerstvo|úřad|správa|republik/i.test(around))) h.accept=false;
       });
       paintReview();
     };
-    $("chkRev").onchange = (e) => { S.reviewed = e.target.checked; paintReview(); };
-    $("chk2").onchange = (e) => { S.secondEyes = e.target.checked; };
-    $("btnViewPreview").onclick = () => setDocView("preview");
-    $("btnViewOrig").onclick = () => setDocView("original");
-    $("btnExp").onclick = () => openExport(false);
-    $("btnAi").onclick = () => openExport(true);
+
+    if ($("btnAll")) $("btnAll").onclick = doAll;
+    if ($("btnNone")) $("btnNone").onclick = doNone;
+    if ($("btnOff")) $("btnOff").onclick = doOff;
+
+    $("bar").innerHTML = `<div class="bar-inner">
+      <div class="btn-group bulk-group" role="group" aria-label="${esc(t.acceptAll)} / ${esc(t.rejectAll)}">
+        <button class="btn btn-sm btn-eq btn-sec" id="btnAllLegacy">${t.acceptAll}</button>
+        <button class="btn btn-sm btn-eq btn-sec" id="btnNoneLegacy">${t.rejectAll}</button>
+        <button class="btn btn-sm btn-sec" id="btnOffLegacy" data-tip="${t.tips.keepOfficials}">${t.keepOfficials}</button>
+      </div>
+      <label class="check" data-tip="${t.tips.reviewed}"><input type="checkbox" id="chkRevLegacy" ${S.reviewed?"checked":""}/> ${t.reviewed}</label>
+      <label class="check"><input type="checkbox" id="chk2Legacy" ${S.secondEyes?"checked":""}/> ${t.secondEyes}</label>
+      <div class="view-switch" role="group" aria-label="${esc(t.previewChanges)} / ${esc(t.originalVersion)}">
+        <button type="button" class="btn btn-sm ${previewOn?"on":""}" id="btnViewPreviewLegacy" aria-pressed="${previewOn?"true":"false"}" data-tip="${t.tips.previewChanges}">${t.previewChanges}</button>
+        <button type="button" class="btn btn-sm ${previewOn?"":"on"}" id="btnViewOrigLegacy" aria-pressed="${previewOn?"false":"true"}" data-tip="${t.tips.originalVersion}">${t.originalVersion}</button>
+      </div>
+      <span data-tip="${exportReady?t.tips.export:t.tips.exportLocked}"><button class="btn" id="btnExpLegacy" ${exportReady?"":"disabled"}>${t.export}</button></span>
+      <span data-tip="${exportReady?(t.tips.aiPack||t.aiPack):t.tips.exportLocked}"><button class="btn btn-sec" id="btnAi" ${exportReady?"":"disabled"}>${t.aiPack}</button></span>
+      <button type="button" class="btn btn-sm btn-sec" id="btnExportSession" data-tip="${S.lang==='cs'?'Uložit šifrované sezení pro druhou kontrolu (.znecitelne-session)':'Export encrypted session for four-eyes review (.znecitelne-session)'}">💾 ${S.lang==='cs'?'Předat pro 4 oči':'Export session'}</button>
+    </div>`;
+    if ($("btnToggleQuick")) {
+      $("btnToggleQuick").onclick = () => {
+        S.quickMode = !S.quickMode;
+        try { localStorage.setItem("znec-quick", S.quickMode ? "1" : "0"); } catch (_) {}
+        applyQuickMode();
+        paintReview();
+      };
+    }
+    if ($("btnClear")) {
+      $("btnClear").onclick = () => {
+        if (S.hits && S.hits.length && !confirm(S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.")) {
+          return;
+        }
+        reset();
+      };
+    }
+    if ($("btnAllLegacy")) $("btnAllLegacy").onclick = doAll;
+    if ($("btnNoneLegacy")) $("btnNoneLegacy").onclick = doNone;
+    if ($("btnOffLegacy")) $("btnOffLegacy").onclick = doOff;
+    if ($("chkRevLegacy")) $("chkRevLegacy").onchange = (e) => { S.reviewed = e.target.checked; paintReview(); };
+    if ($("chk2Legacy")) $("chk2Legacy").onchange = (e) => { S.secondEyes = e.target.checked; };
+    if ($("btnViewPreviewLegacy")) $("btnViewPreviewLegacy").onclick = () => setDocView("preview");
+    if ($("btnViewOrigLegacy")) $("btnViewOrigLegacy").onclick = () => setDocView("original");
+    if ($("btnExpLegacy")) $("btnExpLegacy").onclick = () => openExport(false);
+    if ($("btnAi")) $("btnAi").onclick = () => openExport(true);
     const btnSess = $("btnExportSession");
     if (btnSess) {
       btnSess.onclick = async () => {
@@ -8822,11 +9527,19 @@ function download(name, blob){
     paintLanding();
     applyBarPos();
     const hasDoc = !!(S.text || (S.kind === "pdf" && S.sourceBuf));
-    if (hasDoc) { $("landing").classList.add("hidden"); $("review").classList.remove("hidden"); $("bar").classList.remove("hidden"); paintReview(); }
-    else {
-      $("landing").classList.remove("hidden"); $("review").classList.add("hidden"); $("bar").classList.add("hidden");
-      $("quickHitBar").classList.add("hidden"); $("quickHitBar").innerHTML = "";
+    if (hasDoc) {
+      $("landing").classList.add("hidden");
+      $("review").classList.remove("hidden");
+      $("bar").classList.remove("hidden");
+      paintReview();
+    } else {
+      $("landing").classList.remove("hidden");
+      $("review").classList.add("hidden");
+      $("bar").classList.add("hidden");
+      $("quickHitBar").classList.add("hidden");
+      $("quickHitBar").innerHTML = "";
       document.body.classList.remove("hit-selected");
+      paintWorkBar(0, 0, i());
     }
     renderQueue();
   }
@@ -10539,6 +11252,7 @@ async function maybePdfa(bytes, notes){
     window.buildAudit = buildAudit;
     window.exportProtocolPdf = exportProtocolPdf;
     window.exportTextPdf = exportTextPdf;
+    window.groupHitsIntoEntities = groupHitsIntoEntities;
     window.S = S;
   }
   if (typeof queueMicrotask === "function") {

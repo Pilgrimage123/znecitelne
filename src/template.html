@@ -17,8 +17,10 @@
   --focus: #0f5fa8;
   --header-bg: #1a2c40; --header-fg: #ffffff; --header-muted: #d7e0e8;
   --overlay: rgba(14,16,20,.6); --bar-bg: color-mix(in srgb, var(--surface) 97%, transparent);
-  --radius: 12px; --font: "Segoe UI", "Source Sans 3", system-ui, sans-serif;
-  --display: Georgia, "Times New Roman", serif; --mono: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  --radius-sm: 6px; --radius: 10px; --radius-lg: 14px;
+  --font: "Segoe UI", "Source Sans 3", system-ui, -apple-system, sans-serif;
+  --display: "Segoe UI", "Source Sans 3", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
   color-scheme: light;
 }
 html[data-theme="dark"] {
@@ -328,6 +330,155 @@ body.bar-pos-top .review { padding-top: calc(var(--bar-h, 72px) + 4px); }
   background: var(--surface); color: var(--fg); border-color: var(--border);
 }
 .toolbar .btn-ghost:hover { background: var(--bg-subtle); border-color: var(--accent); }
+
+/* --- Integrated Workplace Bar (Pracovní lišta) --- */
+.header-doc-context {
+  display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0;
+}
+.doc-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: color-mix(in srgb, var(--header-fg) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--header-fg) 28%, transparent);
+  padding: 4px 10px; border-radius: var(--radius-sm, 6px);
+  color: var(--header-fg); font-size: 13px; font-weight: 600;
+  max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.queue-dropdown select {
+  min-height: 32px; height: 32px; padding: 2px 8px; font-size: 12px; font-weight: 600;
+  border-radius: var(--radius-sm, 6px); background: var(--surface); color: var(--fg);
+  border-color: var(--border);
+}
+.header-approval {
+  display: flex; align-items: center; gap: 8px;
+}
+.header-approval .approval-check {
+  font-size: 13px; font-weight: 600; color: var(--header-fg); min-height: 32px; padding: 0 6px;
+  cursor: pointer;
+}
+.header-approval .badge {
+  background: color-mix(in srgb, var(--header-fg) 14%, transparent);
+  border-color: color-mix(in srgb, var(--header-fg) 32%, transparent);
+  color: var(--header-fg); font-size: 11px;
+}
+
+/* Split Export Button & Dropdown */
+.split-btn-group {
+  position: relative; display: inline-flex; align-items: stretch;
+}
+.btn-export {
+  background: var(--surface) !important; color: var(--primary) !important;
+  font-weight: 700 !important; border: 1.5px solid var(--surface) !important;
+  border-top-right-radius: 0 !important; border-bottom-right-radius: 0 !important;
+  min-height: 36px; padding: 0 14px;
+}
+.btn-export:hover { background: var(--bg) !important; }
+.btn-split-toggle {
+  background: color-mix(in srgb, var(--header-fg) 15%, var(--surface)) !important;
+  color: var(--primary) !important;
+  border: 1.5px solid var(--surface) !important;
+  border-left: 1px solid color-mix(in srgb, var(--primary) 20%, transparent) !important;
+  border-top-left-radius: 0 !important; border-bottom-left-radius: 0 !important;
+  padding: 0 10px !important; min-height: 36px; cursor: pointer;
+}
+.dropdown-menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 55;
+  background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(14,16,20,.24); min-width: 250px; padding: 6px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.dropdown-item {
+  display: block; width: 100%; text-align: left; padding: 8px 12px; font-size: 13px; font-weight: 500;
+  border: 0; background: transparent; color: var(--fg); border-radius: var(--radius-sm, 6px); cursor: pointer;
+}
+.dropdown-item:hover { background: var(--bg-subtle); color: var(--primary); }
+
+/* --- Segmented Controls & Document View --- */
+.doc-pane-header {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.seg-ctrl, .doc-view-seg {
+  display: inline-flex; align-items: stretch; border-radius: var(--radius-sm, 6px);
+  overflow: hidden; border: 1.5px solid var(--border); background: var(--bg-subtle);
+}
+.seg-btn {
+  border: 0; background: transparent; color: var(--muted); font-size: 12px; font-weight: 600;
+  padding: 6px 14px; cursor: pointer; line-height: 1.2; transition: background .15s, color .15s;
+}
+.seg-btn + .seg-btn { border-left: 1px solid var(--border); }
+.seg-btn:hover { color: var(--fg); background: color-mix(in srgb, var(--primary) 6%, transparent); }
+.seg-btn.on { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.08); font-weight: 700; }
+
+/* --- Smart Action Banners --- */
+.smart-banners { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.smart-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 10px 14px; border-radius: var(--radius); border: 1.5px solid var(--border);
+  background: var(--surface); box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.smart-banner-info { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.smart-banner-warn { border-color: var(--hit); background: color-mix(in srgb, var(--hit) 9%, var(--surface)); }
+.smart-banner-danger { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, var(--surface)); }
+.sb-content { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; }
+.sb-icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
+.sb-title { font-weight: 650; font-size: 13px; margin: 0; }
+.sb-desc { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
+
+/* --- Entity Cards & Review Aside --- */
+.aside-nav { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.view-mode-seg { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+.view-mode-seg .seg-btn { text-align: center; justify-content: center; }
+.bulk-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+.bulk-actions .btn { min-height: 32px; padding: 0 6px; font-size: 11px; white-space: nowrap; }
+
+.entities-container {
+  max-height: 48dvh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
+  border-radius: var(--radius); padding-right: 2px;
+}
+.entity-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.entity-card:hover { border-color: var(--accent); }
+.entity-card.sel { border-color: var(--focus); box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 25%, transparent); }
+.entity-card.ec-redact { border-left: 4px solid var(--hit); }
+.entity-card.ec-keep { border-left: 4px solid var(--ok); }
+.entity-card.ec-mixed { border-left: 4px solid var(--muted); }
+.ec-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; cursor: pointer; }
+.ec-title { font-weight: 650; font-size: 13px; color: var(--fg); margin: 0; }
+.ec-meta { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.ec-token { font-family: var(--mono); font-size: 11px; font-weight: 600; background: var(--bg-subtle); padding: 1px 5px; border-radius: 4px; }
+.ec-actions { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+.ec-actions .btn-sm { min-height: 28px; padding: 0 10px; font-size: 11px; }
+.ec-subhits {
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.ec-subhit {
+  display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 5px 8px;
+  border-radius: var(--radius-sm, 6px); background: var(--bg-subtle); cursor: pointer;
+}
+.ec-subhit:hover { background: color-mix(in srgb, var(--primary) 12%, var(--surface)); }
+.ec-badge-count { font-size: 11px; padding: 1px 6px; border-radius: 999px; background: var(--bg-subtle); font-weight: 600; }
+
+/* --- Settings Modal Tabs --- */
+.settings-tabs {
+  display: flex; gap: 4px; border-bottom: 1.5px solid var(--border); padding-bottom: 0; margin-bottom: 14px;
+}
+.settings-tab-btn {
+  padding: 8px 14px; font-size: 13px; font-weight: 600; border: 0; border-bottom: 2.5px solid transparent;
+  background: transparent; color: var(--muted); cursor: pointer; border-radius: 6px 6px 0 0;
+}
+.settings-tab-btn:hover { color: var(--fg); background: var(--bg-subtle); }
+.settings-tab-btn.active {
+  color: var(--primary); border-bottom-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+html[data-theme="dark"] .settings-tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* --- Landing Page Styling --- */
+.drop-icon { font-size: 36px; margin-bottom: 6px; }
+.landing-secondary-actions .btn { min-height: 42px; }
+
 @media (max-width: 720px) {
   .bar { padding-left: 10px; padding-right: 10px; }
   .bar-inner { gap: 6px; }
@@ -585,7 +736,7 @@ body.movie-active #settingsSheet {
 </div>
 <div id="movie-title-card"><div class="sheet"><h2 id="movie-title-h"></h2><p id="movie-title-p" style="color:var(--muted)"></p></div></div>
 <div id="movie-select-menu" aria-hidden="true"></div>
-<header class="app">
+<header class="app" id="appHeader">
   <div class="brand">
     <div class="mark">Z</div>
     <div>
@@ -593,8 +744,41 @@ body.movie-active #settingsSheet {
       <p class="tag" id="tagline"></p>
     </div>
   </div>
-  <div class="hdr-actions">
-    <button class="btn btn-sm btn-file" id="btnNewFile" type="button"><span class="plus" aria-hidden="true">+</span><span id="lblNewFile">Nový soubor</span></button>
+
+  <!-- Active Document info & Queue dropdown (shown during review) -->
+  <div class="header-doc-context hidden" id="headerDocContext">
+    <span class="doc-badge" id="headerDocBadge"><span id="headerDocName"></span></span>
+    <div class="queue-dropdown hidden" id="headerQueueWrap">
+      <select id="headerQueueSelect" aria-label="Dávková fronta"></select>
+    </div>
+    <button class="btn btn-sm btn-ghost" id="btnHeaderClear" type="button" title="Zavřít dokument">✕</button>
+  </div>
+
+  <!-- Center Approval / Risk indicator (shown during review) -->
+  <div class="header-approval hidden" id="headerApproval">
+    <span class="badge" id="badgePendingFindings"></span>
+    <label class="check approval-check" id="lblHeaderReviewed">
+      <input type="checkbox" id="chkRev" /> <span id="lblReviewedText">Zkontrolováno</span>
+    </label>
+    <label class="check approval-check hidden" id="lblHeaderSecondEyes">
+      <input type="checkbox" id="chk2" /> <span id="lblSecondEyesText">2. kontrola</span>
+    </label>
+  </div>
+
+  <div class="hdr-actions" id="hdrActions">
+    <!-- Split export button (shown during review) -->
+    <div class="split-btn-group hidden" id="headerExportGroup">
+      <button class="btn btn-sm btn-export" id="btnExp" type="button">Anonymizovat a exportovat</button>
+      <button class="btn btn-sm btn-export btn-split-toggle" id="btnExpMenuToggle" type="button" aria-haspopup="true" aria-expanded="false" title="Další možnosti exportu">▾</button>
+      <div class="dropdown-menu hidden" id="headerExportMenu" role="menu">
+        <button type="button" class="dropdown-item" id="menuExportAi">📦 AI balíček (ZIP)</button>
+        <button type="button" class="dropdown-item" id="menuExportSession">💾 Předat pro 4 oči (.znecitelne-session)</button>
+        <button type="button" class="dropdown-item" id="menuExportAudit">📋 Auditní protokol (JSON)</button>
+        <button type="button" class="dropdown-item" id="menuExportRecord">🔒 Protokol o anonymizaci (PDF)</button>
+      </div>
+    </div>
+
+    <button class="btn btn-sm btn-file" id="btnNewFile" type="button"><span class="plus" aria-hidden="true">+</span><span id="lblNewFile">Nový dokument</span></button>
     <button class="btn btn-sm btn-ghost" id="btnTheme" type="button" aria-pressed="false" aria-label="Tmavý režim">☾</button>
     <button class="btn btn-sm btn-ghost" id="btnSettings" type="button" aria-label="Nastavení">⚙</button>
     <button class="btn btn-sm btn-ghost" id="btnHtml" type="button">HTML</button>
@@ -614,20 +798,23 @@ body.movie-active #settingsSheet {
       </ol>
       <p class="privacy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span id="privacy"></span></p>
     </div>
-    <div class="card">
+    <div class="card landing-card">
       <div class="drop" id="drop">
-        <p style="font-weight:600;margin:0" id="dropTitle"></p>
-        <p style="color:var(--muted);font-size:14px;margin:8px 0 0" id="dropHint"></p>
+        <div class="drop-icon" aria-hidden="true">📄</div>
+        <p style="font-weight:600;font-size:17px;margin:0" id="dropTitle"></p>
+        <p style="color:var(--muted);font-size:14px;margin:8px 0 16px" id="dropHint"></p>
+        <button class="btn btn-file" id="btnBrowse" type="button">Vybrat dokument</button>
       </div>
       <input id="file" type="file" multiple hidden accept=".pdf,.docx,.xlsx,.xls,.ods,.odt,.rtf,.txt,.csv,.tsv,.json,.xml,.html,.htm,.md,.png,.jpg,.jpeg,.webp,.bmp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.text,application/rtf,text/rtf,text/plain,text/csv,image/*" />
-      <div class="stack">
-        <button class="btn" id="btnSample" type="button"></button>
-        <button class="btn btn-sec" id="btnMovie" type="button"></button>
-        <button class="btn btn-sec" id="btnBrowse" type="button"></button>
-        <button class="btn btn-ghost" id="btnFeatures" type="button"></button>
-        <button class="btn btn-ghost" id="btnChangelog" type="button"></button>
+      <div class="landing-secondary-actions" style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
+        <button class="btn btn-sec" id="btnSample" type="button"></button>
+        <div class="landing-links" style="display:flex;justify-content:center;gap:8px;margin-top:6px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" id="btnMovie" type="button"></button>
+          <button class="btn btn-ghost btn-sm" id="btnFeatures" type="button"></button>
+          <button class="btn btn-ghost btn-sm" id="btnChangelog" type="button"></button>
+        </div>
       </div>
-      <details class="settings" id="landingSettingsDetails">
+      <details class="settings hidden" id="landingSettingsDetails" style="display:none">
         <summary id="sumSettings"></summary>
         <div id="settingsMount"></div>
       </details>
@@ -637,26 +824,44 @@ body.movie-active #settingsSheet {
 </section>
 
 <section id="review" class="review hidden">
+  <!-- Hooks preserved for test and script compatibility -->
   <div id="queueBar" class="queue hidden" role="group"></div>
-  <div class="toolbar" id="toolbar"></div>
+  <div class="toolbar hidden" id="toolbar"></div>
   <p id="residual" class="ok hidden"></p>
   <p id="scanWarn" class="danger hidden"></p>
   <p id="sigWarn" class="danger hidden" role="alert"></p>
+
+  <!-- Smart Action Banners container -->
+  <div id="smartBanners" class="smart-banners"></div>
+
   <div class="work">
-    <div class="pane">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
-        <h2 class="lbl" style="margin:0" id="lblOrig"></h2>
-        <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-          <button class="btn btn-sm btn-sec btn-visual hidden" id="btnVisual" type="button"></button>
-          <button class="btn btn-sm btn-add-sel" id="btnAdd" type="button"></button>
-        </span>
+    <div class="pane doc-pane">
+      <div class="pane-header doc-pane-header">
+        <div class="doc-view-seg" role="group" aria-label="Režim zobrazení dokumentu">
+          <button type="button" class="seg-btn on" id="btnViewOrig">Původní text</button>
+          <button type="button" class="seg-btn" id="btnViewPreview">Náhled změn</button>
+          <button type="button" class="seg-btn hidden" id="btnVisual">Vizuální PDF</button>
+        </div>
+        <button class="btn btn-sm btn-add-sel" id="btnAdd" type="button">+ Anonymizovat výběr</button>
       </div>
       <pre class="doc" id="orig"></pre>
       <div id="pdfVisual" class="hidden" aria-label="PDF"></div>
     </div>
     <aside id="reviewAside">
-      <div class="filters" id="filters"></div>
-      <div class="hits" id="hitList"></div>
+      <div class="aside-nav">
+        <div class="seg-ctrl view-mode-seg" role="group" aria-label="Pohled na nálezy">
+          <button type="button" class="seg-btn on" id="btnModeEntities">Entitní přehled</button>
+          <button type="button" class="seg-btn" id="btnModeHits">Jednotlivé nálezy</button>
+        </div>
+        <div class="filters" id="filters"></div>
+        <div class="bulk-actions" id="bulkActions">
+          <button type="button" class="btn btn-sm btn-sec" id="btnAll">Vše anonymizovat</button>
+          <button type="button" class="btn btn-sm btn-sec" id="btnOff">Ponechat instituce</button>
+          <button type="button" class="btn btn-sm btn-sec" id="btnNone">Vše ponechat</button>
+        </div>
+      </div>
+      <div class="entities-container" id="entityList"></div>
+      <div class="hits hidden" id="hitList"></div>
       <div class="pane" id="inspector" style="margin-top:12px"></div>
       <div class="pane hidden" style="margin-top:12px" id="processPane">
         <h2 class="lbl" id="lblProc"></h2>
@@ -687,8 +892,13 @@ body.movie-active #settingsSheet {
   <div class="sheet" id="exportSheet"></div>
 </div>
 <div class="modal hidden" id="settingsModal">
-  <div class="sheet" id="settingsSheet" style="max-height:min(90dvh,720px);overflow:auto">
+  <div class="sheet" id="settingsSheet" style="max-height:min(90dvh,760px);overflow:auto">
     <h2 id="settingsTitle" style="margin-top:0"></h2>
+    <div class="settings-tabs" role="tablist">
+      <button type="button" class="settings-tab-btn active" data-tab="tabProfile" id="tabBtnProfile">Profil publikace</button>
+      <button type="button" class="settings-tab-btn" data-tab="tabDicts" id="tabBtnDicts">Projektové slovníky</button>
+      <button type="button" class="settings-tab-btn" data-tab="tabFormats" id="tabBtnFormats">Formáty a zabezpečení</button>
+    </div>
     <div id="settingsModalMount"></div>
     <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
       <button class="btn" id="btnSettingsApply" type="button"></button>

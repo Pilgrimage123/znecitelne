@@ -40,6 +40,8 @@ export const S = {
     analysisContext: "",
     docView: localStorage.getItem("znec-docview") === "preview" ? "preview" : "original",
     pdfVisual: false,
+    viewMode: localStorage.getItem("znec-viewmode") || "entities",
+    expandedEntities: new Set(),
     movie: false, movieStepIndex: 0
   };
   const i = () => I18N[S.lang];
@@ -307,34 +309,41 @@ function download(name, blob){
   function settingsHTML(prefix){
     const p = prefix || "";
     const t = i();
-    return `<label class="check"><input type="checkbox" id="${p}chkQuick" ${S.quickMode?"checked":""}/> ${t.quickMode} <button type="button" class="help-i" data-tip="${t.tips.quickMode}">?</button></label>
-      <label class="check"><input type="checkbox" id="${p}chkFast" ${S.fastApprove?"checked":""}/> ${t.fastApprove} <button type="button" class="help-i" data-tip="${t.tips.fastApprove}">?</button></label>
-      <label class="field">${t.profile} <button type="button" class="help-i" data-tip="${t.tips.cats.ico}">?</button></label>
-      <select id="${p}selProfile">${Object.entries(t.profiles).map(([k,v])=>`<option value="${k}" ${S.profile===k?"selected":""}>${v}</option>`).join("")}</select>
-      <label class="field">${t.mode}</label>
-      <select id="${p}selMode">${Object.entries(t.modes).map(([k,v])=>`<option value="${k}" ${S.mode===k?"selected":""}>${v}</option>`).join("")}</select>
-      <label class="field">${t.suspicion} <button type="button" class="help-i" data-tip="${t.tips.suspicion}">?</button></label>
-      <select id="${p}selSuspicion">${Object.entries(t.suspicions).map(([k,v])=>`<option value="${k}" ${S.suspicion===k?"selected":""}>${v}</option>`).join("")}</select>
-      <label class="field">${t.barPosition}</label>
-      <select id="${p}selBarPos">${[["top",t.barPosTop],["bottom",t.barPosBottom]].map(([k,v])=>`<option value="${k}" ${S.barPos===k?"selected":""}>${v}</option>`).join("")}</select>
-      <p class="lbl">${t.layerPii}</p>
-      <div class="cats">${PII_KEYS.map(k=>`<label><input type="checkbox" data-cat="${k}" ${S.enabled[k]?"checked":""} /> <span>${t.cats[k]}</span> <button type="button" class="help-i" data-tip="${t.tips.cats[k]}">?</button></label>`).join("")}</div>
-      <p class="lbl">${t.layerOrg}</p>
-      <div class="cats">${ORG_KEYS.map(k=>`<label><input type="checkbox" data-cat="${k}" ${S.enabled[k]?"checked":""} /> <span>${t.cats[k]}</span> <button type="button" class="help-i" data-tip="${t.tips.cats[k]}">?</button></label>`).join("")}</div>
-      <label class="field">${t.secrets}</label>
-      <textarea id="${p}taSecrets">${escAttr(S.secrets)}</textarea>
-      <label class="field">${t.systemsDict}</label>
-      <textarea id="${p}taSystems">${escAttr(S.systems)}</textarea>
-      <label class="field">${t.projectsDict}</label>
-      <textarea id="${p}taProjects">${escAttr(S.projects)}</textarea>
-      <label class="field">${t.orgsDict}</label>
-      <textarea id="${p}taOrgs">${escAttr(S.orgs)}</textarea>
-      <p class="dict-hint">${t.dictHint}</p>
-      <label class="check"><input type="checkbox" id="${p}chkMeta" ${S.stripMeta?"checked":""}/> ${t.stripMeta} <button type="button" class="help-i" data-tip="${t.tips.stripMeta}">?</button></label>
-      <label class="check"><input type="checkbox" id="${p}chkTrueRedact" ${S.truePdfRedact?"checked":""}/> ${t.truePdfRedact} <button type="button" class="help-i" data-tip="${t.truePdfRedactHint}">?</button></label>
-      <label class="check"><input type="checkbox" id="${p}chkOcr" ${S.ocrEnabled?"checked":""}/> ${t.enableOcr} <button type="button" class="help-i" data-tip="${t.tips.ocr}">?</button></label>
-      <label class="check"><input type="checkbox" id="${p}chkExpert" ${S.expertMode?"checked":""}/> ${t.expertMode} <button type="button" class="help-i" data-tip="${t.tips.expertMode}">?</button></label>
-      <label class="check"><input type="checkbox" id="${p}chkProcessAnalysis" ${S.processAnalysis?"checked":""}/> ${t.processAnalysisLabel} <button type="button" class="help-i" data-tip="${t.tips.processAnalysis}">?</button></label>`;
+    return `
+      <div class="settings-tab-pane" id="${p}tabPaneProfile">
+        <label class="field">${t.profile} <button type="button" class="help-i" data-tip="${t.tips.cats.ico}">?</button></label>
+        <select id="${p}selProfile">${Object.entries(t.profiles).map(([k,v])=>`<option value="${k}" ${S.profile===k?"selected":""}>${v}</option>`).join("")}</select>
+        <label class="field">${t.mode}</label>
+        <select id="${p}selMode">${Object.entries(t.modes).map(([k,v])=>`<option value="${k}" ${S.mode===k?"selected":""}>${v}</option>`).join("")}</select>
+        <label class="field">${t.suspicion} <button type="button" class="help-i" data-tip="${t.tips.suspicion}">?</button></label>
+        <select id="${p}selSuspicion">${Object.entries(t.suspicions).map(([k,v])=>`<option value="${k}" ${S.suspicion===k?"selected":""}>${v}</option>`).join("")}</select>
+        <label class="check" style="margin-top:12px"><input type="checkbox" id="${p}chkFast" ${S.fastApprove?"checked":""}/> ${t.fastApprove} <button type="button" class="help-i" data-tip="${t.tips.fastApprove}">?</button></label>
+        <label class="check"><input type="checkbox" id="${p}chkQuick" ${S.quickMode?"checked":""}/> ${t.quickMode} <button type="button" class="help-i" data-tip="${t.tips.quickMode}">?</button></label>
+        <p class="lbl" style="margin-top:16px">${t.layerPii}</p>
+        <div class="cats">${PII_KEYS.map(k=>`<label><input type="checkbox" data-cat="${k}" ${S.enabled[k]?"checked":""} /> <span>${t.cats[k]}</span> <button type="button" class="help-i" data-tip="${t.tips.cats[k]}">?</button></label>`).join("")}</div>
+        <p class="lbl">${t.layerOrg}</p>
+        <div class="cats">${ORG_KEYS.map(k=>`<label><input type="checkbox" data-cat="${k}" ${S.enabled[k]?"checked":""} /> <span>${t.cats[k]}</span> <button type="button" class="help-i" data-tip="${t.tips.cats[k]}">?</button></label>`).join("")}</div>
+      </div>
+      <div class="settings-tab-pane hidden" id="${p}tabPaneDicts">
+        <label class="field">${t.secrets}</label>
+        <textarea id="${p}taSecrets">${escAttr(S.secrets)}</textarea>
+        <label class="field">${t.systemsDict}</label>
+        <textarea id="${p}taSystems">${escAttr(S.systems)}</textarea>
+        <label class="field">${t.projectsDict}</label>
+        <textarea id="${p}taProjects">${escAttr(S.projects)}</textarea>
+        <label class="field">${t.orgsDict}</label>
+        <textarea id="${p}taOrgs">${escAttr(S.orgs)}</textarea>
+        <p class="dict-hint">${t.dictHint}</p>
+      </div>
+      <div class="settings-tab-pane hidden" id="${p}tabPaneFormats">
+        <label class="check"><input type="checkbox" id="${p}chkMeta" ${S.stripMeta?"checked":""}/> ${t.stripMeta} <button type="button" class="help-i" data-tip="${t.tips.stripMeta}">?</button></label>
+        <label class="check"><input type="checkbox" id="${p}chkTrueRedact" ${S.truePdfRedact?"checked":""}/> ${t.truePdfRedact} <button type="button" class="help-i" data-tip="${t.truePdfRedactHint}">?</button></label>
+        <label class="check"><input type="checkbox" id="${p}chkOcr" ${S.ocrEnabled?"checked":""}/> ${t.enableOcr} <button type="button" class="help-i" data-tip="${t.tips.ocr}">?</button></label>
+        <label class="check"><input type="checkbox" id="${p}chkExpert" ${S.expertMode?"checked":""}/> ${t.expertMode} <button type="button" class="help-i" data-tip="${t.tips.expertMode}">?</button></label>
+        <label class="check"><input type="checkbox" id="${p}chkProcessAnalysis" ${S.processAnalysis?"checked":""}/> ${t.processAnalysisLabel} <button type="button" class="help-i" data-tip="${t.tips.processAnalysis}">?</button></label>
+        <label class="field" style="margin-top:16px">${t.barPosition}</label>
+        <select id="${p}selBarPos">${[["top",t.barPosTop],["bottom",t.barPosBottom]].map(([k,v])=>`<option value="${k}" ${S.barPos===k?"selected":""}>${v}</option>`).join("")}</select>
+      </div>`;
   }
   function escAttr(s){
     return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -537,16 +546,38 @@ function download(name, blob){
     applyBarPos();
   }
 
-  function openSettings(){
+  function switchSettingsTab(tabId) {
+    document.querySelectorAll(".settings-tab-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.tab === tabId);
+    });
+    const paneProfile = $("m_tabPaneProfile");
+    const paneDicts = $("m_tabPaneDicts");
+    const paneFormats = $("m_tabPaneFormats");
+    if (paneProfile) paneProfile.classList.toggle("hidden", tabId !== "tabProfile");
+    if (paneDicts) paneDicts.classList.toggle("hidden", tabId !== "tabDicts");
+    if (paneFormats) paneFormats.classList.toggle("hidden", tabId !== "tabFormats");
+  }
+
+  function openSettings(activeTab = "tabProfile"){
     const t = i();
 
     SETTINGS_MODAL_SNAPSHOT = captureSettingsModalSnapshot();
 
     $("settingsTitle").textContent = t.settings;
+    if ($("tabBtnProfile")) $("tabBtnProfile").textContent = t.tabProfile || "Profil publikace";
+    if ($("tabBtnDicts")) $("tabBtnDicts").textContent = t.tabDicts || "Projektové slovníky";
+    if ($("tabBtnFormats")) $("tabBtnFormats").textContent = t.tabFormats || "Formáty a zabezpečení";
+
     $("btnSettingsApply").textContent = t.apply;
     $("btnSettingsClose").textContent = t.cancel;
     $("settingsModalMount").innerHTML = settingsHTML("m_");
     wireSettings($("settingsModalMount"), "m_");
+
+    document.querySelectorAll(".settings-tab-btn").forEach(btn => {
+      btn.onclick = () => switchSettingsTab(btn.dataset.tab);
+    });
+    switchSettingsTab(activeTab);
+
     $("settingsModal").classList.remove("hidden");
     bindTips();
   }
@@ -733,6 +764,360 @@ function download(name, blob){
     };
   }
 
+  export function groupHitsIntoEntities(hits) {
+    const groups = new Map();
+    hits.forEach(h => {
+      const key = h.entityKey || `${h.type}|${(h.value || "").trim().toLocaleLowerCase("cs")}`;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          type: h.type,
+          canonicalValue: h.value || "",
+          hits: [],
+          forms: new Set(),
+          legalBasis: legalOf(h)
+        });
+      }
+      const g = groups.get(key);
+      g.hits.push(h);
+      if ((h.value || "").trim()) g.forms.add(h.value.trim());
+      if (h.value && h.value.length > g.canonicalValue.length) {
+        g.canonicalValue = h.value;
+      }
+    });
+
+    const replacer = bindReplacer(S.mode === "box" ? "pseudo" : S.mode, S.lang, hits);
+    return Array.from(groups.values()).map(g => {
+      const acceptedCount = g.hits.filter(h => h.accept).length;
+      const acceptState = acceptedCount === g.hits.length ? "all" : (acceptedCount === 0 ? "none" : "mixed");
+      const sampleHit = g.hits[0];
+      const token = sampleHit ? replacer(sampleHit) : "";
+      return {
+        ...g,
+        acceptState,
+        acceptedCount,
+        totalCount: g.hits.length,
+        formsList: Array.from(g.forms),
+        token
+      };
+    });
+  }
+
+  function patchEntity(entityKey, accept) {
+    S.hits.forEach(h => {
+      const k = h.entityKey || `${h.type}|${(h.value || "").trim().toLocaleLowerCase("cs")}`;
+      if (k === entityKey) {
+        h.accept = accept;
+        S.seen.add(h.id);
+      }
+    });
+    paintReview();
+  }
+
+  function paintEntities(entities, t) {
+    const container = $("entityList");
+    if (!container) return;
+    const filteredEntities = entities.filter(e => {
+      if (S.filter === "redact") return e.acceptState === "all" || e.acceptState === "mixed";
+      if (S.filter === "keep") return e.acceptState === "none";
+      return true;
+    });
+
+    if (!filteredEntities.length) {
+      container.innerHTML = `<p class="layer-note" style="text-align:center;padding:16px;">${esc(t.noHits)}</p>`;
+      return;
+    }
+
+    container.innerHTML = filteredEntities.map(e => {
+      const isExpanded = S.expandedEntities.has(e.key);
+      const catName = (t.cats && t.cats[e.type]) || (LABEL[S.lang] && LABEL[S.lang][e.type]) || e.type;
+      const badgeCls = e.acceptState === "all" ? "ec-redact" : (e.acceptState === "none" ? "ec-keep" : "ec-mixed");
+      const isSel = e.hits.some(h => h.id === S.selectedId);
+      const countLabel = (t.entityOccurrences || "{n} výskytů").replace("{n}", e.totalCount);
+      const formsSummary = e.formsList.length > 1
+        ? `${countLabel} (${e.formsList.length} tvarů: ${esc(e.formsList.join(", "))})`
+        : countLabel;
+
+      return `
+        <div class="entity-card ${badgeCls} ${isSel ? "sel" : ""}" data-ekey="${escAttr(e.key)}">
+          <div class="ec-header" data-etoggle="${escAttr(e.key)}">
+            <div style="flex:1;min-width:0">
+              <h3 class="ec-title">${esc(e.canonicalValue)}</h3>
+              <div class="ec-meta">
+                <span class="pill ${e.acceptState === "all" ? "pill-hit" : "pill-ok"}" style="font-size:9px;padding:1px 6px;">${esc(catName)}</span>
+                ${e.token ? `<span class="ec-token">${esc(e.token)}</span>` : ""}
+                <span class="ec-badge-count">${esc(formsSummary)}</span>
+              </div>
+            </div>
+            <span style="font-size:12px;color:var(--muted);padding-left:4px;">${isExpanded ? "▲" : "▼"}</span>
+          </div>
+          <div class="ec-actions">
+            <button type="button" class="btn btn-sm ${e.acceptState === "all" ? "btn-sec" : "btn-ghost"}" data-eact="redact" data-ekey="${escAttr(e.key)}">${esc(t.redact)}</button>
+            <button type="button" class="btn btn-sm ${e.acceptState === "none" ? "btn-sec" : "btn-ghost"}" data-eact="keep" data-ekey="${escAttr(e.key)}">${esc(t.keep)}</button>
+            <span style="flex:1"></span>
+            <button type="button" class="btn btn-sm btn-ghost" data-etoggle="${escAttr(e.key)}" style="font-size:11px;min-height:28px;padding:0 8px;">
+              ${isExpanded ? esc(t.entityCollapse || "Skrýt") : esc(t.entityExpand || "Výskyty")}
+            </button>
+          </div>
+          ${isExpanded ? `
+            <div class="ec-subhits">
+              ${e.hits.map(h => `
+                <div class="ec-subhit ${S.selectedId === h.id ? "mk-sel" : ""}" data-hid="${h.id}">
+                  <span class="mono" style="font-weight:600">${esc(h.value)}</span>
+                  <span style="display:inline-flex;gap:4px;align-items:center;">
+                    <span class="pill ${h.accept ? "pill-hit" : "pill-ok"}" style="font-size:8px;padding:1px 5px;">${h.accept ? t.redact : t.keep}</span>
+                    <span class="mono" style="color:var(--muted);font-size:10px">#${h.id}</span>
+                  </span>
+                </div>
+              `).join("")}
+            </div>
+          ` : ""}
+        </div>
+      `;
+    }).join("");
+
+    container.querySelectorAll("[data-etoggle]").forEach(el => {
+      el.onclick = (e) => {
+        e.stopPropagation();
+        const k = el.dataset.etoggle;
+        if (S.expandedEntities.has(k)) S.expandedEntities.delete(k);
+        else S.expandedEntities.add(k);
+        paintReview();
+      };
+    });
+
+    container.querySelectorAll("[data-eact]").forEach(b => {
+      b.onclick = (e) => {
+        e.stopPropagation();
+        const k = b.dataset.ekey;
+        const act = b.dataset.eact === "redact";
+        patchEntity(k, act);
+      };
+    });
+
+    container.querySelectorAll("[data-hid]").forEach(el => {
+      el.onclick = () => {
+        select(+el.dataset.hid);
+      };
+    });
+  }
+
+  function paintSmartBanners(leftovers, leaks, t) {
+    const container = $("smartBanners");
+    if (!container) return;
+    const banners = [];
+
+    if (S.kind === "pdf" && S.sigDetected) {
+      banners.push(`
+        <div class="smart-banner smart-banner-info">
+          <div class="sb-content">
+            <span class="sb-icon">🔏</span>
+            <div>
+              <h4 class="sb-title">${esc(t.smartSigTitle || "Detekováno razítko elektronického podpisu")}</h4>
+              <p class="sb-desc">${esc(t.smartSigDesc || "Vizuální razítko podpisu bude zachováno, začerní se pouze jméno podepsané osoby.")}</p>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    if (S.noTextPages > 0) {
+      banners.push(`
+        <div class="smart-banner smart-banner-warn">
+          <div class="sb-content">
+            <span class="sb-icon">📄</span>
+            <div>
+              <h4 class="sb-title">${esc((t.smartScanTitle || "Naskenované stránky bez textu ({n})").replace("{n}", S.noTextPages))}</h4>
+              <p class="sb-desc">${esc(t.smartScanDesc || "Tyto stránky neobsahují strojově čitelný text a vyžadují OCR.")}</p>
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-sec" id="btnBannerOcr">${esc(t.smartScanBtn || "Spustit OCR")}</button>
+        </div>
+      `);
+    }
+
+    if (leftovers.length > 0 || leaks.length > 0) {
+      banners.push(`
+        <div class="smart-banner smart-banner-danger">
+          <div class="sb-content">
+            <span class="sb-icon">⚠</span>
+            <div>
+              <h4 class="sb-title">${esc(t.smartRiskTitle || "Zbytková rizika v dokumentu")}</h4>
+              <p class="sb-desc">${esc(t.smartRiskDesc || "Po navržené anonymizaci v textu stále zůstávají citlivé vzory.")}</p>
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-sec" id="btnBannerInspect">${esc(t.smartRiskBtn || "Zkontrolovat")}</button>
+        </div>
+      `);
+    }
+
+    container.innerHTML = banners.join("");
+
+    if ($("btnBannerOcr")) {
+      $("btnBannerOcr").onclick = () => {
+        S.ocrEnabled = true;
+        localStorage.setItem("znec-ocr", "1");
+        toast(t.enableOcr || "OCR povoleno");
+        if (Q.cur >= 0 && Q.items[Q.cur]) {
+          void openQueueItem(Q.cur);
+        }
+      };
+    }
+    if ($("btnBannerInspect")) {
+      $("btnBannerInspect").onclick = () => {
+        if (leftovers.length && leftovers[0]) select(leftovers[0].id);
+        else if (leaks.length) {
+          if ($("processPane")) $("processPane").classList.remove("hidden");
+          $("processPane")?.scrollIntoView({ behavior: "smooth" });
+        }
+      };
+    }
+  }
+
+  function paintWorkBar(acceptedCount, totalCount, t) {
+    const isReviewActive = !!(S.text || (S.kind === "pdf" && S.sourceBuf));
+    const docContext = $("headerDocContext");
+    const approval = $("headerApproval");
+    const exportGroup = $("headerExportGroup");
+
+    if (docContext) docContext.classList.toggle("hidden", !isReviewActive);
+    if (approval) approval.classList.toggle("hidden", !isReviewActive);
+    if (exportGroup) exportGroup.classList.toggle("hidden", !isReviewActive);
+
+    if (!isReviewActive) return;
+
+    const docName = $("headerDocName");
+    if (docName) docName.textContent = S.fileName || "Dokument";
+
+    const queueWrap = $("headerQueueWrap");
+    const queueSel = $("headerQueueSelect");
+    if (queueWrap && queueSel) {
+      if (Q.items.length > 1) {
+        queueWrap.classList.remove("hidden");
+        queueSel.innerHTML = Q.items.map((it, idx) => {
+          const rev = idx === Q.cur ? S.reviewed : !!(it.snap && it.snap.reviewed);
+          return `<option value="${idx}" ${idx === Q.cur ? "selected" : ""}>${rev ? "✓ " : ""}${escAttr(it.name)}</option>`;
+        }).join("");
+        queueSel.onchange = (e) => {
+          const idx = +e.target.value;
+          if (idx !== Q.cur) void openQueueItem(idx);
+        };
+      } else {
+        queueWrap.classList.add("hidden");
+      }
+    }
+
+    const btnHdrClear = $("btnHeaderClear");
+    if (btnHdrClear) {
+      btnHdrClear.onclick = () => {
+        if (S.hits && S.hits.length && !confirm(S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.")) {
+          return;
+        }
+        reset();
+      };
+    }
+
+    const pendingBadge = $("badgePendingFindings");
+    if (pendingBadge) {
+      pendingBadge.textContent = `${totalCount - S.seen.size} ${t.unreviewedCount || "k posouzení"}`;
+    }
+
+    const chkRev = $("chkRev");
+    if (chkRev) {
+      chkRev.checked = !!S.reviewed;
+      chkRev.onchange = (e) => {
+        S.reviewed = e.target.checked;
+        paintReview();
+      };
+    }
+
+    const chk2 = $("chk2");
+    const lbl2 = $("lblHeaderSecondEyes");
+    if (lbl2 && chk2) {
+      lbl2.classList.toggle("hidden", !!S.fastApprove || !!S.quickMode);
+      chk2.checked = !!S.secondEyes;
+      chk2.onchange = (e) => {
+        S.secondEyes = e.target.checked;
+      };
+    }
+
+    const exportReady = !!(S.reviewed || reviewSkipped());
+    const btnExp = $("btnExp");
+    if (btnExp) {
+      btnExp.disabled = !exportReady;
+      btnExp.setAttribute("data-tip", exportReady ? t.tips.export : t.tips.exportLocked);
+      btnExp.onclick = () => openExport(false);
+    }
+
+    const btnExpToggle = $("btnExpMenuToggle");
+    const expMenu = $("headerExportMenu");
+    if (btnExpToggle && expMenu) {
+      btnExpToggle.disabled = !exportReady;
+      btnExpToggle.onclick = (e) => {
+        e.stopPropagation();
+        expMenu.classList.toggle("hidden");
+      };
+    }
+
+    const menuAi = $("menuExportAi");
+    if (menuAi) {
+      menuAi.onclick = () => {
+        expMenu?.classList.add("hidden");
+        openExport(true);
+      };
+    }
+
+    const menuSession = $("menuExportSession");
+    if (menuSession) {
+      menuSession.onclick = async () => {
+        expMenu?.classList.add("hidden");
+        const pwd = prompt(S.lang === "cs" ? "Zadejte heslo pro zašifrování sezení (pro druhou kontrolu):" : "Enter password to encrypt session (for second review):");
+        if (!pwd) return;
+        const pwdConfirm = prompt(S.lang === "cs" ? "Potvrďte heslo:" : "Confirm password:");
+        if (pwd !== pwdConfirm) {
+          alert(S.lang === "cs" ? "Hesla se neshodují." : "Passwords do not match.");
+          return;
+        }
+        try {
+          const envelopeJson = await exportSession(S, pwd);
+          const blob = new Blob([envelopeJson], { type: "application/json" });
+          const baseName = (S.fileName || "dokument").replace(/\.[^/.]+$/, "");
+          download(`${baseName}.znecitelne-session`, blob);
+          toast(S.lang === "cs" ? "Šifrované sezení bylo uloženo." : "Encrypted session saved.");
+        } catch (err) {
+          alert((S.lang === "cs" ? "Chyba při exportu sezení: " : "Error exporting session: ") + (err.message || String(err)));
+        }
+      };
+    }
+
+    const menuAudit = $("menuExportAudit");
+    if (menuAudit) {
+      menuAudit.onclick = () => {
+        expMenu?.classList.add("hidden");
+        download("znecitelne-audit.json", new Blob([JSON.stringify(buildAudit(), null, 2)], { type: "application/json" }));
+      };
+    }
+
+    const menuRecord = $("menuExportRecord");
+    if (menuRecord) {
+      menuRecord.onclick = async () => {
+        expMenu?.classList.add("hidden");
+        try {
+          const bytes = await exportProtocolPdf();
+          download((S.fileName || "document").replace(/\.[^.]+$/, "") + "-protokol.pdf", new Blob([bytes], { type: "application/pdf" }));
+        } catch (e) {
+          toast(e.message || String(e));
+        }
+      };
+    }
+
+    document.addEventListener("click", (e) => {
+      if (expMenu && !expMenu.classList.contains("hidden") && !e.target.closest("#headerExportGroup")) {
+        expMenu.classList.add("hidden");
+      }
+    }, { passive: true });
+  }
+
   function paintReview(){
     const t = i();
     let acceptedCount = 0;
@@ -798,14 +1183,74 @@ function download(name, blob){
     const sigWarn = $("sigWarn");
     if (S.kind === "pdf" && S.sigDetected) { sigWarn.classList.remove("hidden"); sigWarn.textContent = "⚠ " + t.sigWarning; }
     else { sigWarn.classList.add("hidden"); sigWarn.textContent = ""; }
+
+    paintSmartBanners(leftovers, leaks, t);
+    paintWorkBar(red, S.hits.length, t);
+
     const previewOn = S.docView === "preview";
-    $("lblOrig").textContent = previewOn ? t.previewChanges : t.original;
-    $("btnAdd").textContent = t.addSelection; $("btnAdd").setAttribute("data-tip", t.tips.addSelection);
-    $("orig").innerHTML = previewOn ? previewHTML() : origHTML();
-    $("orig").querySelectorAll("button.mk").forEach(b => b.onclick = () => select(+b.dataset.id));
+    if ($("lblOrig")) $("lblOrig").textContent = previewOn ? t.previewChanges : t.original;
+    if ($("btnAdd")) {
+      $("btnAdd").textContent = t.addSelection;
+      $("btnAdd").setAttribute("data-tip", t.tips.addSelection);
+    }
+    if ($("orig")) {
+      $("orig").innerHTML = previewOn ? previewHTML() : origHTML();
+      $("orig").querySelectorAll("button.mk").forEach(b => b.onclick = () => select(+b.dataset.id));
+    }
     paintPdfVisual();
+
+    // Segmented document view controls
+    const btnOrig = $("btnViewOrig");
+    const btnPrev = $("btnViewPreview");
+    const btnVis = $("btnVisual");
+    if (btnOrig) {
+      btnOrig.classList.toggle("on", !previewOn && !S.pdfVisual);
+      btnOrig.onclick = () => {
+        if (S.pdfVisual) S.pdfVisual = false;
+        setDocView("original");
+      };
+    }
+    if (btnPrev) {
+      btnPrev.classList.toggle("on", previewOn && !S.pdfVisual);
+      btnPrev.onclick = () => {
+        if (S.pdfVisual) S.pdfVisual = false;
+        setDocView("preview");
+      };
+    }
+    if (btnVis) {
+      btnVis.classList.toggle("on", !!S.pdfVisual);
+    }
+
+    // View mode: entities vs individual hits
+    const isEntities = S.viewMode !== "hits";
+    const btnModeEnt = $("btnModeEntities");
+    const btnModeH = $("btnModeHits");
+    if (btnModeEnt) {
+      btnModeEnt.classList.toggle("on", isEntities);
+      btnModeEnt.onclick = () => {
+        S.viewMode = "entities";
+        try { localStorage.setItem("znec-viewmode", "entities"); } catch (_) {}
+        paintReview();
+      };
+    }
+    if (btnModeH) {
+      btnModeH.classList.toggle("on", !isEntities);
+      btnModeH.onclick = () => {
+        S.viewMode = "hits";
+        try { localStorage.setItem("znec-viewmode", "hits"); } catch (_) {}
+        paintReview();
+      };
+    }
+    if ($("entityList")) $("entityList").classList.toggle("hidden", !isEntities);
+    if ($("hitList")) $("hitList").classList.toggle("hidden", isEntities);
+
     $("filters").innerHTML = ["all","redact","keep"].map(f => `<button type="button" class="chip ${S.filter===f?"on":""}" data-f="${f}">${f==="all"?t.filterAll:f==="redact"?t.filterRedact:t.filterKeep}</button>`).join("");
     $("filters").querySelectorAll("[data-f]").forEach(b => b.onclick = () => { S.filter = b.dataset.f; paintReview(); });
+
+    if (isEntities) {
+      paintEntities(groupHitsIntoEntities(S.hits), t);
+    }
+
     const list = filtered();
     $("hitList").innerHTML = list.map(h => {
       const catName = (t.cats && t.cats[h.type]) || (LABEL[S.lang] && LABEL[S.lang][h.type]) || h.type;
@@ -906,49 +1351,63 @@ function download(name, blob){
       }
     }
     const exportReady = !!(S.reviewed || reviewSkipped());
-    $("bar").innerHTML = `<div class="bar-inner">
-      <div class="btn-group bulk-group" role="group" aria-label="${esc(t.acceptAll)} / ${esc(t.rejectAll)}">
-        <button class="btn btn-sm btn-eq btn-sec" id="btnAll">${t.acceptAll}</button>
-        <button class="btn btn-sm btn-eq btn-sec" id="btnNone">${t.rejectAll}</button>
-        <button class="btn btn-sm btn-sec" id="btnOff" data-tip="${t.tips.keepOfficials}">${t.keepOfficials}</button>
-      </div>
-      <label class="check" data-tip="${t.tips.reviewed}"><input type="checkbox" id="chkRev" ${S.reviewed?"checked":""}/> ${t.reviewed}</label>
-      <label class="check"><input type="checkbox" id="chk2" ${S.secondEyes?"checked":""}/> ${t.secondEyes}</label>
-      <div class="view-switch" role="group" aria-label="${esc(t.previewChanges)} / ${esc(t.originalVersion)}">
-        <button type="button" class="btn btn-sm ${previewOn?"on":""}" id="btnViewPreview" aria-pressed="${previewOn?"true":"false"}" data-tip="${t.tips.previewChanges}">${t.previewChanges}</button>
-        <button type="button" class="btn btn-sm ${previewOn?"":"on"}" id="btnViewOrig" aria-pressed="${previewOn?"false":"true"}" data-tip="${t.tips.originalVersion}">${t.originalVersion}</button>
-      </div>
-      <span data-tip="${exportReady?t.tips.export:t.tips.exportLocked}"><button class="btn" id="btnExp" ${exportReady?"":"disabled"}>${t.export}</button></span>
-      <span data-tip="${exportReady?(t.tips.aiPack||t.aiPack):t.tips.exportLocked}"><button class="btn btn-sec" id="btnAi" ${exportReady?"":"disabled"}>${t.aiPack}</button></span>
-      <button type="button" class="btn btn-sm btn-sec" id="btnExportSession" data-tip="${S.lang==='cs'?'Uložit šifrované sezení pro druhou kontrolu (.znecitelne-session)':'Export encrypted session for four-eyes review (.znecitelne-session)'}">💾 ${S.lang==='cs'?'Předat pro 4 oči':'Export session'}</button>
-    </div>`;
-    $("btnToggleQuick").onclick = () => {
-      S.quickMode = !S.quickMode;
-      try { localStorage.setItem("znec-quick", S.quickMode ? "1" : "0"); } catch (_) {}
-      applyQuickMode();
-      paintReview();
-    };
-    $("btnClear").onclick = () => {
-      if (S.hits && S.hits.length && !confirm(S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.")) {
-        return;
-      }
-      reset();
-    };
-    $("btnAll").onclick = () => { S.hits.forEach(h=>h.accept=true); paintReview(); };
-    $("btnNone").onclick = () => { S.hits.forEach(h=>h.accept=false); paintReview(); };
-    $("btnOff").onclick = () => {
+
+    // Bulk actions
+    const doAll = () => { S.hits.forEach(h=>h.accept=true); paintReview(); };
+    const doNone = () => { S.hits.forEach(h=>h.accept=false); paintReview(); };
+    const doOff = () => {
       S.hits.forEach(h => {
         const around = S.text.slice(Math.max(0,h.start-80), h.end+20);
         if (isPublic(h.value) || isPublic(around) || (h.type==="ico" && /státní podnik|ministerstvo|úřad|správa|republik/i.test(around))) h.accept=false;
       });
       paintReview();
     };
-    $("chkRev").onchange = (e) => { S.reviewed = e.target.checked; paintReview(); };
-    $("chk2").onchange = (e) => { S.secondEyes = e.target.checked; };
-    $("btnViewPreview").onclick = () => setDocView("preview");
-    $("btnViewOrig").onclick = () => setDocView("original");
-    $("btnExp").onclick = () => openExport(false);
-    $("btnAi").onclick = () => openExport(true);
+
+    if ($("btnAll")) $("btnAll").onclick = doAll;
+    if ($("btnNone")) $("btnNone").onclick = doNone;
+    if ($("btnOff")) $("btnOff").onclick = doOff;
+
+    $("bar").innerHTML = `<div class="bar-inner">
+      <div class="btn-group bulk-group" role="group" aria-label="${esc(t.acceptAll)} / ${esc(t.rejectAll)}">
+        <button class="btn btn-sm btn-eq btn-sec" id="btnAllLegacy">${t.acceptAll}</button>
+        <button class="btn btn-sm btn-eq btn-sec" id="btnNoneLegacy">${t.rejectAll}</button>
+        <button class="btn btn-sm btn-sec" id="btnOffLegacy" data-tip="${t.tips.keepOfficials}">${t.keepOfficials}</button>
+      </div>
+      <label class="check" data-tip="${t.tips.reviewed}"><input type="checkbox" id="chkRevLegacy" ${S.reviewed?"checked":""}/> ${t.reviewed}</label>
+      <label class="check"><input type="checkbox" id="chk2Legacy" ${S.secondEyes?"checked":""}/> ${t.secondEyes}</label>
+      <div class="view-switch" role="group" aria-label="${esc(t.previewChanges)} / ${esc(t.originalVersion)}">
+        <button type="button" class="btn btn-sm ${previewOn?"on":""}" id="btnViewPreviewLegacy" aria-pressed="${previewOn?"true":"false"}" data-tip="${t.tips.previewChanges}">${t.previewChanges}</button>
+        <button type="button" class="btn btn-sm ${previewOn?"":"on"}" id="btnViewOrigLegacy" aria-pressed="${previewOn?"false":"true"}" data-tip="${t.tips.originalVersion}">${t.originalVersion}</button>
+      </div>
+      <span data-tip="${exportReady?t.tips.export:t.tips.exportLocked}"><button class="btn" id="btnExpLegacy" ${exportReady?"":"disabled"}>${t.export}</button></span>
+      <span data-tip="${exportReady?(t.tips.aiPack||t.aiPack):t.tips.exportLocked}"><button class="btn btn-sec" id="btnAi" ${exportReady?"":"disabled"}>${t.aiPack}</button></span>
+      <button type="button" class="btn btn-sm btn-sec" id="btnExportSession" data-tip="${S.lang==='cs'?'Uložit šifrované sezení pro druhou kontrolu (.znecitelne-session)':'Export encrypted session for four-eyes review (.znecitelne-session)'}">💾 ${S.lang==='cs'?'Předat pro 4 oči':'Export session'}</button>
+    </div>`;
+    if ($("btnToggleQuick")) {
+      $("btnToggleQuick").onclick = () => {
+        S.quickMode = !S.quickMode;
+        try { localStorage.setItem("znec-quick", S.quickMode ? "1" : "0"); } catch (_) {}
+        applyQuickMode();
+        paintReview();
+      };
+    }
+    if ($("btnClear")) {
+      $("btnClear").onclick = () => {
+        if (S.hits && S.hits.length && !confirm(S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.")) {
+          return;
+        }
+        reset();
+      };
+    }
+    if ($("btnAllLegacy")) $("btnAllLegacy").onclick = doAll;
+    if ($("btnNoneLegacy")) $("btnNoneLegacy").onclick = doNone;
+    if ($("btnOffLegacy")) $("btnOffLegacy").onclick = doOff;
+    if ($("chkRevLegacy")) $("chkRevLegacy").onchange = (e) => { S.reviewed = e.target.checked; paintReview(); };
+    if ($("chk2Legacy")) $("chk2Legacy").onchange = (e) => { S.secondEyes = e.target.checked; };
+    if ($("btnViewPreviewLegacy")) $("btnViewPreviewLegacy").onclick = () => setDocView("preview");
+    if ($("btnViewOrigLegacy")) $("btnViewOrigLegacy").onclick = () => setDocView("original");
+    if ($("btnExpLegacy")) $("btnExpLegacy").onclick = () => openExport(false);
+    if ($("btnAi")) $("btnAi").onclick = () => openExport(true);
     const btnSess = $("btnExportSession");
     if (btnSess) {
       btnSess.onclick = async () => {
@@ -1054,11 +1513,19 @@ function download(name, blob){
     paintLanding();
     applyBarPos();
     const hasDoc = !!(S.text || (S.kind === "pdf" && S.sourceBuf));
-    if (hasDoc) { $("landing").classList.add("hidden"); $("review").classList.remove("hidden"); $("bar").classList.remove("hidden"); paintReview(); }
-    else {
-      $("landing").classList.remove("hidden"); $("review").classList.add("hidden"); $("bar").classList.add("hidden");
-      $("quickHitBar").classList.add("hidden"); $("quickHitBar").innerHTML = "";
+    if (hasDoc) {
+      $("landing").classList.add("hidden");
+      $("review").classList.remove("hidden");
+      $("bar").classList.remove("hidden");
+      paintReview();
+    } else {
+      $("landing").classList.remove("hidden");
+      $("review").classList.add("hidden");
+      $("bar").classList.add("hidden");
+      $("quickHitBar").classList.add("hidden");
+      $("quickHitBar").innerHTML = "";
       document.body.classList.remove("hit-selected");
+      paintWorkBar(0, 0, i());
     }
     renderQueue();
   }
@@ -2773,6 +3240,7 @@ export function selfTest(){
     window.buildAudit = buildAudit;
     window.exportProtocolPdf = exportProtocolPdf;
     window.exportTextPdf = exportTextPdf;
+    window.groupHitsIntoEntities = groupHitsIntoEntities;
     window.S = S;
   }
   if (typeof queueMicrotask === "function") {

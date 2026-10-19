@@ -2,6 +2,14 @@
 
 ## 2026-10-19
 
+- Integrovaná pracovní lišta, entitní revize a adaptivní rozvržení (ADR-0012):
+  - **Sjednocená třízónová Pracovní lišta (`#appHeader`):** Nahrazeno roztříštěné množství lišt (`header.app`, `#queueBar`, `#toolbar`, `#bar`, `#quickHitBar`) za jedinou integrovanou Pracovní lištu v horní části obrazovky. Obsahuje kontext aktivního dokumentu a rozbalovací dávkovou frontu vlevo, indikátor zbývajících nálezů/rizik s přepínačem schválení dokumentu uprostřed a sdružené exportní tlačítko `[ Sanitizovaný export ▾ ]` s rozbalovací nabídkou (*AI balíček (ZIP)*, *Předat pro 4 oči*, *Auditní protokol JSON*) vpravo.
+  - **Entitní seskupení v revizním panelu (`groupHitsIntoEntities`):** Nálezy jsou primárně organizovány na úrovni reálných identit a entit (např. *Mgr. Jan Novák · 6 výskytů ve 3 pádech*). Zavedena možnost hromadného schválení či vyřazení celé entity jedním kliknutím s progresivním rozbalením větných kontextů a zachováním přepínače na podrobný lineární seznam nálezů.
+  - **Kontextové přepínače v záhlaví dokumentu (`.doc-view-seg`):** Přepínání pohledů (`[ Text originálu | Náhled změn | Vizuální PDF ]`) a přidání ručního výběru přemístěno přímo do záhlaví plochy dokumentu.
+  - **Inteligentní asistenční karty (`#smartBanners`):** Řádková systémová varování nahrazena asistenčními kartami s přímými nápravnými akcemi pro OCR digitalizaci, přezkum razítek a podpisů i rizikové zbytkové nálezy.
+  - **Čistá úvodní obrazovka a 3-záložkový dialog Nastavení (`#settingsModal`):** Odstraněn duplicitní rozbalovací formulář v `<details>` na úvodní ploše. Nastavení centralizováno do strukturovaného modálního okna se záložkami (*Profil publikace a citlivost*, *Projektové slovníky*, *Dokumentové formáty a zabezpečení*).
+  - **Kanonizace v GLOSSARY.md a nový ADR-0012:** Do doménového slovníku začleněny kanonické pojmy **Pracovní lišta** a **Entitní seskupení** a architektonické rozhodnutí detailně zaznamenáno v `docs/adr/0012-integrovana-pracovni-lista-a-entitni-revize.md`.
+
 - Omezení expanze tokenů, deterministické sledování výskytů a layoutová dekonflikce v PDF (ADR-0011):
   - **Proporční rozdělení šířek znaků v textové položce (`computeCharWidths`):** Nahrazeno chybné rovnoměrné dělení šířky položky počtem znaků (`charW = it.width / len`) za poměrové rozdělení dle skutečných šířek znaků (Canvas `measureText` s fallbackem na standardní váhové poměry glyfů). Odstraněna kumulativní chyba 10–19 px uvnitř věty, kvůli které záplaty neseděly na jménech a odkrývaly citlivé údaje nebo přemazávaly okolní text.
   - **Kalibrace výšky boxu na standardní řádkování:** Vertikální rozsah záplaty upraven na `baseLine - 0.95*fH` až `baseLine + 0.22*fH` (celkem 1.17 em namísto dřívějších 1.34 em). Záplaty spolehlivě pokrývají velká písmena s diakritikou (Č, Š, Ř, Á) i descenders (g, j, p, y) a zároveň nepřesahují běžné řádkování (1.15–1.22 em), čímž zamezují vzájemnému vertikálnímu kolidování řádků a ořezávání textu nad i pod nálezem.
