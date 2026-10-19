@@ -23,9 +23,10 @@ export function xlsxToText(wb){
     return { text, cellMap };
   }
   export async function extractXlsx(buf){
-    if (!window.XLSX) throw new Error("XLSX: knihovna se nenačetla (síť).");
+    const xlsxLib = (typeof window !== "undefined" && window.XLSX) || (typeof globalThis !== "undefined" && globalThis.XLSX) || null;
+    if (!xlsxLib) throw new Error("XLSX: knihovna se nenačetla.");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
-    return xlsxToText(XLSX.read(u8, { type:"array" }));
+    return xlsxToText(xlsxLib.read(u8, { type:"array" }));
   }
 
 export function decodeXml(str) {
@@ -36,8 +37,14 @@ export function decodeXml(str) {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&')
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+    .replace(/&#(\d+);/g, (_, n) => {
+      const code = parseInt(n, 10);
+      return Number.isFinite(code) && code >= 0 ? String.fromCodePoint(code) : "";
+    })
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => {
+      const code = parseInt(h, 16);
+      return Number.isFinite(code) && code >= 0 ? String.fromCodePoint(code) : "";
+    });
 }
 
 export function encodeXml(str) {
@@ -442,6 +449,7 @@ function sanitizeComments(xml, values, getReplacement, stripMeta) {
 }
 
 export function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = true) {
+  if (!sourceBuf) return { ok: false, reason: "sourceBuf missing" };
   const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
   if (!flate || !flate.unzipSync) return { ok: false, reason: "fflate missing" };
 
@@ -536,17 +544,22 @@ export function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = tr
 }
 
   export function exportXlsxFile(sourceBuf, hits, mode, lang){
-    if (window.fflate && typeof exportXlsxFileFflate === "function") {
-      const fflateRes = exportXlsxFileFflate(sourceBuf, hits, mode, lang, S.stripMeta);
+    if (!sourceBuf) return null;
+    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+    const stripMetaVal = (typeof S !== "undefined" && S.stripMeta !== undefined) ? S.stripMeta : true;
+    if (flate && typeof exportXlsxFileFflate === "function") {
+      const fflateRes = exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMetaVal);
       if (fflateRes && fflateRes.ok) return fflateRes.bytes;
     }
-    const wb = XLSX.read(sourceBuf.slice(0), { type:"array" });
+    const xlsxLib = (typeof window !== "undefined" && window.XLSX) || (typeof globalThis !== "undefined" && globalThis.XLSX) || null;
+    if (!xlsxLib) throw new Error("XLSX: knihovna se nenačetla.");
+    const wb = xlsxLib.read(sourceBuf.slice(0), { type:"array" });
     const { cellMap } = xlsxToText(wb);
     const replacer = bindReplacer(mode, lang, hits);
     const accepted = effectiveHits(hits);
     if (!accepted.length) {
-      if (S.stripMeta) stripWorkbookMeta(wb);
-      return XLSX.write(wb, { bookType:"xlsx", type:"array" });
+      if (stripMetaVal) stripWorkbookMeta(wb);
+      return xlsxLib.write(wb, { bookType:"xlsx", type:"array" });
     }
     cellMap.forEach(cm => {
       let low = 0, high = accepted.length - 1, first = accepted.length;
@@ -577,8 +590,8 @@ export function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = tr
       });
       cell.v = str; cell.t = "s"; delete cell.f; delete cell.w;
     });
-    if (S.stripMeta) stripWorkbookMeta(wb);
-    return XLSX.write(wb, { bookType:"xlsx", type:"array" });
+    if (stripMetaVal) stripWorkbookMeta(wb);
+    return xlsxLib.write(wb, { bookType:"xlsx", type:"array" });
   }
 
 

@@ -111,8 +111,9 @@ export const IngestErrorCode = Object.freeze({
   }
 
   export async function handleImageFile(file, buf, options = {}){
-    const ocrEnabled = options.ocrEnabled ?? S.ocrEnabled;
-    if (!ocrEnabled || !window.Tesseract) {
+    const ocrEnabled = options.ocrEnabled ?? (typeof S !== "undefined" ? S.ocrEnabled : false);
+    const tesseractLib = (typeof window !== "undefined" && window.Tesseract) || (typeof globalThis !== "undefined" && globalThis.Tesseract) || null;
+    if (!ocrEnabled || !tesseractLib) {
       throw new DocumentIngestionError(IngestErrorCode.IMAGE_NEED_OCR, file ? file.name : "");
     }
     const reportProgress = options.onProgress || showOcrProgress;
@@ -158,7 +159,7 @@ export const IngestErrorCode = Object.freeze({
       const errPromise = new Promise((_, reject) => {
         workerErrReject = reject;
       });
-      const localOpts = (window.__libLocal && window.__libLocal.tesseract) ? {
+      const localOpts = (typeof window !== "undefined" && window.__libLocal && window.__libLocal.tesseract) ? {
         workerPath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/worker.min.js", location.href).href : "./lib/tesseract/worker.min.js",
         corePath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/core/", location.href).href : "./lib/tesseract/core/",
         langPath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/lang/", location.href).href : "./lib/tesseract/lang/"
@@ -293,15 +294,17 @@ export const IngestErrorCode = Object.freeze({
     } else if (n.endsWith(".docx") || type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
       let text = "";
       let mammothErr = null;
-      if (window.mammoth) {
+      const mammoth = (typeof window !== "undefined" && window.mammoth) || (typeof globalThis !== "undefined" && globalThis.mammoth) || null;
+      const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+      if (mammoth) {
         try {
-          const res = await window.mammoth.extractRawText({ arrayBuffer: buf });
+          const res = await mammoth.extractRawText({ arrayBuffer: buf });
           text = (res && res.value) || "";
         } catch (e) {
           mammothErr = e;
         }
       }
-      if (!text && window.fflate) {
+      if (!text && flate) {
         try {
           text = extractDocxTextWithFflate(buf);
         } catch (e) {
@@ -341,9 +344,10 @@ export const IngestErrorCode = Object.freeze({
     } else if (isImageFile(name, type)) {
       return await handleImageFile(file, buf, options);
     } else {
-      if (isZip && window.fflate) {
+      const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+      if (isZip && flate) {
         try {
-          const files = fflate.unzipSync(new Uint8Array(buf));
+          const files = flate.unzipSync(new Uint8Array(buf));
           const hasDocXml = Object.keys(files).some(k => k.replace(/\\/g, "/").toLowerCase() === "word/document.xml");
           if (hasDocXml) {
             const text = extractDocxTextWithFflate(buf);

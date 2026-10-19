@@ -113,7 +113,9 @@ export const I18N = {
         "propagation": "[Propagace]",
         "ocr:fuzzy": "[OCR: fuzzy]",
         "gazetteer": "[Onomastický registr]",
-        "onomastic": "[Onomastický registr]"
+        "onomastic": "[Onomastický registr]",
+        "onomastic:city": "[Onomastický registr: město]",
+        "gazetteer:city": "[Onomastický registr: město]"
       },
       expertMode:"Zobrazit technické detaily nálezů", processToggle:"Zobrazit rozbor postupu",
       movieAdvancedHelp:"Spustit pokročilou nápovědu (video)",
@@ -293,7 +295,9 @@ export const I18N = {
         "propagation": "[Propagation]",
         "ocr:fuzzy": "[OCR: fuzzy]",
         "gazetteer": "[Onomastic registry]",
-        "onomastic": "[Onomastic registry]"
+        "onomastic": "[Onomastic registry]",
+        "onomastic:city": "[Onomastic registry: city]",
+        "gazetteer:city": "[Onomastic registry: city]"
       },
       expertMode:"Show technical hit details", processToggle:"Show process breakdown",
       movieAdvancedHelp:"Start advanced walkthrough (video)",

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-19
+
+- Náprava chyb, odolnosti běhového prostředí a terminologických nekonzistencí:
+  - **Bezpečný přístup k běhovým knihovnám v Node.js/worker prostředí:** Odstraněny přímé reference na `window.fflate`, `window.XLSX`, `window.mammoth`, `window.Tesseract`, `window.pdfjsLib` v `src/formats/odt.js`, `src/formats/docx.js`, `src/formats/xlsx.js`, `src/formats/ingest.js` a `src/formats/pdf.js`. Knihovny jsou nyní bezpečně vyhledávány napříč `window` i `globalThis`, což umožňuje bezchybné spouštění a testování extraktorů a exportérů i v headless / Node.js prostředí bez nutnosti emulace okna.
+  - **Oprava dekódování Unicode code points v XML (`decodeXml`):** V `src/formats/xlsx.js` nahrazen `String.fromCharCode` za `String.fromCodePoint` při zpracování číselných XML entit (`&#...;` a `&#x...;`), což zajišťuje správné dekódování znaků nad rámec Basic Multilingual Plane (> 0xFFFF, např. emoji a historická písma) bez poškození náhradních párů.
+  - **Podpora českých uvozovek v detektoru počátku věty (`isSentenceStart`):** Ve funkci `isSentenceStart` v `src/core/morphology.js` doplněno rozpoznávání a přeskakování českých otevíracích uvozovek (`„`, `“`, `‘`, `‚`, `"`, `«`), takže slova na začátku přímé řeči a citací (např. *„Nový přístup byl zvolen.“*) jsou spolehlivě identifikována jako větný počátek a nepotlačují desambiguaci.
+  - **Sjednocení kanonického důvodu detekce `onomastic` dle GLOSSARY.md:** V `src/core/detector.js` a `src/core/i18n.js` nahrazen zakázaný výraz `gazetteer` za kanonický `onomastic` a doplněny lokalizované popisky pro `onomastic:city`. Zpětná kompatibilita pro čtení dřívějších auditních záznamů s `gazetteer` zůstává plně zachována.
+  - **Odstranění zbytků panelu Návrh (#resultPane):** V `src/ui/app.js` vyčištěny osiřelé přístupy k neexistujícím elementům `lblRes` a `result` po dřívějším odstranění duplicitního panelu návrhu dle ADR-0006.
+
 ## 2026-10-16
 
 - Oprava zamrznutí OCR inicializace („OCR: inicializuji jazykový model…“ ad infinitum):

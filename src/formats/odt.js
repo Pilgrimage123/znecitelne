@@ -1,10 +1,27 @@
 export function extractOdtText(buf){
-    if (!window.fflate) throw new Error("fflate není k dispozici");
+    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+    if (!flate || !flate.unzipSync) throw new Error("fflate není k dispozici");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
-    const files = fflate.unzipSync(u8);
+    const files = flate.unzipSync(u8);
     const content = files["content.xml"];
     if (!content) throw new Error("Neplatný ODT: chybí content.xml");
     const xml = new TextDecoder("utf-8").decode(content);
+    if (typeof DOMParser === "undefined") {
+      const paragraphs = [];
+      const reP = /<text:[ph](?:\s[^>]*)?>([\s\S]*?)<\/text:[ph]>/gi;
+      let pm;
+      while ((pm = reP.exec(xml)) !== null) {
+        const pXml = pm[1];
+        let pText = pXml
+          .replace(/<text:tab\/>/gi, "\t")
+          .replace(/<text:line-break\/>/gi, "\n")
+          .replace(/<text:s text:c="(\d+)"\/>/gi, (_, c) => " ".repeat(parseInt(c, 10) || 1))
+          .replace(/<text:s\/>/gi, " ")
+          .replace(/<[^>]+>/g, "");
+        if (pText.trim()) paragraphs.push(pText.trim());
+      }
+      return paragraphs.join("\n\n");
+    }
     const doc = new DOMParser().parseFromString(xml, "application/xml");
     if (doc.getElementsByTagName("parsererror").length) throw new Error("Chyba XML v ODT");
     const elements = Array.from(doc.getElementsByTagNameNS("*", "*")).filter(n => {

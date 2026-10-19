@@ -358,7 +358,7 @@ export function detect(text, enabled, secrets, options){
     if (enabled.email) add(findAll(t, /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "email"), ["format"]);
     if (enabled.address) {
       add(findAll(t, /(?:se sídlem|se sidlem|bytem|adresa|sídlo|sidlo)[:\s]+([^\n]{8,90})/gi, "address", (v) => /\d/.test(v), 1).map(h => {
-        h.reasons = ["label:adresa","gazetteer"];
+        h.reasons = ["label:adresa","onomastic"];
         const cut = h.value.split(/\s{2,}|\t/)[0];
         if (cut && cut.length >= 8) { h.value = cut; h.end = h.start + cut.length; }
         return h;
@@ -368,10 +368,10 @@ export function detect(text, enabled, secrets, options){
         return h;
       }));
       add(findAll(t, /(?<!\p{L})(?:v|ve)\s+(Praze|Brně|Ostravě|Plzni|Olomouci|Liberci|Českých Budějovicích|Hradci Králové|Ústí nad Labem|Pardubicích|Zlíně|Kladně|Mostě|Opavě|Karviné|Jihlavě|Teplicích|Děčíně|Karlových Varech|Chomutově|Mladé Boleslavi|Prostějově|Přerově|České Lípě|Třebíči|Třinci|Táboře|Znojmě|Příbrami|Chebu|Kolíně|Trutnově|Písku|Kroměříži|Šumperku|Vsetíně|Hodoníně|Novém Jičíně|Uherském Hradišti|Břeclavi|Litoměřicích|Sokolově|Havlíčkově Brodě|Chrudimi|Strakonicích|Klatovech|Jičíně)(?!\p{L})/giu, "address", null, 1).map(h => {
-        h.reasons = ["gazetteer:city"];
+        h.reasons = ["onomastic:city"];
         return h;
       }));
-      add(findAll(t, /\p{Lu}[\p{L}.]+(?:\s+\p{Lu}[\p{L}.]+)*\s+(?:náměstí|nám\.|namesti|třída|trida|ulice|nábřeží|nabrezi|alej|sady)\s+\d{1,4}(?:\s*\/\s*\d{1,4})?/giu, "address"), ["gazetteer"]);
+      add(findAll(t, /\p{Lu}[\p{L}.]+(?:\s+\p{Lu}[\p{L}.]+)*\s+(?:náměstí|nám\.|namesti|třída|trida|ulice|nábřeží|nabrezi|alej|sady)\s+\d{1,4}(?:\s*\/\s*\d{1,4})?/giu, "address"), ["onomastic"]);
       add(findAll(t, /\p{Lu}\p{Ll}+(?:ova|ová|ská|cká|ního|kého)?\s+\d{1,4}\s*\/\s*\d{1,4}/gu, "address"), ["format"]);
       if (sus !== "low") {
         add(findAll(t, /\p{Lu}\p{Ll}+(?:ova|ová|ská|cká|ního|kého)\s+\d{1,4}\b/gu, "address", (v,f,i) =>
@@ -829,7 +829,7 @@ export function detect(text, enabled, secrets, options){
       add(findAll(t, /\b(?:LV|L\.\s?V\.)\s*(?:č\.\s*)?(\d{1,6})\b/g, "katastr", null, 1), ["label:LV","format"]);
       add(findAll(t, /\blist(?:u|em|y|ech)?\s+vlastnictví\s*(?:č\.\s*)?(\d{1,6})\b/giu, "katastr", null, 1), ["label:LV","format"]);
       // k.ú. Nové Město, katastrální území Vinohrady
-      add(findAll(t, /(?:\b[Kk]\.\s?ú\.|\b[Kk]at\.\s?úz(?:emí|\.)|\bkatastrální(?:ho|m|mu)?\s+území)[ \t]+(\p{Lu}[\p{L}-]+(?:[ \t]+(?:(?:nad|pod|u|na|v|ve|při)[ \t]+)?\p{Lu}[\p{L}-]+){0,2})/gu, "katastr", null, 1), ["label:k.ú.","gazetteer"]);
+      add(findAll(t, /(?:\b[Kk]\.\s?ú\.|\b[Kk]at\.\s?úz(?:emí|\.)|\bkatastrální(?:ho|m|mu)?\s+území)[ \t]+(\p{Lu}[\p{L}-]+(?:[ \t]+(?:(?:nad|pod|u|na|v|ve|při)[ \t]+)?\p{Lu}[\p{L}-]+){0,2})/gu, "katastr", null, 1), ["label:k.ú.","onomastic"]);
     }
 
     // --- Fáze 2: zahraniční IBAN a SWIFT/BIC ---

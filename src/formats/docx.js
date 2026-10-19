@@ -319,6 +319,7 @@ const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationship
   export async function exportDocxFile(sourceBuf, hits, mode, lang){
     const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
     if (!flate) return { ok:false, reason:"fflate" };
+    if (!sourceBuf) return { ok:false, reason:"sourceBuf missing" };
 
     const replacer = bindReplacer(mode, lang, hits);
     const map = new Map();
@@ -417,9 +418,10 @@ const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationship
 
     const bytes = flate.zipSync(files, { level: 6 });
 
-    if (typeof window !== "undefined" && window.mammoth) {
+    const mammoth = (typeof window !== "undefined" && window.mammoth) || (typeof globalThis !== "undefined" && globalThis.mammoth) || null;
+    if (mammoth) {
       const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-      const chk = (await window.mammoth.extractRawText({ arrayBuffer: buf })).value || "";
+      const chk = (await mammoth.extractRawText({ arrayBuffer: buf })).value || "";
       const left = Array.from(map.entries()).filter(([v, rep]) => !rep.includes(v) && chk.includes(v));
       if (left.length) {
         throw new Error("Zbytková hodnota po kontrole");
@@ -434,9 +436,10 @@ const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationship
   }
 
 export function extractDocxTextWithFflate(buf){
-    if (!window.fflate) throw new Error("fflate není k dispozici");
+    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+    if (!flate || !flate.unzipSync) throw new Error("fflate není k dispozici");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
-    const files = fflate.unzipSync(u8);
+    const files = flate.unzipSync(u8);
     const docKey = Object.keys(files).find(k => k.replace(/\\/g, "/").toLowerCase() === "word/document.xml");
     const docEntry = docKey ? files[docKey] : null;
     if (!docEntry) throw new Error("Neplatný DOCX: chybí word/document.xml");
@@ -444,6 +447,26 @@ export function extractDocxTextWithFflate(buf){
     function parseDocxXml(entryBytes){
       if (!entryBytes) return "";
       const xml = new TextDecoder("utf-8").decode(entryBytes);
+      if (typeof DOMParser === "undefined") {
+        const textNodes = [];
+        const reP = /<w:p(?:\s[^>]*)?>([\s\S]*?)<\/w:p>/gi;
+        let pm;
+        while ((pm = reP.exec(xml)) !== null) {
+          const pXml = pm[1];
+          let pText = "";
+          const reItem = /<w:(?:t(?:\s[^>]*)?>([^<]*)<\/w:t>|tab\/>|noBreakHyphen\/>|softHyphen\/>|br(?:\s[^>]*)?\/>)/gi;
+          let im;
+          while ((im = reItem.exec(pXml)) !== null) {
+            if (im[1] !== undefined) pText += im[1];
+            else if (im[0].includes("tab")) pText += "\t";
+            else if (im[0].includes("noBreakHyphen")) pText += "\u2011";
+            else if (im[0].includes("softHyphen")) pText += "\u00AD";
+            else if (im[0].includes("br")) pText += "\n";
+          }
+          if (pText) textNodes.push(pText);
+        }
+        return textNodes.join("\n");
+      }
       const doc = new DOMParser().parseFromString(xml, "application/xml");
       if (doc.getElementsByTagName("parsererror").length) return "";
       const paras = Array.from(doc.getElementsByTagNameNS(DOCX_W_NS, "p"));

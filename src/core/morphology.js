@@ -460,19 +460,24 @@ export function stemNamePart(token){
     let i = start - 1;
     while (i >= 0 && (text.charCodeAt(i) === 32 || text.charCodeAt(i) === 9)) i--;
     if (i < 0) return true;
+    while (i >= 0 && (text.charAt(i) === "„" || text.charAt(i) === "“" || text.charAt(i) === "‘" || text.charAt(i) === "‚" || text.charAt(i) === "\"" || text.charAt(i) === "«" || text.charAt(i) === "(" || text.charAt(i) === "[")) {
+      i--;
+      while (i >= 0 && (text.charCodeAt(i) === 32 || text.charCodeAt(i) === 9)) i--;
+    }
+    if (i < 0) return true;
     const ch = text.charAt(i);
     if (ch !== "." && ch !== "?" && ch !== "!" && ch !== "…" && ch !== "\n" && ch !== "\r" && ch !== "\"" && ch !== "»" && ch !== "”" && ch !== "’" && ch !== ")" && ch !== "]" && ch !== "—" && ch !== "–" && ch !== "-" && ch !== "*") {
       return false;
     }
     const windowStart = Math.max(0, start - 200);
     const prefix = text.slice(windowStart, start);
-    if (windowStart === 0 && /^\s*$/.test(prefix)) return true;
-    if (windowStart > 0 && /^\s*$/.test(prefix)) {
+    if (windowStart === 0 && /^[\s"„“‚‘«»()\[\]]*$/.test(prefix)) return true;
+    if (windowStart > 0 && /^[\s"„“‚‘«»()\[\]]*$/.test(prefix)) {
       if (!/\S/.test(text.slice(0, windowStart))) return true;
     }
-    if (/[\r\n]\s*(?:[•\-*–—]|\d+[\.\)]|[a-zA-Z][\.\)])?\s*$/.test(prefix)) return true;
-    if (windowStart === 0 && /^(?:[•\-*–—]|\d+[\.\)]|[a-zA-Z][\.\)])\s*$/.test(prefix.trim())) return true;
-    const m = prefix.match(/([.?!…])[\s"'»”’\)]*$/);
+    if (/[\r\n]\s*(?:[•\-*–—]|\d+[\.\)]|[a-zA-Z][\.\)])?\s*[\s"„“‚‘«»()\[\]]*$/.test(prefix)) return true;
+    if (windowStart === 0 && /^(?:[•\-*–—]|\d+[\.\)]|[a-zA-Z][\.\)])\s*[\s"„“‚‘«»()\[\]]*$/.test(prefix.trim())) return true;
+    const m = prefix.match(/([.?!…])[\s"'»”’\)„“‚‘«\]]*$/);
     if (!m) return false;
     if (m[1] === "!" || m[1] === "?" || m[1] === "…") return true;
     const dotPos = prefix.lastIndexOf(".");

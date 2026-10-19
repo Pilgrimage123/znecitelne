@@ -719,8 +719,9 @@ body.movie-active #settingsSheet {
 const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];
 const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];
 const KEYS = PII_KEYS.concat(ORG_KEYS);
-const RULES = "2026.10.16-ai44";
+const RULES = "2026.10.19-ai45";
 const CHANGELOG = [
+  { version: "2026.10.19-ai45", notes: { cs: "Náprava chyb a nekonzistencí: bezpečný přístup k běhovým knihovnám bez přímého window v Node.js/worker prostředí (ODT, DOCX, XLSX, Ingest, PDF), oprava podpory Unicode code points v decodeXml (> 0xFFFF), podpora českých uvozovek v isSentenceStart(), sjednocení kanonických důvodů nálezu onomastic namísto zastaralého gazetteer dle GLOSSARY.md a odstranění zbytků panelu Návrh.", en: "Bug fixes and inconsistency resolution: safe runtime library resolution without naked window references in Node.js/worker environments (ODT, DOCX, XLSX, Ingest, PDF), support for astral Unicode code points in decodeXml (> 0xFFFF), support for Czech quotation marks in isSentenceStart(), alignment of canonical detection reason onomastic over deprecated gazetteer per GLOSSARY.md, and removal of dead Proposal pane residues." } },
   { version: "2026.10.16-ai44", notes: { cs: "Architektonická konsolidace, deterministický modulární build, zpřísnění bezpečnosti exportů a Předávací balíček sezení v2 (ADR-0008, ADR-0009): Deterministické sestavování z ES modulů v src/ v čistém Node.js bez bundlerů, odstranění zastaralého split_monolith.js, bezpečná XML sanitizace XLSX se split-run spoji, XML entitami a cached vzorci, sekvenční schvalování v DOCX exportu respektující accept:false a mazání metadat autora na revizích, fail-closed dekomprese FlateDecode v PDF verifikaci včetně UTF-16BE hex a Win-1250 kódování a blokace ObjStm/Launch/RichMedia, Předávací balíček sezení v2 s binárním sourceBuf a zlib kompresí pro Four-Eyes kontrolu, zrychlení EntityPropagationCache.scan na 2 průchody textem (< 5 ms) a zpřesnění pádové flexe akuzativu a cizích příjmení v morphology.js.", en: "Architectural consolidation, deterministic modular build pipeline, export security hardening and Session Transfer Package v2 (ADR-0008, ADR-0009): Pure Node.js zero-bundler build pipeline from src/ ES modules, removal of legacy split_monolith.js, safe XLSX XML sanitization across split runs, entities and cached formula cells, sequential traversal approval in DOCX exports respecting accept:false and revision author metadata stripping, fail-closed FlateDecode decompression in PDF verification with UTF-16BE hex / Win-1250 checks and ObjStm/Launch/RichMedia blocking, Session Transfer Package v2 with binary sourceBuf and zlib compression for Four-Eyes review, EntityPropagationCache.scan optimized to 2 text passes (< 5 ms), and morphology precision for accusative cases and foreign surnames." } },
   { version: "2026.10.15-ai43", notes: { cs: "Bezpečnostní audit, Zero-Network CSP, modulární ES architektura a šifrované sezení (ADR-0008, ADR-0009, ADR-0010): Vynucení offline režimu striktní Content-Security-Policy (CSP) dle ADR-0002, modularizace kódu do čistých ES modulů v src/, odstranění křehkého vyřezávání kódu v test.js ve prospěch přímých importů, nedestruktivní XML sanitizace XLSX přes fflate se 100% zachováním stylů, vzorců a grafů, šifrovaný export/import sezení (.znecitelne-session) pomocí AES-GCM + PBKDF2 pro druhou kontrolu, zobrazení panelu médií/podpisů a úplná hygiena repozitáře.", en: "Security audit, Zero-Network CSP, modular ES architecture and encrypted session (ADR-0008, ADR-0009, ADR-0010): Strict Content-Security-Policy (CSP) enforcing Zero-Network per ADR-0002, modular ES codebase in src/, direct imports in test suite replacing fragile source slicing, non-destructive XML sanitization of XLSX via fflate preserving 100% of formatting, formulas and charts, encrypted session package (.znecitelne-session) via AES-GCM + PBKDF2 for four-eyes review, media/signature inspector pane, and full repository hygiene." } },
   { version: "2026.10.15-ai42", notes: { cs: "Terminologie anonymizace a výchozí horní poloha ovládací lišty (ADR-0007): Sjednocení akčních sloves a prvků v UI na kanonické termíny anonymizace / anonymizovat (tlačítka Anonymizovat, Vše anonymizovat, Anonymizovat a exportovat, Zákonný důvod anonymizace, Protokol o anonymizaci) při zachování názvu aplikace Znečitelně a mezinárodního anglického standardu Redact/Redaction. Nastavení výchozí polohy ovládací lišty nahoře (barPos: 'top') pro nová sezení s respektováním dříve uložené uživatelské volby.", en: "Anonymisation terminology alignment and top toolbar default (ADR-0007): UI action verbs and labels unified to canonical anonymisation terminology (Anonymizovat, Vše anonymizovat, Anonymizovat a exportovat, Zákonný důvod anonymizace, Protokol o anonymizaci) while preserving product brand Znečitelně and standard English 'Redact/Redaction'. Toolbar position now defaults to top (barPos: 'top') for new sessions while preserving explicit localStorage preferences." } },
@@ -942,7 +943,9 @@ const I18N = {
         "propagation": "[Propagace]",
         "ocr:fuzzy": "[OCR: fuzzy]",
         "gazetteer": "[Onomastický registr]",
-        "onomastic": "[Onomastický registr]"
+        "onomastic": "[Onomastický registr]",
+        "onomastic:city": "[Onomastický registr: město]",
+        "gazetteer:city": "[Onomastický registr: město]"
       },
       expertMode:"Zobrazit technické detaily nálezů", processToggle:"Zobrazit rozbor postupu",
       movieAdvancedHelp:"Spustit pokročilou nápovědu (video)",
@@ -1122,7 +1125,9 @@ const I18N = {
         "propagation": "[Propagation]",
         "ocr:fuzzy": "[OCR: fuzzy]",
         "gazetteer": "[Onomastic registry]",
-        "onomastic": "[Onomastic registry]"
+        "onomastic": "[Onomastic registry]",
+        "onomastic:city": "[Onomastic registry: city]",
+        "gazetteer:city": "[Onomastic registry: city]"
       },
       expertMode:"Show technical hit details", processToggle:"Show process breakdown",
       movieAdvancedHelp:"Start advanced walkthrough (video)",
@@ -1720,19 +1725,24 @@ function isSentenceStart(text, start) {
     let i = start - 1;
     while (i >= 0 && (text.charCodeAt(i) === 32 || text.charCodeAt(i) === 9)) i--;
     if (i < 0) return true;
+    while (i >= 0 && (text.charAt(i) === "„" || text.charAt(i) === "“" || text.charAt(i) === "‘" || text.charAt(i) === "‚" || text.charAt(i) === "\"" || text.charAt(i) === "«" || text.charAt(i) === "(" || text.charAt(i) === "[")) {
+      i--;
+      while (i >= 0 && (text.charCodeAt(i) === 32 || text.charCodeAt(i) === 9)) i--;
+    }
+    if (i < 0) return true;
     const ch = text.charAt(i);
     if (ch !== "." && ch !== "?" && ch !== "!" && ch !== "…" && ch !== "\n" && ch !== "\r" && ch !== "\"" && ch !== "»" && ch !== "”" && ch !== "’" && ch !== ")" && ch !== "]" && ch !== "—" && ch !== "–" && ch !== "-" && ch !== "*") {
       return false;
     }
     const windowStart = Math.max(0, start - 200);
     const prefix = text.slice(windowStart, start);
-    if (windowStart === 0 && /^\s*$/.test(prefix)) return true;
-    if (windowStart > 0 && /^\s*$/.test(prefix)) {
+    if (windowStart === 0 && /^[\s"„“‚‘«»()\[\]]*$/.test(prefix)) return true;
+    if (windowStart > 0 && /^[\s"„“‚‘«»()\[\]]*$/.test(prefix)) {
       if (!/\S/.test(text.slice(0, windowStart))) return true;
     }
-    if (/[\r\n]\s*(?:[•\-*–—]|\d+[\.\)]|[a-zA-Z][\.\)])?\s*$/.test(prefix)) return true;
-    if (windowStart === 0 && /^(?:[•\-*–—]|\d+[\.\)]|[a-zA-Z][\.\)])\s*$/.test(prefix.trim())) return true;
-    const m = prefix.match(/([.?!…])[\s"'»”’\)]*$/);
+    if (/[\r\n]\s*(?:[•\-*–—]|\d+[\.\)]|[a-zA-Z][\.\)])?\s*[\s"„“‚‘«»()\[\]]*$/.test(prefix)) return true;
+    if (windowStart === 0 && /^(?:[•\-*–—]|\d+[\.\)]|[a-zA-Z][\.\)])\s*[\s"„“‚‘«»()\[\]]*$/.test(prefix.trim())) return true;
+    const m = prefix.match(/([.?!…])[\s"'»”’\)„“‚‘«\]]*$/);
     if (!m) return false;
     if (m[1] === "!" || m[1] === "?" || m[1] === "…") return true;
     const dotPos = prefix.lastIndexOf(".");
@@ -2470,7 +2480,7 @@ function detect(text, enabled, secrets, options){
     if (enabled.email) add(findAll(t, /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "email"), ["format"]);
     if (enabled.address) {
       add(findAll(t, /(?:se sídlem|se sidlem|bytem|adresa|sídlo|sidlo)[:\s]+([^\n]{8,90})/gi, "address", (v) => /\d/.test(v), 1).map(h => {
-        h.reasons = ["label:adresa","gazetteer"];
+        h.reasons = ["label:adresa","onomastic"];
         const cut = h.value.split(/\s{2,}|\t/)[0];
         if (cut && cut.length >= 8) { h.value = cut; h.end = h.start + cut.length; }
         return h;
@@ -2480,10 +2490,10 @@ function detect(text, enabled, secrets, options){
         return h;
       }));
       add(findAll(t, /(?<!\p{L})(?:v|ve)\s+(Praze|Brně|Ostravě|Plzni|Olomouci|Liberci|Českých Budějovicích|Hradci Králové|Ústí nad Labem|Pardubicích|Zlíně|Kladně|Mostě|Opavě|Karviné|Jihlavě|Teplicích|Děčíně|Karlových Varech|Chomutově|Mladé Boleslavi|Prostějově|Přerově|České Lípě|Třebíči|Třinci|Táboře|Znojmě|Příbrami|Chebu|Kolíně|Trutnově|Písku|Kroměříži|Šumperku|Vsetíně|Hodoníně|Novém Jičíně|Uherském Hradišti|Břeclavi|Litoměřicích|Sokolově|Havlíčkově Brodě|Chrudimi|Strakonicích|Klatovech|Jičíně)(?!\p{L})/giu, "address", null, 1).map(h => {
-        h.reasons = ["gazetteer:city"];
+        h.reasons = ["onomastic:city"];
         return h;
       }));
-      add(findAll(t, /\p{Lu}[\p{L}.]+(?:\s+\p{Lu}[\p{L}.]+)*\s+(?:náměstí|nám\.|namesti|třída|trida|ulice|nábřeží|nabrezi|alej|sady)\s+\d{1,4}(?:\s*\/\s*\d{1,4})?/giu, "address"), ["gazetteer"]);
+      add(findAll(t, /\p{Lu}[\p{L}.]+(?:\s+\p{Lu}[\p{L}.]+)*\s+(?:náměstí|nám\.|namesti|třída|trida|ulice|nábřeží|nabrezi|alej|sady)\s+\d{1,4}(?:\s*\/\s*\d{1,4})?/giu, "address"), ["onomastic"]);
       add(findAll(t, /\p{Lu}\p{Ll}+(?:ova|ová|ská|cká|ního|kého)?\s+\d{1,4}\s*\/\s*\d{1,4}/gu, "address"), ["format"]);
       if (sus !== "low") {
         add(findAll(t, /\p{Lu}\p{Ll}+(?:ova|ová|ská|cká|ního|kého)\s+\d{1,4}\b/gu, "address", (v,f,i) =>
@@ -2941,7 +2951,7 @@ function detect(text, enabled, secrets, options){
       add(findAll(t, /\b(?:LV|L\.\s?V\.)\s*(?:č\.\s*)?(\d{1,6})\b/g, "katastr", null, 1), ["label:LV","format"]);
       add(findAll(t, /\blist(?:u|em|y|ech)?\s+vlastnictví\s*(?:č\.\s*)?(\d{1,6})\b/giu, "katastr", null, 1), ["label:LV","format"]);
       // k.ú. Nové Město, katastrální území Vinohrady
-      add(findAll(t, /(?:\b[Kk]\.\s?ú\.|\b[Kk]at\.\s?úz(?:emí|\.)|\bkatastrální(?:ho|m|mu)?\s+území)[ \t]+(\p{Lu}[\p{L}-]+(?:[ \t]+(?:(?:nad|pod|u|na|v|ve|při)[ \t]+)?\p{Lu}[\p{L}-]+){0,2})/gu, "katastr", null, 1), ["label:k.ú.","gazetteer"]);
+      add(findAll(t, /(?:\b[Kk]\.\s?ú\.|\b[Kk]at\.\s?úz(?:emí|\.)|\bkatastrální(?:ho|m|mu)?\s+území)[ \t]+(\p{Lu}[\p{L}-]+(?:[ \t]+(?:(?:nad|pod|u|na|v|ve|při)[ \t]+)?\p{Lu}[\p{L}-]+){0,2})/gu, "katastr", null, 1), ["label:k.ú.","onomastic"]);
     }
 
     // --- Fáze 2: zahraniční IBAN a SWIFT/BIC ---
@@ -3489,12 +3499,29 @@ function extractRtfText(rtfStr){
 
 // --- Module: src/formats/odt.js ---
 function extractOdtText(buf){
-    if (!window.fflate) throw new Error("fflate není k dispozici");
+    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+    if (!flate || !flate.unzipSync) throw new Error("fflate není k dispozici");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
-    const files = fflate.unzipSync(u8);
+    const files = flate.unzipSync(u8);
     const content = files["content.xml"];
     if (!content) throw new Error("Neplatný ODT: chybí content.xml");
     const xml = new TextDecoder("utf-8").decode(content);
+    if (typeof DOMParser === "undefined") {
+      const paragraphs = [];
+      const reP = /<text:[ph](?:\s[^>]*)?>([\s\S]*?)<\/text:[ph]>/gi;
+      let pm;
+      while ((pm = reP.exec(xml)) !== null) {
+        const pXml = pm[1];
+        let pText = pXml
+          .replace(/<text:tab\/>/gi, "\t")
+          .replace(/<text:line-break\/>/gi, "\n")
+          .replace(/<text:s text:c="(\d+)"\/>/gi, (_, c) => " ".repeat(parseInt(c, 10) || 1))
+          .replace(/<text:s\/>/gi, " ")
+          .replace(/<[^>]+>/g, "");
+        if (pText.trim()) paragraphs.push(pText.trim());
+      }
+      return paragraphs.join("\n\n");
+    }
     const doc = new DOMParser().parseFromString(xml, "application/xml");
     if (doc.getElementsByTagName("parsererror").length) throw new Error("Chyba XML v ODT");
     const elements = Array.from(doc.getElementsByTagNameNS("*", "*")).filter(n => {
@@ -3541,9 +3568,10 @@ function xlsxToText(wb){
     return { text, cellMap };
   }
 async function extractXlsx(buf){
-    if (!window.XLSX) throw new Error("XLSX: knihovna se nenačetla (síť).");
+    const xlsxLib = (typeof window !== "undefined" && window.XLSX) || (typeof globalThis !== "undefined" && globalThis.XLSX) || null;
+    if (!xlsxLib) throw new Error("XLSX: knihovna se nenačetla.");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
-    return xlsxToText(XLSX.read(u8, { type:"array" }));
+    return xlsxToText(xlsxLib.read(u8, { type:"array" }));
   }
 function decodeXml(str) {
   if (!str) return "";
@@ -3553,8 +3581,14 @@ function decodeXml(str) {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&')
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+    .replace(/&#(\d+);/g, (_, n) => {
+      const code = parseInt(n, 10);
+      return Number.isFinite(code) && code >= 0 ? String.fromCodePoint(code) : "";
+    })
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => {
+      const code = parseInt(h, 16);
+      return Number.isFinite(code) && code >= 0 ? String.fromCodePoint(code) : "";
+    });
 }
 function encodeXml(str) {
   if (!str) return "";
@@ -3956,6 +3990,7 @@ function sanitizeComments(xml, values, getReplacement, stripMeta) {
   return resXml;
 }
 function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = true) {
+  if (!sourceBuf) return { ok: false, reason: "sourceBuf missing" };
   const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
   if (!flate || !flate.unzipSync) return { ok: false, reason: "fflate missing" };
 
@@ -4049,17 +4084,22 @@ function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = true) {
   return { ok: true, bytes };
 }
 function exportXlsxFile(sourceBuf, hits, mode, lang){
-    if (window.fflate && typeof exportXlsxFileFflate === "function") {
-      const fflateRes = exportXlsxFileFflate(sourceBuf, hits, mode, lang, S.stripMeta);
+    if (!sourceBuf) return null;
+    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+    const stripMetaVal = (typeof S !== "undefined" && S.stripMeta !== undefined) ? S.stripMeta : true;
+    if (flate && typeof exportXlsxFileFflate === "function") {
+      const fflateRes = exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMetaVal);
       if (fflateRes && fflateRes.ok) return fflateRes.bytes;
     }
-    const wb = XLSX.read(sourceBuf.slice(0), { type:"array" });
+    const xlsxLib = (typeof window !== "undefined" && window.XLSX) || (typeof globalThis !== "undefined" && globalThis.XLSX) || null;
+    if (!xlsxLib) throw new Error("XLSX: knihovna se nenačetla.");
+    const wb = xlsxLib.read(sourceBuf.slice(0), { type:"array" });
     const { cellMap } = xlsxToText(wb);
     const replacer = bindReplacer(mode, lang, hits);
     const accepted = effectiveHits(hits);
     if (!accepted.length) {
-      if (S.stripMeta) stripWorkbookMeta(wb);
-      return XLSX.write(wb, { bookType:"xlsx", type:"array" });
+      if (stripMetaVal) stripWorkbookMeta(wb);
+      return xlsxLib.write(wb, { bookType:"xlsx", type:"array" });
     }
     cellMap.forEach(cm => {
       let low = 0, high = accepted.length - 1, first = accepted.length;
@@ -4090,8 +4130,8 @@ function exportXlsxFile(sourceBuf, hits, mode, lang){
       });
       cell.v = str; cell.t = "s"; delete cell.f; delete cell.w;
     });
-    if (S.stripMeta) stripWorkbookMeta(wb);
-    return XLSX.write(wb, { bookType:"xlsx", type:"array" });
+    if (stripMetaVal) stripWorkbookMeta(wb);
+    return xlsxLib.write(wb, { bookType:"xlsx", type:"array" });
   }
 function stripWorkbookMeta(wb){
     wb.Props = {
@@ -4416,6 +4456,7 @@ function getOrderedDocxPartNames(files, partRe) {
 async function exportDocxFile(sourceBuf, hits, mode, lang){
     const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
     if (!flate) return { ok:false, reason:"fflate" };
+    if (!sourceBuf) return { ok:false, reason:"sourceBuf missing" };
 
     const replacer = bindReplacer(mode, lang, hits);
     const map = new Map();
@@ -4514,9 +4555,10 @@ async function exportDocxFile(sourceBuf, hits, mode, lang){
 
     const bytes = flate.zipSync(files, { level: 6 });
 
-    if (typeof window !== "undefined" && window.mammoth) {
+    const mammoth = (typeof window !== "undefined" && window.mammoth) || (typeof globalThis !== "undefined" && globalThis.mammoth) || null;
+    if (mammoth) {
       const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-      const chk = (await window.mammoth.extractRawText({ arrayBuffer: buf })).value || "";
+      const chk = (await mammoth.extractRawText({ arrayBuffer: buf })).value || "";
       const left = Array.from(map.entries()).filter(([v, rep]) => !rep.includes(v) && chk.includes(v));
       if (left.length) {
         throw new Error("Zbytková hodnota po kontrole");
@@ -4530,9 +4572,10 @@ async function exportDocxFile(sourceBuf, hits, mode, lang){
     };
   }
 function extractDocxTextWithFflate(buf){
-    if (!window.fflate) throw new Error("fflate není k dispozici");
+    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+    if (!flate || !flate.unzipSync) throw new Error("fflate není k dispozici");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
-    const files = fflate.unzipSync(u8);
+    const files = flate.unzipSync(u8);
     const docKey = Object.keys(files).find(k => k.replace(/\\/g, "/").toLowerCase() === "word/document.xml");
     const docEntry = docKey ? files[docKey] : null;
     if (!docEntry) throw new Error("Neplatný DOCX: chybí word/document.xml");
@@ -4540,6 +4583,26 @@ function extractDocxTextWithFflate(buf){
     function parseDocxXml(entryBytes){
       if (!entryBytes) return "";
       const xml = new TextDecoder("utf-8").decode(entryBytes);
+      if (typeof DOMParser === "undefined") {
+        const textNodes = [];
+        const reP = /<w:p(?:\s[^>]*)?>([\s\S]*?)<\/w:p>/gi;
+        let pm;
+        while ((pm = reP.exec(xml)) !== null) {
+          const pXml = pm[1];
+          let pText = "";
+          const reItem = /<w:(?:t(?:\s[^>]*)?>([^<]*)<\/w:t>|tab\/>|noBreakHyphen\/>|softHyphen\/>|br(?:\s[^>]*)?\/>)/gi;
+          let im;
+          while ((im = reItem.exec(pXml)) !== null) {
+            if (im[1] !== undefined) pText += im[1];
+            else if (im[0].includes("tab")) pText += "\t";
+            else if (im[0].includes("noBreakHyphen")) pText += "\u2011";
+            else if (im[0].includes("softHyphen")) pText += "\u00AD";
+            else if (im[0].includes("br")) pText += "\n";
+          }
+          if (pText) textNodes.push(pText);
+        }
+        return textNodes.join("\n");
+      }
       const doc = new DOMParser().parseFromString(xml, "application/xml");
       if (doc.getElementsByTagName("parsererror").length) return "";
       const paras = Array.from(doc.getElementsByTagNameNS(DOCX_W_NS, "p"));
@@ -4800,16 +4863,18 @@ function pdfHasSignatureBytes(buf){
     } catch (_) { return false; }
   }
 function pdfWorker(){
-    if (!window.pdfjsLib) throw new Error("PDF: knihovna se nenačetla.");
-    if (window.__pdfWorkerReady) return window.__pdfWorkerReady;
-    window.__pdfWorkerReady = (async () => {
+    const pdfjs = (typeof window !== "undefined" && window.pdfjsLib) || (typeof globalThis !== "undefined" && globalThis.pdfjsLib) || null;
+    if (!pdfjs) throw new Error("PDF: knihovna se nenačetla.");
+    const win = typeof window !== "undefined" ? window : globalThis;
+    if (win.__pdfWorkerReady) return win.__pdfWorkerReady;
+    win.__pdfWorkerReady = (async () => {
       const local = "./lib/pdf.worker.min.js";
       try {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = local;
+        pdfjs.GlobalWorkerOptions.workerSrc = local;
       } catch (_) {}
       return "local";
     })();
-    return window.__pdfWorkerReady;
+    return win.__pdfWorkerReady;
   }
 async function getPdfDocument(data){
     await pdfWorker();
@@ -5094,8 +5159,9 @@ async function getPdfDocument(data){
   }
   function pdfRenderParams(ctx, vp){
     const opts = { canvasContext: ctx, viewport: vp };
-    if (window.pdfjsLib && pdfjsLib.AnnotationMode) {
-      opts.annotationMode = pdfjsLib.AnnotationMode.ENABLE;
+    const pdfjs = (typeof window !== "undefined" && window.pdfjsLib) || (typeof globalThis !== "undefined" && globalThis.pdfjsLib) || null;
+    if (pdfjs && pdfjs.AnnotationMode) {
+      opts.annotationMode = pdfjs.AnnotationMode.ENABLE;
     }
     return opts;
   }
@@ -5109,7 +5175,7 @@ async function canFetchLocalAssets() {
     _canFetchLocalCache = false;
     return false;
   }
-  if (window.location && window.location.protocol === "file:") {
+  if (typeof window !== "undefined" && window.location && window.location.protocol === "file:") {
     try {
       await fetch("./lib/tesseract.min.js", { method: "HEAD" });
       _canFetchLocalCache = true;
@@ -5152,7 +5218,8 @@ async function extractPdf(data){
     }
     async function getOcrWorker(){
       if (ocrWorker) return ocrWorker;
-      if (ocrDisabled || !S.ocrEnabled || !window.Tesseract) return null;
+      const tesseractLib = (typeof window !== "undefined" && window.Tesseract) || (typeof globalThis !== "undefined" && globalThis.Tesseract) || null;
+      if (ocrDisabled || !S.ocrEnabled || !tesseractLib) return null;
       const canFetch = await canFetchLocalAssets();
       if (!canFetch) {
         console.warn("OCR: local asset fetching is restricted under file:// protocol. Skipping OCR.");
@@ -5170,13 +5237,13 @@ async function extractPdf(data){
           workerErrReject = reject;
         });
 
-        const localOpts = (window.__libLocal && window.__libLocal.tesseract) ? {
+        const localOpts = (typeof window !== "undefined" && window.__libLocal && window.__libLocal.tesseract) ? {
           workerPath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/worker.min.js", location.href).href : "./lib/tesseract/worker.min.js",
           corePath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/core/", location.href).href : "./lib/tesseract/core/",
           langPath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/lang/", location.href).href : "./lib/tesseract/lang/"
         } : {};
 
-        const createPromise = Tesseract.createWorker("ces", 1, {
+        const createPromise = tesseractLib.createWorker("ces", 1, {
           ...localOpts,
           errorHandler: err => {
             if (workerErrReject) workerErrReject(new Error(typeof err === "string" ? err : ((err && err.message) || "OCR error")));
@@ -5842,8 +5909,9 @@ function isImageFile(name, type){
     return /\.(png|jpe?g|webp|bmp|gif|tiff?)$/i.test(n) || (typeof type === "string" && type.startsWith("image/"));
   }
 async function handleImageFile(file, buf, options = {}){
-    const ocrEnabled = options.ocrEnabled ?? S.ocrEnabled;
-    if (!ocrEnabled || !window.Tesseract) {
+    const ocrEnabled = options.ocrEnabled ?? (typeof S !== "undefined" ? S.ocrEnabled : false);
+    const tesseractLib = (typeof window !== "undefined" && window.Tesseract) || (typeof globalThis !== "undefined" && globalThis.Tesseract) || null;
+    if (!ocrEnabled || !tesseractLib) {
       throw new DocumentIngestionError(IngestErrorCode.IMAGE_NEED_OCR, file ? file.name : "");
     }
     const reportProgress = options.onProgress || showOcrProgress;
@@ -5889,7 +5957,7 @@ async function handleImageFile(file, buf, options = {}){
       const errPromise = new Promise((_, reject) => {
         workerErrReject = reject;
       });
-      const localOpts = (window.__libLocal && window.__libLocal.tesseract) ? {
+      const localOpts = (typeof window !== "undefined" && window.__libLocal && window.__libLocal.tesseract) ? {
         workerPath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/worker.min.js", location.href).href : "./lib/tesseract/worker.min.js",
         corePath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/core/", location.href).href : "./lib/tesseract/core/",
         langPath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/lang/", location.href).href : "./lib/tesseract/lang/"
@@ -6023,15 +6091,17 @@ async function ingestDocument(input, options = {}){
     } else if (n.endsWith(".docx") || type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
       let text = "";
       let mammothErr = null;
-      if (window.mammoth) {
+      const mammoth = (typeof window !== "undefined" && window.mammoth) || (typeof globalThis !== "undefined" && globalThis.mammoth) || null;
+      const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+      if (mammoth) {
         try {
-          const res = await window.mammoth.extractRawText({ arrayBuffer: buf });
+          const res = await mammoth.extractRawText({ arrayBuffer: buf });
           text = (res && res.value) || "";
         } catch (e) {
           mammothErr = e;
         }
       }
-      if (!text && window.fflate) {
+      if (!text && flate) {
         try {
           text = extractDocxTextWithFflate(buf);
         } catch (e) {
@@ -6071,9 +6141,10 @@ async function ingestDocument(input, options = {}){
     } else if (isImageFile(name, type)) {
       return await handleImageFile(file, buf, options);
     } else {
-      if (isZip && window.fflate) {
+      const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+      if (isZip && flate) {
         try {
-          const files = fflate.unzipSync(new Uint8Array(buf));
+          const files = flate.unzipSync(new Uint8Array(buf));
           const hasDocXml = Object.keys(files).some(k => k.replace(/\\/g, "/").toLowerCase() === "word/document.xml");
           if (hasDocXml) {
             const text = extractDocxTextWithFflate(buf);
@@ -7935,15 +8006,14 @@ function download(name, blob){
 
     } else $("inspector").innerHTML = "";
     paintQuickHitBar(sel, t);
-    if ($("lblRes")) $("lblRes").textContent = t.result;
-    if ($("result")) $("result").textContent = replaced;
     if ($("lblProc")) $("lblProc").textContent = t.processTitle;
     if ($("processPane")) $("processPane").classList.toggle("hidden", !S.processAnalysis);
     if ($("processBox") && S.processAnalysis) $("processBox").innerHTML = processHTML(proc);
     if ($("mediaPane") && $("mediaBox")) {
       const hasSig = !!S.sigDetected;
       let docxMediaCount = 0;
-      if (S.kind === "docx" && S.sourceBuf && window.fflate) {
+      const flateLib = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+      if (S.kind === "docx" && S.sourceBuf && flateLib) {
         try {
           const files = window.fflate.unzipSync(new Uint8Array(S.sourceBuf.slice(0)));
           docxMediaCount = Object.keys(files).filter(k => /^word\/(?:media|embeddings)\//i.test(k)).length;
@@ -8864,8 +8934,6 @@ async function maybePdfa(bytes, notes){
       const pdfVisual = doc.getElementById("pdfVisual");
       if (pdfVisual) { pdfVisual.innerHTML = ""; pdfVisual.classList.add("hidden"); }
       doc.body && doc.body.classList.remove("pdf-visual-on");
-      const result = doc.getElementById("result");
-      if (result) result.innerHTML = "";
       const hitList = doc.getElementById("hitList");
       if (hitList) hitList.innerHTML = "";
       const processBox = doc.getElementById("processBox");
@@ -9404,7 +9472,7 @@ function selfTest(){
     });
     const cachePdm = typeof createEntityPropagationCache === "function" ? createEntityPropagationCache("test", []).generateParadigm("Petr Kovář") : [];
     cases.push({
-      name: "entity cache paradigm generation for 7 cases",
+      name: "dokumentová mezipaměť entit paradigm generation for 7 cases",
       ok: Array.isArray(cachePdm) &&
           ["Kovář", "Kováře", "Kovářovi", "Kovářem"].every(f => cachePdm.includes(f)) &&
           ["Petr Kovář", "Petra Kováře", "Petrem Kovářem"].every(f => cachePdm.includes(f)),
@@ -9414,7 +9482,7 @@ function selfTest(){
     });
     const uninflPdm = typeof createEntityPropagationCache === "function" ? createEntityPropagationCache("test", []).generateParadigm("Marie Svoboda") : [];
     cases.push({
-      name: "entity cache uninflected surname paradigm",
+      name: "dokumentová mezipaměť entit uninflected surname paradigm",
       ok: Array.isArray(uninflPdm) &&
           ["Svoboda", "Marie Svoboda", "paní Svoboda"].some(f => uninflPdm.includes(f)),
       type: "propagation",
@@ -9807,7 +9875,6 @@ function selfTest(){
           sanitizedTest.startsWith("<!DOCTYPE html>") &&
           sanitizedTest.includes("<title>Znečitelně</title>") &&
           sanitizedTest.includes('id="orig"></pre>') &&
-          sanitizedTest.includes('id="result"') &&
           sanitizedTest.length > 100000,
       type:"html_export", includes:"sanitized_fallback", got:[String(sanitizedTest.length), String(sanitizedTest.startsWith("<!DOCTYPE html>"))]
     });

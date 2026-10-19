@@ -228,16 +228,18 @@ export function pdfHasSignatureBytes(buf){
   }
 
 export function pdfWorker(){
-    if (!window.pdfjsLib) throw new Error("PDF: knihovna se nenačetla.");
-    if (window.__pdfWorkerReady) return window.__pdfWorkerReady;
-    window.__pdfWorkerReady = (async () => {
+    const pdfjs = (typeof window !== "undefined" && window.pdfjsLib) || (typeof globalThis !== "undefined" && globalThis.pdfjsLib) || null;
+    if (!pdfjs) throw new Error("PDF: knihovna se nenačetla.");
+    const win = typeof window !== "undefined" ? window : globalThis;
+    if (win.__pdfWorkerReady) return win.__pdfWorkerReady;
+    win.__pdfWorkerReady = (async () => {
       const local = "./lib/pdf.worker.min.js";
       try {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = local;
+        pdfjs.GlobalWorkerOptions.workerSrc = local;
       } catch (_) {}
       return "local";
     })();
-    return window.__pdfWorkerReady;
+    return win.__pdfWorkerReady;
   }
   export async function getPdfDocument(data){
     await pdfWorker();
@@ -522,8 +524,9 @@ export function pdfWorker(){
   }
   function pdfRenderParams(ctx, vp){
     const opts = { canvasContext: ctx, viewport: vp };
-    if (window.pdfjsLib && pdfjsLib.AnnotationMode) {
-      opts.annotationMode = pdfjsLib.AnnotationMode.ENABLE;
+    const pdfjs = (typeof window !== "undefined" && window.pdfjsLib) || (typeof globalThis !== "undefined" && globalThis.pdfjsLib) || null;
+    if (pdfjs && pdfjs.AnnotationMode) {
+      opts.annotationMode = pdfjs.AnnotationMode.ENABLE;
     }
     return opts;
   }
@@ -537,7 +540,7 @@ export async function canFetchLocalAssets() {
     _canFetchLocalCache = false;
     return false;
   }
-  if (window.location && window.location.protocol === "file:") {
+  if (typeof window !== "undefined" && window.location && window.location.protocol === "file:") {
     try {
       await fetch("./lib/tesseract.min.js", { method: "HEAD" });
       _canFetchLocalCache = true;
@@ -581,7 +584,8 @@ export async function extractPdf(data){
     }
     async function getOcrWorker(){
       if (ocrWorker) return ocrWorker;
-      if (ocrDisabled || !S.ocrEnabled || !window.Tesseract) return null;
+      const tesseractLib = (typeof window !== "undefined" && window.Tesseract) || (typeof globalThis !== "undefined" && globalThis.Tesseract) || null;
+      if (ocrDisabled || !S.ocrEnabled || !tesseractLib) return null;
       const canFetch = await canFetchLocalAssets();
       if (!canFetch) {
         console.warn("OCR: local asset fetching is restricted under file:// protocol. Skipping OCR.");
@@ -599,13 +603,13 @@ export async function extractPdf(data){
           workerErrReject = reject;
         });
 
-        const localOpts = (window.__libLocal && window.__libLocal.tesseract) ? {
+        const localOpts = (typeof window !== "undefined" && window.__libLocal && window.__libLocal.tesseract) ? {
           workerPath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/worker.min.js", location.href).href : "./lib/tesseract/worker.min.js",
           corePath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/core/", location.href).href : "./lib/tesseract/core/",
           langPath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/lang/", location.href).href : "./lib/tesseract/lang/"
         } : {};
 
-        const createPromise = Tesseract.createWorker("ces", 1, {
+        const createPromise = tesseractLib.createWorker("ces", 1, {
           ...localOpts,
           errorHandler: err => {
             if (workerErrReject) workerErrReject(new Error(typeof err === "string" ? err : ((err && err.message) || "OCR error")));

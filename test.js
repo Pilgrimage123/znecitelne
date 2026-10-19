@@ -35,7 +35,7 @@ import {
 } from "./src/core/detector.js";
 import { decodeTextBuffer, isBinaryBuffer, extractRtfText } from "./src/formats/rtf.js";
 import { extractOdtText } from "./src/formats/odt.js";
-import { xlsxToText, extractXlsx, exportXlsxFile, exportXlsxFileFflate, stripWorkbookMeta } from "./src/formats/xlsx.js";
+import { xlsxToText, extractXlsx, exportXlsxFile, exportXlsxFileFflate, stripWorkbookMeta, decodeXml } from "./src/formats/xlsx.js";
 import {
   docxRelationshipSourcePart, docxNormalizeZipPath, docxResolveRelTarget,
   docxRelativeZipPath, docxSetTextPreservingSpace, docxMakeWork,
@@ -1854,6 +1854,66 @@ try {
   check(Array.isArray(scanResults), "cache.scan() must return array of new hits");
 } catch (errBench) {
   failures.push("FÁZE 7 propagation performance benchmark failed: " + (errBench.message || String(errBench)));
+}
+
+// ============================================================================
+// FÁZE 8: Regresní testy pro nápravu chyb a nekonzistencí (2026-10-19-ai45)
+// ============================================================================
+try {
+  // 1. decodeXml handles high code points (> 0xFFFF) properly with String.fromCodePoint
+  const decodedEmoji = decodeXml("Symboly: &#128512; a &#x1F600; &amp; &lt;text&gt;");
+  check(decodedEmoji.includes("😀"), "decodeXml must correctly decode high code points (> 0xFFFF)");
+  check(decodedEmoji.includes("<text>"), "decodeXml must decode standard XML entities");
+
+  // 2. isSentenceStart handles Czech quotation marks
+  check(isSentenceStart("„Nový přístup byl zvolen.“", 1) === true, "isSentenceStart must recognize sentence start inside Czech opening quote");
+  const quoteDoc = "Smlouva skončila. „Nový přístup byl zvolen.“";
+  check(isSentenceStart(quoteDoc, quoteDoc.indexOf("Nový")) === true, "isSentenceStart must recognize sentence start after dot and opening quote");
+  check(isSentenceStart("“Starý zákoník...”", 1) === true, "isSentenceStart must recognize sentence start inside English/closing quote");
+
+  // 3. extractDocxTextWithFflate executes in headless / Node.js environment without window
+  const enc = new TextEncoder();
+  const mockDocxXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p><w:r><w:t>Ahoj ze světa DOCX</w:t></w:r></w:p>
+  </w:body>
+</w:document>`;
+  const mockDocxZip = globalThis.fflate.zipSync({
+    "word/document.xml": enc.encode(mockDocxXml)
+  });
+  const docxExtracted = extractDocxTextWithFflate(mockDocxZip.buffer);
+  check(docxExtracted.includes("Ahoj ze světa DOCX"), "extractDocxTextWithFflate must extract text in Node.js environment");
+
+  // 4. extractOdtText executes in headless / Node.js environment without window
+  const mockOdtXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">
+  <office:body>
+    <office:text>
+      <text:p>Ahoj ze světa ODT</text:p>
+    </office:text>
+  </office:body>
+</office:document-content>`;
+  const mockOdtZip = globalThis.fflate.zipSync({
+    "content.xml": enc.encode(mockOdtXml)
+  });
+  const odtExtracted = extractOdtText(mockOdtZip.buffer);
+  check(odtExtracted.includes("Ahoj ze světa ODT"), "extractOdtText must extract text in Node.js environment");
+
+  // 5. exportXlsxFile and exportDocxFile safely guard against missing/null buffers
+  check(exportXlsxFile(null, [], "box", "cs") === null, "exportXlsxFile must return null for missing sourceBuf without throwing");
+  const docxNullRes = await exportDocxFile(null, [], "box", "cs");
+  check(docxNullRes && docxNullRes.ok === false, "exportDocxFile must return error object for missing sourceBuf without throwing");
+
+  // 6. Address detection reasons canonicalized to onomastic per GLOSSARY.md
+  const addrHits = detect("Společnost sídlí na adrese Václavské náměstí 1, Praha.", { address: true }, []);
+  const vaclavakHit = addrHits.find(h => h.value.includes("Václavské náměstí"));
+  check(
+    Boolean(vaclavakHit && (vaclavakHit.reasons || []).includes("onomastic")),
+    "Address detection must produce canonical 'onomastic' reason tag"
+  );
+} catch (errF8) {
+  failures.push("FÁZE 8 bug fix regression tests failed: " + (errF8.message || String(errF8)));
 }
 
 

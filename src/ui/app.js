@@ -808,15 +808,14 @@ function download(name, blob){
 
     } else $("inspector").innerHTML = "";
     paintQuickHitBar(sel, t);
-    if ($("lblRes")) $("lblRes").textContent = t.result;
-    if ($("result")) $("result").textContent = replaced;
     if ($("lblProc")) $("lblProc").textContent = t.processTitle;
     if ($("processPane")) $("processPane").classList.toggle("hidden", !S.processAnalysis);
     if ($("processBox") && S.processAnalysis) $("processBox").innerHTML = processHTML(proc);
     if ($("mediaPane") && $("mediaBox")) {
       const hasSig = !!S.sigDetected;
       let docxMediaCount = 0;
-      if (S.kind === "docx" && S.sourceBuf && window.fflate) {
+      const flateLib = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+      if (S.kind === "docx" && S.sourceBuf && flateLib) {
         try {
           const files = window.fflate.unzipSync(new Uint8Array(S.sourceBuf.slice(0)));
           docxMediaCount = Object.keys(files).filter(k => /^word\/(?:media|embeddings)\//i.test(k)).length;
@@ -1737,8 +1736,6 @@ async function maybePdfa(bytes, notes){
       const pdfVisual = doc.getElementById("pdfVisual");
       if (pdfVisual) { pdfVisual.innerHTML = ""; pdfVisual.classList.add("hidden"); }
       doc.body && doc.body.classList.remove("pdf-visual-on");
-      const result = doc.getElementById("result");
-      if (result) result.innerHTML = "";
       const hitList = doc.getElementById("hitList");
       if (hitList) hitList.innerHTML = "";
       const processBox = doc.getElementById("processBox");
@@ -2278,7 +2275,7 @@ export function selfTest(){
     });
     const cachePdm = typeof createEntityPropagationCache === "function" ? createEntityPropagationCache("test", []).generateParadigm("Petr Kovář") : [];
     cases.push({
-      name: "entity cache paradigm generation for 7 cases",
+      name: "dokumentová mezipaměť entit paradigm generation for 7 cases",
       ok: Array.isArray(cachePdm) &&
           ["Kovář", "Kováře", "Kovářovi", "Kovářem"].every(f => cachePdm.includes(f)) &&
           ["Petr Kovář", "Petra Kováře", "Petrem Kovářem"].every(f => cachePdm.includes(f)),
@@ -2288,7 +2285,7 @@ export function selfTest(){
     });
     const uninflPdm = typeof createEntityPropagationCache === "function" ? createEntityPropagationCache("test", []).generateParadigm("Marie Svoboda") : [];
     cases.push({
-      name: "entity cache uninflected surname paradigm",
+      name: "dokumentová mezipaměť entit uninflected surname paradigm",
       ok: Array.isArray(uninflPdm) &&
           ["Svoboda", "Marie Svoboda", "paní Svoboda"].some(f => uninflPdm.includes(f)),
       type: "propagation",
@@ -2681,7 +2678,6 @@ export function selfTest(){
           sanitizedTest.startsWith("<!DOCTYPE html>") &&
           sanitizedTest.includes("<title>Znečitelně</title>") &&
           sanitizedTest.includes('id="orig"></pre>') &&
-          sanitizedTest.includes('id="result"') &&
           sanitizedTest.length > 100000,
       type:"html_export", includes:"sanitized_fallback", got:[String(sanitizedTest.length), String(sanitizedTest.startsWith("<!DOCTYPE html>"))]
     });
