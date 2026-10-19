@@ -45,7 +45,8 @@ import {
 } from "./src/formats/docx.js";
 import {
   pdfWordQuads, pdfHasSignatureBytes, verifySanitizedPdfText, assertSecurePdfBytes,
-  resolvePageHitQuads, pdfDetectFontFamily, pdfCompactToken, mergeAdjacentBoxes
+  resolvePageHitQuads, pdfDetectFontFamily, pdfDetectFontStyle, pdfCompactToken,
+  mergeAdjacentBoxes, computeCharWidths, sampleCanvasBg
 } from "./src/formats/pdf.js";
 import {
   IngestErrorCode, DocumentIngestionError, localizeIngestError,
@@ -600,8 +601,8 @@ check(
 );
 
 check(
-  htmlSourceIncludes("baseLine - fH * 1.04") && htmlSourceIncludes("baseLine + fH * 0.30"),
-  "PDF raster export must compute full vertical font extent (diacritics and descenders) to prevent residual font glyphs"
+  htmlSourceIncludes("baseLine - fH * 0.95") && htmlSourceIncludes("baseLine + fH * 0.22"),
+  "PDF raster export must compute full vertical font extent (diacritics and descenders) to prevent residual font glyphs without exceeding line height"
 );
 check(
   htmlSourceIncludes("while (endByte > startByte && (u8[endByte - 1] === 10 || u8[endByte - 1] === 13))"),
@@ -757,9 +758,9 @@ try {
   check(Array.isArray(quads[0].glyphs) && quads[0].glyphs.length === 3, "pdfWordQuads must preserve constituent glyphs");
   const baseLine = glyphsWithMetrics[0].baselineY;
   const fH = glyphsWithMetrics[0].fontH;
-  const boxTop = baseLine - fH * 1.04;
-  const boxBottom = baseLine + fH * 0.30;
-  check(boxTop < (baseLine - 20) && boxBottom > (baseLine + 5), "redaction box must extend beyond accent ceiling and descender floor");
+  const boxTop = baseLine - fH * 0.95;
+  const boxBottom = baseLine + fH * 0.22;
+  check(boxTop < (baseLine - 18) && boxBottom > (baseLine + 4), "redaction box must extend beyond accent ceiling and descender floor without exceeding line height");
 } catch (pvErr) {
   failures.push("PDF visual preview unit test failed: " + (pvErr.message || String(pvErr)));
 }
@@ -2021,6 +2022,69 @@ try {
   const commaGlyph = sampleMap[commaIndex];
   check(commaGlyph && commaGlyph.str === ",", "comma glyph must follow second occurrence");
   check(resolved[1].maxX <= commaGlyph.x, "right boundary of hit must not exceed the start of the comma glyph");
+  check(resolved[1].boxX + resolved[1].boxW <= commaGlyph.x, "redaction box right edge must not cover the comma glyph");
+
+  // 6. pdfDetectFontStyle detects bold and italic variants
+  const biStyle = pdfDetectFontStyle("Times-BoldItalic");
+  check(biStyle.weight === "bold" && biStyle.style === "italic", "pdfDetectFontStyle must detect bold italic from Times-BoldItalic");
+  const bStyle = pdfDetectFontStyle("Helvetica-Bold");
+  check(bStyle.weight === "bold" && bStyle.style === "normal", "pdfDetectFontStyle must detect bold from Helvetica-Bold");
+  const iStyle = pdfDetectFontStyle("Arial-ItalicMT");
+  check(iStyle.weight === "normal" && iStyle.style === "italic", "pdfDetectFontStyle must detect italic from Arial-ItalicMT");
+  const normStyle = pdfDetectFontStyle("ArialMT");
+  check(normStyle.weight === "normal" && normStyle.style === "normal", "pdfDetectFontStyle must default to normal weight and style for ArialMT");
+
+  // 7. computeCharWidths distributes proportional character widths accurately without drift
+  const propSample = "Wiliam";
+  const totalWidth = 60;
+  const charWidths = computeCharWidths(propSample, totalWidth, 14, "sans-serif", false);
+  check(charWidths.length === propSample.length, "computeCharWidths must produce width for every character");
+  const sumW = charWidths.reduce((a, b) => a + b, 0);
+  check(Math.abs(sumW - totalWidth) < 0.001, "sum of computed character widths must match total width exactly");
+  check(charWidths[0] > charWidths[1] * 1.5, "proportional 'W' width must be substantially larger than 'i' width");
+
+  // 8. mergeAdjacentBoxes does not swallow intervening words and computes exact unified height
+  const boxesWithInterveningWord = [
+    { boxX: 10, boxY: 50, boxW: 30, boxH: 15, baseLine: 62, fH: 12 },
+    { boxX: 52, boxY: 52, boxW: 40, boxH: 14, baseLine: 62, fH: 12 } // 12px gap with word 'a' between them
+  ];
+  const notMerged = mergeAdjacentBoxes(boxesWithInterveningWord, 1);
+  check(notMerged.length === 2, "mergeAdjacentBoxes must not merge across an intervening word");
+
+  const boxesWithOffsetTops = [
+    { boxX: 10, boxY: 50, boxW: 30, boxH: 15, baseLine: 62, fH: 12 }, // top 50, bottom 65
+    { boxX: 42, boxY: 54, boxW: 30, boxH: 15, baseLine: 62, fH: 12 }  // top 54, bottom 69
+  ];
+  const mergedOffset = mergeAdjacentBoxes(boxesWithOffsetTops, 1);
+  check(mergedOffset.length === 1, "adjacent boxes must merge");
+  check(mergedOffset[0].boxY === 50, "merged box top must be minimum of constituent tops");
+  check(mergedOffset[0].boxH === 19, "merged box height must equal maxBottom (69) - minTop (50)");
+
+  // 9. Adjacent findings on same line leave non-overlapping separation gap
+  const adjMap = [];
+  let aX = 10;
+  const adjText = "Ing. Jan Novák";
+  for (let k = 0; k < adjText.length; k++) {
+    adjMap.push({
+      start: k,
+      end: k + 1,
+      str: adjText[k],
+      x: aX,
+      y: 88,
+      w: 8,
+      h: 14,
+      fontH: 14,
+      baselineY: 100
+    });
+    aX += 8;
+  }
+  const adjHits = [
+    { id: 201, type: "title", value: "Ing.", start: 0, end: 4, accept: true },
+    { id: 202, type: "name", value: "Jan", start: 5, end: 8, accept: true }
+  ];
+  const adjResolved = resolvePageHitQuads(adjText, adjMap, adjHits, { start: 0, end: adjText.length }, 1);
+  check(adjResolved.length === 2, "resolvePageHitQuads must resolve both adjacent hits");
+  check(adjResolved[0].boxX + adjResolved[0].boxW <= adjResolved[1].boxX, "adjacent hit boxes must not overlap in review mode");
 } catch (adr11Err) {
   failures.push("ADR-0011 PDF layout and occurrence tracking test failed: " + (adr11Err.message || String(adr11Err)));
 }

@@ -73,6 +73,16 @@ export function pdfDetectFontFamily(fontName){
   return "sans-serif";
 }
 
+export function pdfDetectFontStyle(fontName){
+  const f = String(fontName || "").toLowerCase();
+  const isBold = /bold|black|heavy|\bbold\b/i.test(f);
+  const isItalic = /italic|oblique|slanted|\bita\b/i.test(f);
+  return {
+    weight: isBold ? "bold" : "normal",
+    style: isItalic ? "italic" : "normal"
+  };
+}
+
 export function pdfCompactToken(token){
   if (!token) return "";
   const m = token.match(/^\[([A-ZÁ-Ž_]+?)(?:_([A-Za-z0-9]+))?\]$/);
@@ -89,30 +99,52 @@ export function pdfCompactToken(token){
   else if (cat.startsWith("INCIDENT")) p = "INC";
   else if (cat.startsWith("ŘÍZENÍ") || cat.startsWith("RIZENI")) p = "ŘÍZ";
   else if (cat.startsWith("ORGÁN") || cat.startsWith("ORGAN")) p = "ORG";
+  else if (cat.startsWith("RODNÉ") || cat.startsWith("RODNE")) p = "RČ";
+  else if (cat.startsWith("PRÁV") || cat.startsWith("PRAV")) p = "P";
+  else if (cat.startsWith("FYZ")) p = "F";
+  else if (cat.startsWith("EMAIL") || cat.startsWith("E-MAIL")) p = "EML";
+  else if (cat.startsWith("BANK") || cat.startsWith("ÚČET") || cat.startsWith("UCET")) p = "ÚČT";
   return suffix ? `[${p}_${suffix}]` : `[${p}]`;
 }
 
 export function sampleCanvasBg(ctx, x, y, w, h, canvasW, canvasH){
   try {
     const samples = [];
-    const check = (px, py) => {
-      if (px >= 0 && px < canvasW && py >= 0 && py < canvasH) {
-        const p = ctx.getImageData(Math.floor(px), Math.floor(py), 1, 1).data;
-        const lum = 0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2];
-        if (lum > 140 && p[3] > 200) samples.push([p[0], p[1], p[2]]);
+    const collect = (px, py) => {
+      const ix = Math.floor(px), iy = Math.floor(py);
+      if (ix >= 0 && ix < canvasW && iy >= 0 && iy < canvasH) {
+        const p = ctx.getImageData(ix, iy, 1, 1).data;
+        if (p[3] > 180) {
+          const lum = 0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2];
+          samples.push({ r: p[0], g: p[1], b: p[2], lum });
+        }
       }
     };
-    for (let s = 2; s <= 6; s += 2) {
-      check(x - s, y + h / 2);
-      check(x + w + s, y + h / 2);
-      check(x + w / 2, y - s);
-      check(x + w / 2, y + h + s);
+
+    const stepX = Math.max(4, Math.floor(w / 8));
+    const stepY = Math.max(2, Math.floor(h / 4));
+    for (let d = 2; d <= 4; d += 2) {
+      for (let sx = x; sx <= x + w; sx += stepX) {
+        collect(sx, y - d);
+        collect(sx, y + h + d);
+      }
+      for (let sy = y; sy <= y + h; sy += stepY) {
+        collect(x - d, sy);
+        collect(x + w + d, sy);
+      }
     }
-    if (samples.length >= 2) {
-      const avgR = Math.round(samples.reduce((a, c) => a + c[0], 0) / samples.length);
-      const avgG = Math.round(samples.reduce((a, c) => a + c[1], 0) / samples.length);
-      const avgB = Math.round(samples.reduce((a, c) => a + c[2], 0) / samples.length);
-      return `rgb(${avgR},${avgG},${avgB})`;
+
+    if (samples.length >= 4) {
+      samples.sort((a, b) => a.lum - b.lum);
+      const start = Math.floor(samples.length * 0.35);
+      const end = Math.ceil(samples.length * 0.65);
+      const slice = samples.slice(start, end);
+      if (slice.length) {
+        const avgR = Math.round(slice.reduce((a, c) => a + c.r, 0) / slice.length);
+        const avgG = Math.round(slice.reduce((a, c) => a + c.g, 0) / slice.length);
+        const avgB = Math.round(slice.reduce((a, c) => a + c.b, 0) / slice.length);
+        return `rgb(${avgR},${avgG},${avgB})`;
+      }
     }
   } catch (_) {}
   return "#ffffff";
@@ -132,19 +164,24 @@ export function mergeAdjacentBoxes(quads, scale){
     let cur = null;
     for (const it of l.items) {
       if (!cur) {
-        cur = { boxX: it.boxX, boxY: it.boxY, boxW: it.boxW, boxH: it.boxH, maxX: it.boxX + it.boxW };
+        cur = { ...it, maxX: it.boxX + it.boxW };
         continue;
       }
       const gap = it.boxX - cur.maxX;
-      if (gap <= Math.max(8 * scale, it.fH * 0.8)) {
+      const maxMergeGap = Math.min(6 * (scale || 1), (it.fH || 12) * 0.38);
+      if (gap <= maxMergeGap) {
         const newMaxX = Math.max(cur.maxX, it.boxX + it.boxW);
-        cur.boxY = Math.min(cur.boxY, it.boxY);
-        cur.boxH = Math.max(cur.boxH, it.boxH);
+        const top = Math.min(cur.boxY, it.boxY);
+        const bottom = Math.max(cur.boxY + cur.boxH, it.boxY + it.boxH);
+        cur.boxY = top;
+        cur.boxH = bottom - top;
         cur.boxW = newMaxX - cur.boxX;
         cur.maxX = newMaxX;
+        if (cur.hits && it.hit) cur.hits.push(it.hit);
+        else if (cur.hit && it.hit) cur.hits = [cur.hit, it.hit];
       } else {
         out.push(cur);
-        cur = { boxX: it.boxX, boxY: it.boxY, boxW: it.boxW, boxH: it.boxH, maxX: it.boxX + it.boxW };
+        cur = { ...it, maxX: it.boxX + it.boxW };
       }
     }
     if (cur) out.push(cur);
@@ -226,23 +263,34 @@ export function resolvePageHitQuads(pageText, pageMap, hits, pageMeta, scale){
       const minX = Math.min(...lineGlyphs.map(g => g.x));
       const maxX = Math.max(...lineGlyphs.map(g => g.x + g.w));
 
-      let padXRight = Math.max(3, Math.round(scale * 1.8));
-      const nextG = pageMap.find(m => m.start >= endIdx && m.str && m.str.trim());
-      if (nextG && /^[,.:;!?)]/u.test(nextG.str) && nextG.x > maxX) {
+      const maxPad = Math.max(1, Math.min(0.12 * fH, 3 * scale));
+
+      let padXRight = maxPad;
+      const nextG = pageMap.find(m => m.start >= endIdx && m.str && m.str.trim() && Math.abs((m.baselineY || m.y) - (baseLine || r.y)) < Math.max(fH, m.h || fH) * 0.5);
+      if (nextG && nextG.x >= maxX) {
         const gap = nextG.x - maxX;
-        padXRight = Math.min(padXRight, Math.max(0, gap - 1));
+        if (/^[,.:;!?)]/u.test(nextG.str)) {
+          padXRight = Math.min(padXRight, Math.max(0, gap - 0.5));
+        } else {
+          padXRight = Math.min(padXRight, Math.max(0, gap / 2 - 0.5));
+        }
       }
-      let padXLeft = Math.max(2, Math.round(scale * 1.2));
-      const prevG = pageMap.slice().reverse().find(m => m.end <= chosenIdx && m.str && m.str.trim());
-      if (prevG && /^[(["]/u.test(prevG.str) && (prevG.x + prevG.w) < minX) {
+
+      let padXLeft = maxPad;
+      const prevG = pageMap.slice().reverse().find(m => m.end <= chosenIdx && m.str && m.str.trim() && Math.abs((m.baselineY || m.y) - (baseLine || r.y)) < Math.max(fH, m.h || fH) * 0.5);
+      if (prevG && (prevG.x + prevG.w) <= minX) {
         const gap = minX - (prevG.x + prevG.w);
-        padXLeft = Math.min(padXLeft, Math.max(0, gap - 1));
+        if (/^[(["]/u.test(prevG.str)) {
+          padXLeft = Math.min(padXLeft, Math.max(0, gap - 0.5));
+        } else {
+          padXLeft = Math.min(padXLeft, Math.max(0, gap / 2 - 0.5));
+        }
       }
 
       const boxX = Math.max(0, minX - padXLeft);
       const boxW = Math.max(maxX + padXRight - boxX, 6);
-      const boxY = baseLine - fH * 1.04;
-      const bottomY = baseLine + fH * 0.30;
+      const boxY = baseLine - fH * 0.95;
+      const bottomY = baseLine + fH * 0.22;
       const boxH = Math.max(bottomY - boxY, 8);
       const fontFam = pdfDetectFontFamily(lineGlyphs[0] && (lineGlyphs[0].fontName || lineGlyphs[0].name));
 
@@ -270,17 +318,38 @@ export function resolvePageHitQuads(pageText, pageMap, hits, pageMeta, scale){
   return results;
 }
 
-  export function paintPdfVisualOverlays(){
-    if (!PV) return;
-    const previewOn = S.docView === "preview";
-    const isBox = S.mode === "box" || !S.mode;
-    const replacer = (previewOn && !isBox) ? bindReplacer(S.mode, S.lang, S.hits) : null;
-    PV.pages.forEach(pg => {
-      pg.layer.innerHTML = "";
-      const meta = (S.pages || []).find(p => p.n === pg.n);
-      const visHits = visibleHits(S.hits, S.selectedId);
-      const pageQuads = resolvePageHitQuads(pg.text, pg.map, visHits, meta, pg.scale || 1);
-      pageQuads.forEach(q => {
+export function paintPdfVisualOverlays(){
+  if (!PV) return;
+  const previewOn = S.docView === "preview";
+  const isBox = S.mode === "box" || !S.mode;
+  const replacer = (previewOn && !isBox) ? bindReplacer(S.mode, S.lang, S.hits) : null;
+  PV.pages.forEach(pg => {
+    pg.layer.innerHTML = "";
+    const meta = (S.pages || []).find(p => p.n === pg.n);
+    const visHits = visibleHits(S.hits, S.selectedId);
+    const pageQuads = resolvePageHitQuads(pg.text, pg.map, visHits, meta, pg.scale || 1);
+
+    if (previewOn && isBox) {
+      const acceptedQuads = pageQuads.filter(q => q.hit && q.hit.accept);
+      const merged = mergeAdjacentBoxes(acceptedQuads, pg.scale || 1);
+      merged.forEach(b => {
+        const el = document.createElement("button");
+        el.type = "button";
+        el.className = "pv-box pv-prev pv-prev-box";
+        el.style.left = b.boxX + "px";
+        el.style.top = b.boxY + "px";
+        el.style.height = b.boxH + "px";
+        el.style.width = b.boxW + "px";
+        if (b.hit) {
+          el.onclick = () => select(b.hit.id);
+          el.dataset.id = b.hit.id;
+        } else if (b.hits && b.hits[0]) {
+          el.onclick = () => select(b.hits[0].id);
+          el.dataset.id = b.hits[0].id;
+        }
+        pg.layer.appendChild(el);
+      });
+      pageQuads.filter(q => !q.hit || !q.hit.accept).forEach(q => {
         const h = q.hit;
         const b = document.createElement("button");
         b.type = "button";
@@ -290,39 +359,63 @@ export function resolvePageHitQuads(pageText, pageMap, hits, pageMeta, scale){
         b.style.height = q.boxH + "px";
         b.style.width = q.boxW + "px";
         b.onclick = () => select(h.id);
-
-        if (!h.accept) {
-          b.className = "pv-box pv-off" + (S.selectedId === h.id ? " pv-sel" : "");
-          b.setAttribute("aria-label", (i().cats && i().cats[h.type]) || h.type);
-        } else if (!previewOn) {
-          b.className = "pv-box pv-on" + (S.selectedId === h.id ? " pv-sel" : "");
-          b.setAttribute("aria-label", (i().cats && i().cats[h.type]) || h.type);
-        } else if (isBox) {
-          b.className = "pv-box pv-prev pv-prev-box" + (S.selectedId === h.id ? " pv-sel" : "");
-          b.setAttribute("aria-label", ((i().cats && i().cats[h.type]) || h.type) + " (" + (i().redact || "anonymizováno") + ")");
-        } else {
-          const fullToken = replacer ? replacer(h) : "";
-          b.className = "pv-box pv-prev pv-prev-token" + (S.selectedId === h.id ? " pv-sel" : "");
-          b.style.maxWidth = q.boxW + "px";
-          b.style.overflow = "hidden";
-          b.style.textOverflow = "ellipsis";
-          b.style.fontFamily = q.fontFam;
-          const fontSize = Math.max(8, Math.min(13, Math.round(q.boxH * 0.65)));
-          b.style.fontSize = fontSize + "px";
-          if (q.qIdx === 0) {
-            const compToken = pdfCompactToken(fullToken);
-            const fitsFull = (fullToken.length * fontSize * 0.55) <= (q.boxW + 6);
-            b.textContent = fitsFull ? fullToken : compToken;
-          } else {
-            b.textContent = "";
-          }
-          b.setAttribute("aria-label", fullToken + " · " + ((i().cats && i().cats[h.type]) || h.type));
-          b.title = fullToken;
-        }
+        b.className = "pv-box pv-off" + (S.selectedId === h.id ? " pv-sel" : "");
+        b.setAttribute("aria-label", (i().cats && i().cats[h.type]) || h.type);
         pg.layer.appendChild(b);
       });
+      return;
+    }
+
+    pageQuads.forEach(q => {
+      const h = q.hit;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.dataset.id = h.id;
+      b.style.left = q.boxX + "px";
+      b.style.top = q.boxY + "px";
+      b.style.height = q.boxH + "px";
+      b.style.width = q.boxW + "px";
+      b.onclick = () => select(h.id);
+
+      if (!h.accept) {
+        b.className = "pv-box pv-off" + (S.selectedId === h.id ? " pv-sel" : "");
+        b.setAttribute("aria-label", (i().cats && i().cats[h.type]) || h.type);
+      } else if (!previewOn) {
+        b.className = "pv-box pv-on" + (S.selectedId === h.id ? " pv-sel" : "");
+        b.setAttribute("aria-label", (i().cats && i().cats[h.type]) || h.type);
+      } else {
+        const fullToken = replacer ? replacer(h) : "";
+        b.className = "pv-box pv-prev pv-prev-token" + (S.selectedId === h.id ? " pv-sel" : "");
+        b.style.maxWidth = q.boxW + "px";
+        b.style.overflow = "hidden";
+        b.style.textOverflow = "ellipsis";
+        b.style.fontFamily = q.fontFam;
+        const fontStyle = pdfDetectFontStyle(q.lineGlyphs && q.lineGlyphs[0] && (q.lineGlyphs[0].fontName || q.lineGlyphs[0].name));
+        b.style.fontWeight = fontStyle.weight;
+        b.style.fontStyle = fontStyle.style;
+        const fontSize = Math.max(8, Math.min(Math.round(q.fH * 0.75), Math.round(q.boxH * 0.72)));
+        b.style.fontSize = fontSize + "px";
+        if (q.qIdx === 0) {
+          let useToken = fullToken;
+          if (fullToken.startsWith("X") && /^X+$/.test(fullToken)) {
+            const charEst = Math.max(1, Math.floor((q.boxW - 4) / Math.max(6, fontSize * 0.6)));
+            useToken = "X".repeat(charEst);
+          } else {
+            const compToken = pdfCompactToken(fullToken);
+            const fitsFull = (fullToken.length * fontSize * 0.55) <= (q.boxW - 2);
+            useToken = fitsFull ? fullToken : compToken;
+          }
+          b.textContent = useToken;
+        } else {
+          b.textContent = "";
+        }
+        b.setAttribute("aria-label", fullToken + " · " + ((i().cats && i().cats[h.type]) || h.type));
+        b.title = fullToken;
+      }
+      pg.layer.appendChild(b);
     });
-  }
+  });
+}
   export async function buildPdfVisual(token){
     const host = $("pdfVisual");
     if (!host) return;
@@ -448,6 +541,70 @@ export function pdfWorker(){
     }
     return text;
   }
+  let _measureCtx = null;
+  function getMeasureCtx(){
+    if (_measureCtx) return _measureCtx;
+    try {
+      if (typeof document !== "undefined" && document.createElement) {
+        const c = document.createElement("canvas");
+        _measureCtx = c.getContext("2d");
+      }
+    } catch (_) {}
+    return _measureCtx;
+  }
+
+  const CHAR_WEIGHT_RATIOS = {
+    " ": 0.28, ".": 0.28, ",": 0.28, ":": 0.28, ";": 0.28, "!": 0.33,
+    "i": 0.28, "l": 0.28, "I": 0.33, "'": 0.22, '"': 0.35, "j": 0.33,
+    "r": 0.35, "t": 0.33, "f": 0.33, "(": 0.33, ")": 0.33, "[": 0.33, "]": 0.33,
+    "m": 0.85, "w": 0.72, "M": 0.88, "W": 0.95, "O": 0.75, "Q": 0.75,
+    "-": 0.35, "–": 0.50, "—": 1.00
+  };
+  function estimateCharWeight(ch) {
+    if (CHAR_WEIGHT_RATIOS[ch] != null) return CHAR_WEIGHT_RATIOS[ch];
+    if (ch >= "A" && ch <= "Z") return 0.68;
+    if (ch >= "a" && ch <= "z") return 0.52;
+    if (ch >= "0" && ch <= "9") return 0.55;
+    return 0.55;
+  }
+
+  export function computeCharWidths(str, totalW, fontH, fontFam, isMono) {
+    const len = str ? str.length : 0;
+    if (len === 0) return [];
+    if (len === 1 || isMono) {
+      const uniW = totalW / len;
+      return new Array(len).fill(uniW);
+    }
+    const mCtx = getMeasureCtx();
+    const rawW = new Float32Array(len);
+    let sum = 0;
+    if (mCtx) {
+      try {
+        mCtx.font = `${Math.round(fontH || 12)}px ${fontFam || "sans-serif"}`;
+        for (let i = 0; i < len; i++) {
+          const w = mCtx.measureText(str[i]).width || 1;
+          rawW[i] = w;
+          sum += w;
+        }
+      } catch (_) {
+        sum = 0;
+      }
+    }
+    if (sum <= 0) {
+      for (let i = 0; i < len; i++) {
+        const w = estimateCharWeight(str[i]);
+        rawW[i] = w;
+        sum += w;
+      }
+    }
+    const factor = sum > 0 ? (totalW / sum) : (totalW / len);
+    const out = new Array(len);
+    for (let i = 0; i < len; i++) {
+      out[i] = rawW[i] * factor;
+    }
+    return out;
+  }
+
   function mapPageGlyphs(items, scale, vp){
     let text = "";
     const map = [];
@@ -473,41 +630,51 @@ export function pdfWorker(){
       const len = it.str.length;
       if (!len) continue;
       if (it._ocr) {
-        const charW = (it._pdfW * scale) / len;
+        const totalW = (it._pdfW || 0) * scale;
+        const fontH = (it._pdfH || 10) * scale;
+        const charWidths = computeCharWidths(it.str, totalW, fontH, "sans-serif", false);
+        let curX = (it._pdfX || 0) * scale;
         for (let k = 0; k < len; k++) {
+          const cw = charWidths[k];
           map.push({
             start: baseStart + k,
             end: baseStart + k + 1,
             str: it.str[k],
-            x: (it._pdfX * scale) + (k * charW),
-            y: it._pdfYTop * scale,
-            w: charW,
-            h: it._pdfH * scale,
-            fontH: it._pdfH * scale,
+            x: curX,
+            y: (it._pdfYTop || 0) * scale,
+            w: cw,
+            h: fontH,
+            fontH,
             baselineY: 0
           });
+          curX += cw;
         }
       } else {
         const tx = vp && pdfjsLib.Util.transform(vp.transform, it.transform);
         const fontH = tx ? Math.hypot(tx[2], tx[3]) : 0;
         const totalW = (it.width || 0) * scale;
-        const charW = len > 0 ? (totalW / len) : totalW;
-        // In PDF coordinates, tx[4] is baseline X, tx[5] is baseline Y.
-        // Cap-height is approx ~0.82 of font size above baseline.
-        // Exact font size height is used instead of expanded 1.2 line-height:
+        const fontFam = pdfDetectFontFamily(it.fontName);
+        const isMono = fontFam === "monospace";
+        const charWidths = computeCharWidths(it.str, totalW, fontH, fontFam, isMono);
         const yTop = tx ? (tx[5] - fontH * 0.82) : 0;
+        const baselineY = tx ? tx[5] : 0;
+        const startX = tx ? tx[4] : 0;
+        let curX = startX;
         for (let k = 0; k < len; k++) {
+          const cw = charWidths[k];
           map.push({
             start: baseStart + k,
             end: baseStart + k + 1,
             str: it.str[k],
-            x: (tx ? tx[4] : 0) + (k * charW),
+            x: curX,
             y: yTop,
-            w: charW,
+            w: cw,
             h: fontH,
             fontH,
-            baselineY: tx ? tx[5] : 0
+            baselineY,
+            fontName: it.fontName
           });
+          curX += cw;
         }
       }
     }
@@ -1003,18 +1170,28 @@ export async function exportPdfTrueRedact(source, hits, title, mode, lang){
           if (q.qIdx === 0 && replacer) {
             const fullToken = replacer(q.hit);
             const compToken = pdfCompactToken(fullToken);
-            let size = Math.max(8, Math.min(q.boxH * 0.65, 14 * scale));
-            ctx.font = size + "px " + q.fontFam;
-            let tokenW = ctx.measureText(fullToken).width;
+            const fontStyle = pdfDetectFontStyle(q.lineGlyphs && q.lineGlyphs[0] && (q.lineGlyphs[0].fontName || q.lineGlyphs[0].name));
+            const stylePrefix = (fontStyle.style !== "normal" ? fontStyle.style + " " : "") + (fontStyle.weight !== "normal" ? fontStyle.weight + " " : "");
+
+            let size = Math.max(8, Math.min(Math.round(q.fH * 0.85), Math.round(q.boxH * 0.75)));
+            ctx.font = `${stylePrefix}${size}px ${q.fontFam}`;
+
             let useToken = fullToken;
-            if (tokenW > q.boxW - 4) {
-              useToken = compToken;
-              tokenW = ctx.measureText(useToken).width;
-            }
-            while (tokenW > q.boxW - 4 && size > 8) {
-              size -= 1;
-              ctx.font = size + "px " + q.fontFam;
-              tokenW = ctx.measureText(useToken).width;
+            if (fullToken.startsWith("X") && /^X+$/.test(fullToken)) {
+              const singleXW = ctx.measureText("X").width || 8;
+              const count = Math.max(1, Math.floor((q.boxW - 4) / singleXW));
+              useToken = "X".repeat(count);
+            } else {
+              let tokenW = ctx.measureText(fullToken).width;
+              if (tokenW > q.boxW - 4) {
+                useToken = compToken;
+                tokenW = ctx.measureText(useToken).width;
+              }
+              while (tokenW > q.boxW - 4 && size > 8) {
+                size -= 1;
+                ctx.font = `${stylePrefix}${size}px ${q.fontFam}`;
+                tokenW = ctx.measureText(useToken).width;
+              }
             }
 
             ctx.save();
@@ -1022,6 +1199,7 @@ export async function exportPdfTrueRedact(source, hits, title, mode, lang){
             ctx.rect(q.boxX, q.boxY, q.boxW, q.boxH);
             ctx.clip();
 
+            let tokenW = ctx.measureText(useToken).width;
             let scaleX = 1;
             if (tokenW > q.boxW - 4) {
               scaleX = Math.max(0.75, (q.boxW - 4) / Math.max(1, tokenW));

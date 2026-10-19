@@ -161,14 +161,13 @@ body.pdf-visual-on #orig { display: none; }
   color: #14161a;
   border-color: color-mix(in srgb, var(--primary) 70%, #16181a);
   font-family: var(--mono);
-  font-weight: 700;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
+  font-weight: 600;
+  line-height: 1.1;
+  display: inline-block;
+  vertical-align: middle;
   text-align: left;
   white-space: nowrap;
-  padding: 0 3px;
+  padding: 1px 3px;
   box-sizing: border-box;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -185,12 +184,22 @@ button.btn-visual[disabled] { opacity: .5; }
 .proc-summary { font-size: 13px; margin: 0 0 8px; }
 .proc-details summary { cursor: pointer; font-size: 12px; color: var(--muted); font-weight: 600; }
 .proc-details[open] summary { margin-bottom: 8px; }
-pre.doc button.mk { border: 1.5px solid transparent; border-radius: 3px; padding: 1px 3px; font: inherit; color: var(--fg); }
-.mk-on { background: #f3c9a8; background: color-mix(in srgb, var(--hit) 45%, white); border-color: #8a3a12; border-color: color-mix(in srgb, var(--hit) 70%, black); font-weight: 600; }
-.mk-off { background: #c5e4d4; background: color-mix(in srgb, var(--ok) 35%, white); border-color: #1e5a3f; border-color: color-mix(in srgb, var(--ok) 60%, black); }
-.mk-sel { outline: 3px solid var(--focus); outline-offset: 1px; }
-.mk-preview { background: color-mix(in srgb, var(--primary) 22%, white); border-color: color-mix(in srgb, var(--primary) 55%, black); font-weight: 600; }
-html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--primary) 28%, var(--surface)); border-color: var(--primary); }
+pre.doc button.mk {
+  display: inline;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  font: inherit;
+  color: var(--fg);
+  vertical-align: baseline;
+  cursor: pointer;
+  box-shadow: inset 0 -2px 0 var(--border);
+}
+.mk-on { background: color-mix(in srgb, var(--hit) 35%, transparent); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--hit) 80%, black); }
+.mk-off { background: color-mix(in srgb, var(--ok) 25%, transparent); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--ok) 70%, black); }
+.mk-sel { outline: 2px solid var(--focus); outline-offset: 1px; }
+.mk-preview { background: color-mix(in srgb, var(--primary) 22%, transparent); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--primary) 65%, black); }
+html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--primary) 28%, var(--surface)); box-shadow: inset 0 -2px 0 var(--primary); }
 .filters { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { min-height: 36px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--surface); color: var(--fg); padding: 0 12px; font-size: 13px; font-weight: 500; }
 .chip.on { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
@@ -720,7 +729,7 @@ body.movie-active #settingsSheet {
 (function () {
 // --- Module: src/core/rules.js ---
 const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];const KEYS = PII_KEYS.concat(ORG_KEYS);const RULES = "2026.10.19-ai46";const CHANGELOG = [
-  { version: "2026.10.19-ai46", notes: { cs: "Omezení expanze tokenů, deterministické sledování výskytů a layoutová dekonflikce v PDF (ADR-0011): Zákaz horizontálního přetékání pseudonymizačních tokenů v pevném layoutu PDF s adaptivním zkracováním tokenů a kompresí písma v rámci boxW, deterministický occurrence tracking v okně ±50 znaků eliminující kolize duplicitních jmen na stránce, vizuální sloučení těsně sousedících nálezů na řádku zamezující překryvu vycpávek, zarovnání textu náhrady na detekované účaří řádku (baselineY), adaptivní rodina písma (serif, sans-serif, monospace), vzorkování podkladové barvy z plátna, ochrana přilehlé interpunkce před oříznutím a skupinové schvalování sousedních nálezů v UI.", en: "PDF token expansion limits, deterministic occurrence tracking and layout deconfliction (ADR-0011): Strict horizontal bounding of pseudonym tokens within boxW in fixed-layout PDFs with compact token fallbacks and text condensing, deterministic occurrence tracking within ±50 char window eliminating duplicate value collapses on a page, visual merging of adjacent findings on the same line preventing padding bleed, baseline-accurate text alignment (baselineY), adaptive font family detection (serif, sans-serif, monospace), canvas background color sampling, adjacent punctuation preservation, and group approval action in the UI inspector." } },
+  { version: "2026.10.19-ai46", notes: { cs: "Omezení expanze tokenů, deterministické sledování výskytů a layoutová dekonflikce v PDF (ADR-0011): Zákaz horizontálního přetékání pseudonymizačních tokenů v pevném layoutu PDF s adaptivním zkracováním tokenů a kompresí písma v rámci boxW, proporční rozdělení šířek znaků v mapPageGlyphs eliminující kumulativní chybu posunu nálezu (10–19 px) u proporčních písem, deterministický occurrence tracking v okně ±50 znaků eliminující kolize duplicitních jmen na stránce, vertikální kalibrace výšky boxu (baseLine - 0.95*fH až baseLine + 0.22*fH = 1.17 em) nepřesahující standardní řádkování a chránící descenders/diakritiku sousedních řádků, horizontální padding škálovaný dle mezery k sousedním nálezům (gap/2 - 0.5) a přilehlé interpunkci (gap - 0.5), vizuální sloučení těsně sousedících nálezů na řádku v exportu i náhledu zamezující překryvu vycpávek s ochranou proti pohlcení krátkých slov, mediánové vzorkování podkladové barvy z plátna odolné vůči antialiasingu a tmavým hlavičkám, zachování řezu písma (tučné, kurzíva) i adaptivní šířka režimu xxxx a inline styl značek v pre.doc bez uskakování řádků.", en: "PDF token expansion limits, deterministic occurrence tracking and layout deconfliction (ADR-0011): Strict horizontal bounding of pseudonym tokens within boxW in fixed-layout PDFs with compact token fallbacks and text condensing, proportional character width distribution in mapPageGlyphs eliminating 10-19px cumulative finding offset errors in proportional fonts, deterministic occurrence tracking within ±50 char window eliminating duplicate value collapses on a page, line-height calibrated vertical bounds (baseLine - 0.95*fH to baseLine + 0.22*fH = 1.17 em) preventing multi-line box collision and protecting descenders/diacritics of adjacent lines, gap-adaptive horizontal padding preventing bleed between adjacent words and preserving punctuation, visual merging of adjacent findings in both export and preview with threshold guarding intervening short words, median canvas background sampling robust to antialiasing and dark table headers, font weight/style preservation (bold, italic) and adaptive xxxx mode length, and pure inline marker styling in pre.doc eliminating line-height jumping." } },
   { version: "2026.10.19-ai45", notes: { cs: "Náprava chyb a nekonzistencí: bezpečný přístup k běhovým knihovnám bez přímého window v Node.js/worker prostředí (ODT, DOCX, XLSX, Ingest, PDF), oprava podpory Unicode code points v decodeXml (> 0xFFFF), podpora českých uvozovek v isSentenceStart(), sjednocení kanonických důvodů nálezu onomastic namísto zastaralého gazetteer dle GLOSSARY.md a odstranění zbytků panelu Návrh.", en: "Bug fixes and inconsistency resolution: safe runtime library resolution without naked window references in Node.js/worker environments (ODT, DOCX, XLSX, Ingest, PDF), support for astral Unicode code points in decodeXml (> 0xFFFF), support for Czech quotation marks in isSentenceStart(), alignment of canonical detection reason onomastic over deprecated gazetteer per GLOSSARY.md, and removal of dead Proposal pane residues." } },
   { version: "2026.10.16-ai44", notes: { cs: "Architektonická konsolidace, deterministický modulární build, zpřísnění bezpečnosti exportů a Předávací balíček sezení v2 (ADR-0008, ADR-0009): Deterministické sestavování z ES modulů v src/ v čistém Node.js bez bundlerů, odstranění zastaralého split_monolith.js, bezpečná XML sanitizace XLSX se split-run spoji, XML entitami a cached vzorci, sekvenční schvalování v DOCX exportu respektující accept:false a mazání metadat autora na revizích, fail-closed dekomprese FlateDecode v PDF verifikaci včetně UTF-16BE hex a Win-1250 kódování a blokace ObjStm/Launch/RichMedia, Předávací balíček sezení v2 s binárním sourceBuf a zlib kompresí pro Four-Eyes kontrolu, zrychlení EntityPropagationCache.scan na 2 průchody textem (< 5 ms) a zpřesnění pádové flexe akuzativu a cizích příjmení v morphology.js.", en: "Architectural consolidation, deterministic modular build pipeline, export security hardening and Session Transfer Package v2 (ADR-0008, ADR-0009): Pure Node.js zero-bundler build pipeline from src/ ES modules, removal of legacy split_monolith.js, safe XLSX XML sanitization across split runs, entities and cached formula cells, sequential traversal approval in DOCX exports respecting accept:false and revision author metadata stripping, fail-closed FlateDecode decompression in PDF verification with UTF-16BE hex / Win-1250 checks and ObjStm/Launch/RichMedia blocking, Session Transfer Package v2 with binary sourceBuf and zlib compression for Four-Eyes review, EntityPropagationCache.scan optimized to 2 text passes (< 5 ms), and morphology precision for accusative cases and foreign surnames." } },
   { version: "2026.10.15-ai43", notes: { cs: "Bezpečnostní audit, Zero-Network CSP, modulární ES architektura a šifrované sezení (ADR-0008, ADR-0009, ADR-0010): Vynucení offline režimu striktní Content-Security-Policy (CSP) dle ADR-0002, modularizace kódu do čistých ES modulů v src/, odstranění křehkého vyřezávání kódu v test.js ve prospěch přímých importů, nedestruktivní XML sanitizace XLSX přes fflate se 100% zachováním stylů, vzorců a grafů, šifrovaný export/import sezení (.znecitelne-session) pomocí AES-GCM + PBKDF2 pro druhou kontrolu, zobrazení panelu médií/podpisů a úplná hygiena repozitáře.", en: "Security audit, Zero-Network CSP, modular ES architecture and encrypted session (ADR-0008, ADR-0009, ADR-0010): Strict Content-Security-Policy (CSP) enforcing Zero-Network per ADR-0002, modular ES codebase in src/, direct imports in test suite replacing fragile source slicing, non-destructive XML sanitization of XLSX via fflate preserving 100% of formatting, formulas and charts, encrypted session package (.znecitelne-session) via AES-GCM + PBKDF2 for four-eyes review, media/signature inspector pane, and full repository hygiene." } },
@@ -4606,6 +4615,14 @@ function translit(ch){
   if (/times|roman|serif|garamond|georgia|cambria|minion|baskerville/i.test(f)) return "serif";
   if (/courier|mono|consol|typewriter|menlo/i.test(f)) return "monospace";
   return "sans-serif";
+}function pdfDetectFontStyle(fontName){
+  const f = String(fontName || "").toLowerCase();
+  const isBold = /bold|black|heavy|\bbold\b/i.test(f);
+  const isItalic = /italic|oblique|slanted|\bita\b/i.test(f);
+  return {
+    weight: isBold ? "bold" : "normal",
+    style: isItalic ? "italic" : "normal"
+  };
 }function pdfCompactToken(token){
   if (!token) return "";
   const m = token.match(/^\[([A-ZÁ-Ž_]+?)(?:_([A-Za-z0-9]+))?\]$/);
@@ -4622,28 +4639,50 @@ function translit(ch){
   else if (cat.startsWith("INCIDENT")) p = "INC";
   else if (cat.startsWith("ŘÍZENÍ") || cat.startsWith("RIZENI")) p = "ŘÍZ";
   else if (cat.startsWith("ORGÁN") || cat.startsWith("ORGAN")) p = "ORG";
+  else if (cat.startsWith("RODNÉ") || cat.startsWith("RODNE")) p = "RČ";
+  else if (cat.startsWith("PRÁV") || cat.startsWith("PRAV")) p = "P";
+  else if (cat.startsWith("FYZ")) p = "F";
+  else if (cat.startsWith("EMAIL") || cat.startsWith("E-MAIL")) p = "EML";
+  else if (cat.startsWith("BANK") || cat.startsWith("ÚČET") || cat.startsWith("UCET")) p = "ÚČT";
   return suffix ? `[${p}_${suffix}]` : `[${p}]`;
 }function sampleCanvasBg(ctx, x, y, w, h, canvasW, canvasH){
   try {
     const samples = [];
-    const check = (px, py) => {
-      if (px >= 0 && px < canvasW && py >= 0 && py < canvasH) {
-        const p = ctx.getImageData(Math.floor(px), Math.floor(py), 1, 1).data;
-        const lum = 0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2];
-        if (lum > 140 && p[3] > 200) samples.push([p[0], p[1], p[2]]);
+    const collect = (px, py) => {
+      const ix = Math.floor(px), iy = Math.floor(py);
+      if (ix >= 0 && ix < canvasW && iy >= 0 && iy < canvasH) {
+        const p = ctx.getImageData(ix, iy, 1, 1).data;
+        if (p[3] > 180) {
+          const lum = 0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2];
+          samples.push({ r: p[0], g: p[1], b: p[2], lum });
+        }
       }
     };
-    for (let s = 2; s <= 6; s += 2) {
-      check(x - s, y + h / 2);
-      check(x + w + s, y + h / 2);
-      check(x + w / 2, y - s);
-      check(x + w / 2, y + h + s);
+
+    const stepX = Math.max(4, Math.floor(w / 8));
+    const stepY = Math.max(2, Math.floor(h / 4));
+    for (let d = 2; d <= 4; d += 2) {
+      for (let sx = x; sx <= x + w; sx += stepX) {
+        collect(sx, y - d);
+        collect(sx, y + h + d);
+      }
+      for (let sy = y; sy <= y + h; sy += stepY) {
+        collect(x - d, sy);
+        collect(x + w + d, sy);
+      }
     }
-    if (samples.length >= 2) {
-      const avgR = Math.round(samples.reduce((a, c) => a + c[0], 0) / samples.length);
-      const avgG = Math.round(samples.reduce((a, c) => a + c[1], 0) / samples.length);
-      const avgB = Math.round(samples.reduce((a, c) => a + c[2], 0) / samples.length);
-      return `rgb(${avgR},${avgG},${avgB})`;
+
+    if (samples.length >= 4) {
+      samples.sort((a, b) => a.lum - b.lum);
+      const start = Math.floor(samples.length * 0.35);
+      const end = Math.ceil(samples.length * 0.65);
+      const slice = samples.slice(start, end);
+      if (slice.length) {
+        const avgR = Math.round(slice.reduce((a, c) => a + c.r, 0) / slice.length);
+        const avgG = Math.round(slice.reduce((a, c) => a + c.g, 0) / slice.length);
+        const avgB = Math.round(slice.reduce((a, c) => a + c.b, 0) / slice.length);
+        return `rgb(${avgR},${avgG},${avgB})`;
+      }
     }
   } catch (_) {}
   return "#ffffff";
@@ -4661,19 +4700,24 @@ function translit(ch){
     let cur = null;
     for (const it of l.items) {
       if (!cur) {
-        cur = { boxX: it.boxX, boxY: it.boxY, boxW: it.boxW, boxH: it.boxH, maxX: it.boxX + it.boxW };
+        cur = { ...it, maxX: it.boxX + it.boxW };
         continue;
       }
       const gap = it.boxX - cur.maxX;
-      if (gap <= Math.max(8 * scale, it.fH * 0.8)) {
+      const maxMergeGap = Math.min(6 * (scale || 1), (it.fH || 12) * 0.38);
+      if (gap <= maxMergeGap) {
         const newMaxX = Math.max(cur.maxX, it.boxX + it.boxW);
-        cur.boxY = Math.min(cur.boxY, it.boxY);
-        cur.boxH = Math.max(cur.boxH, it.boxH);
+        const top = Math.min(cur.boxY, it.boxY);
+        const bottom = Math.max(cur.boxY + cur.boxH, it.boxY + it.boxH);
+        cur.boxY = top;
+        cur.boxH = bottom - top;
         cur.boxW = newMaxX - cur.boxX;
         cur.maxX = newMaxX;
+        if (cur.hits && it.hit) cur.hits.push(it.hit);
+        else if (cur.hit && it.hit) cur.hits = [cur.hit, it.hit];
       } else {
         out.push(cur);
-        cur = { boxX: it.boxX, boxY: it.boxY, boxW: it.boxW, boxH: it.boxH, maxX: it.boxX + it.boxW };
+        cur = { ...it, maxX: it.boxX + it.boxW };
       }
     }
     if (cur) out.push(cur);
@@ -4753,23 +4797,34 @@ function translit(ch){
       const minX = Math.min(...lineGlyphs.map(g => g.x));
       const maxX = Math.max(...lineGlyphs.map(g => g.x + g.w));
 
-      let padXRight = Math.max(3, Math.round(scale * 1.8));
-      const nextG = pageMap.find(m => m.start >= endIdx && m.str && m.str.trim());
-      if (nextG && /^[,.:;!?)]/u.test(nextG.str) && nextG.x > maxX) {
+      const maxPad = Math.max(1, Math.min(0.12 * fH, 3 * scale));
+
+      let padXRight = maxPad;
+      const nextG = pageMap.find(m => m.start >= endIdx && m.str && m.str.trim() && Math.abs((m.baselineY || m.y) - (baseLine || r.y)) < Math.max(fH, m.h || fH) * 0.5);
+      if (nextG && nextG.x >= maxX) {
         const gap = nextG.x - maxX;
-        padXRight = Math.min(padXRight, Math.max(0, gap - 1));
+        if (/^[,.:;!?)]/u.test(nextG.str)) {
+          padXRight = Math.min(padXRight, Math.max(0, gap - 0.5));
+        } else {
+          padXRight = Math.min(padXRight, Math.max(0, gap / 2 - 0.5));
+        }
       }
-      let padXLeft = Math.max(2, Math.round(scale * 1.2));
-      const prevG = pageMap.slice().reverse().find(m => m.end <= chosenIdx && m.str && m.str.trim());
-      if (prevG && /^[(["]/u.test(prevG.str) && (prevG.x + prevG.w) < minX) {
+
+      let padXLeft = maxPad;
+      const prevG = pageMap.slice().reverse().find(m => m.end <= chosenIdx && m.str && m.str.trim() && Math.abs((m.baselineY || m.y) - (baseLine || r.y)) < Math.max(fH, m.h || fH) * 0.5);
+      if (prevG && (prevG.x + prevG.w) <= minX) {
         const gap = minX - (prevG.x + prevG.w);
-        padXLeft = Math.min(padXLeft, Math.max(0, gap - 1));
+        if (/^[(["]/u.test(prevG.str)) {
+          padXLeft = Math.min(padXLeft, Math.max(0, gap - 0.5));
+        } else {
+          padXLeft = Math.min(padXLeft, Math.max(0, gap / 2 - 0.5));
+        }
       }
 
       const boxX = Math.max(0, minX - padXLeft);
       const boxW = Math.max(maxX + padXRight - boxX, 6);
-      const boxY = baseLine - fH * 1.04;
-      const bottomY = baseLine + fH * 0.30;
+      const boxY = baseLine - fH * 0.95;
+      const bottomY = baseLine + fH * 0.22;
       const boxH = Math.max(bottomY - boxY, 8);
       const fontFam = pdfDetectFontFamily(lineGlyphs[0] && (lineGlyphs[0].fontName || lineGlyphs[0].name));
 
@@ -4796,16 +4851,37 @@ function translit(ch){
 
   return results;
 }function paintPdfVisualOverlays(){
-    if (!PV) return;
-    const previewOn = S.docView === "preview";
-    const isBox = S.mode === "box" || !S.mode;
-    const replacer = (previewOn && !isBox) ? bindReplacer(S.mode, S.lang, S.hits) : null;
-    PV.pages.forEach(pg => {
-      pg.layer.innerHTML = "";
-      const meta = (S.pages || []).find(p => p.n === pg.n);
-      const visHits = visibleHits(S.hits, S.selectedId);
-      const pageQuads = resolvePageHitQuads(pg.text, pg.map, visHits, meta, pg.scale || 1);
-      pageQuads.forEach(q => {
+  if (!PV) return;
+  const previewOn = S.docView === "preview";
+  const isBox = S.mode === "box" || !S.mode;
+  const replacer = (previewOn && !isBox) ? bindReplacer(S.mode, S.lang, S.hits) : null;
+  PV.pages.forEach(pg => {
+    pg.layer.innerHTML = "";
+    const meta = (S.pages || []).find(p => p.n === pg.n);
+    const visHits = visibleHits(S.hits, S.selectedId);
+    const pageQuads = resolvePageHitQuads(pg.text, pg.map, visHits, meta, pg.scale || 1);
+
+    if (previewOn && isBox) {
+      const acceptedQuads = pageQuads.filter(q => q.hit && q.hit.accept);
+      const merged = mergeAdjacentBoxes(acceptedQuads, pg.scale || 1);
+      merged.forEach(b => {
+        const el = document.createElement("button");
+        el.type = "button";
+        el.className = "pv-box pv-prev pv-prev-box";
+        el.style.left = b.boxX + "px";
+        el.style.top = b.boxY + "px";
+        el.style.height = b.boxH + "px";
+        el.style.width = b.boxW + "px";
+        if (b.hit) {
+          el.onclick = () => select(b.hit.id);
+          el.dataset.id = b.hit.id;
+        } else if (b.hits && b.hits[0]) {
+          el.onclick = () => select(b.hits[0].id);
+          el.dataset.id = b.hits[0].id;
+        }
+        pg.layer.appendChild(el);
+      });
+      pageQuads.filter(q => !q.hit || !q.hit.accept).forEach(q => {
         const h = q.hit;
         const b = document.createElement("button");
         b.type = "button";
@@ -4815,39 +4891,63 @@ function translit(ch){
         b.style.height = q.boxH + "px";
         b.style.width = q.boxW + "px";
         b.onclick = () => select(h.id);
-
-        if (!h.accept) {
-          b.className = "pv-box pv-off" + (S.selectedId === h.id ? " pv-sel" : "");
-          b.setAttribute("aria-label", (i().cats && i().cats[h.type]) || h.type);
-        } else if (!previewOn) {
-          b.className = "pv-box pv-on" + (S.selectedId === h.id ? " pv-sel" : "");
-          b.setAttribute("aria-label", (i().cats && i().cats[h.type]) || h.type);
-        } else if (isBox) {
-          b.className = "pv-box pv-prev pv-prev-box" + (S.selectedId === h.id ? " pv-sel" : "");
-          b.setAttribute("aria-label", ((i().cats && i().cats[h.type]) || h.type) + " (" + (i().redact || "anonymizováno") + ")");
-        } else {
-          const fullToken = replacer ? replacer(h) : "";
-          b.className = "pv-box pv-prev pv-prev-token" + (S.selectedId === h.id ? " pv-sel" : "");
-          b.style.maxWidth = q.boxW + "px";
-          b.style.overflow = "hidden";
-          b.style.textOverflow = "ellipsis";
-          b.style.fontFamily = q.fontFam;
-          const fontSize = Math.max(8, Math.min(13, Math.round(q.boxH * 0.65)));
-          b.style.fontSize = fontSize + "px";
-          if (q.qIdx === 0) {
-            const compToken = pdfCompactToken(fullToken);
-            const fitsFull = (fullToken.length * fontSize * 0.55) <= (q.boxW + 6);
-            b.textContent = fitsFull ? fullToken : compToken;
-          } else {
-            b.textContent = "";
-          }
-          b.setAttribute("aria-label", fullToken + " · " + ((i().cats && i().cats[h.type]) || h.type));
-          b.title = fullToken;
-        }
+        b.className = "pv-box pv-off" + (S.selectedId === h.id ? " pv-sel" : "");
+        b.setAttribute("aria-label", (i().cats && i().cats[h.type]) || h.type);
         pg.layer.appendChild(b);
       });
+      return;
+    }
+
+    pageQuads.forEach(q => {
+      const h = q.hit;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.dataset.id = h.id;
+      b.style.left = q.boxX + "px";
+      b.style.top = q.boxY + "px";
+      b.style.height = q.boxH + "px";
+      b.style.width = q.boxW + "px";
+      b.onclick = () => select(h.id);
+
+      if (!h.accept) {
+        b.className = "pv-box pv-off" + (S.selectedId === h.id ? " pv-sel" : "");
+        b.setAttribute("aria-label", (i().cats && i().cats[h.type]) || h.type);
+      } else if (!previewOn) {
+        b.className = "pv-box pv-on" + (S.selectedId === h.id ? " pv-sel" : "");
+        b.setAttribute("aria-label", (i().cats && i().cats[h.type]) || h.type);
+      } else {
+        const fullToken = replacer ? replacer(h) : "";
+        b.className = "pv-box pv-prev pv-prev-token" + (S.selectedId === h.id ? " pv-sel" : "");
+        b.style.maxWidth = q.boxW + "px";
+        b.style.overflow = "hidden";
+        b.style.textOverflow = "ellipsis";
+        b.style.fontFamily = q.fontFam;
+        const fontStyle = pdfDetectFontStyle(q.lineGlyphs && q.lineGlyphs[0] && (q.lineGlyphs[0].fontName || q.lineGlyphs[0].name));
+        b.style.fontWeight = fontStyle.weight;
+        b.style.fontStyle = fontStyle.style;
+        const fontSize = Math.max(8, Math.min(Math.round(q.fH * 0.75), Math.round(q.boxH * 0.72)));
+        b.style.fontSize = fontSize + "px";
+        if (q.qIdx === 0) {
+          let useToken = fullToken;
+          if (fullToken.startsWith("X") && /^X+$/.test(fullToken)) {
+            const charEst = Math.max(1, Math.floor((q.boxW - 4) / Math.max(6, fontSize * 0.6)));
+            useToken = "X".repeat(charEst);
+          } else {
+            const compToken = pdfCompactToken(fullToken);
+            const fitsFull = (fullToken.length * fontSize * 0.55) <= (q.boxW - 2);
+            useToken = fitsFull ? fullToken : compToken;
+          }
+          b.textContent = useToken;
+        } else {
+          b.textContent = "";
+        }
+        b.setAttribute("aria-label", fullToken + " · " + ((i().cats && i().cats[h.type]) || h.type));
+        b.title = fullToken;
+      }
+      pg.layer.appendChild(b);
     });
-  }async function buildPdfVisual(token){
+  });
+}async function buildPdfVisual(token){
     const host = $("pdfVisual");
     if (!host) return;
     const width = Math.max(280, Math.min(900, host.clientWidth - 16 || 700));
@@ -4965,6 +5065,68 @@ function translit(ch){
     }
     return text;
   }
+  let _measureCtx = null;
+  function getMeasureCtx(){
+    if (_measureCtx) return _measureCtx;
+    try {
+      if (typeof document !== "undefined" && document.createElement) {
+        const c = document.createElement("canvas");
+        _measureCtx = c.getContext("2d");
+      }
+    } catch (_) {}
+    return _measureCtx;
+  }
+
+  const CHAR_WEIGHT_RATIOS = {
+    " ": 0.28, ".": 0.28, ",": 0.28, ":": 0.28, ";": 0.28, "!": 0.33,
+    "i": 0.28, "l": 0.28, "I": 0.33, "'": 0.22, '"': 0.35, "j": 0.33,
+    "r": 0.35, "t": 0.33, "f": 0.33, "(": 0.33, ")": 0.33, "[": 0.33, "]": 0.33,
+    "m": 0.85, "w": 0.72, "M": 0.88, "W": 0.95, "O": 0.75, "Q": 0.75,
+    "-": 0.35, "–": 0.50, "—": 1.00
+  };
+  function estimateCharWeight(ch) {
+    if (CHAR_WEIGHT_RATIOS[ch] != null) return CHAR_WEIGHT_RATIOS[ch];
+    if (ch >= "A" && ch <= "Z") return 0.68;
+    if (ch >= "a" && ch <= "z") return 0.52;
+    if (ch >= "0" && ch <= "9") return 0.55;
+    return 0.55;
+  }function computeCharWidths(str, totalW, fontH, fontFam, isMono) {
+    const len = str ? str.length : 0;
+    if (len === 0) return [];
+    if (len === 1 || isMono) {
+      const uniW = totalW / len;
+      return new Array(len).fill(uniW);
+    }
+    const mCtx = getMeasureCtx();
+    const rawW = new Float32Array(len);
+    let sum = 0;
+    if (mCtx) {
+      try {
+        mCtx.font = `${Math.round(fontH || 12)}px ${fontFam || "sans-serif"}`;
+        for (let i = 0; i < len; i++) {
+          const w = mCtx.measureText(str[i]).width || 1;
+          rawW[i] = w;
+          sum += w;
+        }
+      } catch (_) {
+        sum = 0;
+      }
+    }
+    if (sum <= 0) {
+      for (let i = 0; i < len; i++) {
+        const w = estimateCharWeight(str[i]);
+        rawW[i] = w;
+        sum += w;
+      }
+    }
+    const factor = sum > 0 ? (totalW / sum) : (totalW / len);
+    const out = new Array(len);
+    for (let i = 0; i < len; i++) {
+      out[i] = rawW[i] * factor;
+    }
+    return out;
+  }
+
   function mapPageGlyphs(items, scale, vp){
     let text = "";
     const map = [];
@@ -4990,41 +5152,51 @@ function translit(ch){
       const len = it.str.length;
       if (!len) continue;
       if (it._ocr) {
-        const charW = (it._pdfW * scale) / len;
+        const totalW = (it._pdfW || 0) * scale;
+        const fontH = (it._pdfH || 10) * scale;
+        const charWidths = computeCharWidths(it.str, totalW, fontH, "sans-serif", false);
+        let curX = (it._pdfX || 0) * scale;
         for (let k = 0; k < len; k++) {
+          const cw = charWidths[k];
           map.push({
             start: baseStart + k,
             end: baseStart + k + 1,
             str: it.str[k],
-            x: (it._pdfX * scale) + (k * charW),
-            y: it._pdfYTop * scale,
-            w: charW,
-            h: it._pdfH * scale,
-            fontH: it._pdfH * scale,
+            x: curX,
+            y: (it._pdfYTop || 0) * scale,
+            w: cw,
+            h: fontH,
+            fontH,
             baselineY: 0
           });
+          curX += cw;
         }
       } else {
         const tx = vp && pdfjsLib.Util.transform(vp.transform, it.transform);
         const fontH = tx ? Math.hypot(tx[2], tx[3]) : 0;
         const totalW = (it.width || 0) * scale;
-        const charW = len > 0 ? (totalW / len) : totalW;
-        // In PDF coordinates, tx[4] is baseline X, tx[5] is baseline Y.
-        // Cap-height is approx ~0.82 of font size above baseline.
-        // Exact font size height is used instead of expanded 1.2 line-height:
+        const fontFam = pdfDetectFontFamily(it.fontName);
+        const isMono = fontFam === "monospace";
+        const charWidths = computeCharWidths(it.str, totalW, fontH, fontFam, isMono);
         const yTop = tx ? (tx[5] - fontH * 0.82) : 0;
+        const baselineY = tx ? tx[5] : 0;
+        const startX = tx ? tx[4] : 0;
+        let curX = startX;
         for (let k = 0; k < len; k++) {
+          const cw = charWidths[k];
           map.push({
             start: baseStart + k,
             end: baseStart + k + 1,
             str: it.str[k],
-            x: (tx ? tx[4] : 0) + (k * charW),
+            x: curX,
             y: yTop,
-            w: charW,
+            w: cw,
             h: fontH,
             fontH,
-            baselineY: tx ? tx[5] : 0
+            baselineY,
+            fontName: it.fontName
           });
+          curX += cw;
         }
       }
     }
@@ -5513,18 +5685,28 @@ function translit(ch){
           if (q.qIdx === 0 && replacer) {
             const fullToken = replacer(q.hit);
             const compToken = pdfCompactToken(fullToken);
-            let size = Math.max(8, Math.min(q.boxH * 0.65, 14 * scale));
-            ctx.font = size + "px " + q.fontFam;
-            let tokenW = ctx.measureText(fullToken).width;
+            const fontStyle = pdfDetectFontStyle(q.lineGlyphs && q.lineGlyphs[0] && (q.lineGlyphs[0].fontName || q.lineGlyphs[0].name));
+            const stylePrefix = (fontStyle.style !== "normal" ? fontStyle.style + " " : "") + (fontStyle.weight !== "normal" ? fontStyle.weight + " " : "");
+
+            let size = Math.max(8, Math.min(Math.round(q.fH * 0.85), Math.round(q.boxH * 0.75)));
+            ctx.font = `${stylePrefix}${size}px ${q.fontFam}`;
+
             let useToken = fullToken;
-            if (tokenW > q.boxW - 4) {
-              useToken = compToken;
-              tokenW = ctx.measureText(useToken).width;
-            }
-            while (tokenW > q.boxW - 4 && size > 8) {
-              size -= 1;
-              ctx.font = size + "px " + q.fontFam;
-              tokenW = ctx.measureText(useToken).width;
+            if (fullToken.startsWith("X") && /^X+$/.test(fullToken)) {
+              const singleXW = ctx.measureText("X").width || 8;
+              const count = Math.max(1, Math.floor((q.boxW - 4) / singleXW));
+              useToken = "X".repeat(count);
+            } else {
+              let tokenW = ctx.measureText(fullToken).width;
+              if (tokenW > q.boxW - 4) {
+                useToken = compToken;
+                tokenW = ctx.measureText(useToken).width;
+              }
+              while (tokenW > q.boxW - 4 && size > 8) {
+                size -= 1;
+                ctx.font = `${stylePrefix}${size}px ${q.fontFam}`;
+                tokenW = ctx.measureText(useToken).width;
+              }
             }
 
             ctx.save();
@@ -5532,6 +5714,7 @@ function translit(ch){
             ctx.rect(q.boxX, q.boxY, q.boxW, q.boxH);
             ctx.clip();
 
+            let tokenW = ctx.measureText(useToken).width;
             let scaleX = 1;
             if (tokenW > q.boxW - 4) {
               scaleX = Math.max(0.75, (q.boxW - 4) / Math.max(1, tokenW));
