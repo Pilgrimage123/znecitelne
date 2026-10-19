@@ -3,7 +3,7 @@ import { I18N } from "../core/i18n.js";
 import { isOnomasticName, initOnomasticRegistry, createOnomasticTrie } from "../core/onomastic.js";
 import { isCzechVerbOrParticiple, isSentenceStart, declinedPersonTokenBase } from "../core/morphology.js";
 import { EntityPropagationCache, createEntityPropagationCache, expandCzechNameMorphology } from "../core/propagation.js";
-import { detect, apply, applyCourtProfileRules, filterCourtDecisionsWhitelist, hitEvidence, effectiveHits, resolveHits, visibleHits, topHits, bindReplacer } from "../core/detector.js";
+import { detect, apply, applyCourtProfileRules, filterCourtDecisionsWhitelist, effectiveHits, resolveHits, visibleHits, topHits, bindReplacer } from "../core/detector.js";
 import { exportSession, importSession } from "../crypto/session.js";
 import { extractPdf, exportPdfTrueRedact, exportPdfRaster, applyPdfaDeclaration, pdfWorker, getPdfDocument } from "../formats/pdf.js";
 import { exportDocxFile } from "../formats/docx.js";
