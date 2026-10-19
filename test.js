@@ -1669,6 +1669,45 @@ Poradu zahájil předseda ČBÚ.`;
       canonical.includes('confirmExport:"Citlivé údaje budou nevratně anonymizovány."'),
       "Czech UI must use canonical Anonymizovat / Anonymizace terminology per ADR-0007"
     );
+
+    // Verify legalOf, buildAudit, exportProtocolPdf, and exportTextPdf in canonical app
+    const legalOfFn = stSandbox.window.legalOf;
+    check(typeof legalOfFn === "function", "legalOf must be defined as a function");
+    if (typeof legalOfFn === "function") {
+      check(legalOfFn({ type: "secrets", value: "cena" }) === "trade", "legalOf must classify secrets as trade");
+      check(legalOfFn({ type: "name", value: "Jan Novák" }) === "gdpr", "legalOf must classify PII name as gdpr");
+      check(legalOfFn({ type: "credential", value: "sk-12345" }) === "security", "legalOf must classify technical/credential as security");
+      check(legalOfFn({ type: "name", value: "Petr", legalBasis: "custom" }) === "custom", "legalOf must preserve explicit legalBasis");
+      check(legalOfFn({ type: "name", value: "Petr", legalBasis: "trade" }) === "trade", "legalOf must preserve explicit trade legalBasis");
+    }
+
+    const buildAuditFn = stSandbox.window.buildAudit;
+    check(typeof buildAuditFn === "function", "buildAudit must be defined as a function");
+    if (typeof buildAuditFn === "function" && stSandbox.window.S) {
+      const origHits = stSandbox.window.S.hits;
+      const origFileName = stSandbox.window.S.fileName;
+      stSandbox.window.S.fileName = "zkusebni_spis.docx";
+      stSandbox.window.S.hashIn = "1234567890abcdef1234567890abcdef";
+      stSandbox.window.S.hits = [
+        { id: 1, type: "name", value: "Jan Novák", accept: true, page: 1, entityKey: "name|jan novak" },
+        { id: 2, type: "secrets", value: "100 Kč/ks", accept: true, page: 1 },
+        { id: 3, type: "phone", value: "+420777123456", accept: false, page: 2 }
+      ];
+      const auditRec = buildAuditFn();
+      check(auditRec && auditRec.application === "Znečitelně", "buildAudit must return application metadata");
+      check(auditRec.counts && auditRec.counts.total === 3, "buildAudit must count total findings");
+      check(auditRec.counts && auditRec.counts.redacted === 2, "buildAudit must count redacted findings");
+      check(auditRec.counts && auditRec.counts.kept === 1, "buildAudit must count kept findings");
+      check(auditRec.findings && auditRec.findings.length === 3, "buildAudit must include all findings");
+      check(auditRec.findings[0].legalBasis === "gdpr", "finding 1 must have gdpr legal basis");
+      check(auditRec.findings[1].legalBasis === "trade", "finding 2 must have trade legal basis");
+      check(auditRec.findings[0].mask.startsWith("J*"), "finding 1 must have masked preview");
+      stSandbox.window.S.hits = origHits;
+      stSandbox.window.S.fileName = origFileName;
+    }
+
+    check(typeof stSandbox.window.exportTextPdf === "function", "exportTextPdf must be defined in canonical app");
+    check(typeof stSandbox.window.exportProtocolPdf === "function", "exportProtocolPdf must be defined in canonical app");
   }
 } catch (stErr) {
   failures.push("Canonical selfTest execution failed: " + (stErr.message || String(stErr)));

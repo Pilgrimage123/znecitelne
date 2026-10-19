@@ -5,10 +5,11 @@ import { decodeTextBuffer, isBinaryBuffer, extractRtfText } from "./rtf.js";
 import { extractOdtText } from "./odt.js";
 import { extractDocxTextWithFflate } from "./docx.js";
 
-async function sha256(buf){
+export async function sha256(buf){
   const subtle = globalThis.crypto ? globalThis.crypto.subtle : null;
   if (!subtle) return "mockhash";
-  const h = await subtle.digest("SHA-256", buf);
+  const source = typeof buf === "string" ? new TextEncoder().encode(buf) : buf;
+  const h = await subtle.digest("SHA-256", source);
   return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2,"0")).join("");
 }
 

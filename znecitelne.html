@@ -5556,7 +5556,6 @@ async function exportPdfRaster(source, hits, title, mode, lang){
     }
     return verifiedBytes;
   }
-
 function base64ToUint8Array(base64){
     const clean = String(base64 || "").replace(/^data:.*?;base64,/, "").replace(/\s+/g, "");
     if (!clean) return new Uint8Array(0);
@@ -5564,6 +5563,10 @@ function base64ToUint8Array(base64){
     const out = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
+  }
+const SRGB_ICC_PROFILE_BASE64 = "AAACTGxjbXMEQAAAbW50clJHQiBYWVogB+oACgABAAkAEQATYWNzcEFQUEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPbWAAEAAAAA0y1sY21zAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALZGVzYwAAAQgAAAA2Y3BydAAAAUAAAABMd3RwdAAAAYwAAAAUY2hhZAAAAaAAAAAsclhZWgAAAcwAAAAUYlhZWgAAAeAAAAAUZ1hZWgAAAfQAAAAUclRSQwAAAggAAAAgZ1RSQwAAAggAAAAgYlRSQwAAAggAAAAgY2hybQAAAigAAAAkbWx1YwAAAAAAAAABAAAADGVuVVMAAAAaAAAAHABzAFIARwBCACAAYgB1AGkAbAB0AC0AaQBuAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAADAAAAAcAE4AbwAgAGMAbwBwAHkAcgBpAGcAaAB0ACwAIAB1AHMAZQAgAGYAcgBlAGUAbAB5WFlaIAAAAAAAAPbWAAEAAAAA0y1zZjMyAAAAAAABDEIAAAXe///zJQAAB5MAAP2Q///7of///aIAAAPcAADAblhZWiAAAAAAAABvoAAAOPUAAAOQWFlaIAAAAAAAACSfAAAPhAAAtsNYWVogAAAAAAAAYpcAALeHAAAY2XBhcmEAAAAAAAMAAAACZmYAAPKnAAANWQAAE9AAAApbY2hybQAAAAAAAwAAAACj1wAAVHsAAEzNAACZmgAAJmYAAA9c";
+function stripDiacritic(str){
+    return String(str || "").split("").map(translit).join("");
   }
 
   function pdfResolveObject(doc, obj){
@@ -5809,12 +5812,383 @@ function assertSecurePdfBytes(bytes){
    * Keep this API stable, but fail closed to the isolated raster constructor
    * until a future true-redaction implementation has an object-level proof.
    */
+async function exportTextPdf(text, title) {
+  if (!window.PDFLib) throw new Error("PDFLib is not loaded");
+  const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+  const doc = await PDFDocument.create();
+  stampPdfMeta(doc, title);
+  addSrgbOutputIntent(doc);
+
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+
+  const pageWidth = 595.28;
+  const pageHeight = 841.89;
+  const margin = 45;
+  const contentWidth = pageWidth - margin * 2;
+  const fontSize = 10;
+  const lineHeight = 14;
+  const maxLinesPerPage = Math.floor((pageHeight - margin * 2 - 30) / lineHeight);
+
+  const rawLines = String(text || "").split(/\r?\n/);
+  const wrappedLines = [];
+  for (const raw of rawLines) {
+    if (!raw.length) {
+      wrappedLines.push("");
+      continue;
+    }
+    const safe = stripDiacritic(raw);
+    const words = safe.split(" ");
+    let current = "";
+    for (const w of words) {
+      const testLine = current ? current + " " + w : w;
+      if (font.widthOfTextAtSize(testLine, fontSize) > contentWidth && current) {
+        wrappedLines.push(current);
+        current = w;
+      } else {
+        current = testLine;
+      }
+    }
+    if (current) wrappedLines.push(current);
+  }
+
+  let lineIdx = 0;
+  const totalPages = Math.max(1, Math.ceil(wrappedLines.length / maxLinesPerPage));
+  let pageNum = 1;
+
+  while (lineIdx < wrappedLines.length || pageNum === 1) {
+    const page = doc.addPage([pageWidth, pageHeight]);
+    let y = pageHeight - margin;
+
+    const safeTitle = stripDiacritic(title || "Document");
+    page.drawText(safeTitle.slice(0, 60), { x: margin, y: y - 10, size: 8, font: fontBold, color: rgb(0.5, 0.5, 0.5) });
+    page.drawText(`${pageNum} / ${totalPages}`, { x: pageWidth - margin - 35, y: y - 10, size: 8, font: fontBold, color: rgb(0.5, 0.5, 0.5) });
+    y -= 30;
+
+    for (let i = 0; i < maxLinesPerPage && lineIdx < wrappedLines.length; i++, lineIdx++) {
+      const l = wrappedLines[lineIdx];
+      if (l) {
+        page.drawText(l, { x: margin, y, size: fontSize, font, color: rgb(0.1, 0.1, 0.1) });
+      }
+      y -= lineHeight;
+    }
+    pageNum++;
+  }
+
+  const outBytes = await doc.save({ useObjectStreams: false });
+  return assertSecurePdfBytes(outBytes);
+}
+async function exportProtocolPdf(){
+  if (!window.PDFLib) {
+    const t = (typeof I18N !== "undefined" && typeof S !== "undefined" && I18N[S.lang]) ? I18N[S.lang] : null;
+    throw new Error((t && t.recordNeedPdfLib) || "PDFLib is not loaded");
+  }
+  const appState = typeof S !== "undefined" ? S : { lang: "cs", hits: [] };
+  const t = (typeof I18N !== "undefined" && I18N[appState.lang]) ? I18N[appState.lang] : {
+    record: {
+      title: "Protokol o anonymizaci",
+      internal: "INTERNÍ DOKUMENT – CITLIVÝ",
+      notice: "Tento protokol je určen pouze pro interní potřebu a audit. Místo původních hodnot obsahuje jen masku (první znak a délku) a solený otisk SHA-256; u údajů s malou entropií (např. rodné číslo) nelze vyloučit zpětné dohledání, proto protokol nezveřejňujte.",
+      file: "Dokument",
+      operator: "Odpovědný pracovník",
+      date: "Vygenerováno",
+      profile: "Profil",
+      mode: "Režim zpracování",
+      rules: "Verze pravidel",
+      hashIn: "SHA-256 vstupu",
+      hashOut: "SHA-256 výstupu",
+      notExported: "— (dokument zatím nebyl exportován)",
+      reviewed: "Zkontrolováno",
+      fourEyes: "Čtyři oči",
+      yes: "ano",
+      no: "ne",
+      salt: "Sůl otisků",
+      saltNote: "Otisk hodnoty = SHA-256(sůl + původní hodnota); zobrazeno prvních 24 znaků.",
+      counts: "Anonymizováno / ponecháno",
+      sig: "Elektronický podpis v originále",
+      cols: ["#","Typ","Str.","Maska","Otisk SHA-256","Zákonný důvod"],
+      none: "Žádný údaj není označen k anonymizaci.",
+      page: "Strana"
+    },
+    legalShort: { trade:"§ 504 OZ", gdpr:"čl. 6 GDPR", security:"Bezpečnost", custom:"Vlastní" }
+  };
+  const rec = t.record;
+  const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+  const doc = await PDFDocument.create();
+  stampPdfMeta(doc, (appState.fileName || "document") + " — protokol");
+  addSrgbOutputIntent(doc);
+
+  const fontRegular = await doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const fontMono = await doc.embedFont(StandardFonts.Courier);
+
+  const saltBytes = new Uint8Array(8);
+  if (globalThis.crypto?.getRandomValues) {
+    globalThis.crypto.getRandomValues(saltBytes);
+  } else {
+    for (let i = 0; i < 8; i++) saltBytes[i] = Math.floor(Math.random() * 256);
+  }
+  const salt = Array.from(saltBytes).map(b => b.toString(16).padStart(2, "0")).join("");
+
+  const redactedHits = (appState.hits || []).filter(h => h.accept);
+  const rows = [];
+  for (let idx = 0; idx < redactedHits.length; idx++) {
+    const h = redactedHits[idx];
+    const val = String(h.value || "");
+    const mask = val.length > 0 ? `${val[0]}${"*".repeat(Math.max(0, Math.min(val.length - 1, 14)))} (${val.length})` : "";
+    let digest = "";
+    try {
+      const subtle = globalThis.crypto?.subtle;
+      if (subtle) {
+        const raw = await subtle.digest("SHA-256", new TextEncoder().encode(salt + val));
+        digest = Array.from(new Uint8Array(raw)).map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+      }
+    } catch (_) {}
+    if (!digest) {
+      let hVal = 0x811c9dc5;
+      for (let i = 0; i < (salt + val).length; i++) {
+        hVal ^= (salt + val).charCodeAt(i);
+        hVal = Math.imul(hVal, 0x01000193);
+      }
+      digest = Math.abs(hVal).toString(16).padStart(8, "0").repeat(3).slice(0, 24);
+    }
+    const cat = (t.cats && t.cats[h.type]) || h.type;
+    const legKey = (typeof legalOf === "function" ? legalOf(h) : (h.legalBasis || "gdpr"));
+    const legLabel = (legKey === "custom" && h.legalCustom)
+      ? h.legalCustom
+      : ((t.legalShort && t.legalShort[legKey]) || legKey);
+
+    rows.push({
+      num: String(idx + 1),
+      type: stripDiacritic(cat),
+      page: String(h.page || (typeof pageOf === "function" ? pageOf(h.start) : 1)),
+      mask: stripDiacritic(mask),
+      digest,
+      legal: stripDiacritic(legLabel)
+    });
+  }
+
+  const pageWidth = 595.28;
+  const pageHeight = 841.89;
+  const margin = 40;
+  const contentWidth = pageWidth - margin * 2;
+
+  let page = doc.addPage([pageWidth, pageHeight]);
+  let y = pageHeight - margin;
+  let pageNum = 1;
+
+  function checkNewPage(neededHeight) {
+    if (y - neededHeight < margin + 25) {
+      page.drawText(`${stripDiacritic(rec.page || "Page")} ${pageNum}`, {
+        x: pageWidth - margin - 50,
+        y: margin - 15,
+        size: 8,
+        font: fontRegular,
+        color: rgb(0.5, 0.5, 0.5)
+      });
+      page = doc.addPage([pageWidth, pageHeight]);
+      pageNum++;
+      y = pageHeight - margin;
+      drawPageHeader();
+    }
+  }
+
+  function drawPageHeader() {
+    page.drawText(stripDiacritic(rec.title), {
+      x: margin,
+      y: y - 10,
+      size: 9,
+      font: fontBold,
+      color: rgb(0.4, 0.4, 0.4)
+    });
+    page.drawText(stripDiacritic(rec.internal), {
+      x: pageWidth - margin - fontBold.widthOfTextAtSize(stripDiacritic(rec.internal), 9),
+      y: y - 10,
+      size: 9,
+      font: fontBold,
+      color: rgb(0.8, 0.2, 0.2)
+    });
+    y -= 25;
+    page.drawLine({
+      start: { x: margin, y },
+      end: { x: pageWidth - margin, y },
+      thickness: 0.5,
+      color: rgb(0.8, 0.8, 0.8)
+    });
+    y -= 15;
+  }
+
+  // First page banner
+  page.drawRectangle({
+    x: margin,
+    y: y - 30,
+    width: contentWidth,
+    height: 30,
+    color: rgb(0.96, 0.92, 0.92)
+  });
+  page.drawText(stripDiacritic(rec.internal), {
+    x: margin + 10,
+    y: y - 20,
+    size: 11,
+    font: fontBold,
+    color: rgb(0.75, 0.15, 0.15)
+  });
+  y -= 40;
+
+  // Title
+  page.drawText(stripDiacritic(rec.title), {
+    x: margin,
+    y: y - 16,
+    size: 18,
+    font: fontBold,
+    color: rgb(0.1, 0.1, 0.1)
+  });
+  y -= 30;
+
+  // Notice box
+  const words = stripDiacritic(rec.notice).split(/\s+/);
+  const noticeLines = [];
+  let curL = "";
+  for (const w of words) {
+    const test = curL ? curL + " " + w : w;
+    if (fontRegular.widthOfTextAtSize(test, 8.5) > contentWidth - 20 && curL) {
+      noticeLines.push(curL);
+      curL = w;
+    } else {
+      curL = test;
+    }
+  }
+  if (curL) noticeLines.push(curL);
+
+  const noticeBoxH = noticeLines.length * 11 + 14;
+  page.drawRectangle({
+    x: margin,
+    y: y - noticeBoxH,
+    width: contentWidth,
+    height: noticeBoxH,
+    color: rgb(0.97, 0.97, 0.98),
+    borderColor: rgb(0.85, 0.85, 0.88),
+    borderWidth: 0.5
+  });
+  let ny = y - 12;
+  for (const nl of noticeLines) {
+    page.drawText(nl, { x: margin + 10, y: ny, size: 8.5, font: fontRegular, color: rgb(0.35, 0.35, 0.35) });
+    ny -= 11;
+  }
+  y -= (noticeBoxH + 15);
+
+  const rulesVer = (typeof RULES !== "undefined" ? RULES : "2026.10.15-ai42");
+  const metaPairs = [
+    [rec.file, appState.fileName || "document"],
+    [rec.operator, appState.operator || "—"],
+    [rec.date, new Date().toISOString().slice(0, 19).replace("T", " ")],
+    [rec.profile, appState.profile || "default"],
+    [rec.mode, appState.mode || "pseudo"],
+    [rec.rules, "v" + rulesVer],
+    [rec.hashIn, appState.hashIn || "—"],
+    [rec.hashOut, appState.hashOut || stripDiacritic(rec.notExported)],
+    [rec.reviewed, appState.reviewed ? stripDiacritic(rec.yes) : stripDiacritic(rec.no)],
+    [rec.fourEyes, appState.secondEyes ? stripDiacritic(rec.yes) : stripDiacritic(rec.no)],
+    [rec.counts, `${redactedHits.length} / ${(appState.hits || []).length - redactedHits.length}`],
+    [rec.salt, salt + " (" + stripDiacritic(rec.saltNote) + ")"]
+  ];
+
+  for (const [k, v] of metaPairs) {
+    checkNewPage(14);
+    page.drawText(stripDiacritic(k) + ":", { x: margin, y, size: 8.5, font: fontBold, color: rgb(0.2, 0.2, 0.2) });
+    const valStr = stripDiacritic(String(v));
+    const isHash = valStr.length > 30 && /^[a-f0-9]+$/i.test(valStr);
+    page.drawText(valStr.slice(0, 75), {
+      x: margin + 140,
+      y,
+      size: 8.5,
+      font: isHash ? fontMono : fontRegular,
+      color: rgb(0.2, 0.2, 0.2)
+    });
+    y -= 13;
+  }
+
+  y -= 15;
+  checkNewPage(35);
+
+  const cols = [
+    { title: rec.cols[0], w: 25, x: margin },
+    { title: rec.cols[1], w: 85, x: margin + 25 },
+    { title: rec.cols[2], w: 35, x: margin + 110 },
+    { title: rec.cols[3], w: 105, x: margin + 145 },
+    { title: rec.cols[4], w: 120, x: margin + 250 },
+    { title: rec.cols[5], w: 100, x: margin + 370 }
+  ];
+
+  page.drawRectangle({
+    x: margin,
+    y: y - 16,
+    width: contentWidth,
+    height: 18,
+    color: rgb(0.92, 0.94, 0.96)
+  });
+  for (const c of cols) {
+    page.drawText(stripDiacritic(c.title), {
+      x: c.x + 3,
+      y: y - 12,
+      size: 8,
+      font: fontBold,
+      color: rgb(0.2, 0.2, 0.2)
+    });
+  }
+  y -= 20;
+
+  if (!rows.length) {
+    checkNewPage(20);
+    page.drawText(stripDiacritic(rec.none), {
+      x: margin + 5,
+      y,
+      size: 8.5,
+      font: fontRegular,
+      color: rgb(0.5, 0.5, 0.5)
+    });
+    y -= 15;
+  } else {
+    for (let rIdx = 0; rIdx < rows.length; rIdx++) {
+      checkNewPage(14);
+      const row = rows[rIdx];
+      if (rIdx % 2 === 1) {
+        page.drawRectangle({
+          x: margin,
+          y: y - 10,
+          width: contentWidth,
+          height: 13,
+          color: rgb(0.98, 0.98, 0.99)
+        });
+      }
+      page.drawText(row.num, { x: cols[0].x + 3, y, size: 8, font: fontRegular, color: rgb(0.4, 0.4, 0.4) });
+      page.drawText(row.type.slice(0, 16), { x: cols[1].x + 3, y, size: 8, font: fontRegular, color: rgb(0.2, 0.2, 0.2) });
+      page.drawText(row.page, { x: cols[2].x + 3, y, size: 8, font: fontRegular, color: rgb(0.4, 0.4, 0.4) });
+      page.drawText(row.mask.slice(0, 18), { x: cols[3].x + 3, y, size: 8, font: fontMono, color: rgb(0.2, 0.2, 0.2) });
+      page.drawText(row.digest.slice(0, 24), { x: cols[4].x + 3, y, size: 7.5, font: fontMono, color: rgb(0.3, 0.3, 0.3) });
+      page.drawText(row.legal.slice(0, 18), { x: cols[5].x + 3, y, size: 8, font: fontRegular, color: rgb(0.2, 0.2, 0.2) });
+      y -= 13;
+    }
+  }
+
+  page.drawText(`${stripDiacritic(rec.page || "Page")} ${pageNum}`, {
+    x: pageWidth - margin - 50,
+    y: margin - 15,
+    size: 8,
+    font: fontRegular,
+    color: rgb(0.5, 0.5, 0.5)
+  });
+
+  const outBytes = await doc.save({ useObjectStreams: false });
+  return assertSecurePdfBytes(outBytes);
+}
 
 // --- Module: src/formats/ingest.js ---
 async function sha256(buf){
   const subtle = globalThis.crypto ? globalThis.crypto.subtle : null;
   if (!subtle) return "mockhash";
-  const h = await subtle.digest("SHA-256", buf);
+  const source = typeof buf === "string" ? new TextEncoder().encode(buf) : buf;
+  const h = await subtle.digest("SHA-256", source);
   return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2,"0")).join("");
 }
 const IngestErrorCode = Object.freeze({
@@ -6379,14 +6753,13 @@ let MOVIE_TIMER = null;
   let MOVIE_PENDING = null;
   let MOVIE_TITLE_TIMER = null;
   let MOVIE_PAUSED = false;
-  let MOVIE_SPEED = 1;
-  const MOVIE_SLOWDOWN = 0.3;
-  function movieEffectiveSpeed(){ return MOVIE_SPEED * MOVIE_SLOWDOWN; }
-
-  function initActionMarquees(_root){
+let MOVIE_SPEED = 1;
+const MOVIE_SLOWDOWN = 0.3;
+function movieEffectiveSpeed(){ return MOVIE_SPEED * MOVIE_SLOWDOWN; }
+function initActionMarquees(_root){
     /* Cleaned: text overflow handled via responsive CSS */
   }
-  function startTextMarquee(_chip){
+function startTextMarquee(_chip){
     /* Cleaned: chip wrapping handled via responsive CSS */
   }
 
@@ -7874,6 +8247,60 @@ function download(name, blob){
     return S.hits.filter(h => S.filter==="all" || (S.filter==="redact"?h.accept:!h.accept));
   }
   let _reviewCache = null;
+function legalOf(h) {
+    if (!h) return "gdpr";
+    if (h.legalBasis) return h.legalBasis;
+    if (S.legalReason) return S.legalReason;
+    if (h.type === "secrets") return "trade";
+    if (["credential", "ip", "host", "system", "project", "ticket", "incident"].includes(h.type)) return "security";
+    return "gdpr";
+  }
+function buildAudit() {
+    const salt = S.auditSalt || (S.auditSalt = Array.from(globalThis.crypto?.getRandomValues?.(new Uint8Array(8)) || [1,2,3,4,5,6,7,8]).map(b => b.toString(16).padStart(2, "0")).join(""));
+    const items = (S.hits || []).map(h => {
+      const val = String(h.value || "");
+      const mask = val.length > 0 ? `${val[0]}${"*".repeat(Math.max(0, val.length - 1))} (${val.length})` : "";
+      return {
+        id: h.id,
+        type: h.type,
+        page: h.page || 1,
+        action: h.accept ? "redact" : "keep",
+        mask,
+        entityKey: h.entityKey || null,
+        legalBasis: legalOf(h),
+        legalCustom: (legalOf(h) === "custom" ? (h.legalCustom || "") : "")
+      };
+    });
+
+    return {
+      application: "Znečitelně",
+      rulesVersion: RULES,
+      timestamp: new Date().toISOString(),
+      document: {
+        fileName: S.fileName || "document",
+        kind: S.kind || "text",
+        hashIn: S.hashIn || "",
+        hashOut: S.hashOut || ""
+      },
+      operator: S.operator || "",
+      profile: S.profile,
+      mode: S.mode,
+      review: {
+        reviewed: !!S.reviewed,
+        secondEyes: !!S.secondEyes,
+        fastApprove: !!S.fastApprove,
+        quickMode: !!S.quickMode
+      },
+      counts: {
+        total: S.hits.length,
+        redacted: S.hits.filter(h => h.accept).length,
+        kept: S.hits.filter(h => !h.accept).length
+      },
+      salt,
+      findings: items,
+      auditTrail: S.auditTrail || []
+    };
+  }
 
   function paintReview(){
     const t = i();
@@ -8743,9 +9170,8 @@ function getRedactionDiff(text, hits, mode, lang){
   }
   /*
    * Local ICC data: no network request is made at export time.
-   * The profile is a standard sRGB profile generated through LittleCMS.
+   * The profile is a standard sRGB profile generated through LittleCMS (imported from pdf.js).
    */
-  const SRGB_ICC_PROFILE_BASE64 = "AAACTGxjbXMEQAAAbW50clJHQiBYWVogB+oACgABAAkAEQATYWNzcEFQUEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPbWAAEAAAAA0y1sY21zAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALZGVzYwAAAQgAAAA2Y3BydAAAAUAAAABMd3RwdAAAAYwAAAAUY2hhZAAAAaAAAAAsclhZWgAAAcwAAAAUYlhZWgAAAeAAAAAUZ1hZWgAAAfQAAAAUclRSQwAAAggAAAAgZ1RSQwAAAggAAAAgYlRSQwAAAggAAAAgY2hybQAAAigAAAAkbWx1YwAAAAAAAAABAAAADGVuVVMAAAAaAAAAHABzAFIARwBCACAAYgB1AGkAbAB0AC0AaQBuAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAADAAAAAcAE4AbwAgAGMAbwBwAHkAcgBpAGcAaAB0ACwAIAB1AHMAZQAgAGYAcgBlAGUAbAB5WFlaIAAAAAAAAPbWAAEAAAAA0y1zZjMyAAAAAAABDEIAAAXe///zJQAAB5MAAP2Q///7of///aIAAAPcAADAblhZWiAAAAAAAABvoAAAOPUAAAOQWFlaIAAAAAAAACSfAAAPhAAAtsNYWVogAAAAAAAAYpcAALeHAAAY2XBhcmEAAAAAAAMAAAACZmYAAPKnAAANWQAAE9AAAApbY2hybQAAAAAAAwAAAACj1wAAVHsAAEzNAACZmgAAJmYAAA9c";
 
 async function maybePdfa(bytes, notes){
     if (!S.pdfaDecl) return { bytes, unembeddedPages:[], fontAudit:[] };
@@ -9902,6 +10328,11 @@ function selfTest(){
     window.isSentenceStart = isSentenceStart;
     window.isCzechVerbOrParticiple = isCzechVerbOrParticiple;
     window.apply = apply;
+    window.legalOf = legalOf;
+    window.buildAudit = buildAudit;
+    window.exportProtocolPdf = exportProtocolPdf;
+    window.exportTextPdf = exportTextPdf;
+    window.S = S;
   }
   if (typeof queueMicrotask === "function") {
     queueMicrotask(initOnomasticRegistry);

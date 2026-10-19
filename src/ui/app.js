@@ -3,13 +3,13 @@ import { I18N } from "../core/i18n.js";
 import { isOnomasticName, initOnomasticRegistry, createOnomasticTrie } from "../core/onomastic.js";
 import { isCzechVerbOrParticiple, isSentenceStart, declinedPersonTokenBase } from "../core/morphology.js";
 import { EntityPropagationCache, createEntityPropagationCache, expandCzechNameMorphology } from "../core/propagation.js";
-import { detect, apply, applyCourtProfileRules, filterCourtDecisionsWhitelist, effectiveHits, resolveHits, visibleHits, topHits, bindReplacer } from "../core/detector.js";
+import { detect, apply, applyCourtProfileRules, filterCourtDecisionsWhitelist, effectiveHits, resolveHits, visibleHits, topHits, bindReplacer, buildGlossary } from "../core/detector.js";
 import { exportSession, importSession } from "../crypto/session.js";
-import { extractPdf, exportPdfTrueRedact, exportPdfRaster, applyPdfaDeclaration, pdfWorker, getPdfDocument } from "../formats/pdf.js";
-import { exportDocxFile } from "../formats/docx.js";
+import { extractPdf, exportPdfTrueRedact, exportPdfRaster, applyPdfaDeclaration, pdfWorker, getPdfDocument, exportTextPdf, exportProtocolPdf, base64ToUint8Array, SRGB_ICC_PROFILE_BASE64 } from "../formats/pdf.js";
+import { exportDocxFile, docxMakeWork, docxNormalizeZipPath, docxRelativeZipPath } from "../formats/docx.js";
 import { exportXlsxFile, exportXlsxFileFflate } from "../formats/xlsx.js";
-import { ingestDocument, ingestDocumentBatch, buildCanonicalDocument, applyDocumentToState, DocumentIngestionError, IngestErrorCode, localizeIngestError } from "../formats/ingest.js";
-import { startMovieTutorial, exitMovieTutorial } from "./movie.js";
+import { ingestDocument, ingestDocumentBatch, buildCanonicalDocument, applyDocumentToState, DocumentIngestionError, IngestErrorCode, localizeIngestError, sha256 } from "../formats/ingest.js";
+import { startMovieTutorial, exitMovieTutorial, MOVIE_SPEED, MOVIE_SLOWDOWN, movieEffectiveSpeed, initActionMarquees, startTextMarquee } from "./movie.js";
 
 
 export const S = {
@@ -676,6 +676,62 @@ function download(name, blob){
     return S.hits.filter(h => S.filter==="all" || (S.filter==="redact"?h.accept:!h.accept));
   }
   let _reviewCache = null;
+
+  export function legalOf(h) {
+    if (!h) return "gdpr";
+    if (h.legalBasis) return h.legalBasis;
+    if (S.legalReason) return S.legalReason;
+    if (h.type === "secrets") return "trade";
+    if (["credential", "ip", "host", "system", "project", "ticket", "incident"].includes(h.type)) return "security";
+    return "gdpr";
+  }
+
+  export function buildAudit() {
+    const salt = S.auditSalt || (S.auditSalt = Array.from(globalThis.crypto?.getRandomValues?.(new Uint8Array(8)) || [1,2,3,4,5,6,7,8]).map(b => b.toString(16).padStart(2, "0")).join(""));
+    const items = (S.hits || []).map(h => {
+      const val = String(h.value || "");
+      const mask = val.length > 0 ? `${val[0]}${"*".repeat(Math.max(0, val.length - 1))} (${val.length})` : "";
+      return {
+        id: h.id,
+        type: h.type,
+        page: h.page || 1,
+        action: h.accept ? "redact" : "keep",
+        mask,
+        entityKey: h.entityKey || null,
+        legalBasis: legalOf(h),
+        legalCustom: (legalOf(h) === "custom" ? (h.legalCustom || "") : "")
+      };
+    });
+
+    return {
+      application: "Znečitelně",
+      rulesVersion: RULES,
+      timestamp: new Date().toISOString(),
+      document: {
+        fileName: S.fileName || "document",
+        kind: S.kind || "text",
+        hashIn: S.hashIn || "",
+        hashOut: S.hashOut || ""
+      },
+      operator: S.operator || "",
+      profile: S.profile,
+      mode: S.mode,
+      review: {
+        reviewed: !!S.reviewed,
+        secondEyes: !!S.secondEyes,
+        fastApprove: !!S.fastApprove,
+        quickMode: !!S.quickMode
+      },
+      counts: {
+        total: S.hits.length,
+        redacted: S.hits.filter(h => h.accept).length,
+        kept: S.hits.filter(h => !h.accept).length
+      },
+      salt,
+      findings: items,
+      auditTrail: S.auditTrail || []
+    };
+  }
 
   function paintReview(){
     const t = i();
@@ -1545,9 +1601,8 @@ function getRedactionDiff(text, hits, mode, lang){
   }
   /*
    * Local ICC data: no network request is made at export time.
-   * The profile is a standard sRGB profile generated through LittleCMS.
+   * The profile is a standard sRGB profile generated through LittleCMS (imported from pdf.js).
    */
-  const SRGB_ICC_PROFILE_BASE64 = "AAACTGxjbXMEQAAAbW50clJHQiBYWVogB+oACgABAAkAEQATYWNzcEFQUEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPbWAAEAAAAA0y1sY21zAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALZGVzYwAAAQgAAAA2Y3BydAAAAUAAAABMd3RwdAAAAYwAAAAUY2hhZAAAAaAAAAAsclhZWgAAAcwAAAAUYlhZWgAAAeAAAAAUZ1hZWgAAAfQAAAAUclRSQwAAAggAAAAgZ1RSQwAAAggAAAAgYlRSQwAAAggAAAAgY2hybQAAAigAAAAkbWx1YwAAAAAAAAABAAAADGVuVVMAAAAaAAAAHABzAFIARwBCACAAYgB1AGkAbAB0AC0AaQBuAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAADAAAAAcAE4AbwAgAGMAbwBwAHkAcgBpAGcAaAB0ACwAIAB1AHMAZQAgAGYAcgBlAGUAbAB5WFlaIAAAAAAAAPbWAAEAAAAA0y1zZjMyAAAAAAABDEIAAAXe///zJQAAB5MAAP2Q///7of///aIAAAPcAADAblhZWiAAAAAAAABvoAAAOPUAAAOQWFlaIAAAAAAAACSfAAAPhAAAtsNYWVogAAAAAAAAYpcAALeHAAAY2XBhcmEAAAAAAAMAAAACZmYAAPKnAAANWQAAE9AAAApbY2hybQAAAAAAAwAAAACj1wAAVHsAAEzNAACZmgAAJmYAAA9c";
 
 async function maybePdfa(bytes, notes){
     if (!S.pdfaDecl) return { bytes, unembeddedPages:[], fontAudit:[] };
@@ -2705,6 +2760,11 @@ export function selfTest(){
     window.isSentenceStart = isSentenceStart;
     window.isCzechVerbOrParticiple = isCzechVerbOrParticiple;
     window.apply = apply;
+    window.legalOf = legalOf;
+    window.buildAudit = buildAudit;
+    window.exportProtocolPdf = exportProtocolPdf;
+    window.exportTextPdf = exportTextPdf;
+    window.S = S;
   }
   if (typeof queueMicrotask === "function") {
     queueMicrotask(initOnomasticRegistry);

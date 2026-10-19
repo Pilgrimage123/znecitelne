@@ -2,14 +2,14 @@ export let MOVIE_TIMER = null;
   let MOVIE_PENDING = null;
   let MOVIE_TITLE_TIMER = null;
   let MOVIE_PAUSED = false;
-  let MOVIE_SPEED = 1;
-  const MOVIE_SLOWDOWN = 0.3;
-  function movieEffectiveSpeed(){ return MOVIE_SPEED * MOVIE_SLOWDOWN; }
+  export let MOVIE_SPEED = 1;
+  export const MOVIE_SLOWDOWN = 0.3;
+  export function movieEffectiveSpeed(){ return MOVIE_SPEED * MOVIE_SLOWDOWN; }
 
-  function initActionMarquees(_root){
+  export function initActionMarquees(_root){
     /* Cleaned: text overflow handled via responsive CSS */
   }
-  function startTextMarquee(_chip){
+  export function startTextMarquee(_chip){
     /* Cleaned: chip wrapping handled via responsive CSS */
   }
 
