@@ -66,6 +66,210 @@ export function pdfVisualAvailable(){ return S.kind === "pdf" && !!S.sourceBuf &
     });
   }
 
+export function pdfDetectFontFamily(fontName){
+  const f = String(fontName || "").toLowerCase();
+  if (/times|roman|serif|garamond|georgia|cambria|minion|baskerville/i.test(f)) return "serif";
+  if (/courier|mono|consol|typewriter|menlo/i.test(f)) return "monospace";
+  return "sans-serif";
+}
+
+export function pdfCompactToken(token){
+  if (!token) return "";
+  const m = token.match(/^\[([A-ZÁ-Ž_]+?)(?:_([A-Za-z0-9]+))?\]$/);
+  if (!m) return token;
+  const cat = m[1];
+  const suffix = m[2];
+  let p = cat.charAt(0);
+  if (cat.startsWith("DATUM")) p = "DN";
+  else if (cat.startsWith("DOKLAD")) p = "DOK";
+  else if (cat.startsWith("TELEFON")) p = "TEL";
+  else if (cat.startsWith("ADRESA")) p = "ADR";
+  else if (cat.startsWith("PROJEKT")) p = "PRJ";
+  else if (cat.startsWith("SYSTÉM") || cat.startsWith("SYSTEM")) p = "SYS";
+  else if (cat.startsWith("INCIDENT")) p = "INC";
+  else if (cat.startsWith("ŘÍZENÍ") || cat.startsWith("RIZENI")) p = "ŘÍZ";
+  else if (cat.startsWith("ORGÁN") || cat.startsWith("ORGAN")) p = "ORG";
+  return suffix ? `[${p}_${suffix}]` : `[${p}]`;
+}
+
+export function sampleCanvasBg(ctx, x, y, w, h, canvasW, canvasH){
+  try {
+    const samples = [];
+    const check = (px, py) => {
+      if (px >= 0 && px < canvasW && py >= 0 && py < canvasH) {
+        const p = ctx.getImageData(Math.floor(px), Math.floor(py), 1, 1).data;
+        const lum = 0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2];
+        if (lum > 140 && p[3] > 200) samples.push([p[0], p[1], p[2]]);
+      }
+    };
+    for (let s = 2; s <= 6; s += 2) {
+      check(x - s, y + h / 2);
+      check(x + w + s, y + h / 2);
+      check(x + w / 2, y - s);
+      check(x + w / 2, y + h + s);
+    }
+    if (samples.length >= 2) {
+      const avgR = Math.round(samples.reduce((a, c) => a + c[0], 0) / samples.length);
+      const avgG = Math.round(samples.reduce((a, c) => a + c[1], 0) / samples.length);
+      const avgB = Math.round(samples.reduce((a, c) => a + c[2], 0) / samples.length);
+      return `rgb(${avgR},${avgG},${avgB})`;
+    }
+  } catch (_) {}
+  return "#ffffff";
+}
+
+export function mergeAdjacentBoxes(quads, scale){
+  if (!quads || !quads.length) return [];
+  const lines = [];
+  quads.forEach(q => {
+    const line = lines.find(l => Math.abs(l.baseLine - q.baseLine) <= Math.max(l.fH, q.fH) * 0.35);
+    if (line) line.items.push(q);
+    else lines.push({ baseLine: q.baseLine, fH: q.fH, items: [q] });
+  });
+  const out = [];
+  lines.forEach(l => {
+    l.items.sort((a, b) => a.boxX - b.boxX);
+    let cur = null;
+    for (const it of l.items) {
+      if (!cur) {
+        cur = { boxX: it.boxX, boxY: it.boxY, boxW: it.boxW, boxH: it.boxH, maxX: it.boxX + it.boxW };
+        continue;
+      }
+      const gap = it.boxX - cur.maxX;
+      if (gap <= Math.max(8 * scale, it.fH * 0.8)) {
+        const newMaxX = Math.max(cur.maxX, it.boxX + it.boxW);
+        cur.boxY = Math.min(cur.boxY, it.boxY);
+        cur.boxH = Math.max(cur.boxH, it.boxH);
+        cur.boxW = newMaxX - cur.boxX;
+        cur.maxX = newMaxX;
+      } else {
+        out.push(cur);
+        cur = { boxX: it.boxX, boxY: it.boxY, boxW: it.boxW, boxH: it.boxH, maxX: it.boxX + it.boxW };
+      }
+    }
+    if (cur) out.push(cur);
+  });
+  return out;
+}
+
+export function resolvePageHitQuads(pageText, pageMap, hits, pageMeta, scale){
+  if (!pageMap || !pageMap.length || !hits || !hits.length) return [];
+  const assignedRanges = [];
+  const results = [];
+  const sortedHits = hits.slice().sort((a, b) => (a.start ?? 0) - (b.start ?? 0));
+
+  sortedHits.forEach(h => {
+    if (!h || !h.value) return;
+    const val = h.value;
+    const valLen = val.length;
+    const rel = (pageMeta && Number.isFinite(pageMeta.start)) ? (h.start - pageMeta.start) : h.start;
+
+    const occs = [];
+    let p = 0;
+    while ((p = pageText.indexOf(val, p)) !== -1) {
+      occs.push(p);
+      p += 1;
+    }
+    const normVal = val.replace(/\s+/g, " ").trim();
+    if (!occs.length && normVal !== val) {
+      p = 0;
+      while ((p = pageText.indexOf(normVal, p)) !== -1) {
+        occs.push(p);
+        p += 1;
+      }
+    }
+
+    const unassigned = occs.filter(idx => !assignedRanges.some(ar => idx < ar.end && (idx + valLen) > ar.start));
+
+    let chosenIdx = -1;
+    if (unassigned.includes(rel)) {
+      chosenIdx = rel;
+    } else if (unassigned.length > 0) {
+      unassigned.sort((a, b) => Math.abs(a - rel) - Math.abs(b - rel));
+      chosenIdx = unassigned[0];
+    } else if (pageText.slice(rel, rel + valLen) === val) {
+      chosenIdx = rel;
+    } else {
+      const winStart = Math.max(0, rel - 50);
+      const winEnd = Math.min(pageText.length, rel + 50 + valLen);
+      const localSub = pageText.slice(winStart, winEnd);
+      const localIdx = localSub.indexOf(val);
+      if (localIdx >= 0) {
+        const candidate = winStart + localIdx;
+        if (!assignedRanges.some(ar => candidate < ar.end && (candidate + valLen) > ar.start)) {
+          chosenIdx = candidate;
+        }
+      }
+    }
+
+    if (chosenIdx < 0) {
+      const directGlyphs = pageMap.filter(m => m.start >= rel && m.end <= (rel + Math.max(valLen, 1)));
+      if (directGlyphs.length) {
+        chosenIdx = rel;
+      }
+    }
+
+    if (chosenIdx < 0) return;
+    assignedRanges.push({ start: chosenIdx, end: chosenIdx + valLen });
+
+    const endIdx = chosenIdx + Math.max(valLen, 1);
+    const glyphs = pageMap.filter(m => m.end > chosenIdx && m.start < endIdx);
+    if (!glyphs.length) return;
+
+    const quads = pdfWordQuads(glyphs);
+    quads.forEach((r, qIdx) => {
+      const lineGlyphs = (r.glyphs && r.glyphs.length) ? r.glyphs : pageMap.filter(m => m.end > chosenIdx && m.start < endIdx && Math.abs(m.y - r.y) < Math.max(m.h, r.h) * 0.6);
+      const bGlyphs = lineGlyphs.filter(g => g && g.baselineY);
+      const hasBaseline = bGlyphs.length > 0;
+      const baseLine = hasBaseline ? bGlyphs[0].baselineY : (r.y + (r.h || 10) * 0.82);
+      const fH = hasBaseline ? Math.max(...bGlyphs.map(g => g.fontH || g.h)) : Math.max(r.rawH || r.h, 6);
+      const minX = Math.min(...lineGlyphs.map(g => g.x));
+      const maxX = Math.max(...lineGlyphs.map(g => g.x + g.w));
+
+      let padXRight = Math.max(3, Math.round(scale * 1.8));
+      const nextG = pageMap.find(m => m.start >= endIdx && m.str && m.str.trim());
+      if (nextG && /^[,.:;!?)]/u.test(nextG.str) && nextG.x > maxX) {
+        const gap = nextG.x - maxX;
+        padXRight = Math.min(padXRight, Math.max(0, gap - 1));
+      }
+      let padXLeft = Math.max(2, Math.round(scale * 1.2));
+      const prevG = pageMap.slice().reverse().find(m => m.end <= chosenIdx && m.str && m.str.trim());
+      if (prevG && /^[(["]/u.test(prevG.str) && (prevG.x + prevG.w) < minX) {
+        const gap = minX - (prevG.x + prevG.w);
+        padXLeft = Math.min(padXLeft, Math.max(0, gap - 1));
+      }
+
+      const boxX = Math.max(0, minX - padXLeft);
+      const boxW = Math.max(maxX + padXRight - boxX, 6);
+      const boxY = baseLine - fH * 1.04;
+      const bottomY = baseLine + fH * 0.30;
+      const boxH = Math.max(bottomY - boxY, 8);
+      const fontFam = pdfDetectFontFamily(lineGlyphs[0] && (lineGlyphs[0].fontName || lineGlyphs[0].name));
+
+      results.push({
+        hit: h,
+        qIdx,
+        totalQuads: quads.length,
+        startIdx: chosenIdx,
+        endIdx,
+        boxX,
+        boxY,
+        boxW,
+        boxH,
+        minX,
+        maxX,
+        baseLine,
+        fH,
+        fontFam,
+        hasBaseline,
+        lineGlyphs
+      });
+    });
+  });
+
+  return results;
+}
+
   export function paintPdfVisualOverlays(){
     if (!PV) return;
     const previewOn = S.docView === "preview";
@@ -73,81 +277,49 @@ export function pdfVisualAvailable(){ return S.kind === "pdf" && !!S.sourceBuf &
     const replacer = (previewOn && !isBox) ? bindReplacer(S.mode, S.lang, S.hits) : null;
     PV.pages.forEach(pg => {
       pg.layer.innerHTML = "";
-      visibleHits(S.hits, S.selectedId).forEach(h => {
-        const meta = (S.pages || []).find(p => p.n === pg.n);
-        if (!meta || h.start < meta.start || h.start >= meta.end + 1) return;
-        const rel = h.start - meta.start;
-        let idx = pg.text.slice(rel, rel + h.value.length) === h.value ? rel : pg.text.indexOf(h.value);
-        if (idx < 0) return;
-        const end = idx + Math.max(h.value.length, 1);
-        const glyphs = pg.map.filter(m => m.end > idx && m.start < end);
-        if (!glyphs.length) return;
-        const quads = pdfWordQuads(glyphs);
-        quads.forEach((r, qIdx) => {
-          const b = document.createElement("button");
-          b.type = "button";
-          b.dataset.id = h.id;
-          const lineGlyphs = (r.glyphs && r.glyphs.length) ? r.glyphs : pg.map.filter(m => m.end > idx && m.start < end && Math.abs(m.y - r.y) < Math.max(m.h, r.h) * 0.6);
-          const hasBaseline = lineGlyphs.some(g => g && g.baselineY);
-          let boxX = r.x, boxY = r.y, boxW = r.w, boxH = r.h;
-          if (previewOn) {
-            if (hasBaseline) {
-              const bGlyphs = lineGlyphs.filter(g => g && g.baselineY);
-              const baseLine = bGlyphs[0].baselineY;
-              const fH = Math.max(...bGlyphs.map(g => g.fontH || g.h));
-              const minX = Math.min(...lineGlyphs.map(g => g.x));
-              const maxX = Math.max(...lineGlyphs.map(g => g.x + g.w));
-              boxX = Math.max(0, minX - 2);
-              boxW = Math.max(maxX + 3 - boxX, 6);
-              boxY = Math.max(0, baseLine - fH * 1.02);
-              boxH = Math.max((baseLine + fH * 0.28) - boxY, 8);
-            } else {
-              const padY = Math.max(2, Math.round((r.rawH || r.h) * 0.16));
-              boxX = Math.max(0, (r.rawMinX != null ? r.rawMinX : r.x) - 2);
-              const maxX = (r.rawMaxX != null ? r.rawMaxX : (r.x + r.w)) + 3;
-              boxW = Math.max(maxX - boxX, 6);
-              boxY = Math.max(0, (r.rawMinY != null ? r.rawMinY : r.y) - padY);
-              const maxY = (r.rawMaxY != null ? r.rawMaxY : (r.y + r.h)) + padY;
-              boxH = Math.max(maxY - boxY, 8);
-            }
-          }
-          b.style.left = boxX + "px";
-          b.style.top = boxY + "px";
-          b.style.height = boxH + "px";
-          b.onclick = () => select(h.id);
+      const meta = (S.pages || []).find(p => p.n === pg.n);
+      const visHits = visibleHits(S.hits, S.selectedId);
+      const pageQuads = resolvePageHitQuads(pg.text, pg.map, visHits, meta, pg.scale || 1);
+      pageQuads.forEach(q => {
+        const h = q.hit;
+        const b = document.createElement("button");
+        b.type = "button";
+        b.dataset.id = h.id;
+        b.style.left = q.boxX + "px";
+        b.style.top = q.boxY + "px";
+        b.style.height = q.boxH + "px";
+        b.style.width = q.boxW + "px";
+        b.onclick = () => select(h.id);
 
-          if (!h.accept) {
-            b.className = "pv-box pv-off" + (S.selectedId === h.id ? " pv-sel" : "");
-            b.style.width = r.w + "px";
-            b.setAttribute("aria-label", i().cats[h.type] || h.type);
-          } else if (!previewOn) {
-            b.className = "pv-box pv-on" + (S.selectedId === h.id ? " pv-sel" : "");
-            b.style.width = r.w + "px";
-            b.setAttribute("aria-label", i().cats[h.type] || h.type);
-          } else if (isBox) {
-            b.className = "pv-box pv-prev pv-prev-box" + (S.selectedId === h.id ? " pv-sel" : "");
-            b.style.width = boxW + "px";
-            b.setAttribute("aria-label", (i().cats[h.type] || h.type) + " (" + (i().redact || "anonymizováno") + ")");
+        if (!h.accept) {
+          b.className = "pv-box pv-off" + (S.selectedId === h.id ? " pv-sel" : "");
+          b.setAttribute("aria-label", (i().cats && i().cats[h.type]) || h.type);
+        } else if (!previewOn) {
+          b.className = "pv-box pv-on" + (S.selectedId === h.id ? " pv-sel" : "");
+          b.setAttribute("aria-label", (i().cats && i().cats[h.type]) || h.type);
+        } else if (isBox) {
+          b.className = "pv-box pv-prev pv-prev-box" + (S.selectedId === h.id ? " pv-sel" : "");
+          b.setAttribute("aria-label", ((i().cats && i().cats[h.type]) || h.type) + " (" + (i().redact || "anonymizováno") + ")");
+        } else {
+          const fullToken = replacer ? replacer(h) : "";
+          b.className = "pv-box pv-prev pv-prev-token" + (S.selectedId === h.id ? " pv-sel" : "");
+          b.style.maxWidth = q.boxW + "px";
+          b.style.overflow = "hidden";
+          b.style.textOverflow = "ellipsis";
+          b.style.fontFamily = q.fontFam;
+          const fontSize = Math.max(8, Math.min(13, Math.round(q.boxH * 0.65)));
+          b.style.fontSize = fontSize + "px";
+          if (q.qIdx === 0) {
+            const compToken = pdfCompactToken(fullToken);
+            const fitsFull = (fullToken.length * fontSize * 0.55) <= (q.boxW + 6);
+            b.textContent = fitsFull ? fullToken : compToken;
           } else {
-            const token = replacer ? replacer(h) : "";
-            b.className = "pv-box pv-prev pv-prev-token" + (S.selectedId === h.id ? " pv-sel" : "");
-            b.style.minWidth = boxW + "px";
-            b.style.width = "auto";
-            const wrapW = pg.wrap ? (pg.wrap.clientWidth || parseFloat(pg.wrap.style.width) || 0) : 0;
-            const maxW = Math.max(boxW, (wrapW > boxX ? wrapW - boxX - 2 : 500));
-            b.style.maxWidth = maxW + "px";
-            const fontSize = Math.max(8, Math.min(13, Math.round(boxH * 0.65)));
-            b.style.fontSize = fontSize + "px";
-            if (qIdx === 0) {
-              b.textContent = token;
-            } else {
-              b.textContent = "";
-            }
-            b.setAttribute("aria-label", token + " · " + (i().cats[h.type] || h.type));
-            b.title = token;
+            b.textContent = "";
           }
-          pg.layer.appendChild(b);
-        });
+          b.setAttribute("aria-label", fullToken + " · " + ((i().cats && i().cats[h.type]) || h.type));
+          b.title = fullToken;
+        }
+        pg.layer.appendChild(b);
       });
     });
   }
@@ -807,72 +979,66 @@ export async function exportPdfTrueRedact(source, hits, title, mode, lang){
       const mapped = mapPageGlyphs(rawItems, scale, vp);
       const text = mapped.text;
       const map = mapped.map;
+      const effHits = effectiveHits(hits).filter(h => (h.page || pageOf(h.start)) === i);
+      const pageQuads = resolvePageHitQuads(text, map, effHits, pageMeta, scale);
       const redactedIntervals = [];
-      effectiveHits(hits).filter(h => (h.page || pageOf(h.start)) === i).forEach(hit => {
-        let idx = -1;
-        if (pageMeta && hit.start >= pageMeta.start && hit.end <= pageMeta.end) {
-          idx = hit.start - pageMeta.start;
-          const slice = text.slice(idx, idx+hit.value.length);
-          if (slice !== hit.value) {
-            const local = text.indexOf(hit.value);
-            idx = local;
-          }
+      pageQuads.forEach(q => {
+        if (q.startIdx != null && q.endIdx != null) {
+          redactedIntervals.push({ start: q.startIdx, end: q.endIdx });
         }
-        if (idx < 0) idx = text.indexOf(hit.value);
-        if (idx < 0) {
-          const compact = hit.value.replace(/\s+/g," ").trim();
-          idx = text.indexOf(compact);
-        }
-        if (idx < 0) return;
-        redactedIntervals.push({ start: idx, end: idx + Math.max(hit.value.length, 1) });
-        const end = idx + Math.max(hit.value.length, 1);
-        const glyphs = map.filter(m => m.end>idx && m.start<end);
-        if (!glyphs.length) return;
-        const quads = pdfWordQuads(glyphs);
-        quads.forEach(r => {
-          let boxX, boxY, boxW, boxH;
-          const lineGlyphs = (r.glyphs && r.glyphs.length) ? r.glyphs : glyphs.filter(g => Math.abs(g.y - r.y) < Math.max(g.h, r.h) * 0.6);
-          const hasBaseline = lineGlyphs.some(g => g && g.baselineY);
-          const padXLeft = Math.max(2, Math.round(scale * 1.2));
-          const padXRight = Math.max(3, Math.round(scale * 1.8));
-          if (hasBaseline) {
-            const bGlyphs = lineGlyphs.filter(g => g && g.baselineY);
-            const baseLine = bGlyphs[0].baselineY;
-            const fH = Math.max(...bGlyphs.map(g => g.fontH || g.h));
-            const minX = Math.min(...lineGlyphs.map(g => g.x));
-            const maxX = Math.max(...lineGlyphs.map(g => g.x + g.w));
-            boxX = minX - padXLeft;
-            boxW = Math.max(maxX + padXRight - boxX, 6);
-            boxY = baseLine - fH * 1.04;
-            const bottomY = baseLine + fH * 0.30;
-            boxH = Math.max(bottomY - boxY, 8);
-          } else {
-            const padY = Math.max(2.5, Math.round((r.rawH || r.h) * 0.18));
-            boxX = (r.rawMinX != null ? r.rawMinX : r.x) - padXLeft;
-            const maxX = (r.rawMaxX != null ? r.rawMaxX : (r.x + r.w)) + padXRight;
-            boxW = Math.max(maxX - boxX, 6);
-            boxY = (r.rawMinY != null ? r.rawMinY : r.y) - padY;
-            const maxY = (r.rawMaxY != null ? r.rawMaxY : (r.y + r.h)) + padY;
-            boxH = Math.max(maxY - boxY, 8);
-          }
-
-          if (isBox) {
-            ctx.fillStyle = "#16181d";
-            ctx.fillRect(boxX, boxY, boxW, boxH);
-            return;
-          }
-          const token = replacer(hit);
-          let size = Math.max(8, Math.min(boxH * 0.65, 14 * scale));
-          ctx.font = size+"px sans-serif";
-          let tokenW = ctx.measureText(token).width;
-          while (tokenW > boxW*3 && size > 8) { size -= 1; ctx.font = size+"px sans-serif"; tokenW = ctx.measureText(token).width; }
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(boxX, boxY, Math.max(boxW, tokenW+6), boxH);
-          ctx.fillStyle = "#0c0c0c";
-          ctx.textBaseline = "middle";
-          ctx.fillText(token, boxX + 3, boxY + boxH / 2);
-        });
       });
+
+      if (isBox) {
+        const mergedBoxes = mergeAdjacentBoxes(pageQuads, scale);
+        mergedBoxes.forEach(b => {
+          ctx.fillStyle = "#16181d";
+          ctx.fillRect(b.boxX, b.boxY, b.boxW, b.boxH);
+        });
+      } else {
+        pageQuads.forEach(q => {
+          const bgCol = sampleCanvasBg(ctx, q.boxX, q.boxY, q.boxW, q.boxH, canvas.width, canvas.height);
+          ctx.fillStyle = bgCol;
+          ctx.fillRect(q.boxX, q.boxY, q.boxW, q.boxH);
+
+          if (q.qIdx === 0 && replacer) {
+            const fullToken = replacer(q.hit);
+            const compToken = pdfCompactToken(fullToken);
+            let size = Math.max(8, Math.min(q.boxH * 0.65, 14 * scale));
+            ctx.font = size + "px " + q.fontFam;
+            let tokenW = ctx.measureText(fullToken).width;
+            let useToken = fullToken;
+            if (tokenW > q.boxW - 4) {
+              useToken = compToken;
+              tokenW = ctx.measureText(useToken).width;
+            }
+            while (tokenW > q.boxW - 4 && size > 8) {
+              size -= 1;
+              ctx.font = size + "px " + q.fontFam;
+              tokenW = ctx.measureText(useToken).width;
+            }
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(q.boxX, q.boxY, q.boxW, q.boxH);
+            ctx.clip();
+
+            let scaleX = 1;
+            if (tokenW > q.boxW - 4) {
+              scaleX = Math.max(0.75, (q.boxW - 4) / Math.max(1, tokenW));
+            }
+
+            ctx.fillStyle = "#0c0c0c";
+            ctx.textBaseline = "alphabetic";
+            if (scaleX < 1) {
+              ctx.scale(scaleX, 1);
+              ctx.fillText(useToken, (q.boxX + 2) / scaleX, q.baseLine);
+            } else {
+              ctx.fillText(useToken, q.boxX + 2, q.baseLine);
+            }
+            ctx.restore();
+          }
+        });
+      }
       if (shouldCoverVisibleStamps()) {
         const sigs = (pageMeta && pageMeta.signatures) || await pageSignatureMeta(page);
         const inferred = inferStampRectsFromItems(rawItems, vp, scale);

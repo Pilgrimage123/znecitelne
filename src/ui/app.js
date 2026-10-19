@@ -819,6 +819,7 @@ function download(name, blob){
 
     const sel = S.hits.find(h => h.id===S.selectedId);
     if (sel) {
+      const adjacentHits = S.hits.filter(h => h.id !== sel.id && (Math.abs(h.start - sel.end) <= 4 || Math.abs(sel.start - h.end) <= 4));
       const a = Math.max(0, sel.start-42), b = Math.min(S.text.length, sel.end+42);
       const snip = (a>0?"…":"")+S.text.slice(a,b)+(b<S.text.length?"…":"");
       $("inspector").innerHTML = `<p class="lbl">${t.selected}</p><p class="insp-marquee mono">${esc(sel.value)}</p>
@@ -831,8 +832,16 @@ function download(name, blob){
           <button class="btn btn-sm" id="btnR" data-tip="${t.redact} · R">${t.redact}</button>
           <button class="btn btn-sm btn-sec" id="btnK" data-tip="${t.keep} · P">${t.keep}</button>
         </div>
+        ${adjacentHits.length > 0 ? `<button type="button" class="btn btn-sm btn-ghost" id="btnToggleGroup" style="width:100%;margin-top:6px">${S.lang==='cs'?'👥 Schválit/vyřadit skupinu':'👥 Toggle group'}</button>` : ""}
         ${sel.type === "name" ? `<button type="button" class="btn btn-sm btn-sec" id="btnMorphExpand" style="width:100%;margin-top:8px" data-tip="${escAttr(t.morphTip)}">🔍 ${esc(t.morphBtn)}</button>` : ""}`;
       $("btnR").onclick = () => patch(sel.id, true); $("btnK").onclick = () => patch(sel.id, false);
+      if ($("btnToggleGroup")) {
+        $("btnToggleGroup").onclick = () => {
+          const nextAccept = !sel.accept;
+          patch(sel.id, nextAccept);
+          adjacentHits.forEach(ah => patch(ah.id, nextAccept));
+        };
+      }
       $("selLegal").onchange = (e) => {
         const val = e.target.value;
         sel.legalBasis = val;

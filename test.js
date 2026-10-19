@@ -44,7 +44,8 @@ import {
   docxStripMeta, exportDocxFile, extractDocxTextWithFflate
 } from "./src/formats/docx.js";
 import {
-  pdfWordQuads, pdfHasSignatureBytes, verifySanitizedPdfText, assertSecurePdfBytes
+  pdfWordQuads, pdfHasSignatureBytes, verifySanitizedPdfText, assertSecurePdfBytes,
+  resolvePageHitQuads, pdfDetectFontFamily, pdfCompactToken, mergeAdjacentBoxes
 } from "./src/formats/pdf.js";
 import {
   IngestErrorCode, DocumentIngestionError, localizeIngestError,
@@ -1955,7 +1956,74 @@ try {
   failures.push("FÁZE 8 bug fix regression tests failed: " + (errF8.message || String(errF8)));
 }
 
+// Tests for ADR-0011: PDF token expansion limits, occurrence tracking, layout deconfliction and baseline alignment
+try {
+  // 1. pdfDetectFontFamily
+  check(pdfDetectFontFamily("Times-Bold") === "serif", "pdfDetectFontFamily must detect serif from Times-Bold");
+  check(pdfDetectFontFamily("Garamond-Regular") === "serif", "pdfDetectFontFamily must detect serif from Garamond");
+  check(pdfDetectFontFamily("CourierNewPSMT") === "monospace", "pdfDetectFontFamily must detect monospace from CourierNew");
+  check(pdfDetectFontFamily("ArialMT") === "sans-serif", "pdfDetectFontFamily must default to sans-serif for Arial");
 
+  // 2. pdfCompactToken
+  check(pdfCompactToken("[FYZICKÁ_OSOBA_001]") === "[F_001]", "pdfCompactToken must compact [FYZICKÁ_OSOBA_001] to [F_001]");
+  check(pdfCompactToken("[OSOBA_042]") === "[O_042]", "pdfCompactToken must compact [OSOBA_042] to [O_042]");
+  check(pdfCompactToken("[ADRESA_003]") === "[ADR_003]", "pdfCompactToken must compact [ADRESA_003] to [ADR_003]");
+  check(pdfCompactToken("[OSOBA]") === "[O]", "pdfCompactToken must compact label [OSOBA] to [O]");
+
+  // 3. mergeAdjacentBoxes
+  const testQuads = [
+    { boxX: 10, boxY: 50, boxW: 30, boxH: 15, baseLine: 62, fH: 12 },
+    { boxX: 43, boxY: 50, boxW: 40, boxH: 15, baseLine: 62, fH: 12 } // 3px gap on same baseline
+  ];
+  const merged = mergeAdjacentBoxes(testQuads, 1);
+  check(merged.length === 1, "mergeAdjacentBoxes must merge adjacent quads on same line with small gap into 1 box");
+  check(merged[0].boxX === 10 && merged[0].boxW === 73, "merged box must span from start of first to end of second");
+
+  // 4. resolvePageHitQuads: Occurrence tracking prevents collapse of duplicate values to first occurrence
+  const samplePageText = "Rozsudek ve věci žalobce Jan Novák proti žalovanému Jan Novák, nar. 1980.";
+  const sampleMap = [];
+  let curX = 20;
+  for (let k = 0; k < samplePageText.length; k++) {
+    const ch = samplePageText[k];
+    sampleMap.push({
+      start: k,
+      end: k + 1,
+      str: ch,
+      x: curX,
+      y: 88,
+      w: 8,
+      h: 14,
+      fontH: 14,
+      baselineY: 100,
+      fontName: "TimesNewRomanPSMT"
+    });
+    curX += 8;
+  }
+
+  const idx1 = samplePageText.indexOf("Jan Novák");
+  const idx2 = samplePageText.indexOf("Jan Novák", idx1 + 1);
+  check(idx1 !== idx2 && idx1 >= 0 && idx2 >= 0, "sample text must have two occurrences of Jan Novák");
+
+  const hitsForPage = [
+    { id: 101, type: "name", value: "Jan Novák", start: idx1, end: idx1 + 9, accept: true },
+    { id: 102, type: "name", value: "Jan Novák", start: idx2, end: idx2 + 9, accept: true }
+  ];
+
+  const resolved = resolvePageHitQuads(samplePageText, sampleMap, hitsForPage, { start: 0, end: samplePageText.length }, 1);
+  check(resolved.length === 2, "resolvePageHitQuads must return separate quads for both duplicate occurrences");
+  check(resolved[0].boxX !== resolved[1].boxX, "duplicate occurrences must have distinct X coordinates");
+  check(Math.abs(resolved[1].boxX - resolved[0].boxX) > 100, "second occurrence must be positioned at its own true location, not overlapping the first");
+  check(resolved[0].baseLine === 100, "resolvePageHitQuads must preserve accurate baselineY");
+  check(resolved[0].fontFam === "serif", "resolvePageHitQuads must detect serif font family from Times");
+
+  // 5. Punctuation protection: the comma after the second occurrence should not be clipped by right padding
+  const commaIndex = idx2 + "Jan Novák".length;
+  const commaGlyph = sampleMap[commaIndex];
+  check(commaGlyph && commaGlyph.str === ",", "comma glyph must follow second occurrence");
+  check(resolved[1].maxX <= commaGlyph.x, "right boundary of hit must not exceed the start of the comma glyph");
+} catch (adr11Err) {
+  failures.push("ADR-0011 PDF layout and occurrence tracking test failed: " + (adr11Err.message || String(adr11Err)));
+}
 
 if (failures.length) {
   console.error("Quality gate failed:");

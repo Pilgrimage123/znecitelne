@@ -169,6 +169,9 @@ body.pdf-visual-on #orig { display: none; }
   text-align: left;
   white-space: nowrap;
   padding: 0 3px;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
   z-index: 2;
   box-shadow: 0 1px 2px rgba(0,0,0,.15);
 }
@@ -716,11 +719,8 @@ body.movie-active #settingsSheet {
 <script>
 (function () {
 // --- Module: src/core/rules.js ---
-const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];
-const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];
-const KEYS = PII_KEYS.concat(ORG_KEYS);
-const RULES = "2026.10.19-ai45";
-const CHANGELOG = [
+const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];const KEYS = PII_KEYS.concat(ORG_KEYS);const RULES = "2026.10.19-ai46";const CHANGELOG = [
+  { version: "2026.10.19-ai46", notes: { cs: "Omezení expanze tokenů, deterministické sledování výskytů a layoutová dekonflikce v PDF (ADR-0011): Zákaz horizontálního přetékání pseudonymizačních tokenů v pevném layoutu PDF s adaptivním zkracováním tokenů a kompresí písma v rámci boxW, deterministický occurrence tracking v okně ±50 znaků eliminující kolize duplicitních jmen na stránce, vizuální sloučení těsně sousedících nálezů na řádku zamezující překryvu vycpávek, zarovnání textu náhrady na detekované účaří řádku (baselineY), adaptivní rodina písma (serif, sans-serif, monospace), vzorkování podkladové barvy z plátna, ochrana přilehlé interpunkce před oříznutím a skupinové schvalování sousedních nálezů v UI.", en: "PDF token expansion limits, deterministic occurrence tracking and layout deconfliction (ADR-0011): Strict horizontal bounding of pseudonym tokens within boxW in fixed-layout PDFs with compact token fallbacks and text condensing, deterministic occurrence tracking within ±50 char window eliminating duplicate value collapses on a page, visual merging of adjacent findings on the same line preventing padding bleed, baseline-accurate text alignment (baselineY), adaptive font family detection (serif, sans-serif, monospace), canvas background color sampling, adjacent punctuation preservation, and group approval action in the UI inspector." } },
   { version: "2026.10.19-ai45", notes: { cs: "Náprava chyb a nekonzistencí: bezpečný přístup k běhovým knihovnám bez přímého window v Node.js/worker prostředí (ODT, DOCX, XLSX, Ingest, PDF), oprava podpory Unicode code points v decodeXml (> 0xFFFF), podpora českých uvozovek v isSentenceStart(), sjednocení kanonických důvodů nálezu onomastic namísto zastaralého gazetteer dle GLOSSARY.md a odstranění zbytků panelu Návrh.", en: "Bug fixes and inconsistency resolution: safe runtime library resolution without naked window references in Node.js/worker environments (ODT, DOCX, XLSX, Ingest, PDF), support for astral Unicode code points in decodeXml (> 0xFFFF), support for Czech quotation marks in isSentenceStart(), alignment of canonical detection reason onomastic over deprecated gazetteer per GLOSSARY.md, and removal of dead Proposal pane residues." } },
   { version: "2026.10.16-ai44", notes: { cs: "Architektonická konsolidace, deterministický modulární build, zpřísnění bezpečnosti exportů a Předávací balíček sezení v2 (ADR-0008, ADR-0009): Deterministické sestavování z ES modulů v src/ v čistém Node.js bez bundlerů, odstranění zastaralého split_monolith.js, bezpečná XML sanitizace XLSX se split-run spoji, XML entitami a cached vzorci, sekvenční schvalování v DOCX exportu respektující accept:false a mazání metadat autora na revizích, fail-closed dekomprese FlateDecode v PDF verifikaci včetně UTF-16BE hex a Win-1250 kódování a blokace ObjStm/Launch/RichMedia, Předávací balíček sezení v2 s binárním sourceBuf a zlib kompresí pro Four-Eyes kontrolu, zrychlení EntityPropagationCache.scan na 2 průchody textem (< 5 ms) a zpřesnění pádové flexe akuzativu a cizích příjmení v morphology.js.", en: "Architectural consolidation, deterministic modular build pipeline, export security hardening and Session Transfer Package v2 (ADR-0008, ADR-0009): Pure Node.js zero-bundler build pipeline from src/ ES modules, removal of legacy split_monolith.js, safe XLSX XML sanitization across split runs, entities and cached formula cells, sequential traversal approval in DOCX exports respecting accept:false and revision author metadata stripping, fail-closed FlateDecode decompression in PDF verification with UTF-16BE hex / Win-1250 checks and ObjStm/Launch/RichMedia blocking, Session Transfer Package v2 with binary sourceBuf and zlib compression for Four-Eyes review, EntityPropagationCache.scan optimized to 2 text passes (< 5 ms), and morphology precision for accusative cases and foreign surnames." } },
   { version: "2026.10.15-ai43", notes: { cs: "Bezpečnostní audit, Zero-Network CSP, modulární ES architektura a šifrované sezení (ADR-0008, ADR-0009, ADR-0010): Vynucení offline režimu striktní Content-Security-Policy (CSP) dle ADR-0002, modularizace kódu do čistých ES modulů v src/, odstranění křehkého vyřezávání kódu v test.js ve prospěch přímých importů, nedestruktivní XML sanitizace XLSX přes fflate se 100% zachováním stylů, vzorců a grafů, šifrovaný export/import sezení (.znecitelne-session) pomocí AES-GCM + PBKDF2 pro druhou kontrolu, zobrazení panelu médií/podpisů a úplná hygiena repozitáře.", en: "Security audit, Zero-Network CSP, modular ES architecture and encrypted session (ADR-0008, ADR-0009, ADR-0010): Strict Content-Security-Policy (CSP) enforcing Zero-Network per ADR-0002, modular ES codebase in src/, direct imports in test suite replacing fragile source slicing, non-destructive XML sanitization of XLSX via fflate preserving 100% of formatting, formulas and charts, encrypted session package (.znecitelne-session) via AES-GCM + PBKDF2 for four-eyes review, media/signature inspector pane, and full repository hygiene." } },
@@ -761,13 +761,10 @@ const CHANGELOG = [
   { version: "2026.09.21-ai6", notes: { cs: "Menší mezera mezi horní lištou akcí a bublinami souboru — padding recenze už nezapočítává výšku hlavičky dvakrát.", en: "Tighter gap between the top action bar and the file badges — review padding no longer double-counts the header height." } },
   { version: "2026.09.21-ai5", notes: { cs: "Tlačítko „Přidat vlastní výběr textu“ nyní funguje i v náhledu (Preview) dokumentu, ne jen u originálu.", en: "The \"Add custom text selection\" button now also works in the document Preview, not just the original." } },
   { version: "2026.09.17-ai4", notes: { cs: "Aktuální verze pravidel detekce.", en: "Current detection ruleset." } }
-];
-const LABEL = {
+];const LABEL = {
   cs: { rc:"RČ", ico:"IČO", dic:"DIČ", account:"ÚČET", phone:"TELEFON", email:"E-MAIL", address:"ADRESA", dob:"DATUM_NAROZENÍ", name:"OSOBA", idcard:"DOKLAD", datovka:"DS", spz:"SPZ", geo:"GPS", sigcert:"CERT_PODPISU", katastr:"KATASTR", zahr_iban:"IBAN_ZAHR", doklady_extra:"DOKLAD_DALSI", secrets:"TAJEMSTVÍ", ticket:"TICKET", system:"SYSTÉM", project:"PROJEKT", incident:"INCIDENT", casefile:"ŘÍZENÍ", status:"STAV", orgunit:"ORGÁN", host:"HOST", ip:"IP", credential:"TAJNÉ" },
   en: { rc:"BIRTH_NO", ico:"COMPANY_ID", dic:"VAT_ID", account:"ACCOUNT", phone:"PHONE", email:"EMAIL", address:"ADDRESS", dob:"DOB", name:"PERSON", idcard:"ID_DOC", datovka:"MAILBOX", spz:"PLATE", geo:"GPS", sigcert:"SIG_CERT", katastr:"CADASTRE", zahr_iban:"FOREIGN_IBAN", doklady_extra:"ID_DOC_EXTRA", secrets:"SECRET", ticket:"TICKET", system:"SYSTEM", project:"PROJECT", incident:"INCIDENT", casefile:"CASE", status:"STATUS", orgunit:"ORG", host:"HOST", ip:"IP", credential:"SECRET" }
-};
-const TICKET_STOP = new Set(["COVID","ISO","IEC","UTF","SHA","RFC","HTTP","HTML","JSON","GDPR","IEEE","W3C","CEN","XML","PDF","CSV","XLSX","DOCX","YAML","SMTP","IMAP","LDAP","SAML","OAUTH","OPENAPI","REST","SOAP","JIRA","CONFLUENCE","GITLAB","GITHUB","BITBUCKET","WINDOWS","LINUX","ANDROID","CHROME","CSN","MHD","Sb","API","SQL","NATO","VIN","IPV","AES","TLS","CPU","GPU","USB","ICD","DSM","OECD","UNESCO","UNICEF","WHO","WTO","SWIFT","IBAN","VAT","CIDR","UUID","MD5","SHA256","IPv","IPv4","IPv6"]);
-const STATUS_GENERIC = {
+};const TICKET_STOP = new Set(["COVID","ISO","IEC","UTF","SHA","RFC","HTTP","HTML","JSON","GDPR","IEEE","W3C","CEN","XML","PDF","CSV","XLSX","DOCX","YAML","SMTP","IMAP","LDAP","SAML","OAUTH","OPENAPI","REST","SOAP","JIRA","CONFLUENCE","GITLAB","GITHUB","BITBUCKET","WINDOWS","LINUX","ANDROID","CHROME","CSN","MHD","Sb","API","SQL","NATO","VIN","IPV","AES","TLS","CPU","GPU","USB","ICD","DSM","OECD","UNESCO","UNICEF","WHO","WTO","SWIFT","IBAN","VAT","CIDR","UUID","MD5","SHA256","IPv","IPv4","IPv6"]);const STATUS_GENERIC = {
   cs: {
     prod: "nasazeno v produkčním prostředí (konkrétní stav a termín odstraněny)",
     incident: "provozní incident (konkrétní závada zobecněna)",
@@ -780,13 +777,8 @@ const STATUS_GENERIC = {
     release: "planned or completed release (version and date removed)",
     defect: "logged defect (specific description shortened)"
   }
-};
-const NAMES = new Set("Adam Aleš Alexandr Vítězslav Alexandra Alena Alice Alois Alžběta Andrea Anežka Anna Antonín Barbora Běla Blanka Bohdan Bohumil Bohuslav Božena Čeněk Dagmar Dalibor Dana Daniel Daniela David Denis Dominik Drahomíra Dušan Edita Eduard Eliška Ema Emil Emilie Erik Eva Filip František Františka Gabriela Hana Helena Hynek Ivan Ivana Iva Iveta Ivo Jáchym Jakub Jan Jana Jarmila Jaromír Jaroslav Jaroslava Jindřich Jiří Jiřina Jitka Josef Julie Kamila Karel Karla Kateřina Klára Kristýna Květa Ladislav Lenka Leoš Libor Libuše Linda Luboš Lucie Ludmila Luděk Lukáš Magdalena Marcel Marcela Marek Marie Markéta Marta Martin Martina Matěj Matyáš Michaela Michal Mikuláš Milan Milada Milena Miloslav Miloš Miroslav Miroslava Monika Naděžda Natálie Nela Nikola Oldřich Olga Ondřej Otto Patrik Pavel Pavla Pavlína Petr Petra Přemysl Radek Radim Radka Renata René Robert Roman Romana Rudolf Růžena Sabina Samuel Sandra Simona Soňa Stanislav Šárka Šimon Štěpán Tadeáš Tereza Tomáš Václav Vendula Věra Veronika Viktor Viktorie Vilém Vladimír Vlasta Vojtěch Zdeněk Zdeňka Zuzana Žaneta Žofie Alex Emma Hannah Jacob James Liam Noah Oliver Olivia Sophia William".split(" ").map(s => s.toLocaleLowerCase("cs")));
-const FIRST_NAMES = new Set(NAMES);
-const TITLES = ["prof","doc","mudr","judr","phdr","rndr","ing","arch","mgr","mga","bc","bca","dis","mba","phd","csc","dr","pplk","plk","npor","por","kpt","mjr","gen"];
-const PUBLIC = ["česká republika","ministerstvo","úřad","krajský úřad","obecní úřad","městský úřad","okresní soud","krajský soud","státní podnik","národní podnik","české dráhy","česká pošta","správa železnic","praha","brno","ostrava","plzeň",
-  "postsignum","i.ca","ica a.s","eidentity","first certification authority","qualified certification authority","certifikační autorita","kvalifikovaný poskytovatel","kvalifikovaný elektronický podpis","kvalifikovaná elektronická pečeť","zaručený elektronický podpis","uznávaný elektronický podpis","časové razítko","kvalifikované časové razítko","timestamping authority"];
-const SAMPLE = `SMLOUVA O DÍLO
+};const NAMES = new Set("Adam Aleš Alexandr Vítězslav Alexandra Alena Alice Alois Alžběta Andrea Anežka Anna Antonín Barbora Běla Blanka Bohdan Bohumil Bohuslav Božena Čeněk Dagmar Dalibor Dana Daniel Daniela David Denis Dominik Drahomíra Dušan Edita Eduard Eliška Ema Emil Emilie Erik Eva Filip František Františka Gabriela Hana Helena Hynek Ivan Ivana Iva Iveta Ivo Jáchym Jakub Jan Jana Jarmila Jaromír Jaroslav Jaroslava Jindřich Jiří Jiřina Jitka Josef Julie Kamila Karel Karla Kateřina Klára Kristýna Květa Ladislav Lenka Leoš Libor Libuše Linda Luboš Lucie Ludmila Luděk Lukáš Magdalena Marcel Marcela Marek Marie Markéta Marta Martin Martina Matěj Matyáš Michaela Michal Mikuláš Milan Milada Milena Miloslav Miloš Miroslav Miroslava Monika Naděžda Natálie Nela Nikola Oldřich Olga Ondřej Otto Patrik Pavel Pavla Pavlína Petr Petra Přemysl Radek Radim Radka Renata René Robert Roman Romana Rudolf Růžena Sabina Samuel Sandra Simona Soňa Stanislav Šárka Šimon Štěpán Tadeáš Tereza Tomáš Václav Vendula Věra Veronika Viktor Viktorie Vilém Vladimír Vlasta Vojtěch Zdeněk Zdeňka Zuzana Žaneta Žofie Alex Emma Hannah Jacob James Liam Noah Oliver Olivia Sophia William".split(" ").map(s => s.toLocaleLowerCase("cs")));const FIRST_NAMES = new Set(NAMES);const TITLES = ["prof","doc","mudr","judr","phdr","rndr","ing","arch","mgr","mga","bc","bca","dis","mba","phd","csc","dr","pplk","plk","npor","por","kpt","mjr","gen"];const PUBLIC = ["česká republika","ministerstvo","úřad","krajský úřad","obecní úřad","městský úřad","okresní soud","krajský soud","státní podnik","národní podnik","české dráhy","česká pošta","správa železnic","praha","brno","ostrava","plzeň",
+  "postsignum","i.ca","ica a.s","eidentity","first certification authority","qualified certification authority","certifikační autorita","kvalifikovaný poskytovatel","kvalifikovaný elektronický podpis","kvalifikovaná elektronická pečeť","zaručený elektronický podpis","uznávaný elektronický podpis","časové razítko","kvalifikované časové razítko","timestamping authority"];const SAMPLE = `SMLOUVA O DÍLO
 uzavřená dle § 2586 a násl. zákona č. 89/2012 Sb., občanský zákoník
 
 Smluvní strany
@@ -1292,12 +1284,7 @@ function stemNamePart(token){
     }
     if (/ová$/u.test(t)) return t.replace(/ová$/u, "");
     return t;
-  }
-const RE_AGENDA_APELATIVA = /^(?:porad|jednán|zasedán|program|úkol|kontrol|předpis|zpráv|usnesen|rozhodnut|přehled|vývoj|činnost|řízení|hlášenk)[a-záčďéěíňóřšťúůýž]*$/iu;
-const RE_PAST_L_PARTICIPLE = /^[a-záčďéěíňóřšťúůýž]{3,}(?:il|ila|ilo|ili|ily|al|ala|alo|ali|aly|el|ela|elo|eli|ely|ěl|ěla|ělo|ěli|ěly|ul|ula|ulo|uli|uly|l|la|lo|li|ly)$/iu;
-const RE_PASSIVE_PARTICIPLE = /^[a-záčďéěíňóřšťúůýž]{3,}(?:en|ena|eno|eni|eny|án|ána|áno|áni|ány|t|ta|to|ti|ty)$/iu;
-const ADMIN_VERB_STEMS = /^(?:schvál|omluv|zaps|zaháj|projedn|informov|odpovíd|zprac|předlož|odroč|přeruš|rozhod|zamít|ulož|usnes|zvol|stanov|vyzv|vyhotov|podeps)[a-záčďéěíňóřšťúůýž]*$/iu;
-function isCzechVerbOrParticiple(word) {
+  }const RE_AGENDA_APELATIVA = /^(?:porad|jednán|zasedán|program|úkol|kontrol|předpis|zpráv|usnesen|rozhodnut|přehled|vývoj|činnost|řízení|hlášenk)[a-záčďéěíňóřšťúůýž]*$/iu;const RE_PAST_L_PARTICIPLE = /^[a-záčďéěíňóřšťúůýž]{3,}(?:il|ila|ilo|ili|ily|al|ala|alo|ali|aly|el|ela|elo|eli|ely|ěl|ěla|ělo|ěli|ěly|ul|ula|ulo|uli|uly|l|la|lo|li|ly)$/iu;const RE_PASSIVE_PARTICIPLE = /^[a-záčďéěíňóřšťúůýž]{3,}(?:en|ena|eno|eni|eny|án|ána|áno|áni|ány|t|ta|to|ti|ty)$/iu;const ADMIN_VERB_STEMS = /^(?:schvál|omluv|zaps|zaháj|projedn|informov|odpovíd|zprac|předlož|odroč|přeruš|rozhod|zamít|ulož|usnes|zvol|stanov|vyzv|vyhotov|podeps)[a-záčďéěíňóřšťúůýž]*$/iu;function isCzechVerbOrParticiple(word) {
     if (!word) return false;
     const st = typeof stripTitle === "function" ? stripTitle(word) : word;
     const low = st.toLocaleLowerCase("cs").replace(/[.,;:!?]/g, "").trim();
@@ -1308,9 +1295,7 @@ function isCzechVerbOrParticiple(word) {
     if (typeof RE_PAST_L_PARTICIPLE !== "undefined" && RE_PAST_L_PARTICIPLE.test(low)) return true;
     if (typeof RE_PASSIVE_PARTICIPLE !== "undefined" && RE_PASSIVE_PARTICIPLE.test(low) && /^(?:o|po|za|z|před|při|od|u|do|vy|na|roz|pře|se)/i.test(low)) return true;
     return false;
-  }
-const RE_CZECH_SURNAMES = /(?:ová|ský|cká|cký|ek|ík|ák|ář|íř|ec|áč|ič|ný|ná|lý|lá|tý|tá|vý|vá|chý|chá|mý|má|eš|oš|uš|iš|ů|íl|ír|ka|da|ra|la|ta|va)$/iu;
-function looksName(token){
+  }const RE_CZECH_SURNAMES = /(?:ová|ský|cká|cký|ek|ík|ák|ář|íř|ec|áč|ič|ný|ná|lý|lá|tý|tá|vý|vá|chý|chá|mý|má|eš|oš|uš|iš|ů|íl|ír|ka|da|ra|la|ta|va)$/iu;function looksName(token){
     if (!token) return false;
     const t = stripTitle(token);
     if (!t) return false;
@@ -1323,8 +1308,7 @@ function looksName(token){
     if (NAMES.has(stem) || isOnomasticName(stem)) return true;
     if (isCzechVerbOrParticiple(stem)) return false;
     return RE_CZECH_SURNAMES.test(t) || RE_CZECH_SURNAMES.test(stem);
-  }
-const ROLE_WORDS_SET = new Set([
+  }const ROLE_WORDS_SET = new Set([
     "pan", "pana", "panu", "panem", "paní", "slečna", "slečně", "slečnu", "slečnou",
     "obžalovaný", "obžalovaná", "obžalovaného", "obžalovanému", "obžalovaným", "obžalované", "obžalovanou",
     "svědek", "svědka", "svědkovi", "svědkem", "svědkyně", "svědkyni", "svědkyní",
@@ -1332,8 +1316,7 @@ const ROLE_WORDS_SET = new Set([
     "žalovaný", "žalovaného", "žalovanému", "žalovaným", "žalovaná", "žalované", "žalovanou",
     "poškozený", "poškozeného", "poškozenému", "poškozeným", "poškozená", "poškozené", "poškozenou",
     "jednatel", "jednatele", "jednateli", "jednatelem", "jednatelka", "jednatelky", "jednatelce", "jednatelku", "jednatelkou"
-  ]);
-function nameKey(value){
+  ]);function nameKey(value){
     const parts = String(value||"").split(/\s+/).map(stripTitle).filter(Boolean)
       .filter(p => {
         const low = p.toLocaleLowerCase("cs").replace(/[.,]/g,"");
@@ -1342,14 +1325,11 @@ function nameKey(value){
     const stemmed = parts.map(stemNamePart).filter(p => p.length>1);
     if (!stemmed.length) return canonToken(value);
     return stemmed.join(" ");
-  }
-function canonToken(s){
+  }function canonToken(s){
     return String(s||"").toLocaleLowerCase("cs").replace(/[^\p{L}\p{N}]+/gu,"");
-  }
-function systemCore(value){
+  }function systemCore(value){
     return String(value||"").replace(/^(?:systém|system|aplikace|modul|rozhraní|integrace|platforma)\s+/i, "").trim();
-  }
-function accountKey(raw){
+  }function accountKey(raw){
     const s = String(raw||"").replace(/\s+/g,"").toUpperCase();
     if (/^CZ\d{22}$/.test(s)) {
       const bank = s.slice(4,8);
@@ -1362,12 +1342,10 @@ function accountKey(raw){
       return "account|"+m[3]+"|"+acc;
     }
     return "account|"+canonToken(raw);
-  }
-function nameInitial(value){
+  }function nameInitial(value){
     const m = String(value||"").match(/(?<![\p{L}\p{N}])(\p{Lu})\.(?=\s|$)/u);
     return m ? m[1].toLocaleLowerCase("cs") : "";
-  }
-function isSameCzechSurname(sur, stem) {
+  }function isSameCzechSurname(sur, stem) {
     if (!sur || !stem) return false;
     if (sur === stem) return true;
     const surForms = declineCzechSurname(sur).map(nameKey);
@@ -1375,8 +1353,7 @@ function isSameCzechSurname(sur, stem) {
     const stemForms = declineCzechSurname(stem).map(nameKey);
     if (stemForms.includes(sur)) return true;
     return false;
-  }
-function clusterNameKeys(hits){
+  }function clusterNameKeys(hits){
     const names = hits.filter(h => h.type==="name");
     const full = names.filter(h => nameKey(h.value).split(" ").length>=2);
     const shorts = names.filter(h => nameKey(h.value).split(" ").length<2);
@@ -1395,8 +1372,7 @@ function clusterNameKeys(hits){
       if (keys.length===1) s.entityKey = keys[0];
     });
     return hits;
-  }
-function declineCzechFirstName(first) {
+  }function declineCzechFirstName(first) {
     if (!first) return [];
     const low = first.toLocaleLowerCase("cs");
     const forms = new Set([first]);
@@ -1446,8 +1422,7 @@ function declineCzechFirstName(first) {
     }
     [first, first + "a", first + "u", first + "ovi", first + "em", first + "e", first + "i"].forEach(f => forms.add(f));
     return Array.from(forms);
-  }
-function declineCzechSurname(sur) {
+  }function declineCzechSurname(sur) {
     if (!sur) return [];
     const forms = new Set([sur]);
     const low = sur.toLocaleLowerCase("cs");
@@ -1515,8 +1490,7 @@ function declineCzechSurname(sur) {
     }
 
     return Array.from(forms);
-  }
-function generateCzechNameForms(nameVal) {
+  }function generateCzechNameForms(nameVal) {
     const raw = String(nameVal || "").replace(/,.*$/, "").trim();
     const parts = raw.split(/\s+/).map(stripTitle).filter(Boolean)
       .filter(p => {
@@ -1643,8 +1617,7 @@ function generateCzechNameForms(nameVal) {
   const TOPONYM_WORDS_SET = new Set();
   TOPONYM_LOCATIONS_SET.forEach(loc => {
     loc.split(/\s+/).forEach(w => { if (w.length >= 3) TOPONYM_WORDS_SET.add(w); });
-  });
-function isLikelyNonPersonName(value, src, start, end, reasons){
+  });function isLikelyNonPersonName(value, src, start, end, reasons){
     if (!value || !src) return false;
     if (reasons && reasons.some(r => r.startsWith("trigger:") || r === "ocr:fuzzy" || r === "titled")) return false;
 
@@ -1719,8 +1692,7 @@ function isLikelyNonPersonName(value, src, start, end, reasons){
   }
 
   // --- Desambiguace větných verzálek a kontextové triggery (Ticket 02) ---
-  const RE_ABBR_BEFORE = /(?:např|tzv|tj|t\.j|tzn|atd|apod|popř|resp|s\.r\.o|a\.s|v\.o\.s|spol|č|č\.j|čj|sp\.?\s*zn|odst|písm|sb|str|sv|r|nar|hod|min|st|p|ing|mgr|bc|mudr|judr|mvdr|phdr|rndr|pharmdr|thdr|doc|prof)\.$/iu;
-function isSentenceStart(text, start) {
+  const RE_ABBR_BEFORE = /(?:např|tzv|tj|t\.j|tzn|atd|apod|popř|resp|s\.r\.o|a\.s|v\.o\.s|spol|č|č\.j|čj|sp\.?\s*zn|odst|písm|sb|str|sv|r|nar|hod|min|st|p|ing|mgr|bc|mudr|judr|mvdr|phdr|rndr|pharmdr|thdr|doc|prof)\.$/iu;function isSentenceStart(text, start) {
     if (!text || start <= 0) return true;
     let i = start - 1;
     while (i >= 0 && (text.charCodeAt(i) === 32 || text.charCodeAt(i) === 9)) i--;
@@ -2084,16 +2056,13 @@ class EntityPropagationCache {
       }
       return this.hits;
     }
-  }
-function createEntityPropagationCache(text, hits) {
+  }function createEntityPropagationCache(text, hits) {
     return new EntityPropagationCache(text, hits);
-  }
-function expandCzechNameMorphology(text, hits, triggerHit = null) {
+  }function expandCzechNameMorphology(text, hits, triggerHit = null) {
     if (!text || !hits || !hits.length) return hits;
     const cache = createEntityPropagationCache(text, hits);
     return cache.propagate(triggerHit);
-  }
-function alignDictEntity(h, src, options){
+  }function alignDictEntity(h, src, options){
     const s = options || ((typeof globalThis !== 'undefined' && globalThis.S) || (typeof S !== 'undefined' ? S : null)) || {};
     const sys = (options && options.systems != null) ? options.systems : (s.systems || "");
     const proj = (options && options.projects != null) ? options.projects : (s.projects || "");
@@ -2133,8 +2102,7 @@ function alignDictEntity(h, src, options){
   }
 
 // --- Module: src/core/detector.js ---
-function digits(s){ return String(s).replace(/[^\d]/g, ""); }
-function parseRC(raw){
+function digits(s){ return String(s).replace(/[^\d]/g, ""); }function parseRC(raw){
     const m = String(raw).trim().match(/^(\d{2})(\d{2})(\d{2})\s*\/?\s*(\d{3,4})$/);
     if (!m) return null;
     let month = +m[2];
@@ -2153,32 +2121,27 @@ function parseRC(raw){
     const dim = [31, (year%4===0&&year%100!==0)||year%400===0?29:28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month-1];
     if (day > dim) return null;
     return true;
-  }
-function pageOf(start, pagesList){
+  }function pageOf(start, pagesList){
     const pList = pagesList || ((typeof globalThis !== 'undefined' && globalThis.S && globalThis.S.pages) || (typeof S !== 'undefined' && S.pages) || []);
     if (!pList || !pList.length) return 1;
     for (const p of pList) if (start >= p.start && start < p.end) return p.n;
     return pList[pList.length-1].n;
-  }
-function toBytes(buf){
+  }function toBytes(buf){
     if (!buf) return new Uint8Array(0);
     if (buf instanceof Uint8Array) return buf;
     if (buf instanceof ArrayBuffer) return new Uint8Array(buf);
     if (buf.buffer) return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
     return new Uint8Array(buf);
-  }
-function isValidICO(raw){
+  }function isValidICO(raw){
     const d = digits(raw); if (d.length !== 8 || /^0+$/.test(d)) return false;
     const w = [8,7,6,5,4,3,2]; let sum = 0;
     for (let i=0;i<7;i++) sum += w[i]*+d[i];
     return (11 - (sum % 11)) % 10 === +d[7];
-  }
-function isValidDIC(raw){
+  }function isValidDIC(raw){
     const s = String(raw).replace(/\s+/g,"").toUpperCase();
     const m = s.match(/^CZ(\d{8,10})$/); if (!m) return false;
     return m[1].length === 8 ? isValidICO(m[1]) : !!parseRC(m[1]);
-  }
-function ibanOk(iban){
+  }function ibanOk(iban){
     const s = iban.replace(/\s+/g,"").toUpperCase();
     if (!/^CZ\d{22}$/.test(s)) return false;
     const rearr = s.slice(4)+s.slice(0,4);
@@ -2189,10 +2152,7 @@ function ibanOk(iban){
     }
     return rem === 1;
   }
-  // --- Fáze 2: cizí IBAN (délky podle zemí) a SWIFT/BIC ---
-const IBAN_LEN = {AD:24,AE:23,AL:28,AT:20,AZ:28,BA:20,BE:16,BG:22,BH:22,BR:29,BY:28,CH:21,CR:22,CY:28,DE:22,DK:18,DO:28,EE:20,EG:29,ES:24,FI:18,FO:18,FR:27,GB:22,GE:22,GI:23,GL:18,GR:27,GT:28,HR:21,HU:28,IE:22,IL:23,IQ:23,IS:26,IT:27,JO:30,KW:30,KZ:20,LB:28,LC:32,LI:21,LT:20,LU:20,LV:21,MC:27,MD:24,ME:22,MK:19,MR:27,MT:31,MU:30,NL:18,NO:15,PK:24,PL:28,PS:29,PT:25,QA:29,RO:24,RS:22,SA:24,SC:31,SE:24,SI:19,SK:24,SM:27,TL:23,TN:24,TR:26,UA:29,VA:22,VG:24,XK:20};
-const SWIFT_CC = new Set(Object.keys(IBAN_LEN).concat(["CZ","US","CA","JP","CN","HK","SG","AU","NZ","IN","ZA","MX","KR","TH","MY","ID","RU"]));
-function ibanForeignOk(iban){
+  // --- Fáze 2: cizí IBAN (délky podle zemí) a SWIFT/BIC ---const IBAN_LEN = {AD:24,AE:23,AL:28,AT:20,AZ:28,BA:20,BE:16,BG:22,BH:22,BR:29,BY:28,CH:21,CR:22,CY:28,DE:22,DK:18,DO:28,EE:20,EG:29,ES:24,FI:18,FO:18,FR:27,GB:22,GE:22,GI:23,GL:18,GR:27,GT:28,HR:21,HU:28,IE:22,IL:23,IQ:23,IS:26,IT:27,JO:30,KW:30,KZ:20,LB:28,LC:32,LI:21,LT:20,LU:20,LV:21,MC:27,MD:24,ME:22,MK:19,MR:27,MT:31,MU:30,NL:18,NO:15,PK:24,PL:28,PS:29,PT:25,QA:29,RO:24,RS:22,SA:24,SC:31,SE:24,SI:19,SK:24,SM:27,TL:23,TN:24,TR:26,UA:29,VA:22,VG:24,XK:20};const SWIFT_CC = new Set(Object.keys(IBAN_LEN).concat(["CZ","US","CA","JP","CN","HK","SG","AU","NZ","IN","ZA","MX","KR","TH","MY","ID","RU"]));function ibanForeignOk(iban){
     const s = String(iban).replace(/\s+/g,"").toUpperCase();
     const cc = s.slice(0,2);
     if (cc === "CZ" || IBAN_LEN[cc] !== s.length) return false;
@@ -2203,17 +2163,13 @@ function ibanForeignOk(iban){
       for (const d of v) rem = (rem * 10 + +d) % 97;
     }
     return rem === 1;
-  }
-function isPublic(text){ const l = String(text||"").toLocaleLowerCase("cs"); return PUBLIC.some(k => l.includes(k) || (l.length >= 6 && k.includes(l))); }
-function tokenizeCtx(s){
+  }function isPublic(text){ const l = String(text||"").toLocaleLowerCase("cs"); return PUBLIC.some(k => l.includes(k) || (l.length >= 6 && k.includes(l))); }function tokenizeCtx(s){
     return String(s||"").toLocaleLowerCase("cs").split(/[^\p{L}\p{N}+./]+/u).filter(Boolean);
-  }
-function ctxSlice(text, start, end, win=40, bias="both"){
+  }function ctxSlice(text, start, end, win=40, bias="both"){
     const left = bias==="right" ? 0 : (bias==="left" ? (typeof win==="number"?win:40) : (typeof win==="number"?win:40));
     const right = bias==="left" ? 10 : (typeof win==="number"?win:40);
     return (text.slice(Math.max(0,start-left), start) + " " + text.slice(end, end+right)).toLocaleLowerCase("cs");
-  }
-function matchNeedles(c, needles){
+  }function matchNeedles(c, needles){
     const tokens = tokenizeCtx(c);
     return needles.filter(n => {
       const needle = String(n).toLocaleLowerCase("cs");
@@ -2221,20 +2177,16 @@ function matchNeedles(c, needles){
       if (/[ .č]/.test(needle) && needle.length > 3) return c.includes(needle);
       return tokens.includes(needle) || tokens.some(tok => tok === needle || tok.replace(/\.$/,"") === needle);
     });
-  }
-function ctxHas(text, start, end, needles, win=40, bias="both"){
+  }function ctxHas(text, start, end, needles, win=40, bias="both"){
     return matchNeedles(ctxSlice(text, start, end, win, bias), needles).length > 0;
-  }
-function ctxWhich(text, start, end, needles, win=40, bias="both"){
+  }function ctxWhich(text, start, end, needles, win=40, bias="both"){
     return matchNeedles(ctxSlice(text, start, end, win, bias), needles);
-  }
-function isContractDateCtx(text, start, end, win=48){
+  }function isContractDateCtx(text, start, end, win=48){
     const c = (text.slice(Math.max(0,start-win), start) + " " + text.slice(end, end+win)).toLocaleLowerCase("cs");
     const born = /nar(?:\.|ozen|ozena)|datum narození|birth/.test(c);
     if (born) return false;
     return /(?:v\s+\p{Ll}+\s+dne|\bdne\b|uzavřen|uzavrena|podeps|platnost|vyhotoven|vystaven)/u.test(c);
-  }
-function makeWork(text){
+  }function makeWork(text){
     const src = String(text ?? "").normalize("NFC");
     let work = "";
     const toSrc = [];
@@ -2250,14 +2202,12 @@ function makeWork(text){
       toSrc.push(i);
     }
     return { src, work, toSrc };
-  }
-function mapSpan(toSrc, start, end){
+  }function mapSpan(toSrc, start, end){
     if (!toSrc.length) return { start:0, end:0 };
     const s = toSrc[Math.min(Math.max(0,start), toSrc.length-1)];
     const last = toSrc[Math.min(Math.max(0,end-1), toSrc.length-1)];
     return { start:s, end:last+1 };
-  }
-function parseDict(raw){
+  }function parseDict(raw){
     return String(raw||"").split(/\n/).map(line => {
       const s = line.trim();
       if (!s || s.startsWith("#")) return null;
@@ -2267,13 +2217,11 @@ function parseDict(raw){
       if (!name) return null;
       return { name, kind };
     }).filter(Boolean);
-  }
-function dictRe(name){
+  }function dictRe(name){
     const esc = name.replace(/[.*+?^${}()|[\]\\]/g,"\\/* APP_BUNDLE */");
     return new RegExp("(?<![\\p{L}\\p{N}])"+esc+"(?![\\p{L}\\p{N}])", "giu");
   }
-  const URL_TOKEN_RE = /\b(?:https?:\/\/|www\.)[^\s<>"'\u00AD\u200B]+|\b[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+\.(?:cz|sk|com|net|org|eu|io)\/[^\s<>"'\u00AD\u200B]*/gi;
-function urlSpans(text){
+  const URL_TOKEN_RE = /\b(?:https?:\/\/|www\.)[^\s<>"'\u00AD\u200B]+|\b[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+\.(?:cz|sk|com|net|org|eu|io)\/[^\s<>"'\u00AD\u200B]*/gi;function urlSpans(text){
     const spans = [];
     let m; const re = new RegExp(URL_TOKEN_RE.source, URL_TOKEN_RE.flags);
     while ((m = re.exec(text))) {
@@ -2281,11 +2229,9 @@ function urlSpans(text){
       spans.push({ start: m.index, end: m.index + m[0].length, raw: m[0] });
     }
     return spans;
-  }
-function spanInUrl(spans, start, end){
+  }function spanInUrl(spans, start, end){
     return spans.find(u => start < u.end && end > u.start) || null;
-  }
-function trimUrlValue(h, src){
+  }function trimUrlValue(h, src){
     let s = h.start, e = h.end;
     while (e>s) {
       const c = src[e-1];
@@ -2299,8 +2245,7 @@ function trimUrlValue(h, src){
     if (e<=s) return h;
     h.start = s; h.end = e; h.value = src.slice(s,e);
     return h;
-  }
-function trimHitValue(h, src){
+  }function trimHitValue(h, src){
     if (h.type === "host") return trimUrlValue(h, src);
     let v = h.value, s = h.start, e = h.end;
     while (e>s && /[.,;:)\]\s“”’‘»"']/.test(src[e-1]||"")) e--;
@@ -2308,8 +2253,7 @@ function trimHitValue(h, src){
     if (e<=s) return h;
     h.start = s; h.end = e; h.value = src.slice(s,e);
     return h;
-  }
-function findAll(text, re, type, validate, group){
+  }function findAll(text, re, type, validate, group){
     const flags = (re.flags.includes("g") ? re.flags : re.flags+"g") + (re.flags.includes("d") ? "" : "d");
     const out = []; const r = new RegExp(re.source, flags);
     let m; while ((m = r.exec(text))) {
@@ -2329,8 +2273,7 @@ function findAll(text, re, type, validate, group){
       if (m.index === r.lastIndex) r.lastIndex++;
     }
     return out;
-  }
-function scoreHit(h){
+  }function scoreHit(h){
     let s = 0;
     const rs = h.reasons || [];
     const has = (p) => rs.some(r => r===p || r.startsWith(p+":"));
@@ -2355,15 +2298,13 @@ function scoreHit(h){
     const prio = { rc:7, email:7, account:6, ico:6, dic:6, ticket:6, credential:6, phone:4, datovka:4, idcard:3, katastr:4, zahr_iban:6, doklady_extra:4, address:4, name:3, dob:2, host:5, ip:5, geo:3, spz:3 };
     s += prio[h.type] || 1;
     return s;
-  }
-function finalizeHit(h, src){
+  }function finalizeHit(h, src){
     trimHitValue(h, src);
     const sc = scoreHit(h);
     h.score = sc;
     h.confidence = (h.confidence === "high" || sc >= 48) ? "high" : "medium";
     return h;
-  }
-function projectPrefixes(dictRaw){
+  }function projectPrefixes(dictRaw){
     const dict = dictRaw != null ? dictRaw : ((typeof globalThis !== 'undefined' && globalThis.S && globalThis.S.projects) || (typeof S !== 'undefined' && S.projects) || '');
     const set = new Set();
     parseDict(dict).forEach(d => {
@@ -2374,8 +2315,7 @@ function projectPrefixes(dictRaw){
   }
 
   // Conservative post-processing for Czech person-name candidates.
-  // Exact-phrase filtering avoids a global surname blacklist.
-function detect(text, enabled, secrets, options){
+  // Exact-phrase filtering avoids a global surname blacklist.function detect(text, enabled, secrets, options){
     const bag = []; const bagMap = new Map();
     const { src, work, toSrc } = makeWork(text || "");
     const t = work;
@@ -3080,8 +3020,7 @@ function detect(text, enabled, secrets, options){
       applyCourtProfileRules(src, clustered);
     }
     return clustered;
-  }
-function applyCourtProfileRules(text, hits){
+  }function applyCourtProfileRules(text, hits){
     if (!text || !Array.isArray(hits) || hits.length === 0) return hits;
 
     // -------------------------------------------------------------------------
@@ -3188,21 +3127,17 @@ function applyCourtProfileRules(text, hits){
     });
 
     return hits;
-  }
-function filterCourtDecisionsWhitelist(text, hits){
+  }function filterCourtDecisionsWhitelist(text, hits){
     return applyCourtProfileRules(text, hits);
-  }
-function tokenBase(h, lang){
+  }function tokenBase(h, lang){
     if (h.tokenClass) return h.tokenClass;
     return LABEL[lang][h.type] || h.type.toUpperCase();
-  }
-function nextSuffix(type, n){
+  }function nextSuffix(type, n){
     if (type==="system" || type==="project" || type==="orgunit") {
       if (n <= 26) return String.fromCharCode(64 + n);
     }
     return String(n).padStart(3, "0");
-  }
-function declinedPersonTokenBase(base, h, lang){
+  }function declinedPersonTokenBase(base, h, lang){
     if (lang !== "cs" || !h || h.type !== "name" || base !== "OSOBA") return base;
     const clean = String(h.value || "").replace(/,.*$/, "").trim();
     const words = clean.toLocaleLowerCase("cs").replace(/[.,;:!?]/g, "").split(/\s+/).filter(Boolean);
@@ -3243,8 +3178,7 @@ function declinedPersonTokenBase(base, h, lang){
     if (/(?:ovi|i|ému|ě)$/u.test(last)) return "OSOBĚ";
 
     return base;
-  }
-function makeReplacer(mode, lang){
+  }function makeReplacer(mode, lang){
     const counters = {}; const map = new Map();
     return (h) => {
       if (h.type==="status" && (mode==="label" || mode==="pseudo" || mode==="xxxx")) {
@@ -3264,13 +3198,11 @@ function makeReplacer(mode, lang){
       const formBase = declinedPersonTokenBase(token.base, h, lang);
       return "["+formBase+"_"+token.suffix+"]";
     };
-  }
-function bindReplacer(mode, lang, hits){
+  }function bindReplacer(mode, lang, hits){
     const replacer = makeReplacer(mode, lang);
     effectiveHits(hits).forEach(h => { replacer(h); });
     return replacer;
-  }
-function buildGlossary(hits, mode, lang, publicOnly){
+  }function buildGlossary(hits, mode, lang, publicOnly){
     const replacer = bindReplacer(mode, lang, hits);
     const rows = [];
     const seen = new Set();
@@ -3298,8 +3230,7 @@ function buildGlossary(hits, mode, lang, publicOnly){
    * @param {object} [options]
    * @param {boolean} [options.acceptedOnly=false] - Zpracovat pouze schválené nálezy (pro exporty a náhrady)
    * @returns {Array<object>} Nepřekrývající se nálezy seřazené vzestupně podle start offsetu
-   */
-function resolveHits(hits, { acceptedOnly = false } = {}){
+   */function resolveHits(hits, { acceptedOnly = false } = {}){
     const source = (hits || []).filter(h =>
       h &&
       Number.isFinite(h.start) &&
@@ -3342,17 +3273,13 @@ function resolveHits(hits, { acceptedOnly = false } = {}){
       chosen.splice(low, 0, h);
     }
     return chosen;
-  }
-function effectiveHits(hits){
+  }function effectiveHits(hits){
     return resolveHits(hits, { acceptedOnly: true });
-  }
-function visibleHits(hits, _sel){
+  }function visibleHits(hits, _sel){
     return resolveHits(hits, { acceptedOnly: false });
-  }
-function topHits(hits){
+  }function topHits(hits){
     return effectiveHits(hits);
-  }
-function apply(text, hits, mode, lang){
+  }function apply(text, hits, mode, lang){
     const replacer = bindReplacer(mode, lang, hits);
     const accepted = effectiveHits(hits);
     if (!accepted.length) return text;
@@ -3566,14 +3493,12 @@ function xlsxToText(wb){
       }
     });
     return { text, cellMap };
-  }
-async function extractXlsx(buf){
+  }async function extractXlsx(buf){
     const xlsxLib = (typeof window !== "undefined" && window.XLSX) || (typeof globalThis !== "undefined" && globalThis.XLSX) || null;
     if (!xlsxLib) throw new Error("XLSX: knihovna se nenačetla.");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
     return xlsxToText(xlsxLib.read(u8, { type:"array" }));
-  }
-function decodeXml(str) {
+  }function decodeXml(str) {
   if (!str) return "";
   return str
     .replace(/&quot;/g, '"')
@@ -3589,8 +3514,7 @@ function decodeXml(str) {
       const code = parseInt(h, 16);
       return Number.isFinite(code) && code >= 0 ? String.fromCodePoint(code) : "";
     });
-}
-function encodeXml(str) {
+}function encodeXml(str) {
   if (!str) return "";
   return String(str)
     .replace(/&/g, "&amp;")
@@ -3598,8 +3522,7 @@ function encodeXml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
-}
-function replaceAcrossRuns(runs, values, getReplacement) {
+}function replaceAcrossRuns(runs, values, getReplacement) {
   const texts = runs.map(r => r.text || "");
   const full = texts.join("");
   if (!full) return false;
@@ -3988,8 +3911,7 @@ function sanitizeComments(xml, values, getReplacement, stripMeta) {
   });
 
   return resXml;
-}
-function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = true) {
+}function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = true) {
   if (!sourceBuf) return { ok: false, reason: "sourceBuf missing" };
   const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
   if (!flate || !flate.unzipSync) return { ok: false, reason: "fflate missing" };
@@ -4082,8 +4004,7 @@ function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = true) {
 
   const bytes = flate.zipSync(files, { level: 6 });
   return { ok: true, bytes };
-}
-function exportXlsxFile(sourceBuf, hits, mode, lang){
+}function exportXlsxFile(sourceBuf, hits, mode, lang){
     if (!sourceBuf) return null;
     const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
     const stripMetaVal = (typeof S !== "undefined" && S.stripMeta !== undefined) ? S.stripMeta : true;
@@ -4132,8 +4053,7 @@ function exportXlsxFile(sourceBuf, hits, mode, lang){
     });
     if (stripMetaVal) stripWorkbookMeta(wb);
     return xlsxLib.write(wb, { bookType:"xlsx", type:"array" });
-  }
-function stripWorkbookMeta(wb){
+  }function stripWorkbookMeta(wb){
     wb.Props = {
       Title: "anonymized",
       Subject: "",
@@ -4153,14 +4073,12 @@ function stripWorkbookMeta(wb){
 
 // --- Module: src/formats/docx.js ---
 const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships";
-  const DOCX_W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
-function docxRelationshipSourcePart(relName){
+  const DOCX_W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";function docxRelationshipSourcePart(relName){
     if (relName === "_rels/.rels") return "";
     const m = relName.match(/^(.*)\/_rels\/([^/]+)\.rels$/i);
     if (!m) throw new Error("Invalid .rels path: " + relName);
     return `${m[1]}/${m[2]}`;
-  }
-function docxNormalizeZipPath(path){
+  }function docxNormalizeZipPath(path){
     const out = [];
     String(path || "").replace(/\\/g, "/").replace(/^\/+/, "").split("/").forEach(part => {
       if (!part || part === ".") return;
@@ -4168,23 +4086,20 @@ function docxNormalizeZipPath(path){
       else out.push(part);
     });
     return out.join("/");
-  }
-function docxResolveRelTarget(sourcePart, target){
+  }function docxResolveRelTarget(sourcePart, target){
     if (!target || target.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(target)) return null;
     let decoded = target;
     try { decoded = decodeURIComponent(target); } catch (_) {}
     const base = sourcePart ? sourcePart.slice(0, sourcePart.lastIndexOf("/") + 1) : "";
     return docxNormalizeZipPath(base + decoded);
-  }
-function docxRelativeZipPath(fromDir, targetPath){
+  }function docxRelativeZipPath(fromDir, targetPath){
     const from = fromDir ? fromDir.split("/").filter(Boolean) : [];
     const to = targetPath.split("/").filter(Boolean);
     while (from.length && to.length && from[0] === to[0]) {
       from.shift(); to.shift();
     }
     return [...from.map(() => ".."), ...to].join("/");
-  }
-function docxSetTextPreservingSpace(node, text){
+  }function docxSetTextPreservingSpace(node, text){
     while (node.firstChild) node.removeChild(node.firstChild);
     node.appendChild(node.ownerDocument.createTextNode(text));
     if (/^\s|\s$/u.test(text) || /\s{2,}/u.test(text)) {
@@ -4193,8 +4108,7 @@ function docxSetTextPreservingSpace(node, text){
       node.removeAttributeNS("http://www.w3.org/XML/1998/namespace", "space");
       node.removeAttribute("xml:space");
     }
-  }
-function docxMakeWork(text){
+  }function docxMakeWork(text){
     return makeWork(text);
   }
 
@@ -4205,8 +4119,7 @@ function docxMakeWork(text){
    * tabs (\t), soft breaks, and Czech typographical punctuation and quotes.
    * The replacement is assigned to the first affected text node; subsequent
    * affected nodes are reduced to their remaining local text.
-   */
-function docxReplaceInXml(xml, map, tagName, found, occurrenceTracker){
+   */function docxReplaceInXml(xml, map, tagName, found, occurrenceTracker){
     const doc = new DOMParser().parseFromString(xml, "application/xml");
     if (doc.getElementsByTagName("parsererror").length) throw new Error("XML");
     const values = Array.from((occurrenceTracker?.allValues || map.keys())).filter(Boolean).sort((a,b) => b.length - a.length);
@@ -4346,8 +4259,7 @@ function docxReplaceInXml(xml, map, tagName, found, occurrenceTracker){
       ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
         new XMLSerializer().serializeToString(doc)
       : null;
-  }
-function docxStripVisualObjects(xml){
+  }function docxStripVisualObjects(xml){
     const doc = new DOMParser().parseFromString(xml, "application/xml");
     if (doc.getElementsByTagName("parsererror").length) throw new Error("XML");
     let removed = 0;
@@ -4364,8 +4276,7 @@ function docxStripVisualObjects(xml){
         new XMLSerializer().serializeToString(doc),
       removed
     };
-  }
-function docxStripMediaRelationships(files, dec, enc){
+  }function docxStripMediaRelationships(files, dec, enc){
     for (const name of Object.keys(files)) {
       if (name !== "_rels/.rels" && !/^.+\/_rels\/[^/]+\.rels$/i.test(name)) continue;
 
@@ -4393,19 +4304,16 @@ function docxStripMediaRelationships(files, dec, enc){
         );
       }
     }
-  }
-function docxRemoveMediaParts(files){
+  }function docxRemoveMediaParts(files){
     for (const name of Object.keys(files)) {
       if (/^word\/(?:media|embeddings)\//i.test(name)) delete files[name];
     }
-  }
-function docxAssertNoEmbeddedMedia(files){
+  }function docxAssertNoEmbeddedMedia(files){
     const leftovers = Object.keys(files).filter(name => /^word\/(?:media|embeddings)\//i.test(name));
     if (leftovers.length) {
       throw new Error("DOCX still contains embedded media: " + leftovers.join(", "));
     }
-  }
-function docxAssertNoDanglingRelationships(files, dec){
+  }function docxAssertNoDanglingRelationships(files, dec){
     for (const name of Object.keys(files)) {
       if (name !== "_rels/.rels" && !/^.+\/_rels\/[^/]+\.rels$/i.test(name)) continue;
 
@@ -4421,19 +4329,16 @@ function docxAssertNoDanglingRelationships(files, dec){
         }
       });
     }
-  }
-function docxStripMeta(name, xml){
+  }function docxStripMeta(name, xml){
     const blank = (tags) => tags.reduce((x, tg) => x.replace(new RegExp("(<" + tg + "(?:\\s[^>]*)?>)[\\s\\S]*?(</" + tg + ">)", "g"), "$1$2"), xml);
     if (/docProps\/core\.xml$/.test(name)) return blank(["dc:creator","cp:lastModifiedBy","dc:title","dc:subject","cp:keywords","dc:description"]);
     if (/docProps\/app\.xml$/.test(name)) return blank(["Company","Manager"]);
     return xml;
-  }
-function docxStripAuthorInitials(xml) {
+  }function docxStripAuthorInitials(xml) {
     return xml
       .replace(/\s+(?:w:)?author="[^"]*"/g, "")
       .replace(/\s+(?:w:)?initials="[^"]*"/g, "");
-  }
-function getOrderedDocxPartNames(files, partRe) {
+  }function getOrderedDocxPartNames(files, partRe) {
     const headers = [], body = [], footers = [], comments = [], charts = [], diagrams = [], others = [];
     for (const name of Object.keys(files)) {
       if (!partRe.test(name)) continue;
@@ -4452,8 +4357,7 @@ function getOrderedDocxPartNames(files, partRe) {
     charts.sort();
     diagrams.sort();
     return [...headers, ...body, ...footers, ...comments, ...charts, ...diagrams, ...others];
-  }
-async function exportDocxFile(sourceBuf, hits, mode, lang){
+  }async function exportDocxFile(sourceBuf, hits, mode, lang){
     const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
     if (!flate) return { ok:false, reason:"fflate" };
     if (!sourceBuf) return { ok:false, reason:"sourceBuf missing" };
@@ -4570,8 +4474,7 @@ async function exportDocxFile(sourceBuf, hits, mode, lang){
       bytes,
       removedMedia:true
     };
-  }
-function extractDocxTextWithFflate(buf){
+  }function extractDocxTextWithFflate(buf){
     const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
     if (!flate || !flate.unzipSync) throw new Error("fflate není k dispozici");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
@@ -4640,13 +4543,11 @@ function extractDocxTextWithFflate(buf){
 
 // --- Module: src/formats/pdf.js ---
 // PDF format handling and security preflights (ADR-0001, ADR-0002)
-
 function translit(ch){
   const map = { "á":"a","č":"c","ď":"d","é":"e","ě":"e","í":"i","ň":"n","ó":"o","ř":"r","š":"s","ť":"t","ú":"u","ů":"u","ý":"y","ž":"z",
                 "Á":"A","Č":"C","Ď":"D","É":"E","Ě":"E","Í":"I","Ň":"N","Ó":"O","Ř":"R","Š":"S","Ť":"T","Ú":"U","Ů":"U","Ý":"Y","Ž":"Z" };
   return map[ch] || ch;
-}
-function stampPdfMeta(doc, title){
+}function stampPdfMeta(doc, title){
     try {
       doc.setTitle((title||"document")+" — anonymized");
       doc.setAuthor("");
@@ -4656,9 +4557,7 @@ function stampPdfMeta(doc, title){
       doc.setCreator("Znečitelně");
       if (S.stripMeta && doc.setCreationDate) doc.setCreationDate(new Date(0));
     } catch (_) {}
-  }
-function pdfVisualAvailable(){ return S.kind === "pdf" && !!S.sourceBuf && !!window.pdfjsLib; }
-function pdfWordQuads(glyphs){
+  }function pdfVisualAvailable(){ return S.kind === "pdf" && !!S.sourceBuf && !!window.pdfjsLib; }function pdfWordQuads(glyphs){
     if (!glyphs || !glyphs.length) return [];
     const lines = [];
     const sorted = glyphs.slice().sort((a,b) => a.y - b.y || a.x - b.x);
@@ -4702,93 +4601,253 @@ function pdfWordQuads(glyphs){
         glyphs: l.glyphs
       };
     });
-  }
-function paintPdfVisualOverlays(){
+  }function pdfDetectFontFamily(fontName){
+  const f = String(fontName || "").toLowerCase();
+  if (/times|roman|serif|garamond|georgia|cambria|minion|baskerville/i.test(f)) return "serif";
+  if (/courier|mono|consol|typewriter|menlo/i.test(f)) return "monospace";
+  return "sans-serif";
+}function pdfCompactToken(token){
+  if (!token) return "";
+  const m = token.match(/^\[([A-ZÁ-Ž_]+?)(?:_([A-Za-z0-9]+))?\]$/);
+  if (!m) return token;
+  const cat = m[1];
+  const suffix = m[2];
+  let p = cat.charAt(0);
+  if (cat.startsWith("DATUM")) p = "DN";
+  else if (cat.startsWith("DOKLAD")) p = "DOK";
+  else if (cat.startsWith("TELEFON")) p = "TEL";
+  else if (cat.startsWith("ADRESA")) p = "ADR";
+  else if (cat.startsWith("PROJEKT")) p = "PRJ";
+  else if (cat.startsWith("SYSTÉM") || cat.startsWith("SYSTEM")) p = "SYS";
+  else if (cat.startsWith("INCIDENT")) p = "INC";
+  else if (cat.startsWith("ŘÍZENÍ") || cat.startsWith("RIZENI")) p = "ŘÍZ";
+  else if (cat.startsWith("ORGÁN") || cat.startsWith("ORGAN")) p = "ORG";
+  return suffix ? `[${p}_${suffix}]` : `[${p}]`;
+}function sampleCanvasBg(ctx, x, y, w, h, canvasW, canvasH){
+  try {
+    const samples = [];
+    const check = (px, py) => {
+      if (px >= 0 && px < canvasW && py >= 0 && py < canvasH) {
+        const p = ctx.getImageData(Math.floor(px), Math.floor(py), 1, 1).data;
+        const lum = 0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2];
+        if (lum > 140 && p[3] > 200) samples.push([p[0], p[1], p[2]]);
+      }
+    };
+    for (let s = 2; s <= 6; s += 2) {
+      check(x - s, y + h / 2);
+      check(x + w + s, y + h / 2);
+      check(x + w / 2, y - s);
+      check(x + w / 2, y + h + s);
+    }
+    if (samples.length >= 2) {
+      const avgR = Math.round(samples.reduce((a, c) => a + c[0], 0) / samples.length);
+      const avgG = Math.round(samples.reduce((a, c) => a + c[1], 0) / samples.length);
+      const avgB = Math.round(samples.reduce((a, c) => a + c[2], 0) / samples.length);
+      return `rgb(${avgR},${avgG},${avgB})`;
+    }
+  } catch (_) {}
+  return "#ffffff";
+}function mergeAdjacentBoxes(quads, scale){
+  if (!quads || !quads.length) return [];
+  const lines = [];
+  quads.forEach(q => {
+    const line = lines.find(l => Math.abs(l.baseLine - q.baseLine) <= Math.max(l.fH, q.fH) * 0.35);
+    if (line) line.items.push(q);
+    else lines.push({ baseLine: q.baseLine, fH: q.fH, items: [q] });
+  });
+  const out = [];
+  lines.forEach(l => {
+    l.items.sort((a, b) => a.boxX - b.boxX);
+    let cur = null;
+    for (const it of l.items) {
+      if (!cur) {
+        cur = { boxX: it.boxX, boxY: it.boxY, boxW: it.boxW, boxH: it.boxH, maxX: it.boxX + it.boxW };
+        continue;
+      }
+      const gap = it.boxX - cur.maxX;
+      if (gap <= Math.max(8 * scale, it.fH * 0.8)) {
+        const newMaxX = Math.max(cur.maxX, it.boxX + it.boxW);
+        cur.boxY = Math.min(cur.boxY, it.boxY);
+        cur.boxH = Math.max(cur.boxH, it.boxH);
+        cur.boxW = newMaxX - cur.boxX;
+        cur.maxX = newMaxX;
+      } else {
+        out.push(cur);
+        cur = { boxX: it.boxX, boxY: it.boxY, boxW: it.boxW, boxH: it.boxH, maxX: it.boxX + it.boxW };
+      }
+    }
+    if (cur) out.push(cur);
+  });
+  return out;
+}function resolvePageHitQuads(pageText, pageMap, hits, pageMeta, scale){
+  if (!pageMap || !pageMap.length || !hits || !hits.length) return [];
+  const assignedRanges = [];
+  const results = [];
+  const sortedHits = hits.slice().sort((a, b) => (a.start ?? 0) - (b.start ?? 0));
+
+  sortedHits.forEach(h => {
+    if (!h || !h.value) return;
+    const val = h.value;
+    const valLen = val.length;
+    const rel = (pageMeta && Number.isFinite(pageMeta.start)) ? (h.start - pageMeta.start) : h.start;
+
+    const occs = [];
+    let p = 0;
+    while ((p = pageText.indexOf(val, p)) !== -1) {
+      occs.push(p);
+      p += 1;
+    }
+    const normVal = val.replace(/\s+/g, " ").trim();
+    if (!occs.length && normVal !== val) {
+      p = 0;
+      while ((p = pageText.indexOf(normVal, p)) !== -1) {
+        occs.push(p);
+        p += 1;
+      }
+    }
+
+    const unassigned = occs.filter(idx => !assignedRanges.some(ar => idx < ar.end && (idx + valLen) > ar.start));
+
+    let chosenIdx = -1;
+    if (unassigned.includes(rel)) {
+      chosenIdx = rel;
+    } else if (unassigned.length > 0) {
+      unassigned.sort((a, b) => Math.abs(a - rel) - Math.abs(b - rel));
+      chosenIdx = unassigned[0];
+    } else if (pageText.slice(rel, rel + valLen) === val) {
+      chosenIdx = rel;
+    } else {
+      const winStart = Math.max(0, rel - 50);
+      const winEnd = Math.min(pageText.length, rel + 50 + valLen);
+      const localSub = pageText.slice(winStart, winEnd);
+      const localIdx = localSub.indexOf(val);
+      if (localIdx >= 0) {
+        const candidate = winStart + localIdx;
+        if (!assignedRanges.some(ar => candidate < ar.end && (candidate + valLen) > ar.start)) {
+          chosenIdx = candidate;
+        }
+      }
+    }
+
+    if (chosenIdx < 0) {
+      const directGlyphs = pageMap.filter(m => m.start >= rel && m.end <= (rel + Math.max(valLen, 1)));
+      if (directGlyphs.length) {
+        chosenIdx = rel;
+      }
+    }
+
+    if (chosenIdx < 0) return;
+    assignedRanges.push({ start: chosenIdx, end: chosenIdx + valLen });
+
+    const endIdx = chosenIdx + Math.max(valLen, 1);
+    const glyphs = pageMap.filter(m => m.end > chosenIdx && m.start < endIdx);
+    if (!glyphs.length) return;
+
+    const quads = pdfWordQuads(glyphs);
+    quads.forEach((r, qIdx) => {
+      const lineGlyphs = (r.glyphs && r.glyphs.length) ? r.glyphs : pageMap.filter(m => m.end > chosenIdx && m.start < endIdx && Math.abs(m.y - r.y) < Math.max(m.h, r.h) * 0.6);
+      const bGlyphs = lineGlyphs.filter(g => g && g.baselineY);
+      const hasBaseline = bGlyphs.length > 0;
+      const baseLine = hasBaseline ? bGlyphs[0].baselineY : (r.y + (r.h || 10) * 0.82);
+      const fH = hasBaseline ? Math.max(...bGlyphs.map(g => g.fontH || g.h)) : Math.max(r.rawH || r.h, 6);
+      const minX = Math.min(...lineGlyphs.map(g => g.x));
+      const maxX = Math.max(...lineGlyphs.map(g => g.x + g.w));
+
+      let padXRight = Math.max(3, Math.round(scale * 1.8));
+      const nextG = pageMap.find(m => m.start >= endIdx && m.str && m.str.trim());
+      if (nextG && /^[,.:;!?)]/u.test(nextG.str) && nextG.x > maxX) {
+        const gap = nextG.x - maxX;
+        padXRight = Math.min(padXRight, Math.max(0, gap - 1));
+      }
+      let padXLeft = Math.max(2, Math.round(scale * 1.2));
+      const prevG = pageMap.slice().reverse().find(m => m.end <= chosenIdx && m.str && m.str.trim());
+      if (prevG && /^[(["]/u.test(prevG.str) && (prevG.x + prevG.w) < minX) {
+        const gap = minX - (prevG.x + prevG.w);
+        padXLeft = Math.min(padXLeft, Math.max(0, gap - 1));
+      }
+
+      const boxX = Math.max(0, minX - padXLeft);
+      const boxW = Math.max(maxX + padXRight - boxX, 6);
+      const boxY = baseLine - fH * 1.04;
+      const bottomY = baseLine + fH * 0.30;
+      const boxH = Math.max(bottomY - boxY, 8);
+      const fontFam = pdfDetectFontFamily(lineGlyphs[0] && (lineGlyphs[0].fontName || lineGlyphs[0].name));
+
+      results.push({
+        hit: h,
+        qIdx,
+        totalQuads: quads.length,
+        startIdx: chosenIdx,
+        endIdx,
+        boxX,
+        boxY,
+        boxW,
+        boxH,
+        minX,
+        maxX,
+        baseLine,
+        fH,
+        fontFam,
+        hasBaseline,
+        lineGlyphs
+      });
+    });
+  });
+
+  return results;
+}function paintPdfVisualOverlays(){
     if (!PV) return;
     const previewOn = S.docView === "preview";
     const isBox = S.mode === "box" || !S.mode;
     const replacer = (previewOn && !isBox) ? bindReplacer(S.mode, S.lang, S.hits) : null;
     PV.pages.forEach(pg => {
       pg.layer.innerHTML = "";
-      visibleHits(S.hits, S.selectedId).forEach(h => {
-        const meta = (S.pages || []).find(p => p.n === pg.n);
-        if (!meta || h.start < meta.start || h.start >= meta.end + 1) return;
-        const rel = h.start - meta.start;
-        let idx = pg.text.slice(rel, rel + h.value.length) === h.value ? rel : pg.text.indexOf(h.value);
-        if (idx < 0) return;
-        const end = idx + Math.max(h.value.length, 1);
-        const glyphs = pg.map.filter(m => m.end > idx && m.start < end);
-        if (!glyphs.length) return;
-        const quads = pdfWordQuads(glyphs);
-        quads.forEach((r, qIdx) => {
-          const b = document.createElement("button");
-          b.type = "button";
-          b.dataset.id = h.id;
-          const lineGlyphs = (r.glyphs && r.glyphs.length) ? r.glyphs : pg.map.filter(m => m.end > idx && m.start < end && Math.abs(m.y - r.y) < Math.max(m.h, r.h) * 0.6);
-          const hasBaseline = lineGlyphs.some(g => g && g.baselineY);
-          let boxX = r.x, boxY = r.y, boxW = r.w, boxH = r.h;
-          if (previewOn) {
-            if (hasBaseline) {
-              const bGlyphs = lineGlyphs.filter(g => g && g.baselineY);
-              const baseLine = bGlyphs[0].baselineY;
-              const fH = Math.max(...bGlyphs.map(g => g.fontH || g.h));
-              const minX = Math.min(...lineGlyphs.map(g => g.x));
-              const maxX = Math.max(...lineGlyphs.map(g => g.x + g.w));
-              boxX = Math.max(0, minX - 2);
-              boxW = Math.max(maxX + 3 - boxX, 6);
-              boxY = Math.max(0, baseLine - fH * 1.02);
-              boxH = Math.max((baseLine + fH * 0.28) - boxY, 8);
-            } else {
-              const padY = Math.max(2, Math.round((r.rawH || r.h) * 0.16));
-              boxX = Math.max(0, (r.rawMinX != null ? r.rawMinX : r.x) - 2);
-              const maxX = (r.rawMaxX != null ? r.rawMaxX : (r.x + r.w)) + 3;
-              boxW = Math.max(maxX - boxX, 6);
-              boxY = Math.max(0, (r.rawMinY != null ? r.rawMinY : r.y) - padY);
-              const maxY = (r.rawMaxY != null ? r.rawMaxY : (r.y + r.h)) + padY;
-              boxH = Math.max(maxY - boxY, 8);
-            }
-          }
-          b.style.left = boxX + "px";
-          b.style.top = boxY + "px";
-          b.style.height = boxH + "px";
-          b.onclick = () => select(h.id);
+      const meta = (S.pages || []).find(p => p.n === pg.n);
+      const visHits = visibleHits(S.hits, S.selectedId);
+      const pageQuads = resolvePageHitQuads(pg.text, pg.map, visHits, meta, pg.scale || 1);
+      pageQuads.forEach(q => {
+        const h = q.hit;
+        const b = document.createElement("button");
+        b.type = "button";
+        b.dataset.id = h.id;
+        b.style.left = q.boxX + "px";
+        b.style.top = q.boxY + "px";
+        b.style.height = q.boxH + "px";
+        b.style.width = q.boxW + "px";
+        b.onclick = () => select(h.id);
 
-          if (!h.accept) {
-            b.className = "pv-box pv-off" + (S.selectedId === h.id ? " pv-sel" : "");
-            b.style.width = r.w + "px";
-            b.setAttribute("aria-label", i().cats[h.type] || h.type);
-          } else if (!previewOn) {
-            b.className = "pv-box pv-on" + (S.selectedId === h.id ? " pv-sel" : "");
-            b.style.width = r.w + "px";
-            b.setAttribute("aria-label", i().cats[h.type] || h.type);
-          } else if (isBox) {
-            b.className = "pv-box pv-prev pv-prev-box" + (S.selectedId === h.id ? " pv-sel" : "");
-            b.style.width = boxW + "px";
-            b.setAttribute("aria-label", (i().cats[h.type] || h.type) + " (" + (i().redact || "anonymizováno") + ")");
+        if (!h.accept) {
+          b.className = "pv-box pv-off" + (S.selectedId === h.id ? " pv-sel" : "");
+          b.setAttribute("aria-label", (i().cats && i().cats[h.type]) || h.type);
+        } else if (!previewOn) {
+          b.className = "pv-box pv-on" + (S.selectedId === h.id ? " pv-sel" : "");
+          b.setAttribute("aria-label", (i().cats && i().cats[h.type]) || h.type);
+        } else if (isBox) {
+          b.className = "pv-box pv-prev pv-prev-box" + (S.selectedId === h.id ? " pv-sel" : "");
+          b.setAttribute("aria-label", ((i().cats && i().cats[h.type]) || h.type) + " (" + (i().redact || "anonymizováno") + ")");
+        } else {
+          const fullToken = replacer ? replacer(h) : "";
+          b.className = "pv-box pv-prev pv-prev-token" + (S.selectedId === h.id ? " pv-sel" : "");
+          b.style.maxWidth = q.boxW + "px";
+          b.style.overflow = "hidden";
+          b.style.textOverflow = "ellipsis";
+          b.style.fontFamily = q.fontFam;
+          const fontSize = Math.max(8, Math.min(13, Math.round(q.boxH * 0.65)));
+          b.style.fontSize = fontSize + "px";
+          if (q.qIdx === 0) {
+            const compToken = pdfCompactToken(fullToken);
+            const fitsFull = (fullToken.length * fontSize * 0.55) <= (q.boxW + 6);
+            b.textContent = fitsFull ? fullToken : compToken;
           } else {
-            const token = replacer ? replacer(h) : "";
-            b.className = "pv-box pv-prev pv-prev-token" + (S.selectedId === h.id ? " pv-sel" : "");
-            b.style.minWidth = boxW + "px";
-            b.style.width = "auto";
-            const wrapW = pg.wrap ? (pg.wrap.clientWidth || parseFloat(pg.wrap.style.width) || 0) : 0;
-            const maxW = Math.max(boxW, (wrapW > boxX ? wrapW - boxX - 2 : 500));
-            b.style.maxWidth = maxW + "px";
-            const fontSize = Math.max(8, Math.min(13, Math.round(boxH * 0.65)));
-            b.style.fontSize = fontSize + "px";
-            if (qIdx === 0) {
-              b.textContent = token;
-            } else {
-              b.textContent = "";
-            }
-            b.setAttribute("aria-label", token + " · " + (i().cats[h.type] || h.type));
-            b.title = token;
+            b.textContent = "";
           }
-          pg.layer.appendChild(b);
-        });
+          b.setAttribute("aria-label", fullToken + " · " + ((i().cats && i().cats[h.type]) || h.type));
+          b.title = fullToken;
+        }
+        pg.layer.appendChild(b);
       });
     });
-  }
-async function buildPdfVisual(token){
+  }async function buildPdfVisual(token){
     const host = $("pdfVisual");
     if (!host) return;
     const width = Math.max(280, Math.min(900, host.clientWidth - 16 || 700));
@@ -4823,8 +4882,7 @@ async function buildPdfVisual(token){
     if (token !== pvToken) return;
     PV = { buf: S.sourceBuf, width, pages };
     paintPdfVisualOverlays();
-  }
-function paintPdfVisual(){
+  }function paintPdfVisual(){
     const btn = $("btnVisual"), host = $("pdfVisual"), t = i();
     const avail = pdfVisualAvailable();
     if (!avail && S.pdfVisual) S.pdfVisual = false;
@@ -4844,8 +4902,7 @@ function paintPdfVisual(){
       const token = ++pvToken;
       buildPdfVisual(token).catch(e => { console.warn("PDF visual failed:", e); if (token === pvToken) host.innerHTML = `<p class="pv-note danger">${esc(t.visualErr)}</p>`; });
     }
-  }
-function clearPdfVisual(){
+  }function clearPdfVisual(){
     PV = null;
     pvToken++;
     S.pdfVisual = false;
@@ -4855,14 +4912,12 @@ function clearPdfVisual(){
       h.innerHTML = "";
       h.classList.add("hidden");
     }
-  }
-function pdfHasSignatureBytes(buf){
+  }function pdfHasSignatureBytes(buf){
     try {
       const s = new TextDecoder("latin1").decode(toBytes(buf));
       return /\/ByteRange\s*\[/.test(s) && /\/Type\s*\/Sig\b|\/SubFilter\s*\/(?:adbe|ETSI)/.test(s);
     } catch (_) { return false; }
-  }
-function pdfWorker(){
+  }function pdfWorker(){
     const pdfjs = (typeof window !== "undefined" && window.pdfjsLib) || (typeof globalThis !== "undefined" && globalThis.pdfjsLib) || null;
     if (!pdfjs) throw new Error("PDF: knihovna se nenačetla.");
     const win = typeof window !== "undefined" ? window : globalThis;
@@ -4875,8 +4930,7 @@ function pdfWorker(){
       return "local";
     })();
     return win.__pdfWorkerReady;
-  }
-async function getPdfDocument(data){
+  }async function getPdfDocument(data){
     await pdfWorker();
     const bytes = (data instanceof Uint8Array)
       ? new Uint8Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength))
@@ -5168,8 +5222,7 @@ async function getPdfDocument(data){
   function shouldCoverVisibleStamps(){
     return !S.enabled || S.enabled.sigcert !== false;
   }
-  let _canFetchLocalCache = null;
-async function canFetchLocalAssets() {
+  let _canFetchLocalCache = null;async function canFetchLocalAssets() {
   if (_canFetchLocalCache !== null) return _canFetchLocalCache;
   if (typeof window === "undefined" || !window.fetch) {
     _canFetchLocalCache = false;
@@ -5186,8 +5239,7 @@ async function canFetchLocalAssets() {
     _canFetchLocalCache = true;
   }
   return _canFetchLocalCache;
-}
-async function extractPdf(data){
+}async function extractPdf(data){
     let pdf;
     try {
       pdf = await getPdfDocument(data);
@@ -5414,12 +5466,10 @@ async function extractPdf(data){
     }
 
     return { text, pages };
-  }
-async function exportPdfTrueRedact(source, hits, title, mode, lang){
+  }async function exportPdfTrueRedact(source, hits, title, mode, lang){
     const bytes = await exportPdfRaster(source, hits, title, mode, lang);
     return { bytes: assertSecurePdfBytes(bytes), rasterPages: new Set() };
-  }
-async function exportPdfRaster(source, hits, title, mode, lang){
+  }async function exportPdfRaster(source, hits, title, mode, lang){
     const pdf = await getPdfDocument(source);
     const { PDFDocument } = PDFLib;
     const doc = await PDFDocument.create();
@@ -5439,72 +5489,66 @@ async function exportPdfRaster(source, hits, title, mode, lang){
       const mapped = mapPageGlyphs(rawItems, scale, vp);
       const text = mapped.text;
       const map = mapped.map;
+      const effHits = effectiveHits(hits).filter(h => (h.page || pageOf(h.start)) === i);
+      const pageQuads = resolvePageHitQuads(text, map, effHits, pageMeta, scale);
       const redactedIntervals = [];
-      effectiveHits(hits).filter(h => (h.page || pageOf(h.start)) === i).forEach(hit => {
-        let idx = -1;
-        if (pageMeta && hit.start >= pageMeta.start && hit.end <= pageMeta.end) {
-          idx = hit.start - pageMeta.start;
-          const slice = text.slice(idx, idx+hit.value.length);
-          if (slice !== hit.value) {
-            const local = text.indexOf(hit.value);
-            idx = local;
-          }
+      pageQuads.forEach(q => {
+        if (q.startIdx != null && q.endIdx != null) {
+          redactedIntervals.push({ start: q.startIdx, end: q.endIdx });
         }
-        if (idx < 0) idx = text.indexOf(hit.value);
-        if (idx < 0) {
-          const compact = hit.value.replace(/\s+/g," ").trim();
-          idx = text.indexOf(compact);
-        }
-        if (idx < 0) return;
-        redactedIntervals.push({ start: idx, end: idx + Math.max(hit.value.length, 1) });
-        const end = idx + Math.max(hit.value.length, 1);
-        const glyphs = map.filter(m => m.end>idx && m.start<end);
-        if (!glyphs.length) return;
-        const quads = pdfWordQuads(glyphs);
-        quads.forEach(r => {
-          let boxX, boxY, boxW, boxH;
-          const lineGlyphs = (r.glyphs && r.glyphs.length) ? r.glyphs : glyphs.filter(g => Math.abs(g.y - r.y) < Math.max(g.h, r.h) * 0.6);
-          const hasBaseline = lineGlyphs.some(g => g && g.baselineY);
-          const padXLeft = Math.max(2, Math.round(scale * 1.2));
-          const padXRight = Math.max(3, Math.round(scale * 1.8));
-          if (hasBaseline) {
-            const bGlyphs = lineGlyphs.filter(g => g && g.baselineY);
-            const baseLine = bGlyphs[0].baselineY;
-            const fH = Math.max(...bGlyphs.map(g => g.fontH || g.h));
-            const minX = Math.min(...lineGlyphs.map(g => g.x));
-            const maxX = Math.max(...lineGlyphs.map(g => g.x + g.w));
-            boxX = minX - padXLeft;
-            boxW = Math.max(maxX + padXRight - boxX, 6);
-            boxY = baseLine - fH * 1.04;
-            const bottomY = baseLine + fH * 0.30;
-            boxH = Math.max(bottomY - boxY, 8);
-          } else {
-            const padY = Math.max(2.5, Math.round((r.rawH || r.h) * 0.18));
-            boxX = (r.rawMinX != null ? r.rawMinX : r.x) - padXLeft;
-            const maxX = (r.rawMaxX != null ? r.rawMaxX : (r.x + r.w)) + padXRight;
-            boxW = Math.max(maxX - boxX, 6);
-            boxY = (r.rawMinY != null ? r.rawMinY : r.y) - padY;
-            const maxY = (r.rawMaxY != null ? r.rawMaxY : (r.y + r.h)) + padY;
-            boxH = Math.max(maxY - boxY, 8);
-          }
-
-          if (isBox) {
-            ctx.fillStyle = "#16181d";
-            ctx.fillRect(boxX, boxY, boxW, boxH);
-            return;
-          }
-          const token = replacer(hit);
-          let size = Math.max(8, Math.min(boxH * 0.65, 14 * scale));
-          ctx.font = size+"px sans-serif";
-          let tokenW = ctx.measureText(token).width;
-          while (tokenW > boxW*3 && size > 8) { size -= 1; ctx.font = size+"px sans-serif"; tokenW = ctx.measureText(token).width; }
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(boxX, boxY, Math.max(boxW, tokenW+6), boxH);
-          ctx.fillStyle = "#0c0c0c";
-          ctx.textBaseline = "middle";
-          ctx.fillText(token, boxX + 3, boxY + boxH / 2);
-        });
       });
+
+      if (isBox) {
+        const mergedBoxes = mergeAdjacentBoxes(pageQuads, scale);
+        mergedBoxes.forEach(b => {
+          ctx.fillStyle = "#16181d";
+          ctx.fillRect(b.boxX, b.boxY, b.boxW, b.boxH);
+        });
+      } else {
+        pageQuads.forEach(q => {
+          const bgCol = sampleCanvasBg(ctx, q.boxX, q.boxY, q.boxW, q.boxH, canvas.width, canvas.height);
+          ctx.fillStyle = bgCol;
+          ctx.fillRect(q.boxX, q.boxY, q.boxW, q.boxH);
+
+          if (q.qIdx === 0 && replacer) {
+            const fullToken = replacer(q.hit);
+            const compToken = pdfCompactToken(fullToken);
+            let size = Math.max(8, Math.min(q.boxH * 0.65, 14 * scale));
+            ctx.font = size + "px " + q.fontFam;
+            let tokenW = ctx.measureText(fullToken).width;
+            let useToken = fullToken;
+            if (tokenW > q.boxW - 4) {
+              useToken = compToken;
+              tokenW = ctx.measureText(useToken).width;
+            }
+            while (tokenW > q.boxW - 4 && size > 8) {
+              size -= 1;
+              ctx.font = size + "px " + q.fontFam;
+              tokenW = ctx.measureText(useToken).width;
+            }
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(q.boxX, q.boxY, q.boxW, q.boxH);
+            ctx.clip();
+
+            let scaleX = 1;
+            if (tokenW > q.boxW - 4) {
+              scaleX = Math.max(0.75, (q.boxW - 4) / Math.max(1, tokenW));
+            }
+
+            ctx.fillStyle = "#0c0c0c";
+            ctx.textBaseline = "alphabetic";
+            if (scaleX < 1) {
+              ctx.scale(scaleX, 1);
+              ctx.fillText(useToken, (q.boxX + 2) / scaleX, q.baseLine);
+            } else {
+              ctx.fillText(useToken, q.boxX + 2, q.baseLine);
+            }
+            ctx.restore();
+          }
+        });
+      }
       if (shouldCoverVisibleStamps()) {
         const sigs = (pageMeta && pageMeta.signatures) || await pageSignatureMeta(page);
         const inferred = inferStampRectsFromItems(rawItems, vp, scale);
@@ -5555,17 +5599,14 @@ async function exportPdfRaster(source, hits, title, mode, lang){
       verifySanitizedPdfText(verifiedBytes, effectiveHits(hits));
     }
     return verifiedBytes;
-  }
-function base64ToUint8Array(base64){
+  }function base64ToUint8Array(base64){
     const clean = String(base64 || "").replace(/^data:.*?;base64,/, "").replace(/\s+/g, "");
     if (!clean) return new Uint8Array(0);
     const bin = atob(clean);
     const out = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
-  }
-const SRGB_ICC_PROFILE_BASE64 = "AAACTGxjbXMEQAAAbW50clJHQiBYWVogB+oACgABAAkAEQATYWNzcEFQUEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPbWAAEAAAAA0y1sY21zAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALZGVzYwAAAQgAAAA2Y3BydAAAAUAAAABMd3RwdAAAAYwAAAAUY2hhZAAAAaAAAAAsclhZWgAAAcwAAAAUYlhZWgAAAeAAAAAUZ1hZWgAAAfQAAAAUclRSQwAAAggAAAAgZ1RSQwAAAggAAAAgYlRSQwAAAggAAAAgY2hybQAAAigAAAAkbWx1YwAAAAAAAAABAAAADGVuVVMAAAAaAAAAHABzAFIARwBCACAAYgB1AGkAbAB0AC0AaQBuAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAADAAAAAcAE4AbwAgAGMAbwBwAHkAcgBpAGcAaAB0ACwAIAB1AHMAZQAgAGYAcgBlAGUAbAB5WFlaIAAAAAAAAPbWAAEAAAAA0y1zZjMyAAAAAAABDEIAAAXe///zJQAAB5MAAP2Q///7of///aIAAAPcAADAblhZWiAAAAAAAABvoAAAOPUAAAOQWFlaIAAAAAAAACSfAAAPhAAAtsNYWVogAAAAAAAAYpcAALeHAAAY2XBhcmEAAAAAAAMAAAACZmYAAPKnAAANWQAAE9AAAApbY2hybQAAAAAAAwAAAACj1wAAVHsAAEzNAACZmgAAJmYAAA9c";
-function stripDiacritic(str){
+  }const SRGB_ICC_PROFILE_BASE64 = "AAACTGxjbXMEQAAAbW50clJHQiBYWVogB+oACgABAAkAEQATYWNzcEFQUEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPbWAAEAAAAA0y1sY21zAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALZGVzYwAAAQgAAAA2Y3BydAAAAUAAAABMd3RwdAAAAYwAAAAUY2hhZAAAAaAAAAAsclhZWgAAAcwAAAAUYlhZWgAAAeAAAAAUZ1hZWgAAAfQAAAAUclRSQwAAAggAAAAgZ1RSQwAAAggAAAAgYlRSQwAAAggAAAAgY2hybQAAAigAAAAkbWx1YwAAAAAAAAABAAAADGVuVVMAAAAaAAAAHABzAFIARwBCACAAYgB1AGkAbAB0AC0AaQBuAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAADAAAAAcAE4AbwAgAGMAbwBwAHkAcgBpAGcAaAB0ACwAIAB1AHMAZQAgAGYAcgBlAGUAbAB5WFlaIAAAAAAAAPbWAAEAAAAA0y1zZjMyAAAAAAABDEIAAAXe///zJQAAB5MAAP2Q///7of///aIAAAPcAADAblhZWiAAAAAAAABvoAAAOPUAAAOQWFlaIAAAAAAAACSfAAAPhAAAtsNYWVogAAAAAAAAYpcAALeHAAAY2XBhcmEAAAAAAAMAAAACZmYAAPKnAAANWQAAE9AAAApbY2hybQAAAAAAAwAAAACj1wAAVHsAAEzNAACZmgAAJmYAAA9c";function stripDiacritic(str){
     return String(str || "").split("").map(translit).join("");
   }
 
@@ -5629,8 +5670,7 @@ function stripDiacritic(str){
     });
 
     return result;
-  }
-function addSrgbOutputIntent(pdfDoc){
+  }function addSrgbOutputIntent(pdfDoc){
     const { PDFName } = PDFLib;
     const iccBytes = base64ToUint8Array(SRGB_ICC_PROFILE_BASE64);
     if (!iccBytes.length) throw new Error("Missing sRGB ICC profile");
@@ -5658,8 +5698,7 @@ function addSrgbOutputIntent(pdfDoc){
     pdfDoc.catalog.set(PDFName.of("OutputIntents"), pdfDoc.context.obj([intentRef]));
 
     return { iccRef, intentRef };
-  }
-async function applyPdfaDeclaration(bytes){
+  }async function applyPdfaDeclaration(bytes){
     const { PDFDocument, PDFName } = PDFLib;
     const doc = await PDFDocument.load(bytes, { updateMetadata:false });
 
@@ -5714,8 +5753,7 @@ function toUtf16BeHex(str) {
 
 function toAsciiHex(str) {
   return [...str].map(c => (c.charCodeAt(0) & 0xff).toString(16).padStart(2, "0")).join("").toUpperCase();
-}
-function verifySanitizedPdfText(bytes, activeHits){
+}function verifySanitizedPdfText(bytes, activeHits){
     const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
     if (!flate || !activeHits || !activeHits.length) return true;
     try {
@@ -5782,8 +5820,7 @@ function verifySanitizedPdfText(bytes, activeHits){
       if (err.message && err.message.includes("PDF security verification failed")) throw err;
       throw new Error("PDF security verification failed: " + (err.message || String(err)));
     }
-  }
-function assertSecurePdfBytes(bytes){
+  }function assertSecurePdfBytes(bytes){
     const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     const ascii = new TextDecoder("latin1").decode(u8);
     const normAscii = ascii.replace(/\/([^\s<>[\]{}/%]+)/g, (_, name) => {
@@ -5811,8 +5848,7 @@ function assertSecurePdfBytes(bytes){
    *
    * Keep this API stable, but fail closed to the isolated raster constructor
    * until a future true-redaction implementation has an object-level proof.
-   */
-async function exportTextPdf(text, title) {
+   */async function exportTextPdf(text, title) {
   if (!window.PDFLib) throw new Error("PDFLib is not loaded");
   const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
   const doc = await PDFDocument.create();
@@ -5877,8 +5913,7 @@ async function exportTextPdf(text, title) {
 
   const outBytes = await doc.save({ useObjectStreams: false });
   return assertSecurePdfBytes(outBytes);
-}
-async function exportProtocolPdf(){
+}async function exportProtocolPdf(){
   if (!window.PDFLib) {
     const t = (typeof I18N !== "undefined" && typeof S !== "undefined" && I18N[S.lang]) ? I18N[S.lang] : null;
     throw new Error((t && t.recordNeedPdfLib) || "PDFLib is not loaded");
@@ -6190,15 +6225,13 @@ async function sha256(buf){
   const source = typeof buf === "string" ? new TextEncoder().encode(buf) : buf;
   const h = await subtle.digest("SHA-256", source);
   return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2,"0")).join("");
-}
-const IngestErrorCode = Object.freeze({
+}const IngestErrorCode = Object.freeze({
     EMPTY_DOCUMENT: "errFileEmpty",
     FILE_TOO_LARGE: "errFileTooLarge",
     UNSUPPORTED_BINARY: "errFileBinary",
     LEGACY_DOC_FORMAT: "errDocOld",
     IMAGE_NEED_OCR: "errImageNeedOcr"
-  });
-class DocumentIngestionError extends Error {
+  });class DocumentIngestionError extends Error {
     constructor(code, fileName = "", cause = null) {
       super(code);
       this.name = "DocumentIngestionError";
@@ -6206,8 +6239,7 @@ class DocumentIngestionError extends Error {
       this.fileName = fileName;
       this.cause = cause;
     }
-  }
-function localizeIngestError(err, fallbackFileName = "") {
+  }function localizeIngestError(err, fallbackFileName = "") {
     if (!err) return "";
     const code = err.code || err.message;
     const f = err.fileName || fallbackFileName || "";
@@ -6228,8 +6260,7 @@ function localizeIngestError(err, fallbackFileName = "") {
       return dict.errImageNeedOcr || "Pro zpracování obrázků musí být povoleno OCR.";
     }
     return err.message || String(err);
-  }
-async function buildCanonicalDocument({ fileName, kind, text, sourceBuf = null, pages = null, cellMap = null, sigDetected = false }){
+  }async function buildCanonicalDocument({ fileName, kind, text, sourceBuf = null, pages = null, cellMap = null, sigDetected = false }){
     const cleanText = String(text || "").normalize("NFC");
     const docPages = (pages && pages.length)
       ? pages
@@ -6248,8 +6279,7 @@ async function buildCanonicalDocument({ fileName, kind, text, sourceBuf = null, 
       sigDetected: !!sigDetected,
       hashIn: hashIn
     });
-  }
-function applyDocumentToState(doc){
+  }function applyDocumentToState(doc){
     if (!doc) return;
     S.fileName = doc.fileName;
     S.kind = doc.kind;
@@ -6264,8 +6294,7 @@ function applyDocumentToState(doc){
     S.reviewed = false;
     S.hits = [];
     runAnalyze(doc.text);
-  }
-async function ingest(name, kind, text, buf, extra){
+  }async function ingest(name, kind, text, buf, extra){
     const doc = await buildCanonicalDocument({
       fileName: name,
       kind: kind,
@@ -6277,12 +6306,10 @@ async function ingest(name, kind, text, buf, extra){
     });
     applyDocumentToState(doc);
     return doc;
-  }
-function isImageFile(name, type){
+  }function isImageFile(name, type){
     const n = (name || "").toLowerCase();
     return /\.(png|jpe?g|webp|bmp|gif|tiff?)$/i.test(n) || (typeof type === "string" && type.startsWith("image/"));
-  }
-async function handleImageFile(file, buf, options = {}){
+  }async function handleImageFile(file, buf, options = {}){
     const ocrEnabled = options.ocrEnabled ?? (typeof S !== "undefined" ? S.ocrEnabled : false);
     const tesseractLib = (typeof window !== "undefined" && window.Tesseract) || (typeof globalThis !== "undefined" && globalThis.Tesseract) || null;
     if (!ocrEnabled || !tesseractLib) {
@@ -6432,8 +6459,7 @@ async function handleImageFile(file, buf, options = {}){
         sourceBuf: buf
       });
     }
-  }
-async function ingestDocument(input, options = {}){
+  }async function ingestDocument(input, options = {}){
     const file = input;
     const name = (file && file.name) || options.fileName || "document";
     const size = typeof file?.size === "number" ? file.size : (file?.buffer?.byteLength || 0);
@@ -6550,8 +6576,7 @@ async function ingestDocument(input, options = {}){
       }
       return await buildCanonicalDocument({ fileName: name, kind: "text", text, sourceBuf: buf });
     }
-  }
-async function ingestDocumentBatch(list, options = {}){
+  }async function ingestDocumentBatch(list, options = {}){
     const files = Array.from(list || []);
     const results = [];
     for (const f of files) {
@@ -6752,14 +6777,9 @@ async function importSession(envelopeJsonOrObj, password) {
 let MOVIE_TIMER = null;
   let MOVIE_PENDING = null;
   let MOVIE_TITLE_TIMER = null;
-  let MOVIE_PAUSED = false;
-let MOVIE_SPEED = 1;
-const MOVIE_SLOWDOWN = 0.3;
-function movieEffectiveSpeed(){ return MOVIE_SPEED * MOVIE_SLOWDOWN; }
-function initActionMarquees(_root){
+  let MOVIE_PAUSED = false;let MOVIE_SPEED = 1;const MOVIE_SLOWDOWN = 0.3;function movieEffectiveSpeed(){ return MOVIE_SPEED * MOVIE_SLOWDOWN; }function initActionMarquees(_root){
     /* Cleaned: text overflow handled via responsive CSS */
-  }
-function startTextMarquee(_chip){
+  }function startTextMarquee(_chip){
     /* Cleaned: chip wrapping handled via responsive CSS */
   }
 
@@ -7429,8 +7449,7 @@ function startTextMarquee(_chip){
     }
     S.movie = true;
     syncSettingsForms();
-  }
-async function startMovieTutorial(script){
+  }async function startMovieTutorial(script){
     movieCancelPlayback();
     movieClearSelectMenu();
     movieCloseTitleCard();
@@ -7564,8 +7583,7 @@ async function startMovieTutorial(script){
     const idx = S.movieStepIndex || 0;
     if (idx <= 0) return;
     await movieGoTo(idx - 1);
-  }
-function exitMovieTutorial(keepDoc){
+  }function exitMovieTutorial(keepDoc){
     MOVIE_GENERATION++;
     MOVIE_TRANSITION_LOCK = false;
     movieCancelPlayback();
@@ -8246,16 +8264,14 @@ function download(name, blob){
   function filtered(){
     return S.hits.filter(h => S.filter==="all" || (S.filter==="redact"?h.accept:!h.accept));
   }
-  let _reviewCache = null;
-function legalOf(h) {
+  let _reviewCache = null;function legalOf(h) {
     if (!h) return "gdpr";
     if (h.legalBasis) return h.legalBasis;
     if (S.legalReason) return S.legalReason;
     if (h.type === "secrets") return "trade";
     if (["credential", "ip", "host", "system", "project", "ticket", "incident"].includes(h.type)) return "security";
     return "gdpr";
-  }
-function buildAudit() {
+  }function buildAudit() {
     const salt = S.auditSalt || (S.auditSalt = Array.from(globalThis.crypto?.getRandomValues?.(new Uint8Array(8)) || [1,2,3,4,5,6,7,8]).map(b => b.toString(16).padStart(2, "0")).join(""));
     const items = (S.hits || []).map(h => {
       const val = String(h.value || "");
@@ -8388,6 +8404,7 @@ function buildAudit() {
 
     const sel = S.hits.find(h => h.id===S.selectedId);
     if (sel) {
+      const adjacentHits = S.hits.filter(h => h.id !== sel.id && (Math.abs(h.start - sel.end) <= 4 || Math.abs(sel.start - h.end) <= 4));
       const a = Math.max(0, sel.start-42), b = Math.min(S.text.length, sel.end+42);
       const snip = (a>0?"…":"")+S.text.slice(a,b)+(b<S.text.length?"…":"");
       $("inspector").innerHTML = `<p class="lbl">${t.selected}</p><p class="insp-marquee mono">${esc(sel.value)}</p>
@@ -8400,8 +8417,16 @@ function buildAudit() {
           <button class="btn btn-sm" id="btnR" data-tip="${t.redact} · R">${t.redact}</button>
           <button class="btn btn-sm btn-sec" id="btnK" data-tip="${t.keep} · P">${t.keep}</button>
         </div>
+        ${adjacentHits.length > 0 ? `<button type="button" class="btn btn-sm btn-ghost" id="btnToggleGroup" style="width:100%;margin-top:6px">${S.lang==='cs'?'👥 Schválit/vyřadit skupinu':'👥 Toggle group'}</button>` : ""}
         ${sel.type === "name" ? `<button type="button" class="btn btn-sm btn-sec" id="btnMorphExpand" style="width:100%;margin-top:8px" data-tip="${escAttr(t.morphTip)}">🔍 ${esc(t.morphBtn)}</button>` : ""}`;
       $("btnR").onclick = () => patch(sel.id, true); $("btnK").onclick = () => patch(sel.id, false);
+      if ($("btnToggleGroup")) {
+        $("btnToggleGroup").onclick = () => {
+          const nextAccept = !sel.accept;
+          patch(sel.id, nextAccept);
+          adjacentHits.forEach(ah => patch(ah.id, nextAccept));
+        };
+      }
       $("selLegal").onchange = (e) => {
         const val = e.target.value;
         sel.legalBasis = val;
@@ -9724,8 +9749,7 @@ async function maybePdfa(bytes, notes){
   window.addEventListener("resize", () => {
     updateHeaderHeightVar();
     updateBarHeightVar();
-  });
-function selfTest(){
+  });function selfTest(){
     const enabled = Object.fromEntries(KEYS.map(k => [k, true]));
     const secrets = ["jednotkové ceny"];
     const prev = S.suspicion;

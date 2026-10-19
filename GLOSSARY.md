@@ -100,6 +100,11 @@ _Avoid_: Uložená relace, Session backup, Projektový soubor, Stav úlohy
 Trvalý pruh uživatelského rozhraní sdružující klíčové ovládací prvky pro schvalování, přepínání náhledu a nevratný export dokumentu, jehož výchozí poloha je v horní části obrazovky pod záhlavím s možností přesunu do spodní části.
 _Avoid_: Button bar, Toolbar, Lišta tlačítek, Spodní lišta, Plovoucí lišta
 
+**Pevný layout dokumentu**:
+Formát dokumentu (zejména PDF), v němž jsou pozice a rozměry slov vázány na absolutní souřadnice stránky a neumožňují přelévání textu (*text reflow*), kvůli čemuž je náhrada citlivých údajů striktně omezena původními rozměry nálezu.
+_Avoid_: Pevný formát, Statický dokument, Nepohyblivý text, Vizuální layout
+
+
 
 
 
