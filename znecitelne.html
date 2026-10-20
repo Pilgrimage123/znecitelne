@@ -218,8 +218,8 @@ html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--prima
 .pill-ghost { visibility: hidden; }
 .pill-hit { background: var(--hit); color: #fff; }
 .pill-ok { background: var(--ok); color: #fff; }
-.bar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+#quickHitBar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 35;
   background: var(--primary); color: var(--on-primary);
   padding: 10px 12px; padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
   box-shadow: 0 -6px 24px rgba(14,16,20,.18);
@@ -229,107 +229,7 @@ html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--prima
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
-.bar[data-pos="top"] {
-  left: 0; right: 0; top: var(--hdr-h, 60px); bottom: auto;
-  box-shadow: 0 6px 24px rgba(14,16,20,.18);
-  padding-bottom: 10px;
-  padding-top: 10px;
-  max-height: min(42dvh, calc(100dvh - var(--hdr-h, 60px)));
-}
-body.bar-pos-bottom .review { padding-bottom: calc(var(--bar-h, 120px) + 16px); }
-body.bar-pos-top .review { padding-top: calc(var(--bar-h, 72px) + 4px); }
-.bar-inner { max-width: 1400px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.btn-group {
-  display: inline-flex; align-items: stretch; border-radius: 999px; overflow: hidden;
-  border: 1.5px solid color-mix(in srgb, var(--on-primary) 35%, transparent);
-}
-.btn-group .btn {
-  border-radius: 0 !important; border: 0 !important; box-shadow: none !important;
-  min-height: 36px; padding: 0 12px; font-size: 13px;
-}
-.btn-group .btn + .btn {
-  border-left: 1px solid color-mix(in srgb, var(--on-primary) 28%, transparent) !important;
-}
-.bar .check { color: var(--on-primary); }
-.bar .btn {
-  background: var(--surface); color: var(--fg);
-  border-color: var(--surface);
-  box-shadow: 0 1px 0 color-mix(in srgb, #000 18%, transparent);
-}
-.bar .btn:hover { background: var(--bg); border-color: var(--bg); }
-.bar .btn-sec {
-  background: color-mix(in srgb, var(--on-primary) 12%, transparent);
-  color: var(--on-primary);
-  border: 1.5px solid color-mix(in srgb, var(--on-primary) 55%, transparent);
-  box-shadow: none;
-}
-.bar .btn-sec:hover {
-  background: color-mix(in srgb, var(--on-primary) 22%, transparent);
-  border-color: var(--on-primary);
-}
-.bar .btn-ghost {
-  background: transparent; color: var(--on-primary);
-  border-color: color-mix(in srgb, var(--on-primary) 50%, transparent);
-  box-shadow: none;
-}
-.bar .btn-ghost:hover {
-  background: color-mix(in srgb, var(--on-primary) 16%, transparent);
-  border-color: var(--on-primary);
-}
-.bar .btn:disabled {
-  opacity: .5;
-  background: color-mix(in srgb, var(--on-primary) 10%, transparent);
-  color: var(--on-primary);
-  border-color: color-mix(in srgb, var(--on-primary) 28%, transparent);
-  box-shadow: none;
-}
-.view-switch {
-  display: inline-flex; align-items: stretch; flex: 0 1 auto;
-  border-radius: 999px; overflow: hidden;
-  border: 1.5px solid color-mix(in srgb, var(--on-primary) 55%, transparent);
-  background: color-mix(in srgb, var(--on-primary) 10%, transparent);
-}
-.view-switch .btn {
-  min-height: 36px; padding: 0 12px; font-size: 12px; font-weight: 650;
-  border-radius: 0; border: 0; box-shadow: none;
-  background: transparent; color: var(--on-primary);
-}
-.view-switch .btn + .btn { border-left: 1px solid color-mix(in srgb, var(--on-primary) 35%, transparent); }
-.view-switch .btn:hover { background: color-mix(in srgb, var(--on-primary) 18%, transparent); }
-.view-switch .btn.on {
-  background: var(--surface); color: var(--fg);
-}
-.view-switch .btn.on:hover { background: var(--bg); }
-.bar #btnExp, .bar #btnAi { min-height: 44px; padding: 0 20px; font-weight: 700; }
-.bar #btnAudit {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 44px; min-width: 140px; padding: 0 16px;
-  font-size: 14px; font-weight: 500; line-height: 1;
-  border-radius: 999px;
-}
-@media (max-width: 720px) {
-  .bar #btnAudit { min-height: 40px; min-width: 0; padding: 0 12px; font-size: 13px; }
-}
-.bar #btnExp {
-  background: var(--surface); color: var(--fg);
-  border: 2px solid var(--surface);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--on-primary) 28%, transparent);
-}
-.bar #btnExp:hover { background: var(--bg); }
-.bar #btnAi {
-  background: color-mix(in srgb, var(--on-primary) 14%, transparent);
-  color: var(--on-primary);
-  border: 1.5px solid color-mix(in srgb, var(--on-primary) 62%, transparent);
-  box-shadow: none;
-}
-.bar #btnAi:hover {
-  background: color-mix(in srgb, var(--on-primary) 24%, transparent);
-  border-color: var(--on-primary);
-}
-.toolbar .btn-ghost {
-  background: var(--surface); color: var(--fg); border-color: var(--border);
-}
-.toolbar .btn-ghost:hover { background: var(--bg-subtle); border-color: var(--accent); }
+
 
 /* --- Integrated Workplace Bar (Pracovní lišta) --- */
 .header-doc-context {
@@ -479,14 +379,6 @@ html[data-theme="dark"] .settings-tab-btn.active { color: var(--primary); border
 .drop-icon { font-size: 36px; margin-bottom: 6px; }
 .landing-secondary-actions .btn { min-height: 42px; }
 
-@media (max-width: 720px) {
-  .bar { padding-left: 10px; padding-right: 10px; }
-  .bar-inner { gap: 6px; }
-  .bar .btn, .bar .btn-sm { min-height: 40px; padding: 0 12px; font-size: 13px; }
-  .bar #btnExp, .bar #btnAi { min-height: 40px; padding: 0 14px; flex: 1 1 auto; }
-  .bar .btn-eq { min-width: 0; }
-  .bar .check { min-height: 40px; padding: 0 4px; font-size: 13px; }
-}
 .check { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 8px; font-size: 14px; }
 .modal {
   position: fixed;
@@ -542,24 +434,13 @@ body.quick-mode #landingSettingsDetails,
 body.quick-mode #filters,
 body.quick-mode #hitList,
 body.quick-mode #processPane,
-body.quick-mode .bar #chk2,
-body.quick-mode .bar label:has(#chk2),
-body.quick-mode .bar .bulk-group,
-body.quick-mode .bar #btnAll,
-body.quick-mode .bar #btnNone,
-body.quick-mode .bar #btnOff,
-body.quick-mode .bar #btnAudit,
-body.fast-approve .bar #chk2,
-body.fast-approve .bar label:has(#chk2),
-body.fast-approve .bar #chkRev,
-body.fast-approve .bar label:has(#chkRev) {
+body.fast-approve #lblHeaderReviewed,
+body.fast-approve #lblHeaderSecondEyes {
   display: none !important;
 }
 body.quick-mode .work { grid-template-columns: 1fr; }
 body.quick-mode #reviewAside { display: contents; }
 body.quick-mode #inspector { display: none !important; }
-body.quick-mode .toolbar { gap: 6px; }
-body.quick-mode header.app .hdr-actions #btnHtml,
 body.quick-mode header.app .hdr-actions #btnLang,
 body.quick-mode header.app .hdr-actions #btnHelp {
   display: none !important;
@@ -598,9 +479,7 @@ body.quick-mode header.app .hdr-actions #btnHelp {
   line-height: 1;
 }
 #quickHitBar .qh-nav:hover { background: var(--bg); border-color: var(--bg); }
-/* Quick-mode hit card floats above the (still visible) export bar rather than replacing it */
-body.quick-mode.hit-selected #quickHitBar[data-pos="bottom"] { bottom: calc(var(--export-bar-h, 60px) + 8px); }
-body.quick-mode.hit-selected #quickHitBar[data-pos="top"] { top: calc(var(--hdr-h, 60px) + var(--export-bar-h, 60px) + 8px); }
+body.quick-mode.hit-selected #quickHitBar { bottom: 0; }
 
 
 [inert] { opacity: .45; filter: grayscale(.15); pointer-events: none; }
@@ -617,8 +496,6 @@ body.movie-active [inert] {
   border: 1px solid color-mix(in srgb, var(--header-fg) 22%, transparent);
 }
 #movie-caption-bar.active { display: block; }
-body.bar-pos-bottom #movie-caption-bar { bottom: calc(var(--bar-h, 72px) + 68px); }
-body.bar-pos-bottom #movie-controls { bottom: calc(var(--bar-h, 72px) + 16px); }
 #movie-caption-bar.movie-cap-top { bottom: auto; top: 12px; }
 #movie-chapter-label {
   font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
@@ -751,6 +628,7 @@ body.movie-active #settingsSheet {
     <div class="queue-dropdown hidden" id="headerQueueWrap">
       <select id="headerQueueSelect" aria-label="Dávková fronta"></select>
     </div>
+    <button class="btn btn-sm btn-ghost" id="btnHeaderAddDoc" type="button" title="Přidat další dokument do fronty" aria-label="Přidat dokument">+</button>
     <button class="btn btn-sm btn-ghost" id="btnHeaderClear" type="button" title="Zavřít dokument">✕</button>
   </div>
 
@@ -771,6 +649,7 @@ body.movie-active #settingsSheet {
       <button class="btn btn-sm btn-export" id="btnExp" type="button">Anonymizovat a exportovat</button>
       <button class="btn btn-sm btn-export btn-split-toggle" id="btnExpMenuToggle" type="button" aria-haspopup="true" aria-expanded="false" title="Další možnosti exportu">▾</button>
       <div class="dropdown-menu hidden" id="headerExportMenu" role="menu">
+        <button type="button" class="dropdown-item hidden" id="menuExportQueueZip">📁 Exportovat schválené z fronty (ZIP)</button>
         <button type="button" class="dropdown-item" id="menuExportAi">📦 AI balíček (ZIP)</button>
         <button type="button" class="dropdown-item" id="menuExportSession">💾 Předat pro 4 oči (.znecitelne-session)</button>
         <button type="button" class="dropdown-item" id="menuExportAudit">📋 Auditní protokol (JSON)</button>
@@ -778,10 +657,8 @@ body.movie-active #settingsSheet {
       </div>
     </div>
 
-    <button class="btn btn-sm btn-file" id="btnNewFile" type="button"><span class="plus" aria-hidden="true">+</span><span id="lblNewFile">Nový dokument</span></button>
     <button class="btn btn-sm btn-ghost" id="btnTheme" type="button" aria-pressed="false" aria-label="Tmavý režim">☾</button>
     <button class="btn btn-sm btn-ghost" id="btnSettings" type="button" aria-label="Nastavení">⚙</button>
-    <button class="btn btn-sm btn-ghost" id="btnHtml" type="button">HTML</button>
     <button class="btn btn-sm btn-ghost" id="btnLang" type="button">EN</button>
     <button class="btn btn-sm btn-ghost" id="btnHelp" type="button">?</button>
   </div>
@@ -824,9 +701,6 @@ body.movie-active #settingsSheet {
 </section>
 
 <section id="review" class="review hidden">
-  <!-- Hooks preserved for test and script compatibility -->
-  <div id="queueBar" class="queue hidden" role="group"></div>
-  <div class="toolbar hidden" id="toolbar"></div>
   <p id="residual" class="ok hidden"></p>
   <p id="scanWarn" class="danger hidden"></p>
   <p id="sigWarn" class="danger hidden" role="alert"></p>
@@ -876,7 +750,6 @@ body.movie-active #settingsSheet {
 </section>
 
 <div class="bar hidden" id="quickHitBar"></div>
-<div class="bar hidden" id="bar"></div>
 <footer id="footer"></footer>
 
 <div class="modal hidden" id="helpModal">
@@ -938,7 +811,8 @@ body.movie-active #settingsSheet {
 <script>
 (function () {
 // --- Module: src/core/rules.js ---
-const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];const KEYS = PII_KEYS.concat(ORG_KEYS);const RULES = "2026.10.19-ai46";const CHANGELOG = [
+const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];const KEYS = PII_KEYS.concat(ORG_KEYS);const RULES = "2026.10.20-ai47";const CHANGELOG = [
+  { version: "2026.10.20-ai47", notes: { cs: "Konsolidace pracovní lišty, eliminace duplicitních prvků a zrušení stažení offline aplikace (ADR-0013): Odstraněna redundantní lišta #bar (8 duplicitních tlačítek), mrtvý #toolbar a samostatná lišta čipů #queueBar. Dávková fronta je plně integrována do levého kontextu Pracovní lišty s tlačítkem přidání dokumentu (+) a bezpečným odebráním/vymazáním (✕). Export dávky jako ZIP přesunut výhradně do rozbalovací nabídky exportu. Hromadné akce (schválit/zamítnout vše) vyhrazeny Reviznímu panelu. Úplné odstranění funkce stažení offline aplikace (tlačítko #btnHtml a podpora generování samostatné HTML aplikace) dle explicitního požadavku. Vyčištění zastaralých stylů a optimalizace výšky Pracovní lišty.", en: "Workplace bar consolidation, duplicate control elimination and removal of offline HTML app download (ADR-0013): Removed redundant #bar (8 duplicate controls), dead #toolbar and separate #queueBar chip bar. Batch queue is fully consolidated into Workplace bar document context with add document (+) and safe clear/remove (✕) controls. Bulk queue ZIP export relocated into export dropdown menu. Bulk actions (approve/reject all) reserved exclusively for Review panel. Completely removed offline HTML app download button (#btnHtml) and related self-export generation per explicit requirement. Cleaned up obsolete CSS and dynamic bar height variables." } },
   { version: "2026.10.19-ai46", notes: { cs: "Omezení expanze tokenů, deterministické sledování výskytů a layoutová dekonflikce v PDF (ADR-0011): Zákaz horizontálního přetékání pseudonymizačních tokenů v pevném layoutu PDF s adaptivním zkracováním tokenů a kompresí písma v rámci boxW, proporční rozdělení šířek znaků v mapPageGlyphs eliminující kumulativní chybu posunu nálezu (10–19 px) u proporčních písem, deterministický occurrence tracking v okně ±50 znaků eliminující kolize duplicitních jmen na stránce, vertikální kalibrace výšky boxu (baseLine - 0.95*fH až baseLine + 0.22*fH = 1.17 em) nepřesahující standardní řádkování a chránící descenders/diakritiku sousedních řádků, horizontální padding škálovaný dle mezery k sousedním nálezům (gap/2 - 0.5) a přilehlé interpunkci (gap - 0.5), vizuální sloučení těsně sousedících nálezů na řádku v exportu i náhledu zamezující překryvu vycpávek s ochranou proti pohlcení krátkých slov, mediánové vzorkování podkladové barvy z plátna odolné vůči antialiasingu a tmavým hlavičkám, zachování řezu písma (tučné, kurzíva) i adaptivní šířka režimu xxxx a inline styl značek v pre.doc bez uskakování řádků.", en: "PDF token expansion limits, deterministic occurrence tracking and layout deconfliction (ADR-0011): Strict horizontal bounding of pseudonym tokens within boxW in fixed-layout PDFs with compact token fallbacks and text condensing, proportional character width distribution in mapPageGlyphs eliminating 10-19px cumulative finding offset errors in proportional fonts, deterministic occurrence tracking within ±50 char window eliminating duplicate value collapses on a page, line-height calibrated vertical bounds (baseLine - 0.95*fH to baseLine + 0.22*fH = 1.17 em) preventing multi-line box collision and protecting descenders/diacritics of adjacent lines, gap-adaptive horizontal padding preventing bleed between adjacent words and preserving punctuation, visual merging of adjacent findings in both export and preview with threshold guarding intervening short words, median canvas background sampling robust to antialiasing and dark table headers, font weight/style preservation (bold, italic) and adaptive xxxx mode length, and pure inline marker styling in pre.doc eliminating line-height jumping." } },
   { version: "2026.10.19-ai45", notes: { cs: "Náprava chyb a nekonzistencí: bezpečný přístup k běhovým knihovnám bez přímého window v Node.js/worker prostředí (ODT, DOCX, XLSX, Ingest, PDF), oprava podpory Unicode code points v decodeXml (> 0xFFFF), podpora českých uvozovek v isSentenceStart(), sjednocení kanonických důvodů nálezu onomastic namísto zastaralého gazetteer dle GLOSSARY.md a odstranění zbytků panelu Návrh.", en: "Bug fixes and inconsistency resolution: safe runtime library resolution without naked window references in Node.js/worker environments (ODT, DOCX, XLSX, Ingest, PDF), support for astral Unicode code points in decodeXml (> 0xFFFF), support for Czech quotation marks in isSentenceStart(), alignment of canonical detection reason onomastic over deprecated gazetteer per GLOSSARY.md, and removal of dead Proposal pane residues." } },
   { version: "2026.10.16-ai44", notes: { cs: "Architektonická konsolidace, deterministický modulární build, zpřísnění bezpečnosti exportů a Předávací balíček sezení v2 (ADR-0008, ADR-0009): Deterministické sestavování z ES modulů v src/ v čistém Node.js bez bundlerů, odstranění zastaralého split_monolith.js, bezpečná XML sanitizace XLSX se split-run spoji, XML entitami a cached vzorci, sekvenční schvalování v DOCX exportu respektující accept:false a mazání metadat autora na revizích, fail-closed dekomprese FlateDecode v PDF verifikaci včetně UTF-16BE hex a Win-1250 kódování a blokace ObjStm/Launch/RichMedia, Předávací balíček sezení v2 s binárním sourceBuf a zlib kompresí pro Four-Eyes kontrolu, zrychlení EntityPropagationCache.scan na 2 průchody textem (< 5 ms) a zpřesnění pádové flexe akuzativu a cizích příjmení v morphology.js.", en: "Architectural consolidation, deterministic modular build pipeline, export security hardening and Session Transfer Package v2 (ADR-0008, ADR-0009): Pure Node.js zero-bundler build pipeline from src/ ES modules, removal of legacy split_monolith.js, safe XLSX XML sanitization across split runs, entities and cached formula cells, sequential traversal approval in DOCX exports respecting accept:false and revision author metadata stripping, fail-closed FlateDecode decompression in PDF verification with UTF-16BE hex / Win-1250 checks and ObjStm/Launch/RichMedia blocking, Session Transfer Package v2 with binary sourceBuf and zlib compression for Four-Eyes review, EntityPropagationCache.scan optimized to 2 text passes (< 5 ms), and morphology precision for accusative cases and foreign surnames." } },
@@ -1166,7 +1040,7 @@ const I18N = {
       quickOn:"⚡ Kompaktní režim", quickOff:"⚡ Plný přehled",
       fastApprove:"Zrychlené schvalování",
       processHint:"Odhad kroků, rolí a systémů se přiloží k AI balíčku jako samostatný soubor. Neovlivňuje anonymizaci dokumentu.",
-      barPosition:"Umístění lišty", barPosBottom:"Dole", barPosTop:"Nahoře",
+      queueAddDoc:"Přidat další dokument do fronty", queueExportReviewedZip:"Exportovat schválené z fronty (ZIP)",
       settings:"Nastavení", apply:"Použít", cancel:"Zrušit", confirmTitle:"Nevratný export",
       residual:"V dokumentu zůstal podezřelý řetězec.", residualOk:"Žádný podezřelý řetězec v dokumentu nezůstal.",
       exported:"Export hotov", walk:"z",
@@ -1215,7 +1089,6 @@ const I18N = {
         ocr:"Pokud je PDF sken (bez textové vrstvy), Tesseract.js přečte text přímo z obrázku. První spuštění stáhne jazykový model češtiny (~15 MB). Data zůstávají v prohlížeči.",
         browse:"PDF s textovou vrstvou, DOCX, XLSX nebo TXT.",
         newFile:"Kdykoli vyberte jiný dokument. Stejný soubor lze zvolit znovu.",
-        html:"Uložte si tuto stránku jako jeden soubor a otevřete ji i bez serveru.",
         keepOfficials:"IČO ministerstev a státních podniků se v Registru smluv obvykle nezakrývá.",
         reviewed:"Bez lidské kontroly export nejde.", exportLocked:"Nejprve zaškrtněte Zkontrolováno.",
         previewChanges:"Zobrazí dokument tak, jak půjde do exportu — přijaté nálezy jsou nahrazené.",
@@ -1367,7 +1240,7 @@ const I18N = {
       quickOn:"⚡ Compact view", quickOff:"⚡ Full view",
       fastApprove:"Accelerated approval",
       processHint:"The step/role/system estimate is attached to the AI pack as a separate file. It does not affect document redaction.",
-      barPosition:"Toolbar position", barPosBottom:"Bottom", barPosTop:"Top",
+      queueAddDoc:"Add another document to queue", queueExportReviewedZip:"Export reviewed from queue (ZIP)",
       settings:"Settings", apply:"Apply", cancel:"Cancel", confirmTitle:"Irreversible export",
       residual:"A suspicious string remains in the document.", residualOk:"No suspicious string remains in the document.",
       exported:"Export complete", walk:"of",
@@ -1416,7 +1289,6 @@ const I18N = {
         ocr:"When a PDF is a scan (no text layer), Tesseract.js reads the text directly from the image. The first run downloads the Czech language model (~15 MB). All processing stays in the browser.",
         browse:"Searchable PDF, DOCX, XLSX or TXT.",
         newFile:"Pick another document at any time. The same file can be chosen again.",
-        html:"Save this page as one file and open it without a server.",
         keepOfficials:"IČO of ministries and state enterprises is usually left in the Register.",
         reviewed:"Export stays locked without a human review.", exportLocked:"Tick Reviewed first.",
         previewChanges:"Shows the document as it will be exported — accepted hits are replaced.",
@@ -7452,7 +7324,7 @@ let MOVIE_TIMER = null;
         "The resulting export is irreversible. You can choose a redacted PDF, an author-metadata-stripped Excel file, or an AI pack with a glossary excluding original sensitive values."
       ),
       setup: () => { closeSettings(); S.reviewed = true; paintReview(); },
-      highlight: ["btnExp", "btnAi"],
+      highlight: ["btnExp", "btnExpMenuToggle"],
       holdMs: 9500
     },
     {
@@ -7486,10 +7358,10 @@ let MOVIE_TIMER = null;
     {
       setup: () => { openSettings(); },
       caption: () => movieCaption(
-        "Ovládací lištu si můžete přesunout (nahoru/dolů) podle toho, jak vám to vyhovuje. Na samotnou anonymizaci to nemá vliv.",
-        "You can move the toolbar (top/bottom) to whatever is most comfortable for you. It does not affect the redaction itself."
+        "Nastavení aplikace je rozděleno do přehledných záložek pro profil publikace, projektové slovníky i zabezpečení formátů.",
+        "Application settings are organized into clear tabs for publication profile, project dictionaries and format security."
       ),
-      highlight: "m_selBarPos",
+      highlight: "tabBtnProfile",
       holdMs: 7000
     },
     {
@@ -7568,7 +7440,7 @@ let MOVIE_TIMER = null;
   const MOVIE_SCRIPT = [...MOVIE_SCRIPT_BASIC, ...MOVIE_SCRIPT_ADVANCED];
 
   let ACTIVE_MOVIE_SCRIPT = MOVIE_SCRIPT;
-  const MOVIE_INERT_SELECTOR = "header.app, #landing, #review, #bar";
+  const MOVIE_INERT_SELECTOR = "header.app, #landing, #review";
   function setMovieInert(on){
     document.querySelectorAll(MOVIE_INERT_SELECTOR).forEach(el => {
       if (on) el.setAttribute("inert", "");
@@ -7603,7 +7475,7 @@ let MOVIE_TIMER = null;
   }
   function movieObstructions(){
     let top = 0, bottom = window.innerHeight;
-    ["header.app", "#bar", "#quickHitBar"].forEach(sel => {
+    ["header.app", "#quickHitBar"].forEach(sel => {
       const e = document.querySelector(sel);
       if (!e || e.classList.contains("hidden")) return;
       const pos = getComputedStyle(e).position;
@@ -7622,7 +7494,7 @@ let MOVIE_TIMER = null;
   function movieClearlyVisible(el, obs){
     const r = el.getBoundingClientRect();
     let top = 0, bottom = window.innerHeight;
-    if (!el.closest("#bar, header.app, #quickHitBar, .modal")) { top = obs.top; bottom = obs.bottom; }
+    if (!el.closest("header.app, #quickHitBar, .modal")) { top = obs.top; bottom = obs.bottom; }
     for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
       if (!/(auto|scroll)/.test(getComputedStyle(p).overflowY) || p.scrollHeight <= p.clientHeight + 1) continue;
       const pr = p.getBoundingClientRect();
@@ -7641,7 +7513,7 @@ let MOVIE_TIMER = null;
     cap.classList.remove("movie-cap-top");
     const first = els[0];
     if (!first || first.closest("#movie-controls, #movie-caption-bar")) return;
-    const fixedSel = "#bar, header.app, #quickHitBar";
+    const fixedSel = "header.app, #quickHitBar";
     const inFixed = !!first.closest(fixedSel);
     const inModal = !!first.closest(".modal");
     const sheet = inModal ? (first.closest(".sheet") || first.closest(".modal")) : null;
@@ -8361,8 +8233,6 @@ function download(name, blob){
         <label class="check"><input type="checkbox" id="${p}chkOcr" ${S.ocrEnabled?"checked":""}/> ${t.enableOcr} <button type="button" class="help-i" data-tip="${t.tips.ocr}">?</button></label>
         <label class="check"><input type="checkbox" id="${p}chkExpert" ${S.expertMode?"checked":""}/> ${t.expertMode} <button type="button" class="help-i" data-tip="${t.tips.expertMode}">?</button></label>
         <label class="check"><input type="checkbox" id="${p}chkProcessAnalysis" ${S.processAnalysis?"checked":""}/> ${t.processAnalysisLabel} <button type="button" class="help-i" data-tip="${t.tips.processAnalysis}">?</button></label>
-        <label class="field" style="margin-top:16px">${t.barPosition}</label>
-        <select id="${p}selBarPos">${[["top",t.barPosTop],["bottom",t.barPosBottom]].map(([k,v])=>`<option value="${k}" ${S.barPos===k?"selected":""}>${v}</option>`).join("")}</select>
       </div>`;
   }
   function escAttr(s){
@@ -8408,13 +8278,6 @@ function download(name, blob){
       localStorage.setItem("znec-suspicion", S.suspicion);
       if (S.text) runAnalyze();
       else paintLanding();
-      syncSettingsForms(root);
-    };
-    const barPosSel = q("selBarPos");
-    if (barPosSel) barPosSel.onchange = (e) => {
-      S.barPos = e.target.value;
-      localStorage.setItem("znec-barpos", S.barPos);
-      applyBarPos();
       syncSettingsForms(root);
     };
     root.querySelectorAll("[data-cat]").forEach(cb => cb.onchange = () => {
@@ -8491,7 +8354,6 @@ function download(name, blob){
       const selP = m.querySelector("[id$=selProfile]");
       const selM = m.querySelector("[id$=selMode]");
       const selS = m.querySelector("[id$=selSuspicion]");
-      const selBP = m.querySelector("[id$=selBarPos]");
       const ta = m.querySelector("[id$=taSecrets]");
       const ts = m.querySelector("[id$=taSystems]");
       const tp = m.querySelector("[id$=taProjects]");
@@ -8506,7 +8368,6 @@ function download(name, blob){
       if (selP) selP.value = S.profile;
       if (selM) selM.value = S.mode;
       if (selS) selS.value = S.suspicion;
-      if (selBP) selBP.value = S.barPos;
       if (ta && document.activeElement !== ta) ta.value = S.secrets;
       if (ts && document.activeElement !== ts) ts.value = S.systems;
       if (tp && document.activeElement !== tp) tp.value = S.projects;
@@ -8634,9 +8495,6 @@ function download(name, blob){
     setT("btnSample", t.trySample); setTip("btnSample", t.tips.sample);
     setT("btnMovie", t.movieTutorial); setTip("btnMovie", t.tips.movie);
     setT("btnBrowse", t.browse); setTip("btnBrowse", t.tips.browse);
-    setT("lblNewFile", t.newFile);
-    setTip("btnNewFile", t.tips.newFile);
-    setT("btnHtml", "HTML"); setTip("btnHtml", t.tips.html);
     setT("btnLang", S.lang==="cs"?"EN":"CS"); setTip("btnLang", t.tips.lang);
     applyTheme();
     setTip("btnHelp", t.tips.help);
@@ -9021,9 +8879,21 @@ function download(name, blob){
       }
     }
 
+    const btnAddDoc = $("btnHeaderAddDoc");
+    if (btnAddDoc) {
+      btnAddDoc.onclick = pickFile;
+      btnAddDoc.title = t.queueAddDoc || "Přidat další dokument do fronty";
+    }
+
     const btnHdrClear = $("btnHeaderClear");
     if (btnHdrClear) {
       btnHdrClear.onclick = () => {
+        if (Q.items.length > 1) {
+          if (confirm(S.lang === "cs" ? "Opravdu chcete odebrat tento dokument z fronty?" : "Remove this document from queue?")) {
+            removeQueueItem(Q.cur);
+          }
+          return;
+        }
         if (S.hits && S.hits.length && !confirm(S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.")) {
           return;
         }
@@ -9071,6 +8941,20 @@ function download(name, blob){
         e.stopPropagation();
         expMenu.classList.toggle("hidden");
       };
+    }
+
+    const menuQueueZip = $("menuExportQueueZip");
+    if (menuQueueZip) {
+      if (Q.items.length > 1) {
+        menuQueueZip.classList.remove("hidden");
+        menuQueueZip.textContent = "📁 " + (t.queueExportReviewedZip || "Exportovat schválené z fronty (ZIP)");
+        menuQueueZip.onclick = () => {
+          expMenu?.classList.add("hidden");
+          exportAllReviewed();
+        };
+      } else {
+        menuQueueZip.classList.add("hidden");
+      }
     }
 
     const menuAi = $("menuExportAi");
@@ -9172,15 +9056,6 @@ function download(name, blob){
       residualClass = "danger";
       residualText = t.leakBad;
     }
-    $("toolbar").innerHTML = `
-      <span class="${residualClass}" style="font-size:13px;font-weight:600">${esc(residualText)}</span>
-      <span class="badge">${esc(S.fileName)}</span>
-      <span class="badge">${S.hits.length} ${t.found}</span>
-      <span class="badge">${red} ${t.toRedact}</span>
-      <span class="badge">${S.hits.length-red} ${t.kept}</span>
-      <span class="badge">${S.seen.size} ${t.walk} ${S.hits.length}</span>
-      <button class="btn btn-sm btn-sec" id="btnToggleQuick" data-tip="${t.tips.quickMode}">${S.quickMode ? t.quickOff : t.quickOn}</button>
-      <button class="btn btn-sm btn-sec" id="btnClear" data-tip="${t.tips.clear}">${t.clear}</button>`;
     const residualEl = $("residual");
     if (residualEl) {
       residualEl.className = residualClass + " hidden";
@@ -9381,68 +9256,6 @@ function download(name, blob){
     if ($("btnNone")) $("btnNone").onclick = doNone;
     if ($("btnOff")) $("btnOff").onclick = doOff;
 
-    $("bar").innerHTML = `<div class="bar-inner">
-      <div class="btn-group bulk-group" role="group" aria-label="${esc(t.acceptAll)} / ${esc(t.rejectAll)}">
-        <button class="btn btn-sm btn-eq btn-sec" id="btnAllLegacy">${t.acceptAll}</button>
-        <button class="btn btn-sm btn-eq btn-sec" id="btnNoneLegacy">${t.rejectAll}</button>
-        <button class="btn btn-sm btn-sec" id="btnOffLegacy" data-tip="${t.tips.keepOfficials}">${t.keepOfficials}</button>
-      </div>
-      <label class="check" data-tip="${t.tips.reviewed}"><input type="checkbox" id="chkRevLegacy" ${S.reviewed?"checked":""}/> ${t.reviewed}</label>
-      <label class="check"><input type="checkbox" id="chk2Legacy" ${S.secondEyes?"checked":""}/> ${t.secondEyes}</label>
-      <div class="view-switch" role="group" aria-label="${esc(t.previewChanges)} / ${esc(t.originalVersion)}">
-        <button type="button" class="btn btn-sm ${previewOn?"on":""}" id="btnViewPreviewLegacy" aria-pressed="${previewOn?"true":"false"}" data-tip="${t.tips.previewChanges}">${t.previewChanges}</button>
-        <button type="button" class="btn btn-sm ${previewOn?"":"on"}" id="btnViewOrigLegacy" aria-pressed="${previewOn?"false":"true"}" data-tip="${t.tips.originalVersion}">${t.originalVersion}</button>
-      </div>
-      <span data-tip="${exportReady?t.tips.export:t.tips.exportLocked}"><button class="btn" id="btnExpLegacy" ${exportReady?"":"disabled"}>${t.export}</button></span>
-      <span data-tip="${exportReady?(t.tips.aiPack||t.aiPack):t.tips.exportLocked}"><button class="btn btn-sec" id="btnAi" ${exportReady?"":"disabled"}>${t.aiPack}</button></span>
-      <button type="button" class="btn btn-sm btn-sec" id="btnExportSession" data-tip="${S.lang==='cs'?'Uložit šifrované sezení pro druhou kontrolu (.znecitelne-session)':'Export encrypted session for four-eyes review (.znecitelne-session)'}">💾 ${S.lang==='cs'?'Předat pro 4 oči':'Export session'}</button>
-    </div>`;
-    if ($("btnToggleQuick")) {
-      $("btnToggleQuick").onclick = () => {
-        S.quickMode = !S.quickMode;
-        try { localStorage.setItem("znec-quick", S.quickMode ? "1" : "0"); } catch (_) {}
-        applyQuickMode();
-        paintReview();
-      };
-    }
-    if ($("btnClear")) {
-      $("btnClear").onclick = () => {
-        if (S.hits && S.hits.length && !confirm(S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.")) {
-          return;
-        }
-        reset();
-      };
-    }
-    if ($("btnAllLegacy")) $("btnAllLegacy").onclick = doAll;
-    if ($("btnNoneLegacy")) $("btnNoneLegacy").onclick = doNone;
-    if ($("btnOffLegacy")) $("btnOffLegacy").onclick = doOff;
-    if ($("chkRevLegacy")) $("chkRevLegacy").onchange = (e) => { S.reviewed = e.target.checked; paintReview(); };
-    if ($("chk2Legacy")) $("chk2Legacy").onchange = (e) => { S.secondEyes = e.target.checked; };
-    if ($("btnViewPreviewLegacy")) $("btnViewPreviewLegacy").onclick = () => setDocView("preview");
-    if ($("btnViewOrigLegacy")) $("btnViewOrigLegacy").onclick = () => setDocView("original");
-    if ($("btnExpLegacy")) $("btnExpLegacy").onclick = () => openExport(false);
-    if ($("btnAi")) $("btnAi").onclick = () => openExport(true);
-    const btnSess = $("btnExportSession");
-    if (btnSess) {
-      btnSess.onclick = async () => {
-        const pwd = prompt(S.lang === "cs" ? "Zadejte heslo pro zašifrování sezení (pro druhou kontrolu):" : "Enter password to encrypt session (for second review):");
-        if (!pwd) return;
-        const pwdConfirm = prompt(S.lang === "cs" ? "Potvrďte heslo:" : "Confirm password:");
-        if (pwd !== pwdConfirm) {
-          alert(S.lang === "cs" ? "Hesla se neshodují." : "Passwords do not match.");
-          return;
-        }
-        try {
-          const envelopeJson = await exportSession(S, pwd);
-          const blob = new Blob([envelopeJson], { type: "application/json" });
-          const baseName = (S.fileName || "dokument").replace(/\.[^/.]+$/, "");
-          download(`${baseName}.znecitelne-session`, blob);
-          toast(S.lang === "cs" ? "Šifrované sezení bylo uloženo." : "Encrypted session saved.");
-        } catch (err) {
-          alert((S.lang === "cs" ? "Chyba při exportu sezení: " : "Error exporting session: ") + (err.message || String(err)));
-        }
-      };
-    }
     bindTips();
     requestAnimationFrame(updateBarHeightVar);
   }
@@ -9492,14 +9305,8 @@ function download(name, blob){
     requestAnimationFrame(updateBarHeightVar);
   }
   function applyBarPos(){
-    const bar = $("bar");
     const qbar = $("quickHitBar");
-    const pos = (S.barPos === "top") ? "top" : "bottom";
-    S.barPos = pos;
-    if (bar) bar.setAttribute("data-pos", pos);
-    if (qbar) qbar.setAttribute("data-pos", pos);
-    document.body.classList.remove("bar-pos-bottom","bar-pos-top","bar-pos-left","bar-pos-right");
-    document.body.classList.add("bar-pos-"+pos);
+    if (qbar) qbar.setAttribute("data-pos", "bottom");
     updateHeaderHeightVar();
     updateBarHeightVar();
   }
@@ -9509,16 +9316,11 @@ function download(name, blob){
     document.documentElement.style.setProperty("--hdr-h", h+"px");
   }
   function updateBarHeightVar(){
-    const bar = $("bar");
-    const exportH = (bar && !bar.classList.contains("hidden")) ? Math.ceil(bar.getBoundingClientRect().height) : 0;
-    document.documentElement.style.setProperty("--export-bar-h", Math.max(exportH ? 56 : 0, exportH)+"px");
-
+    document.documentElement.style.setProperty("--export-bar-h", "0px");
     const qbar = $("quickHitBar");
     const showingQuick = S.quickMode && qbar && !qbar.classList.contains("hidden") && document.body.classList.contains("hit-selected");
-
-    let total = exportH;
-    if (showingQuick) total += Math.ceil(qbar.getBoundingClientRect().height) + 8;
-    document.documentElement.style.setProperty("--bar-h", Math.max(total ? 56 : 0, total)+"px");
+    const total = showingQuick ? Math.ceil(qbar.getBoundingClientRect().height) + 8 : 0;
+    document.documentElement.style.setProperty("--bar-h", Math.max(total, 0)+"px");
   }
   function paint(){
     document.documentElement.lang = S.lang;
@@ -9530,12 +9332,10 @@ function download(name, blob){
     if (hasDoc) {
       $("landing").classList.add("hidden");
       $("review").classList.remove("hidden");
-      $("bar").classList.remove("hidden");
       paintReview();
     } else {
       $("landing").classList.remove("hidden");
       $("review").classList.add("hidden");
-      $("bar").classList.add("hidden");
       $("quickHitBar").classList.add("hidden");
       $("quickHitBar").innerHTML = "";
       document.body.classList.remove("hit-selected");
@@ -10260,95 +10060,7 @@ async function maybePdfa(bytes, notes){
 
     paint();
   }
-  let PRISTINE_HTML = "";
 
-  function buildSanitizedHtml() {
-    try {
-      const doc = document.implementation.createHTMLDocument(document.title || "Znečitelně");
-      doc.documentElement.innerHTML = document.documentElement.innerHTML;
-
-      const landing = doc.getElementById("landing");
-      if (landing) landing.classList.remove("hidden");
-      const review = doc.getElementById("review");
-      if (review) review.classList.add("hidden");
-      const bar = doc.getElementById("bar");
-      if (bar) { bar.classList.add("hidden"); bar.innerHTML = ""; }
-      const quickHitBar = doc.getElementById("quickHitBar");
-      if (quickHitBar) { quickHitBar.classList.add("hidden"); quickHitBar.innerHTML = ""; }
-
-      const orig = doc.getElementById("orig");
-      if (orig) orig.innerHTML = "";
-      const pdfVisual = doc.getElementById("pdfVisual");
-      if (pdfVisual) { pdfVisual.innerHTML = ""; pdfVisual.classList.add("hidden"); }
-      doc.body && doc.body.classList.remove("pdf-visual-on");
-      const hitList = doc.getElementById("hitList");
-      if (hitList) hitList.innerHTML = "";
-      const processBox = doc.getElementById("processBox");
-      if (processBox) processBox.innerHTML = "";
-      const inspector = doc.getElementById("inspector");
-      if (inspector) inspector.innerHTML = "";
-      const scanWarn = doc.getElementById("scanWarn");
-      if (scanWarn) { scanWarn.classList.add("hidden"); scanWarn.textContent = ""; }
-      const residual = doc.getElementById("residual");
-      if (residual) { residual.classList.add("hidden"); residual.textContent = ""; }
-
-      ["helpModal", "featuresModal", "changelogModal", "exportModal", "settingsModal"].forEach(id => {
-        const m = doc.getElementById(id);
-        if (m) m.classList.add("hidden");
-      });
-
-      doc.body.className = "";
-      const tip = doc.getElementById("tip");
-      if (tip) { tip.className = ""; tip.textContent = ""; }
-      const toastEl = doc.getElementById("toast");
-      if (toastEl) { toastEl.className = "toast"; toastEl.style.display = "none"; }
-      const capBar = doc.getElementById("movie-caption-bar");
-      if (capBar) capBar.className = "";
-      const mControls = doc.getElementById("movie-controls");
-      if (mControls) mControls.className = "";
-      const mTitle = doc.getElementById("movie-title-card");
-      if (mTitle) mTitle.className = "";
-      const mMenu = doc.getElementById("movie-select-menu");
-      if (mMenu) { mMenu.className = ""; mMenu.innerHTML = ""; }
-
-      return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
-    } catch (_) {
-      return "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
-    }
-  }
-
-  async function getCleanExportHtml() {
-    if (/^https?:/i.test(location.protocol)) {
-      const candidates = ["/znecitelne.html", "./znecitelne.html", location.pathname, location.href];
-      for (const url of candidates) {
-        try {
-          const res = await fetch(url, { cache: "no-cache" });
-          if (res.ok) {
-            const txt = await res.text();
-            if (txt.includes("<!DOCTYPE html>") && txt.includes("Znečitelně") && txt.includes("PII_KEYS") && txt.length > 50000) {
-              return txt;
-            }
-          }
-        } catch (_) {}
-      }
-    }
-
-    if (PRISTINE_HTML && PRISTINE_HTML.length > 50000 && PRISTINE_HTML.includes("<!DOCTYPE") && PRISTINE_HTML.includes("PII_KEYS")) {
-      return PRISTINE_HTML;
-    }
-
-    return buildSanitizedHtml();
-  }
-
-  async function downloadSelf(){
-    try {
-      const html = await getCleanExportHtml();
-      download("znecitelne.html", new Blob([html], {type:"text/html;charset=utf-8"}));
-      toast(S.lang === "cs" ? "HTML aplikace byla stažena." : "HTML app downloaded.");
-    } catch (e) {
-      toast(e.message || String(e));
-    }
-  }
   $("btnLang").onclick = () => { S.lang = S.lang==="cs"?"en":"cs"; localStorage.setItem("znec-lang", S.lang); paint(); };
   $("btnTheme").onclick = toggleTheme;
   $("btnSettings").onclick = openSettings;
@@ -10453,8 +10165,6 @@ async function maybePdfa(bytes, notes){
     f.value = "";
     f.click();
   }
-  $("btnNewFile").onclick = pickFile;
-  $("btnHtml").onclick = downloadSelf;
   $("helpModal").onclick = (e) => { if (e.target.id==="helpModal") e.target.classList.add("hidden"); };
   $("featuresModal").onclick = (e) => { if (e.target.id==="featuresModal") e.target.classList.add("hidden"); };
   $("changelogModal").onclick = (e) => { if (e.target.id==="changelogModal") e.target.classList.add("hidden"); };
@@ -11204,33 +10914,10 @@ async function maybePdfa(bytes, notes){
       ok: /if \(S\.movie\)/.test(String(document.onkeydown || "")),
       type:"movie", includes:"ArrowLeft/ArrowRight/Space/Escape", got:["listener installed"]
     });
-    cases.push({
-      name:"html export clean pristine structure",
-      ok: typeof PRISTINE_HTML === "string" &&
-          PRISTINE_HTML.startsWith("<!DOCTYPE html>") &&
-          PRISTINE_HTML.includes("<title>Znečitelně</title>") &&
-          PRISTINE_HTML.includes("pdf-lib") &&
-          PRISTINE_HTML.includes("PII_KEYS") &&
-          PRISTINE_HTML.length > 100000,
-      type:"html_export", includes:"clean_complete_app", got:[String(PRISTINE_HTML.length), String(PRISTINE_HTML.startsWith("<!DOCTYPE html>"))]
-    });
-    const sanitizedTest = buildSanitizedHtml();
-    cases.push({
-      name:"html export sanitized safety",
-      ok: typeof sanitizedTest === "string" &&
-          sanitizedTest.startsWith("<!DOCTYPE html>") &&
-          sanitizedTest.includes("<title>Znečitelně</title>") &&
-          sanitizedTest.includes('id="orig"></pre>') &&
-          sanitizedTest.length > 100000,
-      type:"html_export", includes:"sanitized_fallback", got:[String(sanitizedTest.length), String(sanitizedTest.startsWith("<!DOCTYPE html>"))]
-    });
     const failed = cases.filter(c => !c.ok);
     return { ok: failed.length===0, failed, n: cases.length };
   }
 
-  try {
-    PRISTINE_HTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
-  } catch (_) {}
 
   if (typeof window !== "undefined") {
     window.isOnomasticName = isOnomasticName;

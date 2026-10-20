@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-20
+
+- Konsolidace pracovní lišty, eliminace duplicitních prvků a zrušení stažení offline aplikace (ADR-0013):
+  - **Odstranění redundantních lišt a duplicitních prvků:** Zrušena plovoucí/přilepená spodní/horní lišta `#bar` (obsahující 8 duplicitních akcí z dřívějších verzí), mrtvý element `#toolbar` i samostatná lišta čipů dávkové fronty `#queueBar`.
+  - **Konsolidace Dávkové fronty do Pracovní lišty:** Správa dávkové fronty je plně soustředěna do levé zóny Pracovní lišty (`#headerDocContext`). Doplněno rychlé tlačítko pro přidání dalších dokumentů do fronty (`+`, `#btnHeaderAddDoc`) a kontextové vymazání/odebrání aktivního dokumentu (`✕`, `#btnHeaderClear`).
+  - **Sdružení exportu dávky do Pracovní lišty:** Hromadný export revidovaných dokumentů z dávky do ZIP archivu je sjednocen do rozbalovací nabídky tlačítka `[ Sanitizovaný export ▾ ]` (`#menuExportQueueZip`).
+  - **Exkluzivita hromadných akcí v Revizním panelu:** Hromadné akce (*Schválit vše*, *Zamítnout vše*, *Zbývající jako redakce*, *Ponechat vše*) jsou soustředěny výhradně v Revizním panelu u seznamu nálezů a entit, kde má operátor přímou vizuální kontrolu.
+  - **Úplné odstranění stahování offline aplikace:** Zrušeno tlačítko `#btnHtml` i veškerý podpůrný kód pro sestavování a stažení samostatného offline HTML balíčku aplikace (`downloadSelf`, `buildSanitizedHtml`, `getCleanExportHtml`, `PRISTINE_HTML`), čímž se zjednodušil DOM i klientská logika a zamezilo se matení uživatelů.
+  - **Záznam ADR-0013 a integrační testy:** Architektonické rozhodnutí podrobně zapsáno v `docs/adr/0013-konsolidace-pracovni-listy-a-eliminace-duplicitnich-prvku.md` a v testovací sadě `test.js` doplněna regresní ověření pro absenci duplicit a čistotu Pracovní lišty.
+
 ## 2026-10-19
 
 - Integrovaná pracovní lišta, entitní revize a adaptivní rozvržení (ADR-0012):

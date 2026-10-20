@@ -218,8 +218,8 @@ html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--prima
 .pill-ghost { visibility: hidden; }
 .pill-hit { background: var(--hit); color: #fff; }
 .pill-ok { background: var(--ok); color: #fff; }
-.bar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+#quickHitBar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 35;
   background: var(--primary); color: var(--on-primary);
   padding: 10px 12px; padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
   box-shadow: 0 -6px 24px rgba(14,16,20,.18);
@@ -229,107 +229,7 @@ html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--prima
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
-.bar[data-pos="top"] {
-  left: 0; right: 0; top: var(--hdr-h, 60px); bottom: auto;
-  box-shadow: 0 6px 24px rgba(14,16,20,.18);
-  padding-bottom: 10px;
-  padding-top: 10px;
-  max-height: min(42dvh, calc(100dvh - var(--hdr-h, 60px)));
-}
-body.bar-pos-bottom .review { padding-bottom: calc(var(--bar-h, 120px) + 16px); }
-body.bar-pos-top .review { padding-top: calc(var(--bar-h, 72px) + 4px); }
-.bar-inner { max-width: 1400px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.btn-group {
-  display: inline-flex; align-items: stretch; border-radius: 999px; overflow: hidden;
-  border: 1.5px solid color-mix(in srgb, var(--on-primary) 35%, transparent);
-}
-.btn-group .btn {
-  border-radius: 0 !important; border: 0 !important; box-shadow: none !important;
-  min-height: 36px; padding: 0 12px; font-size: 13px;
-}
-.btn-group .btn + .btn {
-  border-left: 1px solid color-mix(in srgb, var(--on-primary) 28%, transparent) !important;
-}
-.bar .check { color: var(--on-primary); }
-.bar .btn {
-  background: var(--surface); color: var(--fg);
-  border-color: var(--surface);
-  box-shadow: 0 1px 0 color-mix(in srgb, #000 18%, transparent);
-}
-.bar .btn:hover { background: var(--bg); border-color: var(--bg); }
-.bar .btn-sec {
-  background: color-mix(in srgb, var(--on-primary) 12%, transparent);
-  color: var(--on-primary);
-  border: 1.5px solid color-mix(in srgb, var(--on-primary) 55%, transparent);
-  box-shadow: none;
-}
-.bar .btn-sec:hover {
-  background: color-mix(in srgb, var(--on-primary) 22%, transparent);
-  border-color: var(--on-primary);
-}
-.bar .btn-ghost {
-  background: transparent; color: var(--on-primary);
-  border-color: color-mix(in srgb, var(--on-primary) 50%, transparent);
-  box-shadow: none;
-}
-.bar .btn-ghost:hover {
-  background: color-mix(in srgb, var(--on-primary) 16%, transparent);
-  border-color: var(--on-primary);
-}
-.bar .btn:disabled {
-  opacity: .5;
-  background: color-mix(in srgb, var(--on-primary) 10%, transparent);
-  color: var(--on-primary);
-  border-color: color-mix(in srgb, var(--on-primary) 28%, transparent);
-  box-shadow: none;
-}
-.view-switch {
-  display: inline-flex; align-items: stretch; flex: 0 1 auto;
-  border-radius: 999px; overflow: hidden;
-  border: 1.5px solid color-mix(in srgb, var(--on-primary) 55%, transparent);
-  background: color-mix(in srgb, var(--on-primary) 10%, transparent);
-}
-.view-switch .btn {
-  min-height: 36px; padding: 0 12px; font-size: 12px; font-weight: 650;
-  border-radius: 0; border: 0; box-shadow: none;
-  background: transparent; color: var(--on-primary);
-}
-.view-switch .btn + .btn { border-left: 1px solid color-mix(in srgb, var(--on-primary) 35%, transparent); }
-.view-switch .btn:hover { background: color-mix(in srgb, var(--on-primary) 18%, transparent); }
-.view-switch .btn.on {
-  background: var(--surface); color: var(--fg);
-}
-.view-switch .btn.on:hover { background: var(--bg); }
-.bar #btnExp, .bar #btnAi { min-height: 44px; padding: 0 20px; font-weight: 700; }
-.bar #btnAudit {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 44px; min-width: 140px; padding: 0 16px;
-  font-size: 14px; font-weight: 500; line-height: 1;
-  border-radius: 999px;
-}
-@media (max-width: 720px) {
-  .bar #btnAudit { min-height: 40px; min-width: 0; padding: 0 12px; font-size: 13px; }
-}
-.bar #btnExp {
-  background: var(--surface); color: var(--fg);
-  border: 2px solid var(--surface);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--on-primary) 28%, transparent);
-}
-.bar #btnExp:hover { background: var(--bg); }
-.bar #btnAi {
-  background: color-mix(in srgb, var(--on-primary) 14%, transparent);
-  color: var(--on-primary);
-  border: 1.5px solid color-mix(in srgb, var(--on-primary) 62%, transparent);
-  box-shadow: none;
-}
-.bar #btnAi:hover {
-  background: color-mix(in srgb, var(--on-primary) 24%, transparent);
-  border-color: var(--on-primary);
-}
-.toolbar .btn-ghost {
-  background: var(--surface); color: var(--fg); border-color: var(--border);
-}
-.toolbar .btn-ghost:hover { background: var(--bg-subtle); border-color: var(--accent); }
+
 
 /* --- Integrated Workplace Bar (Pracovní lišta) --- */
 .header-doc-context {
@@ -479,14 +379,6 @@ html[data-theme="dark"] .settings-tab-btn.active { color: var(--primary); border
 .drop-icon { font-size: 36px; margin-bottom: 6px; }
 .landing-secondary-actions .btn { min-height: 42px; }
 
-@media (max-width: 720px) {
-  .bar { padding-left: 10px; padding-right: 10px; }
-  .bar-inner { gap: 6px; }
-  .bar .btn, .bar .btn-sm { min-height: 40px; padding: 0 12px; font-size: 13px; }
-  .bar #btnExp, .bar #btnAi { min-height: 40px; padding: 0 14px; flex: 1 1 auto; }
-  .bar .btn-eq { min-width: 0; }
-  .bar .check { min-height: 40px; padding: 0 4px; font-size: 13px; }
-}
 .check { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 8px; font-size: 14px; }
 .modal {
   position: fixed;
@@ -542,24 +434,13 @@ body.quick-mode #landingSettingsDetails,
 body.quick-mode #filters,
 body.quick-mode #hitList,
 body.quick-mode #processPane,
-body.quick-mode .bar #chk2,
-body.quick-mode .bar label:has(#chk2),
-body.quick-mode .bar .bulk-group,
-body.quick-mode .bar #btnAll,
-body.quick-mode .bar #btnNone,
-body.quick-mode .bar #btnOff,
-body.quick-mode .bar #btnAudit,
-body.fast-approve .bar #chk2,
-body.fast-approve .bar label:has(#chk2),
-body.fast-approve .bar #chkRev,
-body.fast-approve .bar label:has(#chkRev) {
+body.fast-approve #lblHeaderReviewed,
+body.fast-approve #lblHeaderSecondEyes {
   display: none !important;
 }
 body.quick-mode .work { grid-template-columns: 1fr; }
 body.quick-mode #reviewAside { display: contents; }
 body.quick-mode #inspector { display: none !important; }
-body.quick-mode .toolbar { gap: 6px; }
-body.quick-mode header.app .hdr-actions #btnHtml,
 body.quick-mode header.app .hdr-actions #btnLang,
 body.quick-mode header.app .hdr-actions #btnHelp {
   display: none !important;
@@ -598,9 +479,7 @@ body.quick-mode header.app .hdr-actions #btnHelp {
   line-height: 1;
 }
 #quickHitBar .qh-nav:hover { background: var(--bg); border-color: var(--bg); }
-/* Quick-mode hit card floats above the (still visible) export bar rather than replacing it */
-body.quick-mode.hit-selected #quickHitBar[data-pos="bottom"] { bottom: calc(var(--export-bar-h, 60px) + 8px); }
-body.quick-mode.hit-selected #quickHitBar[data-pos="top"] { top: calc(var(--hdr-h, 60px) + var(--export-bar-h, 60px) + 8px); }
+body.quick-mode.hit-selected #quickHitBar { bottom: 0; }
 
 
 [inert] { opacity: .45; filter: grayscale(.15); pointer-events: none; }
@@ -617,8 +496,6 @@ body.movie-active [inert] {
   border: 1px solid color-mix(in srgb, var(--header-fg) 22%, transparent);
 }
 #movie-caption-bar.active { display: block; }
-body.bar-pos-bottom #movie-caption-bar { bottom: calc(var(--bar-h, 72px) + 68px); }
-body.bar-pos-bottom #movie-controls { bottom: calc(var(--bar-h, 72px) + 16px); }
 #movie-caption-bar.movie-cap-top { bottom: auto; top: 12px; }
 #movie-chapter-label {
   font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
@@ -751,6 +628,7 @@ body.movie-active #settingsSheet {
     <div class="queue-dropdown hidden" id="headerQueueWrap">
       <select id="headerQueueSelect" aria-label="Dávková fronta"></select>
     </div>
+    <button class="btn btn-sm btn-ghost" id="btnHeaderAddDoc" type="button" title="Přidat další dokument do fronty" aria-label="Přidat dokument">+</button>
     <button class="btn btn-sm btn-ghost" id="btnHeaderClear" type="button" title="Zavřít dokument">✕</button>
   </div>
 
@@ -771,6 +649,7 @@ body.movie-active #settingsSheet {
       <button class="btn btn-sm btn-export" id="btnExp" type="button">Anonymizovat a exportovat</button>
       <button class="btn btn-sm btn-export btn-split-toggle" id="btnExpMenuToggle" type="button" aria-haspopup="true" aria-expanded="false" title="Další možnosti exportu">▾</button>
       <div class="dropdown-menu hidden" id="headerExportMenu" role="menu">
+        <button type="button" class="dropdown-item hidden" id="menuExportQueueZip">📁 Exportovat schválené z fronty (ZIP)</button>
         <button type="button" class="dropdown-item" id="menuExportAi">📦 AI balíček (ZIP)</button>
         <button type="button" class="dropdown-item" id="menuExportSession">💾 Předat pro 4 oči (.znecitelne-session)</button>
         <button type="button" class="dropdown-item" id="menuExportAudit">📋 Auditní protokol (JSON)</button>
@@ -778,10 +657,8 @@ body.movie-active #settingsSheet {
       </div>
     </div>
 
-    <button class="btn btn-sm btn-file" id="btnNewFile" type="button"><span class="plus" aria-hidden="true">+</span><span id="lblNewFile">Nový dokument</span></button>
     <button class="btn btn-sm btn-ghost" id="btnTheme" type="button" aria-pressed="false" aria-label="Tmavý režim">☾</button>
     <button class="btn btn-sm btn-ghost" id="btnSettings" type="button" aria-label="Nastavení">⚙</button>
-    <button class="btn btn-sm btn-ghost" id="btnHtml" type="button">HTML</button>
     <button class="btn btn-sm btn-ghost" id="btnLang" type="button">EN</button>
     <button class="btn btn-sm btn-ghost" id="btnHelp" type="button">?</button>
   </div>
@@ -824,9 +701,6 @@ body.movie-active #settingsSheet {
 </section>
 
 <section id="review" class="review hidden">
-  <!-- Hooks preserved for test and script compatibility -->
-  <div id="queueBar" class="queue hidden" role="group"></div>
-  <div class="toolbar hidden" id="toolbar"></div>
   <p id="residual" class="ok hidden"></p>
   <p id="scanWarn" class="danger hidden"></p>
   <p id="sigWarn" class="danger hidden" role="alert"></p>
@@ -876,7 +750,6 @@ body.movie-active #settingsSheet {
 </section>
 
 <div class="bar hidden" id="quickHitBar"></div>
-<div class="bar hidden" id="bar"></div>
 <footer id="footer"></footer>
 
 <div class="modal hidden" id="helpModal">

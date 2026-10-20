@@ -341,8 +341,6 @@ function download(name, blob){
         <label class="check"><input type="checkbox" id="${p}chkOcr" ${S.ocrEnabled?"checked":""}/> ${t.enableOcr} <button type="button" class="help-i" data-tip="${t.tips.ocr}">?</button></label>
         <label class="check"><input type="checkbox" id="${p}chkExpert" ${S.expertMode?"checked":""}/> ${t.expertMode} <button type="button" class="help-i" data-tip="${t.tips.expertMode}">?</button></label>
         <label class="check"><input type="checkbox" id="${p}chkProcessAnalysis" ${S.processAnalysis?"checked":""}/> ${t.processAnalysisLabel} <button type="button" class="help-i" data-tip="${t.tips.processAnalysis}">?</button></label>
-        <label class="field" style="margin-top:16px">${t.barPosition}</label>
-        <select id="${p}selBarPos">${[["top",t.barPosTop],["bottom",t.barPosBottom]].map(([k,v])=>`<option value="${k}" ${S.barPos===k?"selected":""}>${v}</option>`).join("")}</select>
       </div>`;
   }
   function escAttr(s){
@@ -388,13 +386,6 @@ function download(name, blob){
       localStorage.setItem("znec-suspicion", S.suspicion);
       if (S.text) runAnalyze();
       else paintLanding();
-      syncSettingsForms(root);
-    };
-    const barPosSel = q("selBarPos");
-    if (barPosSel) barPosSel.onchange = (e) => {
-      S.barPos = e.target.value;
-      localStorage.setItem("znec-barpos", S.barPos);
-      applyBarPos();
       syncSettingsForms(root);
     };
     root.querySelectorAll("[data-cat]").forEach(cb => cb.onchange = () => {
@@ -471,7 +462,6 @@ function download(name, blob){
       const selP = m.querySelector("[id$=selProfile]");
       const selM = m.querySelector("[id$=selMode]");
       const selS = m.querySelector("[id$=selSuspicion]");
-      const selBP = m.querySelector("[id$=selBarPos]");
       const ta = m.querySelector("[id$=taSecrets]");
       const ts = m.querySelector("[id$=taSystems]");
       const tp = m.querySelector("[id$=taProjects]");
@@ -486,7 +476,6 @@ function download(name, blob){
       if (selP) selP.value = S.profile;
       if (selM) selM.value = S.mode;
       if (selS) selS.value = S.suspicion;
-      if (selBP) selBP.value = S.barPos;
       if (ta && document.activeElement !== ta) ta.value = S.secrets;
       if (ts && document.activeElement !== ts) ts.value = S.systems;
       if (tp && document.activeElement !== tp) tp.value = S.projects;
@@ -614,9 +603,6 @@ function download(name, blob){
     setT("btnSample", t.trySample); setTip("btnSample", t.tips.sample);
     setT("btnMovie", t.movieTutorial); setTip("btnMovie", t.tips.movie);
     setT("btnBrowse", t.browse); setTip("btnBrowse", t.tips.browse);
-    setT("lblNewFile", t.newFile);
-    setTip("btnNewFile", t.tips.newFile);
-    setT("btnHtml", "HTML"); setTip("btnHtml", t.tips.html);
     setT("btnLang", S.lang==="cs"?"EN":"CS"); setTip("btnLang", t.tips.lang);
     applyTheme();
     setTip("btnHelp", t.tips.help);
@@ -1007,9 +993,21 @@ function download(name, blob){
       }
     }
 
+    const btnAddDoc = $("btnHeaderAddDoc");
+    if (btnAddDoc) {
+      btnAddDoc.onclick = pickFile;
+      btnAddDoc.title = t.queueAddDoc || "Přidat další dokument do fronty";
+    }
+
     const btnHdrClear = $("btnHeaderClear");
     if (btnHdrClear) {
       btnHdrClear.onclick = () => {
+        if (Q.items.length > 1) {
+          if (confirm(S.lang === "cs" ? "Opravdu chcete odebrat tento dokument z fronty?" : "Remove this document from queue?")) {
+            removeQueueItem(Q.cur);
+          }
+          return;
+        }
         if (S.hits && S.hits.length && !confirm(S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.")) {
           return;
         }
@@ -1057,6 +1055,20 @@ function download(name, blob){
         e.stopPropagation();
         expMenu.classList.toggle("hidden");
       };
+    }
+
+    const menuQueueZip = $("menuExportQueueZip");
+    if (menuQueueZip) {
+      if (Q.items.length > 1) {
+        menuQueueZip.classList.remove("hidden");
+        menuQueueZip.textContent = "📁 " + (t.queueExportReviewedZip || "Exportovat schválené z fronty (ZIP)");
+        menuQueueZip.onclick = () => {
+          expMenu?.classList.add("hidden");
+          exportAllReviewed();
+        };
+      } else {
+        menuQueueZip.classList.add("hidden");
+      }
     }
 
     const menuAi = $("menuExportAi");
@@ -1158,15 +1170,6 @@ function download(name, blob){
       residualClass = "danger";
       residualText = t.leakBad;
     }
-    $("toolbar").innerHTML = `
-      <span class="${residualClass}" style="font-size:13px;font-weight:600">${esc(residualText)}</span>
-      <span class="badge">${esc(S.fileName)}</span>
-      <span class="badge">${S.hits.length} ${t.found}</span>
-      <span class="badge">${red} ${t.toRedact}</span>
-      <span class="badge">${S.hits.length-red} ${t.kept}</span>
-      <span class="badge">${S.seen.size} ${t.walk} ${S.hits.length}</span>
-      <button class="btn btn-sm btn-sec" id="btnToggleQuick" data-tip="${t.tips.quickMode}">${S.quickMode ? t.quickOff : t.quickOn}</button>
-      <button class="btn btn-sm btn-sec" id="btnClear" data-tip="${t.tips.clear}">${t.clear}</button>`;
     const residualEl = $("residual");
     if (residualEl) {
       residualEl.className = residualClass + " hidden";
@@ -1367,68 +1370,6 @@ function download(name, blob){
     if ($("btnNone")) $("btnNone").onclick = doNone;
     if ($("btnOff")) $("btnOff").onclick = doOff;
 
-    $("bar").innerHTML = `<div class="bar-inner">
-      <div class="btn-group bulk-group" role="group" aria-label="${esc(t.acceptAll)} / ${esc(t.rejectAll)}">
-        <button class="btn btn-sm btn-eq btn-sec" id="btnAllLegacy">${t.acceptAll}</button>
-        <button class="btn btn-sm btn-eq btn-sec" id="btnNoneLegacy">${t.rejectAll}</button>
-        <button class="btn btn-sm btn-sec" id="btnOffLegacy" data-tip="${t.tips.keepOfficials}">${t.keepOfficials}</button>
-      </div>
-      <label class="check" data-tip="${t.tips.reviewed}"><input type="checkbox" id="chkRevLegacy" ${S.reviewed?"checked":""}/> ${t.reviewed}</label>
-      <label class="check"><input type="checkbox" id="chk2Legacy" ${S.secondEyes?"checked":""}/> ${t.secondEyes}</label>
-      <div class="view-switch" role="group" aria-label="${esc(t.previewChanges)} / ${esc(t.originalVersion)}">
-        <button type="button" class="btn btn-sm ${previewOn?"on":""}" id="btnViewPreviewLegacy" aria-pressed="${previewOn?"true":"false"}" data-tip="${t.tips.previewChanges}">${t.previewChanges}</button>
-        <button type="button" class="btn btn-sm ${previewOn?"":"on"}" id="btnViewOrigLegacy" aria-pressed="${previewOn?"false":"true"}" data-tip="${t.tips.originalVersion}">${t.originalVersion}</button>
-      </div>
-      <span data-tip="${exportReady?t.tips.export:t.tips.exportLocked}"><button class="btn" id="btnExpLegacy" ${exportReady?"":"disabled"}>${t.export}</button></span>
-      <span data-tip="${exportReady?(t.tips.aiPack||t.aiPack):t.tips.exportLocked}"><button class="btn btn-sec" id="btnAi" ${exportReady?"":"disabled"}>${t.aiPack}</button></span>
-      <button type="button" class="btn btn-sm btn-sec" id="btnExportSession" data-tip="${S.lang==='cs'?'Uložit šifrované sezení pro druhou kontrolu (.znecitelne-session)':'Export encrypted session for four-eyes review (.znecitelne-session)'}">💾 ${S.lang==='cs'?'Předat pro 4 oči':'Export session'}</button>
-    </div>`;
-    if ($("btnToggleQuick")) {
-      $("btnToggleQuick").onclick = () => {
-        S.quickMode = !S.quickMode;
-        try { localStorage.setItem("znec-quick", S.quickMode ? "1" : "0"); } catch (_) {}
-        applyQuickMode();
-        paintReview();
-      };
-    }
-    if ($("btnClear")) {
-      $("btnClear").onclick = () => {
-        if (S.hits && S.hits.length && !confirm(S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.")) {
-          return;
-        }
-        reset();
-      };
-    }
-    if ($("btnAllLegacy")) $("btnAllLegacy").onclick = doAll;
-    if ($("btnNoneLegacy")) $("btnNoneLegacy").onclick = doNone;
-    if ($("btnOffLegacy")) $("btnOffLegacy").onclick = doOff;
-    if ($("chkRevLegacy")) $("chkRevLegacy").onchange = (e) => { S.reviewed = e.target.checked; paintReview(); };
-    if ($("chk2Legacy")) $("chk2Legacy").onchange = (e) => { S.secondEyes = e.target.checked; };
-    if ($("btnViewPreviewLegacy")) $("btnViewPreviewLegacy").onclick = () => setDocView("preview");
-    if ($("btnViewOrigLegacy")) $("btnViewOrigLegacy").onclick = () => setDocView("original");
-    if ($("btnExpLegacy")) $("btnExpLegacy").onclick = () => openExport(false);
-    if ($("btnAi")) $("btnAi").onclick = () => openExport(true);
-    const btnSess = $("btnExportSession");
-    if (btnSess) {
-      btnSess.onclick = async () => {
-        const pwd = prompt(S.lang === "cs" ? "Zadejte heslo pro zašifrování sezení (pro druhou kontrolu):" : "Enter password to encrypt session (for second review):");
-        if (!pwd) return;
-        const pwdConfirm = prompt(S.lang === "cs" ? "Potvrďte heslo:" : "Confirm password:");
-        if (pwd !== pwdConfirm) {
-          alert(S.lang === "cs" ? "Hesla se neshodují." : "Passwords do not match.");
-          return;
-        }
-        try {
-          const envelopeJson = await exportSession(S, pwd);
-          const blob = new Blob([envelopeJson], { type: "application/json" });
-          const baseName = (S.fileName || "dokument").replace(/\.[^/.]+$/, "");
-          download(`${baseName}.znecitelne-session`, blob);
-          toast(S.lang === "cs" ? "Šifrované sezení bylo uloženo." : "Encrypted session saved.");
-        } catch (err) {
-          alert((S.lang === "cs" ? "Chyba při exportu sezení: " : "Error exporting session: ") + (err.message || String(err)));
-        }
-      };
-    }
     bindTips();
     requestAnimationFrame(updateBarHeightVar);
   }
@@ -1478,14 +1419,8 @@ function download(name, blob){
     requestAnimationFrame(updateBarHeightVar);
   }
   function applyBarPos(){
-    const bar = $("bar");
     const qbar = $("quickHitBar");
-    const pos = (S.barPos === "top") ? "top" : "bottom";
-    S.barPos = pos;
-    if (bar) bar.setAttribute("data-pos", pos);
-    if (qbar) qbar.setAttribute("data-pos", pos);
-    document.body.classList.remove("bar-pos-bottom","bar-pos-top","bar-pos-left","bar-pos-right");
-    document.body.classList.add("bar-pos-"+pos);
+    if (qbar) qbar.setAttribute("data-pos", "bottom");
     updateHeaderHeightVar();
     updateBarHeightVar();
   }
@@ -1495,16 +1430,11 @@ function download(name, blob){
     document.documentElement.style.setProperty("--hdr-h", h+"px");
   }
   function updateBarHeightVar(){
-    const bar = $("bar");
-    const exportH = (bar && !bar.classList.contains("hidden")) ? Math.ceil(bar.getBoundingClientRect().height) : 0;
-    document.documentElement.style.setProperty("--export-bar-h", Math.max(exportH ? 56 : 0, exportH)+"px");
-
+    document.documentElement.style.setProperty("--export-bar-h", "0px");
     const qbar = $("quickHitBar");
     const showingQuick = S.quickMode && qbar && !qbar.classList.contains("hidden") && document.body.classList.contains("hit-selected");
-
-    let total = exportH;
-    if (showingQuick) total += Math.ceil(qbar.getBoundingClientRect().height) + 8;
-    document.documentElement.style.setProperty("--bar-h", Math.max(total ? 56 : 0, total)+"px");
+    const total = showingQuick ? Math.ceil(qbar.getBoundingClientRect().height) + 8 : 0;
+    document.documentElement.style.setProperty("--bar-h", Math.max(total, 0)+"px");
   }
   function paint(){
     document.documentElement.lang = S.lang;
@@ -1516,12 +1446,10 @@ function download(name, blob){
     if (hasDoc) {
       $("landing").classList.add("hidden");
       $("review").classList.remove("hidden");
-      $("bar").classList.remove("hidden");
       paintReview();
     } else {
       $("landing").classList.remove("hidden");
       $("review").classList.add("hidden");
-      $("bar").classList.add("hidden");
       $("quickHitBar").classList.add("hidden");
       $("quickHitBar").innerHTML = "";
       document.body.classList.remove("hit-selected");
@@ -2246,95 +2174,7 @@ async function maybePdfa(bytes, notes){
 
     paint();
   }
-  let PRISTINE_HTML = "";
 
-  function buildSanitizedHtml() {
-    try {
-      const doc = document.implementation.createHTMLDocument(document.title || "Znečitelně");
-      doc.documentElement.innerHTML = document.documentElement.innerHTML;
-
-      const landing = doc.getElementById("landing");
-      if (landing) landing.classList.remove("hidden");
-      const review = doc.getElementById("review");
-      if (review) review.classList.add("hidden");
-      const bar = doc.getElementById("bar");
-      if (bar) { bar.classList.add("hidden"); bar.innerHTML = ""; }
-      const quickHitBar = doc.getElementById("quickHitBar");
-      if (quickHitBar) { quickHitBar.classList.add("hidden"); quickHitBar.innerHTML = ""; }
-
-      const orig = doc.getElementById("orig");
-      if (orig) orig.innerHTML = "";
-      const pdfVisual = doc.getElementById("pdfVisual");
-      if (pdfVisual) { pdfVisual.innerHTML = ""; pdfVisual.classList.add("hidden"); }
-      doc.body && doc.body.classList.remove("pdf-visual-on");
-      const hitList = doc.getElementById("hitList");
-      if (hitList) hitList.innerHTML = "";
-      const processBox = doc.getElementById("processBox");
-      if (processBox) processBox.innerHTML = "";
-      const inspector = doc.getElementById("inspector");
-      if (inspector) inspector.innerHTML = "";
-      const scanWarn = doc.getElementById("scanWarn");
-      if (scanWarn) { scanWarn.classList.add("hidden"); scanWarn.textContent = ""; }
-      const residual = doc.getElementById("residual");
-      if (residual) { residual.classList.add("hidden"); residual.textContent = ""; }
-
-      ["helpModal", "featuresModal", "changelogModal", "exportModal", "settingsModal"].forEach(id => {
-        const m = doc.getElementById(id);
-        if (m) m.classList.add("hidden");
-      });
-
-      doc.body.className = "";
-      const tip = doc.getElementById("tip");
-      if (tip) { tip.className = ""; tip.textContent = ""; }
-      const toastEl = doc.getElementById("toast");
-      if (toastEl) { toastEl.className = "toast"; toastEl.style.display = "none"; }
-      const capBar = doc.getElementById("movie-caption-bar");
-      if (capBar) capBar.className = "";
-      const mControls = doc.getElementById("movie-controls");
-      if (mControls) mControls.className = "";
-      const mTitle = doc.getElementById("movie-title-card");
-      if (mTitle) mTitle.className = "";
-      const mMenu = doc.getElementById("movie-select-menu");
-      if (mMenu) { mMenu.className = ""; mMenu.innerHTML = ""; }
-
-      return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
-    } catch (_) {
-      return "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
-    }
-  }
-
-  async function getCleanExportHtml() {
-    if (/^https?:/i.test(location.protocol)) {
-      const candidates = ["/znecitelne.html", "./znecitelne.html", location.pathname, location.href];
-      for (const url of candidates) {
-        try {
-          const res = await fetch(url, { cache: "no-cache" });
-          if (res.ok) {
-            const txt = await res.text();
-            if (txt.includes("<!DOCTYPE html>") && txt.includes("Znečitelně") && txt.includes("PII_KEYS") && txt.length > 50000) {
-              return txt;
-            }
-          }
-        } catch (_) {}
-      }
-    }
-
-    if (PRISTINE_HTML && PRISTINE_HTML.length > 50000 && PRISTINE_HTML.includes("<!DOCTYPE") && PRISTINE_HTML.includes("PII_KEYS")) {
-      return PRISTINE_HTML;
-    }
-
-    return buildSanitizedHtml();
-  }
-
-  async function downloadSelf(){
-    try {
-      const html = await getCleanExportHtml();
-      download("znecitelne.html", new Blob([html], {type:"text/html;charset=utf-8"}));
-      toast(S.lang === "cs" ? "HTML aplikace byla stažena." : "HTML app downloaded.");
-    } catch (e) {
-      toast(e.message || String(e));
-    }
-  }
   $("btnLang").onclick = () => { S.lang = S.lang==="cs"?"en":"cs"; localStorage.setItem("znec-lang", S.lang); paint(); };
   $("btnTheme").onclick = toggleTheme;
   $("btnSettings").onclick = openSettings;
@@ -2439,8 +2279,6 @@ async function maybePdfa(bytes, notes){
     f.value = "";
     f.click();
   }
-  $("btnNewFile").onclick = pickFile;
-  $("btnHtml").onclick = downloadSelf;
   $("helpModal").onclick = (e) => { if (e.target.id==="helpModal") e.target.classList.add("hidden"); };
   $("featuresModal").onclick = (e) => { if (e.target.id==="featuresModal") e.target.classList.add("hidden"); };
   $("changelogModal").onclick = (e) => { if (e.target.id==="changelogModal") e.target.classList.add("hidden"); };
@@ -3192,33 +3030,10 @@ export function selfTest(){
       ok: /if \(S\.movie\)/.test(String(document.onkeydown || "")),
       type:"movie", includes:"ArrowLeft/ArrowRight/Space/Escape", got:["listener installed"]
     });
-    cases.push({
-      name:"html export clean pristine structure",
-      ok: typeof PRISTINE_HTML === "string" &&
-          PRISTINE_HTML.startsWith("<!DOCTYPE html>") &&
-          PRISTINE_HTML.includes("<title>Znečitelně</title>") &&
-          PRISTINE_HTML.includes("pdf-lib") &&
-          PRISTINE_HTML.includes("PII_KEYS") &&
-          PRISTINE_HTML.length > 100000,
-      type:"html_export", includes:"clean_complete_app", got:[String(PRISTINE_HTML.length), String(PRISTINE_HTML.startsWith("<!DOCTYPE html>"))]
-    });
-    const sanitizedTest = buildSanitizedHtml();
-    cases.push({
-      name:"html export sanitized safety",
-      ok: typeof sanitizedTest === "string" &&
-          sanitizedTest.startsWith("<!DOCTYPE html>") &&
-          sanitizedTest.includes("<title>Znečitelně</title>") &&
-          sanitizedTest.includes('id="orig"></pre>') &&
-          sanitizedTest.length > 100000,
-      type:"html_export", includes:"sanitized_fallback", got:[String(sanitizedTest.length), String(sanitizedTest.startsWith("<!DOCTYPE html>"))]
-    });
     const failed = cases.filter(c => !c.ok);
     return { ok: failed.length===0, failed, n: cases.length };
   }
 
-  try {
-    PRISTINE_HTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
-  } catch (_) {}
 
   if (typeof window !== "undefined") {
     window.isOnomasticName = isOnomasticName;

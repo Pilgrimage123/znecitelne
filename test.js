@@ -2152,6 +2152,35 @@ try {
   failures.push("ADR-0012 test failed: " + (adr12Err.message || String(adr12Err)));
 }
 
+// ADR-0013: Konsolidace Pracovní lišty a eliminace duplicitních ovládacích prvků
+try {
+  check(
+    !canonical.includes('id="bar"') &&
+    !canonical.includes('id="toolbar"') &&
+    !canonical.includes('id="queueBar"'),
+    "ADR-0013: legacy #bar, hidden #toolbar, and #queueBar must be completely eliminated from DOM"
+  );
+
+  check(
+    !canonical.includes('id="btnHtml"') &&
+    !canonical.includes('id="btnNewFile"'),
+    "ADR-0013: offline HTML download and duplicate new document button must be removed from header actions"
+  );
+
+  check(
+    canonical.includes('id="btnHeaderAddDoc"') &&
+    canonical.includes('id="menuExportQueueZip"'),
+    "ADR-0013: batch queue must be consolidated into header context and export dropdown menu"
+  );
+
+  check(
+    !canonical.includes('selBarPos'),
+    "ADR-0013: obsolete bar position setting must be removed from settings"
+  );
+} catch (adr13Err) {
+  failures.push("ADR-0013 test failed: " + (adr13Err.message || String(adr13Err)));
+}
+
 
 if (failures.length) {
   console.error("Quality gate failed:");

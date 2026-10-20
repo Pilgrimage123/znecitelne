@@ -251,7 +251,7 @@ export let MOVIE_TIMER = null;
         "The resulting export is irreversible. You can choose a redacted PDF, an author-metadata-stripped Excel file, or an AI pack with a glossary excluding original sensitive values."
       ),
       setup: () => { closeSettings(); S.reviewed = true; paintReview(); },
-      highlight: ["btnExp", "btnAi"],
+      highlight: ["btnExp", "btnExpMenuToggle"],
       holdMs: 9500
     },
     {
@@ -285,10 +285,10 @@ export let MOVIE_TIMER = null;
     {
       setup: () => { openSettings(); },
       caption: () => movieCaption(
-        "Ovládací lištu si můžete přesunout (nahoru/dolů) podle toho, jak vám to vyhovuje. Na samotnou anonymizaci to nemá vliv.",
-        "You can move the toolbar (top/bottom) to whatever is most comfortable for you. It does not affect the redaction itself."
+        "Nastavení aplikace je rozděleno do přehledných záložek pro profil publikace, projektové slovníky i zabezpečení formátů.",
+        "Application settings are organized into clear tabs for publication profile, project dictionaries and format security."
       ),
-      highlight: "m_selBarPos",
+      highlight: "tabBtnProfile",
       holdMs: 7000
     },
     {
@@ -367,7 +367,7 @@ export let MOVIE_TIMER = null;
   const MOVIE_SCRIPT = [...MOVIE_SCRIPT_BASIC, ...MOVIE_SCRIPT_ADVANCED];
 
   let ACTIVE_MOVIE_SCRIPT = MOVIE_SCRIPT;
-  const MOVIE_INERT_SELECTOR = "header.app, #landing, #review, #bar";
+  const MOVIE_INERT_SELECTOR = "header.app, #landing, #review";
   function setMovieInert(on){
     document.querySelectorAll(MOVIE_INERT_SELECTOR).forEach(el => {
       if (on) el.setAttribute("inert", "");
@@ -402,7 +402,7 @@ export let MOVIE_TIMER = null;
   }
   function movieObstructions(){
     let top = 0, bottom = window.innerHeight;
-    ["header.app", "#bar", "#quickHitBar"].forEach(sel => {
+    ["header.app", "#quickHitBar"].forEach(sel => {
       const e = document.querySelector(sel);
       if (!e || e.classList.contains("hidden")) return;
       const pos = getComputedStyle(e).position;
@@ -421,7 +421,7 @@ export let MOVIE_TIMER = null;
   function movieClearlyVisible(el, obs){
     const r = el.getBoundingClientRect();
     let top = 0, bottom = window.innerHeight;
-    if (!el.closest("#bar, header.app, #quickHitBar, .modal")) { top = obs.top; bottom = obs.bottom; }
+    if (!el.closest("header.app, #quickHitBar, .modal")) { top = obs.top; bottom = obs.bottom; }
     for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
       if (!/(auto|scroll)/.test(getComputedStyle(p).overflowY) || p.scrollHeight <= p.clientHeight + 1) continue;
       const pr = p.getBoundingClientRect();
@@ -440,7 +440,7 @@ export let MOVIE_TIMER = null;
     cap.classList.remove("movie-cap-top");
     const first = els[0];
     if (!first || first.closest("#movie-controls, #movie-caption-bar")) return;
-    const fixedSel = "#bar, header.app, #quickHitBar";
+    const fixedSel = "header.app, #quickHitBar";
     const inFixed = !!first.closest(fixedSel);
     const inModal = !!first.closest(".modal");
     const sheet = inModal ? (first.closest(".sheet") || first.closest(".modal")) : null;
