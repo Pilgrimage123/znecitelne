@@ -41,12 +41,15 @@ header.app :focus-visible { outline-color: #ffd166; }
 h1, h2 { font-family: var(--display); font-weight: 600; }
 header.app {
   position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between;
-  flex-wrap: wrap; gap: 12px; padding: 12px 20px; background: var(--header-bg); color: var(--header-fg);
+  flex-wrap: wrap; gap: 12px; padding: 10px 20px; min-height: 58px; background: var(--header-bg); color: var(--header-fg);
+  border-bottom: 1px solid color-mix(in srgb, var(--header-fg) 14%, transparent);
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
 }
 .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.mark { width: 36px; height: 36px; border-radius: 10px; background: var(--surface); color: var(--primary); display: grid; place-items: center; font-weight: 700; }
+.mark { width: 36px; height: 36px; border-radius: var(--radius-sm, 8px); background: var(--surface); color: var(--primary); display: grid; place-items: center; font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
 .tag { margin: 0; font-size: 12px; color: var(--header-muted); }
-.hdr-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.hdr-actions { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.hdr-icon-group { display: inline-flex; align-items: center; gap: 6px; }
 .feat-h { margin: 18px 0 8px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .feat-h:first-of-type { padding-top: 0; border-top: none; }
 .feat-h4 { margin: 0 0 6px; font-size: 14px; }
@@ -71,12 +74,51 @@ header.app {
 header.app .btn-ghost {
   background: color-mix(in srgb, var(--header-fg) 10%, transparent);
   color: var(--header-fg);
-  border-color: color-mix(in srgb, var(--header-fg) 48%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--header-fg) 34%, transparent);
   border-radius: var(--radius-sm, 6px);
+  transition: background .16s ease, border-color .16s ease, color .16s ease, transform .12s ease;
 }
 header.app .btn-ghost:hover {
   background: color-mix(in srgb, var(--header-fg) 20%, transparent);
-  border-color: color-mix(in srgb, var(--header-fg) 78%, transparent);
+  border-color: color-mix(in srgb, var(--header-fg) 76%, transparent);
+}
+header.app .btn-ghost:active {
+  background: color-mix(in srgb, var(--header-fg) 26%, transparent);
+  transform: translateY(1px);
+}
+header.app .btn-icon {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm, 6px);
+  position: relative;
+  flex: 0 0 36px;
+  box-sizing: border-box;
+}
+header.app .btn-icon svg {
+  display: block;
+  flex-shrink: 0;
+  transition: transform .14s ease;
+}
+header.app .btn-icon:hover svg {
+  transform: scale(1.08);
+}
+header.app .btn-icon:active svg {
+  transform: scale(0.95);
+}
+@media (prefers-reduced-motion: reduce) {
+  header.app .btn-icon svg { transition: none; transform: none !important; }
+  header.app .btn-ghost { transition: none; transform: none !important; }
+}
+header.app .btn-icon::after {
+  content: "";
+  position: absolute;
+  top: -4px; bottom: -4px; left: -4px; right: -4px;
 }
 .btn-sec { background: var(--surface); color: var(--fg); border: 1.5px solid var(--border); border-radius: var(--radius-sm, 6px); }
 .btn-sec:hover { background: var(--bg-subtle); border-color: var(--accent); }
@@ -103,8 +145,12 @@ html[data-theme="dark"] .btn-add-sel:hover {
 }
 @media (max-width: 640px) {
   #lblNewFile { display: none; }
-  header.app { gap: 8px; padding: 10px 12px; }
-  .hdr-actions .btn-sm { min-height: 36px; min-width: 36px; padding: 0 10px; }
+  header.app { gap: 8px; padding: 8px 12px; }
+  .hdr-actions { gap: 6px; }
+  .hdr-actions .btn-sm { min-height: 36px; }
+  .header-doc-context { gap: 4px; }
+  .header-approval { gap: 6px; }
+  .doc-badge { max-width: 140px; }
 }
 .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 16px 80px; }
 .grid-landing { display: grid; gap: 32px; }
@@ -360,43 +406,53 @@ html[data-theme="dark"] .privacy-badge {
 
 /* --- Integrated Workplace Bar (Pracovní lišta) --- */
 .header-doc-context {
-  display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0;
 }
 .doc-badge {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 7px;
   background: color-mix(in srgb, var(--header-fg) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--header-fg) 28%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--header-fg) 28%, transparent);
   padding: 4px 10px; border-radius: var(--radius-sm, 6px);
   color: var(--header-fg); font-size: 13px; font-weight: 600;
   max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-height: 36px; box-sizing: border-box;
+}
+.doc-badge-icon {
+  flex-shrink: 0;
+  opacity: .85;
 }
 .queue-dropdown select {
-  min-height: 32px; height: 32px; padding: 2px 8px; font-size: 12px; font-weight: 600;
+  min-height: 36px; height: 36px; padding: 2px 8px; font-size: 12px; font-weight: 600;
   border-radius: var(--radius-sm, 6px); background: var(--surface); color: var(--fg);
-  border-color: var(--border);
+  border: 1.5px solid var(--border); box-sizing: border-box;
 }
 #btnHeaderClear {
-  min-width: 36px;
-  padding: 0 10px;
-  font-weight: 700;
-  transition: background .15s, border-color .15s, color .15s;
+  transition: background .16s ease, border-color .16s ease, color .16s ease;
 }
 #btnHeaderClear:hover {
   background: color-mix(in srgb, var(--danger) 28%, transparent) !important;
-  border-color: color-mix(in srgb, var(--danger) 70%, transparent) !important;
+  border-color: color-mix(in srgb, var(--danger) 75%, transparent) !important;
   color: #ffb4b4 !important;
 }
 .header-approval {
   display: flex; align-items: center; gap: 8px;
 }
 .header-approval .approval-check {
-  font-size: 13px; font-weight: 600; color: var(--header-fg); min-height: 32px; padding: 0 6px;
-  cursor: pointer;
+  font-size: 13px; font-weight: 600; color: var(--header-fg); min-height: 36px; padding: 0 8px;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  border-radius: var(--radius-sm, 6px);
+  background: color-mix(in srgb, var(--header-fg) 8%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--header-fg) 24%, transparent);
+  transition: background .15s ease, border-color .15s ease;
+}
+.header-approval .approval-check:hover {
+  background: color-mix(in srgb, var(--header-fg) 16%, transparent);
+  border-color: color-mix(in srgb, var(--header-fg) 48%, transparent);
 }
 .header-approval .badge {
   background: color-mix(in srgb, var(--header-fg) 14%, transparent);
   border-color: color-mix(in srgb, var(--header-fg) 32%, transparent);
-  color: var(--header-fg); font-size: 11px;
+  color: var(--header-fg); font-size: 11px; min-height: 28px;
 }
 
 /* Split Export Button & Dropdown */
@@ -407,28 +463,64 @@ html[data-theme="dark"] .privacy-badge {
   background: var(--surface) !important; color: var(--primary) !important;
   font-weight: 700 !important; border: 1.5px solid var(--surface) !important;
   border-top-right-radius: 0 !important; border-bottom-right-radius: 0 !important;
+  border-top-left-radius: var(--radius-sm, 6px) !important;
+  border-bottom-left-radius: var(--radius-sm, 6px) !important;
   min-height: 36px; padding: 0 14px;
+  transition: background .16s ease;
 }
 .btn-export:hover { background: var(--bg) !important; }
 .btn-split-toggle {
-  background: color-mix(in srgb, var(--header-fg) 15%, var(--surface)) !important;
+  background: color-mix(in srgb, var(--header-fg) 14%, var(--surface)) !important;
   color: var(--primary) !important;
   border: 1.5px solid var(--surface) !important;
   border-left: 1px solid color-mix(in srgb, var(--primary) 20%, transparent) !important;
   border-top-left-radius: 0 !important; border-bottom-left-radius: 0 !important;
-  padding: 0 10px !important; min-height: 36px; cursor: pointer;
+  border-top-right-radius: var(--radius-sm, 6px) !important;
+  border-bottom-right-radius: var(--radius-sm, 6px) !important;
+  padding: 0 !important; width: 32px; min-height: 36px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background .16s ease;
+}
+.btn-split-toggle:hover {
+  background: color-mix(in srgb, var(--header-fg) 24%, var(--surface)) !important;
+}
+.btn-split-toggle svg {
+  display: block;
+  transition: transform .18s ease;
+}
+.btn-split-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
 }
 .dropdown-menu {
-  position: absolute; right: 0; top: calc(100% + 4px); z-index: 55;
-  background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius);
-  box-shadow: 0 10px 30px rgba(14,16,20,.24); min-width: 250px; padding: 6px;
-  display: flex; flex-direction: column; gap: 4px;
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 55;
+  background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius, 10px);
+  box-shadow: 0 10px 30px rgba(14,16,20,.24), 0 2px 6px rgba(0,0,0,.08); min-width: 260px; padding: 6px;
+  display: flex; flex-direction: column; gap: 3px;
+  animation: menuFadeIn .14s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top right;
+}
+@keyframes menuFadeIn {
+  from { opacity: 0; transform: scale(.96) translateY(-4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dropdown-menu { animation: none; }
 }
 .dropdown-item {
-  display: block; width: 100%; text-align: left; padding: 8px 12px; font-size: 13px; font-weight: 500;
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 8px 12px; font-size: 13px; font-weight: 500;
   border: 0; background: transparent; color: var(--fg); border-radius: var(--radius-sm, 6px); cursor: pointer;
+  transition: background .14s ease, color .14s ease;
 }
 .dropdown-item:hover { background: var(--bg-subtle); color: var(--primary); }
+.dropdown-item-icon {
+  flex-shrink: 0; opacity: .78; color: currentColor;
+}
+.dropdown-item:hover .dropdown-item-icon { opacity: 1; }
+.dropdown-divider { height: 1px; background: var(--border); margin: 4px 6px; }
+.dropdown-section-title {
+  padding: 6px 10px 3px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+}
 
 /* --- Segmented Controls & Document View --- */
 .doc-pane-header {
@@ -760,22 +852,25 @@ body.movie-active #settingsSheet {
       <p class="tag" id="tagline"></p>
     </div>
     <span class="privacy-badge" id="headerPrivacyBadge" title="Zpracováno lokálně ve vašem zařízení. Žádný server ani cloud.">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       <span id="lblHeaderPrivacy">Zpracováno lokálně</span>
     </span>
   </div>
 
   <!-- Active Document info & Queue dropdown (shown during review) -->
   <div class="header-doc-context hidden" id="headerDocContext">
-    <span class="doc-badge" id="headerDocBadge"><span id="headerDocName"></span></span>
+    <span class="doc-badge" id="headerDocBadge">
+      <svg class="doc-badge-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span id="headerDocName"></span>
+    </span>
     <div class="queue-dropdown hidden" id="headerQueueWrap">
       <select id="headerQueueSelect" aria-label="Dávková fronta"></select>
     </div>
-    <button class="btn btn-sm btn-ghost" id="btnHeaderAddDoc" type="button" title="Přidat další dokument do fronty" aria-label="Přidat dokument">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <button class="btn btn-sm btn-ghost btn-icon" id="btnHeaderAddDoc" type="button" title="Přidat další dokument do fronty" aria-label="Přidat dokument">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
-    <button class="btn btn-sm btn-ghost" id="btnHeaderClear" type="button" title="Zavřít dokument" aria-label="Zavřít dokument">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <button class="btn btn-sm btn-ghost btn-icon" id="btnHeaderClear" type="button" title="Zavřít dokument" aria-label="Zavřít dokument">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>
 
@@ -795,60 +890,85 @@ body.movie-active #settingsSheet {
     <!-- Split export button (shown during review) -->
     <div class="split-btn-group hidden" id="headerExportGroup">
       <button class="btn btn-sm btn-export" id="btnExp" type="button">Anonymizovat a exportovat</button>
-      <button class="btn btn-sm btn-export btn-split-toggle" id="btnExpMenuToggle" type="button" aria-haspopup="true" aria-expanded="false" title="Další možnosti exportu">▾</button>
+      <button class="btn btn-sm btn-export btn-split-toggle" id="btnExpMenuToggle" type="button" aria-haspopup="true" aria-expanded="false" title="Další možnosti exportu" aria-label="Další možnosti exportu">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
       <div class="dropdown-menu hidden" id="headerExportMenu" role="menu">
         <div class="dropdown-section-title" id="lblExpGroupDoc">Dokumentový výstup</div>
-        <button type="button" class="dropdown-item hidden" id="menuExportQueueZip">📁 Exportovat schválené z fronty (ZIP)</button>
+        <button type="button" class="dropdown-item hidden" id="menuExportQueueZip">
+          <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span id="lblMenuQueueZip">Exportovat schválené z fronty (ZIP)</span>
+        </button>
         <button type="button" class="dropdown-item" id="menuExportAi">
-          <span>📦 AI balíček (ZIP)</span>
-          <span class="dropdown-desc" id="lblExpAiDesc">Čistý text, osnova postupu a veřejný slovník tokenů</span>
+          <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <span style="font-weight:600" id="lblExportAi">AI balíček (ZIP)</span>
+            <span class="dropdown-desc" id="lblExpAiDesc">Čistý text, osnova postupu a veřejný slovník tokenů</span>
+          </div>
         </button>
         <div class="dropdown-divider"></div>
         <div class="dropdown-section-title" id="lblExpGroupCollab">Předání a spolupráce</div>
         <button type="button" class="dropdown-item" id="menuExportSession">
-          <span>💾 Předat pro 4 oči (.znecitelne-session)</span>
-          <span class="dropdown-desc" id="lblExpSessionDesc">Šifrované rozpracované sezení pro druhou kontrolu</span>
+          <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <span style="font-weight:600">Předat pro 4 oči (.znecitelne-session)</span>
+            <span class="dropdown-desc" id="lblExpSessionDesc">Šifrované rozpracované sezení pro druhou kontrolu</span>
+          </div>
         </button>
         <div class="dropdown-divider"></div>
         <div class="dropdown-section-title" id="lblExpGroupAudit">Audit a evidence</div>
         <button type="button" class="dropdown-item" id="menuExportAudit">
-          <span>📋 Auditní protokol (JSON)</span>
-          <span class="dropdown-desc" id="lblExpAuditDesc">Hash rozhodnutí se zkrácenými hodnotami pro doložení</span>
+          <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <span style="font-weight:600">Auditní protokol (JSON)</span>
+            <span class="dropdown-desc" id="lblExpAuditDesc">Hash rozhodnutí se zkrácenými hodnotami pro doložení</span>
+          </div>
         </button>
         <button type="button" class="dropdown-item" id="menuExportRecord">
-          <span>🔒 Protokol o anonymizaci (PDF)</span>
-          <span class="dropdown-desc" id="lblExpRecordDesc">Formální záznam o začernění pro spis</span>
+          <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <span style="font-weight:600">Protokol o anonymizaci (PDF)</span>
+            <span class="dropdown-desc" id="lblExpRecordDesc">Formální záznam o začernění pro spis</span>
+          </div>
         </button>
       </div>
     </div>
 
-    <!-- Settings button -->
-    <button class="btn btn-sm btn-ghost" id="btnSettings" type="button" aria-label="Nastavení" title="Nastavení">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    </button>
-
-    <!-- Header overflow menu toggle -->
-    <div class="header-more-group" style="position:relative;display:inline-block;">
-      <button class="btn btn-sm btn-ghost" id="btnHeaderMore" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Další možnosti" title="Další možnosti">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+    <!-- Header Actions Icon Group -->
+    <div class="hdr-icon-group">
+      <!-- Settings button -->
+      <button class="btn btn-sm btn-ghost btn-icon" id="btnSettings" type="button" aria-label="Nastavení" title="Nastavení">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
-      <div class="dropdown-menu hidden" id="headerMoreMenu" role="menu">
-        <button type="button" class="dropdown-item" id="btnTheme" role="menuitem">
-          <span id="lblThemeText">☾ Tmavý režim</span>
+
+      <!-- Header overflow menu toggle -->
+      <div class="header-more-group" style="position:relative;display:inline-block;">
+        <button class="btn btn-sm btn-ghost btn-icon" id="btnHeaderMore" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Další možnosti" title="Další možnosti">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
         </button>
-        <button type="button" class="dropdown-item" id="btnLang" role="menuitem">
-          <span id="lblLangText">🌐 Jazyk: EN</span>
-        </button>
-        <button type="button" class="dropdown-item" id="btnHelp" role="menuitem">
-          <span id="lblHelpText">❓ Nápověda a klávesy</span>
-        </button>
-        <div class="dropdown-divider"></div>
-        <button type="button" class="dropdown-item" id="btnHdrFeatures" role="menuitem">
-          <span id="lblFeaturesText">✨ Přehled funkcí</span>
-        </button>
-        <button type="button" class="dropdown-item" id="btnHdrChangelog" role="menuitem">
-          <span id="lblChangelogText">📜 Changelog</span>
-        </button>
+        <div class="dropdown-menu hidden" id="headerMoreMenu" role="menu">
+          <button type="button" class="dropdown-item" id="btnTheme" role="menuitem">
+            <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <span id="lblThemeText">Tmavý režim</span>
+          </button>
+          <button type="button" class="dropdown-item" id="btnLang" role="menuitem">
+            <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span id="lblLangText">Jazyk: EN</span>
+          </button>
+          <button type="button" class="dropdown-item" id="btnHelp" role="menuitem">
+            <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span id="lblHelpText">Nápověda a klávesy</span>
+          </button>
+          <div class="dropdown-divider"></div>
+          <button type="button" class="dropdown-item" id="btnHdrFeatures" role="menuitem">
+            <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span id="lblFeaturesText">Přehled funkcí</span>
+          </button>
+          <button type="button" class="dropdown-item" id="btnHdrChangelog" role="menuitem">
+            <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span id="lblChangelogText">Changelog</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>

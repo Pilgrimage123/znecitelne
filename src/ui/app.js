@@ -56,9 +56,15 @@ export const S = {
       const t = i();
       const lblTheme = $("lblThemeText");
       if (lblTheme) {
-        lblTheme.textContent = dark ? "☀ " + (S.lang === "cs" ? "Světlý režim" : "Light mode") : "☾ " + (S.lang === "cs" ? "Tmavý režim" : "Dark mode");
+        lblTheme.textContent = dark ? (S.lang === "cs" ? "Světlý režim" : "Light mode") : (S.lang === "cs" ? "Tmavý režim" : "Dark mode");
       } else {
         btn.textContent = dark ? "☀" : "☾";
+      }
+      const themeIcon = btn.querySelector(".dropdown-item-icon");
+      if (themeIcon) {
+        themeIcon.innerHTML = dark
+          ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
+          : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
       }
       btn.setAttribute("aria-pressed", dark ? "true" : "false");
       btn.setAttribute("aria-label", dark ? t.themeLight : t.themeDark);
@@ -673,7 +679,7 @@ function download(name, blob){
     setT("btnMovie", t.movieTutorial); setTip("btnMovie", t.tips.movie);
     const lblLang = $("lblLangText");
     if (lblLang) {
-      lblLang.textContent = "🌐 " + (S.lang === "cs" ? "Jazyk: English" : "Language: Čeština");
+      lblLang.textContent = S.lang === "cs" ? "Jazyk: English" : "Language: Čeština";
     } else {
       setT("btnLang", S.lang === "cs" ? "EN" : "CS");
     }
@@ -681,11 +687,11 @@ function download(name, blob){
     applyTheme();
     setTip("btnHelp", t.tips.help);
     const lblHelp = $("lblHelpText");
-    if (lblHelp) lblHelp.textContent = "❓ " + (t.helpTitle || "Nápověda");
+    if (lblHelp) lblHelp.textContent = t.helpTitle || "Nápověda a klávesy";
     const lblFeat = $("lblFeaturesText");
-    if (lblFeat) lblFeat.textContent = "✨ " + (t.featuresBtn || "Přehled funkcí");
+    if (lblFeat) lblFeat.textContent = t.featuresBtn || "Přehled funkcí";
     const lblChange = $("lblChangelogText");
-    if (lblChange) lblChange.textContent = "📜 " + (t.changelogBtn || "Changelog");
+    if (lblChange) lblChange.textContent = t.changelogBtn || "Changelog";
     setT("btnFeatures", t.featuresBtn); setTip("btnFeatures", t.tips.features);
     setT("btnChangelog", t.changelogBtn); setTip("btnChangelog", t.tips.changelog);
     setTip("btnSettings", t.tips.settings);
@@ -1154,11 +1160,17 @@ function download(name, blob){
       };
     }
     const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-    if ($("lblThemeText")) $("lblThemeText").textContent = isDark ? "☀ " + (S.lang === "cs" ? "Světlý režim" : "Light mode") : "☾ " + (S.lang === "cs" ? "Tmavý režim" : "Dark mode");
-    if ($("lblLangText")) $("lblLangText").textContent = "🌐 " + (S.lang === "cs" ? "Jazyk: English" : "Language: Čeština");
-    if ($("lblHelpText")) $("lblHelpText").textContent = "❓ " + (t.helpTitle || "Nápověda");
-    if ($("lblFeaturesText")) $("lblFeaturesText").textContent = "✨ " + (t.featuresBtn || "Přehled funkcí");
-    if ($("lblChangelogText")) $("lblChangelogText").textContent = "📋 " + (t.changelogBtn || "Historie verzí");
+    if ($("lblThemeText")) $("lblThemeText").textContent = isDark ? (S.lang === "cs" ? "Světlý režim" : "Light mode") : (S.lang === "cs" ? "Tmavý režim" : "Dark mode");
+    const themeIcon = $("btnTheme")?.querySelector(".dropdown-item-icon");
+    if (themeIcon) {
+      themeIcon.innerHTML = isDark
+        ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
+        : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+    }
+    if ($("lblLangText")) $("lblLangText").textContent = S.lang === "cs" ? "Jazyk: English" : "Language: Čeština";
+    if ($("lblHelpText")) $("lblHelpText").textContent = t.helpTitle || "Nápověda a klávesy";
+    if ($("lblFeaturesText")) $("lblFeaturesText").textContent = t.featuresBtn || "Přehled funkcí";
+    if ($("lblChangelogText")) $("lblChangelogText").textContent = t.changelogBtn || "Historie verzí";
 
     if (!isReviewActive) return;
 
@@ -1278,7 +1290,12 @@ function download(name, blob){
     if (menuQueueZip) {
       if (Q.items.length > 1) {
         menuQueueZip.classList.remove("hidden");
-        menuQueueZip.textContent = "📁 " + (t.queueExportReviewedZip || "Exportovat schválené z fronty (ZIP)");
+        const lblQueue = $("lblMenuQueueZip");
+        if (lblQueue) {
+          lblQueue.textContent = t.queueExportReviewedZip || "Exportovat schválené z fronty (ZIP)";
+        } else {
+          menuQueueZip.textContent = t.queueExportReviewedZip || "Exportovat schválené z fronty (ZIP)";
+        }
         menuQueueZip.onclick = () => {
           expMenu?.classList.add("hidden");
           btnExpToggle?.setAttribute("aria-expanded", "false");

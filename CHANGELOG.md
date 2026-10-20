@@ -2,6 +2,13 @@
 
 ## 2026-10-20
 
+- Vizuální harmonizace a sjednocení ikon v horní liště (UI/UX Pro Max):
+  - **Jednotná geometrie ovládacích ikon (`.btn-icon`):** Všechna samostatná tlačítka ikon v liště (`#btnHeaderAddDoc`, `#btnHeaderClear`, `#btnSettings`, `#btnHeaderMore`) sjednocena na přesný čtvercový rozměr 36×36 px s flexibilním středěním, jednotným poloměrem zaoblení (`var(--radius-sm, 6px)`) a neviditelným rozšířením dotykové zóny na minimálně 44×44 pt pro bezchybnou mobilní přístupnost (WCAG 2.5.5).
+  - **Sjednocení rozměrů a tahů vektorových SVG ikon:** Všechny ikony v záhlaví standardizovány na jednotný lineární styl (Phosphor/Lucide) s konzistentní tloušťkou tahu (`stroke-width: 2` / `2.2`) namísto dřívějšího mixu nesourodých velikostí (12, 14, 15 px) a tlouštěk.
+  - **Vektorový chevron u rozbalovacího exportu:** Textový znak šipky `▾` nahrazen ostrým centrovaným SVG chevronem s plynulou rotací při rozbalení nabídky.
+  - **Náhrada emoji za vektorové ikony v rozbalovacích nabídkách:** V exportním menu i systémovém menu „Další možnosti“ nahrazeny nesourodé platformní emoji znaky za čisté, monochromatické SVG ikony s jednotným zarovnáním na mřížku a plynulou animací rozbalení.
+  - **Indikátor dokumentu s ikonou:** Štítek aktivního souboru (`.doc-badge`) doplněn o elegantní vektorovou ikonu souboru a harmonizován do výšky 36 px pro dokonalé lícování s okolními ovládacími prvky.
+
 - Konsolidace pracovní lišty, eliminace duplicitních prvků a zrušení stažení offline aplikace (ADR-0013):
   - **Odstranění redundantních lišt a duplicitních prvků:** Zrušena plovoucí/přilepená spodní/horní lišta `#bar` (obsahující 8 duplicitních akcí z dřívějších verzí), mrtvý element `#toolbar` i samostatná lišta čipů dávkové fronty `#queueBar`.
   - **Konsolidace Dávkové fronty do Pracovní lišty:** Správa dávkové fronty je plně soustředěna do levé zóny Pracovní lišty (`#headerDocContext`). Doplněno rychlé tlačítko pro přidání dalších dokumentů do fronty (`+`, `#btnHeaderAddDoc`) a kontextové vymazání/odebrání aktivního dokumentu (`✕`, `#btnHeaderClear`).
