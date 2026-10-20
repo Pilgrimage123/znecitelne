@@ -821,8 +821,441 @@ body.movie-active #settingsSheet {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--focus) 50%, transparent); }
   50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--focus) 0%, transparent); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .movie-pulse { animation: none; }
+/* --- Landing Publication Profile Selector (ADR-0012 refinement) --- */
+.landing-profile-box {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.landing-profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2px;
+}
+.landing-profile-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+.landing-profile-settings-btn {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 11px;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 600;
+}
+.landing-profile-settings-btn:hover {
+  text-decoration: underline;
+  color: var(--primary);
+}
+.profile-pills-seg {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+@media (max-width: 600px) {
+  .profile-pills-seg {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.profile-pill-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 6px;
+  min-height: 48px;
+  border-radius: var(--radius-sm, 6px);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
+  cursor: pointer;
+  text-align: center;
+  transition: all .14s ease;
+}
+.profile-pill-btn:hover {
+  background: var(--bg-subtle);
+  border-color: var(--accent);
+}
+.profile-pill-btn.on {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+  box-shadow: 0 2px 6px rgba(0,0,0,.14);
+}
+.profile-pill-btn .pill-title {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.profile-pill-btn .pill-badge {
+  font-size: 10px;
+  opacity: .8;
+  font-family: var(--mono);
+}
+.profile-pill-btn.on .pill-badge {
+  opacity: .95;
+}
+
+/* --- Second Eyes Badge --- */
+.badge-second-reviewer {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface)) !important;
+  border-color: var(--accent) !important;
+  color: var(--fg) !important;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+html[data-theme="dark"] .badge-second-reviewer {
+  background: color-mix(in srgb, var(--accent) 26%, var(--surface)) !important;
+  color: #fff !important;
+}
+
+/* --- Visual PDF Marquee & Floating Add --- */
+.pv-marquee {
+  position: absolute;
+  border: 1.5px dashed var(--hit);
+  background: color-mix(in srgb, var(--hit) 22%, transparent);
+  pointer-events: none;
+  border-radius: 2px;
+  z-index: 10;
+}
+.pv-floating-add {
+  position: absolute;
+  z-index: 25;
+  box-shadow: 0 6px 20px rgba(0,0,0,.3);
+  animation: menuFadeIn .14s ease;
+  white-space: nowrap;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- XLSX Grid View --- */
+.xlsx-grid-wrap {
+  display: flex;
+  flex-direction: column;
+  max-height: min(70dvh, 640px);
+  height: 100%;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  overflow: hidden;
+}
+@media (min-width: 1100px) {
+  body.has-doc .xlsx-grid-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none !important;
+    height: 100%;
+  }
+}
+.xlsx-sheet-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--bg-subtle);
+  border-bottom: 1.5px solid var(--border);
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.xlsx-sheet-tab-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-sm, 6px);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.xlsx-sheet-tab-btn:hover {
+  color: var(--fg);
+  border-color: var(--accent);
+}
+.xlsx-sheet-tab-btn.active {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+}
+.xlsx-table-container {
+  flex: 1 1 auto;
+  overflow: auto;
+  position: relative;
+}
+.xlsx-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font: 12px/1.45 var(--mono);
+  width: max-content;
+  min-width: 100%;
+}
+.xlsx-th-corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  background: var(--bg-subtle);
+  border-right: 1.5px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  min-width: 36px;
+}
+.xlsx-th-col {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--bg-subtle);
+  border-right: 1px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+  min-width: 70px;
+}
+.xlsx-td-row {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--bg-subtle);
+  border-right: 1.5px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+  user-select: none;
+}
+.xlsx-td-cell {
+  border-right: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  padding: 4px 8px;
+  color: var(--fg);
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+.xlsx-td-cell:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+.xlsx-table tr:hover .xlsx-td-row {
+  background: color-mix(in srgb, var(--primary) 12%, var(--bg-subtle));
+}
+.xlsx-td-cell .mk {
+  font-family: inherit;
+  font-size: inherit;
+  display: inline-block;
+  vertical-align: middle;
+  padding: 0 2px;
+}
+
+/* --- Queue Dashboard Popover --- */
+.queue-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.queue-mini-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--header-fg) 16%, transparent);
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-family: var(--mono);
+}
+.queue-popover {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 55;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius, 10px);
+  box-shadow: 0 12px 36px rgba(14,16,20,.26), 0 2px 6px rgba(0,0,0,.08);
+  width: min(440px, calc(100vw - 32px));
+  max-height: min(75dvh, 520px);
+  display: flex;
+  flex-direction: column;
+  animation: menuFadeIn .14s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top left;
+  overflow: hidden;
+}
+.qp-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.qp-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.qp-title {
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--fg);
+}
+.qp-count {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.qp-stats-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.qp-stat {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.qp-stat-ok {
+  background: color-mix(in srgb, var(--ok) 14%, var(--surface));
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 30%, transparent);
+}
+.qp-stat-pending {
+  background: color-mix(in srgb, var(--muted) 14%, var(--surface));
+  color: var(--muted);
+  border-color: color-mix(in srgb, var(--muted) 30%, transparent);
+}
+.qp-stat-warn {
+  background: color-mix(in srgb, var(--hit) 14%, var(--surface));
+  color: var(--hit);
+  border-color: color-mix(in srgb, var(--hit) 30%, transparent);
+}
+.qp-next-unreviewed-btn {
+  width: 100%;
+  min-height: 34px;
+  font-size: 12px;
+  font-weight: 650;
+  background: var(--primary);
+  color: var(--on-primary);
+  border: 0;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.qp-next-unreviewed-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+.qp-items-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.qp-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background .12s ease;
+}
+.qp-item:hover {
+  background: var(--bg-subtle);
+}
+.qp-item.active {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  border-color: var(--accent);
+}
+.qp-status-ico {
+  font-size: 14px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.qp-item-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.qp-item-name {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qp-item.active .qp-item-name {
+  font-weight: 700;
+  color: var(--primary);
+}
+.qp-item-meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+.qp-item-del {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.qp-item-del:hover {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
+}
+.qp-footer {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-subtle);
+  display: flex;
+  justify-content: flex-end;
+}
+.qp-export-all-btn {
+  font-size: 12px;
+  min-height: 32px;
+  padding: 0 10px;
 }
 </style>
 </head>
@@ -863,8 +1296,36 @@ body.movie-active #settingsSheet {
       <svg class="doc-badge-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       <span id="headerDocName"></span>
     </span>
-    <div class="queue-dropdown hidden" id="headerQueueWrap">
-      <select id="headerQueueSelect" aria-label="Dávková fronta"></select>
+    <div class="queue-dropdown hidden" id="headerQueueWrap" style="position:relative">
+      <button class="btn btn-sm btn-ghost queue-toggle-btn" id="btnQueueToggle" type="button" aria-haspopup="dialog" aria-expanded="false" title="Zobrazit přehled dávkové fronty">
+        <svg class="queue-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span id="lblQueueToggle">Dokument 1 ze 3</span>
+        <span class="queue-mini-badge" id="queueMiniBadge">0/3 ✓</span>
+        <svg class="queue-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <select id="headerQueueSelect" class="hidden" aria-label="Dávková fronta"></select>
+      <div class="queue-popover hidden" id="queuePopover" role="dialog" aria-modal="false" aria-label="Přehled dávkové fronty">
+        <div class="qp-header">
+          <div class="qp-title-row">
+            <span class="qp-title" id="lblQpTitle">Dávková fronta</span>
+            <span class="qp-count" id="lblQpCount"></span>
+          </div>
+          <div class="qp-stats-bar" id="qpStatsBar">
+            <span class="qp-stat qp-stat-ok" id="qpStatApproved">✓ 0 schváleno</span>
+            <span class="qp-stat qp-stat-pending" id="qpStatPending">⏳ 0 nezkontrolováno</span>
+            <span class="qp-stat qp-stat-warn hidden" id="qpStatWarn">⚠️ 0 k pozornosti</span>
+          </div>
+          <button type="button" class="qp-next-unreviewed-btn" id="btnQpNextUnreviewed">
+            ➔ Přejít na další neschválený
+          </button>
+        </div>
+        <div class="qp-items-list" id="qpItemsList" role="list"></div>
+        <div class="qp-footer">
+          <button type="button" class="btn btn-sm btn-ghost qp-export-all-btn" id="btnQpExportAll">
+            Exportovat schválené z fronty (ZIP)
+          </button>
+        </div>
+      </div>
     </div>
     <button class="btn btn-sm btn-ghost btn-icon" id="btnHeaderAddDoc" type="button" title="Přidat další dokument do fronty" aria-label="Přidat dokument">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -877,6 +1338,7 @@ body.movie-active #settingsSheet {
   <!-- Center Approval / Risk indicator (shown during review) -->
   <div class="header-approval hidden" id="headerApproval">
     <span class="badge" id="badgePendingFindings"></span>
+    <span class="badge badge-second-reviewer hidden" id="badgeSecondReviewer"></span>
     <label class="check approval-check" id="lblHeaderReviewed">
       <input type="checkbox" id="chkRev" /> <span id="lblReviewedText">Zkontrolováno</span>
     </label>
@@ -996,6 +1458,33 @@ body.movie-active #settingsSheet {
       <p class="privacy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span id="privacy"></span></p>
     </div>
     <div class="card landing-card">
+      <!-- Publication Profile Quick Selector -->
+      <div class="landing-profile-box" id="landingProfileBox">
+        <div class="landing-profile-header">
+          <label class="landing-profile-label" id="lblLandingProfile">Profil publikace:</label>
+          <button type="button" class="landing-profile-settings-btn" id="btnLandingProfileMore" title="Upravit pokročilé kategorie v Nastavení">
+            Upravit v Nastavení ⚙
+          </button>
+        </div>
+        <div class="profile-pills-seg" role="radiogroup" aria-label="Profil publikace" id="landingProfilePills">
+          <button type="button" class="profile-pill-btn" data-profile="registr" role="radio" aria-checked="false" id="pillProfileRegistr" title="Registr smluv (340/2015 Sb.) – začerní osobní údaje, ponechá IČO a název instituce">
+            <span class="pill-title">Registr smluv</span>
+            <span class="pill-badge">340/2015 Sb.</span>
+          </button>
+          <button type="button" class="profile-pill-btn" data-profile="infoact" role="radio" aria-checked="false" id="pillProfileInfoact" title="InfZ 106 (106/1999 Sb.) – začerní osobní údaje s výjimkami příjemců veřejných prostředků">
+            <span class="pill-title">InfZ 106</span>
+            <span class="pill-badge">106/1999 Sb.</span>
+          </button>
+          <button type="button" class="profile-pill-btn" data-profile="court" role="radio" aria-checked="false" id="pillProfileCourt" title="Justiční rozhodnutí (vyhl. 403/2022 Sb.) – pravidla pro anonymizaci soudních rozhodnutí">
+            <span class="pill-title">Rozhodnutí</span>
+            <span class="pill-badge">403/2022 Sb.</span>
+          </button>
+          <button type="button" class="profile-pill-btn on" data-profile="publicai" role="radio" aria-checked="true" id="pillProfilePublicai" title="Veřejná AI – kompletní pseudonymizace všech citlivých entit, systémů i projektů">
+            <span class="pill-title">Veřejná AI</span>
+            <span class="pill-badge">Všechny tokeny</span>
+          </button>
+        </div>
+      </div>
       <div class="drop" id="drop">
         <div class="drop-icon" aria-hidden="true">📄</div>
         <p style="font-weight:600;font-size:17px;margin:0" id="dropTitle"></p>
@@ -1039,6 +1528,7 @@ body.movie-active #settingsSheet {
         <button class="btn btn-sm btn-add-sel" id="btnAdd" type="button">+ Anonymizovat výběr</button>
       </div>
       <pre class="doc" id="orig"></pre>
+      <div id="xlsxGrid" class="xlsx-grid-wrap hidden" aria-label="Tabulkový náhled"></div>
       <div id="pdfVisual" class="hidden" aria-label="PDF"></div>
     </div>
     <aside id="reviewAside">
@@ -1178,11 +1668,8 @@ body.movie-active #settingsSheet {
 <script>
 (function () {
 // --- Module: src/core/rules.js ---
-const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];
-const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];
-const KEYS = PII_KEYS.concat(ORG_KEYS);
-const RULES = "2026.10.20-ai50";
-const CHANGELOG = [
+const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];const KEYS = PII_KEYS.concat(ORG_KEYS);const RULES = "2026.10.20-ai51";const CHANGELOG = [
+  { version: "2026.10.20-ai51", notes: { cs: "Komplexní ergonomická a workflow vylepšení UI/UX: Rychlý výběr Profilu publikace (Registr smluv, InfZ 106, Rozhodnutí, Veřejná AI) přímo nad dropzónou úvodní obrazovky s obousměrnou synchronizací do Nastavení. Možnost ručního výběru textu myší tažením (Marquee selection) ve Vizuálním náhledu PDF s detekcí glyfů, plovoucí akcí [+ Anonymizovat výběr] a automatickou morfologickou expanzí pádů. Tabulková mřížka (Grid View) pro XLSX a ODS s přepínáním listů a souřadnicemi buněk (A, B, C...) namísto prostého textu. Zpřehlednění workflow Principu 4 očí (.znecitelne-session) s odznakem 1. kontrolora v Pracovní liště a rychlým filtrem ručních zásahů a výjimek v Revizním panelu. Přehledový dashboard (Popover) Dávkové fronty se stavovými indikátory (schváleno, k pozornosti, nezkontrolováno) a navigací na další neschválený dokument. Uživatelsky srozumitelné ošetření a startup detekce dostupnosti OCR v offline prostředí (file:///) bez vývojářského žargonu.", en: "Comprehensive ergonomic and workflow UI/UX enhancements: Quick publication profile selector (Contracts Register, InfZ 106, Court Decisions, Public AI) on landing card above dropzone with two-way Settings synchronization. Direct mouse drag selection (Marquee selection) in Visual PDF preview with glyph intersection, floating [+ Redact selection] action button, and morphological declension expansion. Interactive Grid View table for XLSX and ODS spreadsheets with sheet tabs and coordinates (A, B, C...) replacing plain text preview. Four-Eyes principle workflow enhancements (.znecitelne-session) displaying 1st reviewer identity badge in Workplace bar and dedicated aside filter for manual interventions and exceptions. Batch Queue Dashboard Popover with per-document status indicators (approved, warning, unreviewed) and quick jump to next unreviewed file. Clear offline OCR availability preflight and user-facing explanation in file:/// protocol without developer jargon." } },
   { version: "2026.10.20-ai50", notes: { cs: "Vizuální harmonizace a sjednocení ikon v horní liště (UI/UX Pro Max): Všechna samostatná tlačítka ikon v liště (#btnHeaderAddDoc, #btnHeaderClear, #btnSettings, #btnHeaderMore) sjednocena na přesný čtvercový rozměr 36×36 px s flexibilním středěním, jednotným poloměrem zaoblení (var(--radius-sm, 6px)) a neviditelným rozšířením dotykové zóny na minimálně 44×44 pt pro bezchybnou mobilní přístupnost (WCAG 2.5.5). Sjednocení rozměrů a tahů vektorových SVG ikon v záhlaví na lineární styl (Phosphor/Lucide, stroke-width: 2/2.2). Textový znak šipky ▾ u rozbalovacího exportu nahrazen centrovaným SVG chevronem s plynulou rotací při otevření. Všechny nesourodé systémové emoji v exportním i overflow menu nahrazeny monochromatickými SVG ikonami a štítek aktivního souboru (.doc-badge) doplněn o vektorovou ikonu dokumentu se zarovnáním výšky na 36 px.", en: "Visual harmonization and icon system unification in top bar (UI/UX Pro Max): Unified all standalone icon buttons (#btnHeaderAddDoc, #btnHeaderClear, #btnSettings, #btnHeaderMore) to exact 36×36 px squares with optical centering, consistent corner radii (var(--radius-sm, 6px)), and invisible touch target expansions (>=44×44 pt) for WCAG 2.5.5 compliance. Standardized header vector SVG icons to clean linear Phosphor/Lucide style (stroke-width: 2/2.2). Replaced text arrow ▾ on split export button with an SVG chevron rotating smoothly on menu open. Replaced all emoji glyphs in export and overflow menus with crisp monochrome SVG icons, and enhanced active document badge (.doc-badge) with a document icon aligned to 36 px toolbar height." } },
   { version: "2026.10.20-ai49", notes: { cs: "UI/UX audit a oprava regresí (WCAG 2.1 AA): Odstraněn memory leak opakovaného navěšování posluchače click na document v paintWorkBar, opraveno přepisování textových popisků (#lblThemeText a #lblLangText) v overflow menu záhlaví, vyřešeno ořezávání spodních panelů (inspektor, proces, média) v review aside povolením plynulého svislého posunu, nahrazeny zbývající nativní confirm() za jednotný in-app dialog showConfirm pro „Vše ponechat“ i potvrzení neprohlédnutých nálezů, dopojeny pomocné funkce skloňování formatPlural() na zbývající výskyty v app.js (smartScanTitle, scanWarning, morphToast, queueDone), zajištěno okamžité zaměření (focus) bezpečného tlačítka při otevření modálních oken, ošetřena klávesová kolize šipek v rozbalovacích nabídkách se synchronizací aria-expanded a návratem focusu na toggle tlačítko po Escape, odstraněn nevalidní duplicitní atribut id v šabloně a doplněno automatické scrollování aktivní karty v bočním panelu.", en: "UI/UX audit and regression fixes (WCAG 2.1 AA): Fixed global click event listener leak inside paintWorkBar, resolved DOM clobbering of theme and language text labels (#lblThemeText and #lblLangText) in header overflow menu, eliminated content clipping of sidebar subpanels (inspector, process, media) by enabling vertical scrolling in review aside, replaced remaining native confirm() prompts with reusable in-app showConfirm modal for 'Keep all' and unreviewed findings confirmation, connected formatPlural() across all remaining call sites in app.js (smartScanTitle, scanWarning, morphToast, queueDone), ensured immediate keyboard focus on safe action buttons upon opening modals, fixed arrow key keyboard collision in open dropdown menus with aria-expanded synchronization and focus return on Escape, removed invalid duplicate id attribute in template, and added auto-scrolling to active entity cards in the sidebar." } },
   { version: "2026.10.20-ai48", notes: { cs: "Ergonomie, přístupnost (WCAG 2.1 AA), oprava flexe {n} a bezpečnost rozhodování: Odstraněna chyba {n} a implementováno plnohodnotné české i anglické skloňování počtů nálezů a výskytů (1 / 2–4 / 5+). Viditelné odůvodnění uzamčení exportu (#exportGateHint) a potvrzovací dialog při pokusu označit Zkontrolováno s neprohlédnutými nálezy. Vizuální oddělení filtrů od hromadných akcí v postranním panelu, potvrzení pro „Vše ponechat“, historie a tlačítko Zpět (Undo), rozšíření panelu na 420 px a zvětšení dotykových cílů na 36 px+. Nekolorní odlišení anonymizace a ponechání (přeškrtnutí .mk-on, čárkované podtržení .mk-off, styly ohraničení karet entit, ikony 🔒 a ✓). In-app dialog pro zavření dokumentu (#closeDocModal) s možností bezpečného uložení šifrovaného sezení pro 4 oči. Oprava kontrastu pilulek v tmavém režimu (#12161c na --hit a --ok) a posílení hranic UI (> 3:1). Plná ARIA sémantika (role dialog, tablist, tab, aria-pressed, focus trap v modálech a klávesnice v kartách entit). Full-height rozvržení bez vícenásobných posuvníků, viditelná nápověda klávesových zkratek, strukturované exportní menu, kompaktní overflow menu v hlavičce a trvalý odznak lokálního zpracování.", en: "Usability, accessibility (WCAG 2.1 AA), {n} pluralization fix and decision safety: Fixed {n} counter bug with full Czech/English pluralization for findings and occurrence counts (1 / 2–4 / 5+). Visible export gate lock explanation (#exportGateHint) and confirmation prompt when ticking Reviewed with unseen findings. Visual separation of filters and bulk actions in aside, confirmation for 'Keep all', action undo state with Undo button, aside widened to 420px, and enlarged touch targets (36px+). Non-color cues for redact vs. keep (strikethrough on .mk-on, dashed underline on .mk-off, distinct entity card borders, 🔒 and ✓ icons). In-app close document modal (#closeDocModal) offering encrypted session save for 4-eyes review. Dark mode pill contrast fix (#12161c on --hit/--ok) and enhanced non-text UI boundaries (> 3:1). Comprehensive ARIA semantics (dialog, tablist, tab, aria-pressed, modal focus trap, and keyboard navigation for entity cards). Full-height desktop review layout eliminating nested scrollbars, visible shortcut hints, categorized export menu, header overflow menu, and persistent local processing badge." } },
@@ -1228,13 +1715,10 @@ const CHANGELOG = [
   { version: "2026.09.21-ai6", notes: { cs: "Menší mezera mezi horní lištou akcí a bublinami souboru — padding recenze už nezapočítává výšku hlavičky dvakrát.", en: "Tighter gap between the top action bar and the file badges — review padding no longer double-counts the header height." } },
   { version: "2026.09.21-ai5", notes: { cs: "Tlačítko „Přidat vlastní výběr textu“ nyní funguje i v náhledu (Preview) dokumentu, ne jen u originálu.", en: "The \"Add custom text selection\" button now also works in the document Preview, not just the original." } },
   { version: "2026.09.17-ai4", notes: { cs: "Aktuální verze pravidel detekce.", en: "Current detection ruleset." } }
-];
-const LABEL = {
+];const LABEL = {
   cs: { rc:"RČ", ico:"IČO", dic:"DIČ", account:"ÚČET", phone:"TELEFON", email:"E-MAIL", address:"ADRESA", dob:"DATUM_NAROZENÍ", name:"OSOBA", idcard:"DOKLAD", datovka:"DS", spz:"SPZ", geo:"GPS", sigcert:"CERT_PODPISU", katastr:"KATASTR", zahr_iban:"IBAN_ZAHR", doklady_extra:"DOKLAD_DALSI", secrets:"TAJEMSTVÍ", ticket:"TICKET", system:"SYSTÉM", project:"PROJEKT", incident:"INCIDENT", casefile:"ŘÍZENÍ", status:"STAV", orgunit:"ORGÁN", host:"HOST", ip:"IP", credential:"TAJNÉ" },
   en: { rc:"BIRTH_NO", ico:"COMPANY_ID", dic:"VAT_ID", account:"ACCOUNT", phone:"PHONE", email:"EMAIL", address:"ADDRESS", dob:"DOB", name:"PERSON", idcard:"ID_DOC", datovka:"MAILBOX", spz:"PLATE", geo:"GPS", sigcert:"SIG_CERT", katastr:"CADASTRE", zahr_iban:"FOREIGN_IBAN", doklady_extra:"ID_DOC_EXTRA", secrets:"SECRET", ticket:"TICKET", system:"SYSTEM", project:"PROJECT", incident:"INCIDENT", casefile:"CASE", status:"STATUS", orgunit:"ORG", host:"HOST", ip:"IP", credential:"SECRET" }
-};
-const TICKET_STOP = new Set(["COVID","ISO","IEC","UTF","SHA","RFC","HTTP","HTML","JSON","GDPR","IEEE","W3C","CEN","XML","PDF","CSV","XLSX","DOCX","YAML","SMTP","IMAP","LDAP","SAML","OAUTH","OPENAPI","REST","SOAP","JIRA","CONFLUENCE","GITLAB","GITHUB","BITBUCKET","WINDOWS","LINUX","ANDROID","CHROME","CSN","MHD","Sb","API","SQL","NATO","VIN","IPV","AES","TLS","CPU","GPU","USB","ICD","DSM","OECD","UNESCO","UNICEF","WHO","WTO","SWIFT","IBAN","VAT","CIDR","UUID","MD5","SHA256","IPv","IPv4","IPv6"]);
-const STATUS_GENERIC = {
+};const TICKET_STOP = new Set(["COVID","ISO","IEC","UTF","SHA","RFC","HTTP","HTML","JSON","GDPR","IEEE","W3C","CEN","XML","PDF","CSV","XLSX","DOCX","YAML","SMTP","IMAP","LDAP","SAML","OAUTH","OPENAPI","REST","SOAP","JIRA","CONFLUENCE","GITLAB","GITHUB","BITBUCKET","WINDOWS","LINUX","ANDROID","CHROME","CSN","MHD","Sb","API","SQL","NATO","VIN","IPV","AES","TLS","CPU","GPU","USB","ICD","DSM","OECD","UNESCO","UNICEF","WHO","WTO","SWIFT","IBAN","VAT","CIDR","UUID","MD5","SHA256","IPv","IPv4","IPv6"]);const STATUS_GENERIC = {
   cs: {
     prod: "nasazeno v produkčním prostředí (konkrétní stav a termín odstraněny)",
     incident: "provozní incident (konkrétní závada zobecněna)",
@@ -1247,13 +1731,8 @@ const STATUS_GENERIC = {
     release: "planned or completed release (version and date removed)",
     defect: "logged defect (specific description shortened)"
   }
-};
-const NAMES = new Set("Adam Aleš Alexandr Vítězslav Alexandra Alena Alice Alois Alžběta Andrea Anežka Anna Antonín Barbora Běla Blanka Bohdan Bohumil Bohuslav Božena Čeněk Dagmar Dalibor Dana Daniel Daniela David Denis Dominik Drahomíra Dušan Edita Eduard Eliška Ema Emil Emilie Erik Eva Filip František Františka Gabriela Hana Helena Hynek Ivan Ivana Iva Iveta Ivo Jáchym Jakub Jan Jana Jarmila Jaromír Jaroslav Jaroslava Jindřich Jiří Jiřina Jitka Josef Julie Kamila Karel Karla Kateřina Klára Kristýna Květa Ladislav Lenka Leoš Libor Libuše Linda Luboš Lucie Ludmila Luděk Lukáš Magdalena Marcel Marcela Marek Marie Markéta Marta Martin Martina Matěj Matyáš Michaela Michal Mikuláš Milan Milada Milena Miloslav Miloš Miroslav Miroslava Monika Naděžda Natálie Nela Nikola Oldřich Olga Ondřej Otto Patrik Pavel Pavla Pavlína Petr Petra Přemysl Radek Radim Radka Renata René Robert Roman Romana Rudolf Růžena Sabina Samuel Sandra Simona Soňa Stanislav Šárka Šimon Štěpán Tadeáš Tereza Tomáš Václav Vendula Věra Veronika Viktor Viktorie Vilém Vladimír Vlasta Vojtěch Zdeněk Zdeňka Zuzana Žaneta Žofie Alex Emma Hannah Jacob James Liam Noah Oliver Olivia Sophia William".split(" ").map(s => s.toLocaleLowerCase("cs")));
-const FIRST_NAMES = new Set(NAMES);
-const TITLES = ["prof","doc","mudr","judr","phdr","rndr","ing","arch","mgr","mga","bc","bca","dis","mba","phd","csc","dr","pplk","plk","npor","por","kpt","mjr","gen"];
-const PUBLIC = ["česká republika","ministerstvo","úřad","krajský úřad","obecní úřad","městský úřad","okresní soud","krajský soud","státní podnik","národní podnik","české dráhy","česká pošta","správa železnic","praha","brno","ostrava","plzeň",
-  "postsignum","i.ca","ica a.s","eidentity","first certification authority","qualified certification authority","certifikační autorita","kvalifikovaný poskytovatel","kvalifikovaný elektronický podpis","kvalifikovaná elektronická pečeť","zaručený elektronický podpis","uznávaný elektronický podpis","časové razítko","kvalifikované časové razítko","timestamping authority"];
-const SAMPLE = `SMLOUVA O DÍLO
+};const NAMES = new Set("Adam Aleš Alexandr Vítězslav Alexandra Alena Alice Alois Alžběta Andrea Anežka Anna Antonín Barbora Běla Blanka Bohdan Bohumil Bohuslav Božena Čeněk Dagmar Dalibor Dana Daniel Daniela David Denis Dominik Drahomíra Dušan Edita Eduard Eliška Ema Emil Emilie Erik Eva Filip František Františka Gabriela Hana Helena Hynek Ivan Ivana Iva Iveta Ivo Jáchym Jakub Jan Jana Jarmila Jaromír Jaroslav Jaroslava Jindřich Jiří Jiřina Jitka Josef Julie Kamila Karel Karla Kateřina Klára Kristýna Květa Ladislav Lenka Leoš Libor Libuše Linda Luboš Lucie Ludmila Luděk Lukáš Magdalena Marcel Marcela Marek Marie Markéta Marta Martin Martina Matěj Matyáš Michaela Michal Mikuláš Milan Milada Milena Miloslav Miloš Miroslav Miroslava Monika Naděžda Natálie Nela Nikola Oldřich Olga Ondřej Otto Patrik Pavel Pavla Pavlína Petr Petra Přemysl Radek Radim Radka Renata René Robert Roman Romana Rudolf Růžena Sabina Samuel Sandra Simona Soňa Stanislav Šárka Šimon Štěpán Tadeáš Tereza Tomáš Václav Vendula Věra Veronika Viktor Viktorie Vilém Vladimír Vlasta Vojtěch Zdeněk Zdeňka Zuzana Žaneta Žofie Alex Emma Hannah Jacob James Liam Noah Oliver Olivia Sophia William".split(" ").map(s => s.toLocaleLowerCase("cs")));const FIRST_NAMES = new Set(NAMES);const TITLES = ["prof","doc","mudr","judr","phdr","rndr","ing","arch","mgr","mga","bc","bca","dis","mba","phd","csc","dr","pplk","plk","npor","por","kpt","mjr","gen"];const PUBLIC = ["česká republika","ministerstvo","úřad","krajský úřad","obecní úřad","městský úřad","okresní soud","krajský soud","státní podnik","národní podnik","české dráhy","česká pošta","správa železnic","praha","brno","ostrava","plzeň",
+  "postsignum","i.ca","ica a.s","eidentity","first certification authority","qualified certification authority","certifikační autorita","kvalifikovaný poskytovatel","kvalifikovaný elektronický podpis","kvalifikovaná elektronická pečeť","zaručený elektronický podpis","uznávaný elektronický podpis","časové razítko","kvalifikované časové razítko","timestamping authority"];const SAMPLE = `SMLOUVA O DÍLO
 uzavřená dle § 2586 a násl. zákona č. 89/2012 Sb., občanský zákoník
 
 Smluvní strany
@@ -1312,8 +1791,7 @@ function formatPlural(n, forms, lang = "cs") {
     const form = (abs === 1 ? forms[0] : (forms[1] || forms[0]));
     return form.replace("{n}", String(num));
   }
-}
-const I18N = {
+}const I18N = {
     cs: {
       name:"Znečitelně", tagline:"Anonymizace pro úřady i veřejnou AI",
       themeDark:"Tmavý režim", themeLight:"Světlý režim",
@@ -1421,8 +1899,8 @@ const I18N = {
       landingStep1:"Nahrajte smlouvu, ticket, rozhodnutí, PDF s textovou vrstvou nebo XLSX.",
       landingStep2:"Projdete nálezy: RČ a účty i JIRA ID, systémy, řízení a stav produkce.",
       landingStep3:"Exportujte začerněné PDF, XLSX bez metadat, nebo balíček pro AI s osnovou postupu.",
-      filterAll:"Vše", filterRedact:"K anonymizaci", filterKeep:"Ponecháno",
-      addSelection:"Přidat vlastní výběr textu", visualOn:"Vizuální náhled PDF", visualOff:"Textový náhled", visualNote:"Vizuální náhled: kliknutím na zvýrazněný nález jej vyberete. Vlastní výběr textu přidáte v textovém náhledu.", visualErr:"Vizuální náhled se nepodařilo vykreslit.", selected:"Vybraný nález", context:"Kontext",
+      filterAll:"Vše", filterRedact:"K anonymizaci", filterKeep:"Ponecháno", filterSecondReview:"Ruční změny a výjimky",
+      addSelection:"Přidat vlastní výběr textu", visualOn:"Vizuální náhled PDF", visualOff:"Textový náhled", visualNote:"Vizuální náhled: kliknutím na nález jej vyberete, tažením myši označíte nový úsek k anonymizaci.", visualErr:"Vizuální náhled se nepodařilo vykreslit.", selected:"Vybraný nález", context:"Kontext",
       high:"ověřeno", medium:"pravděpodobná shoda",
       reasonLabels:{
         "trigger:role": "[Trigger: role]",
@@ -1653,8 +2131,8 @@ const I18N = {
       landingStep1:"Upload a contract, ticket, decision, a searchable PDF, or an XLSX sheet.",
       landingStep2:"Walk the hits: birth numbers and accounts, plus JIRA IDs, systems, case files and production status.",
       landingStep3:"Export a rasterized PDF, metadata-stripped XLSX, or an AI pack with a process outline.",
-      filterAll:"All", filterRedact:"To redact", filterKeep:"Kept",
-      addSelection:"Add custom text selection", visualOn:"Visual PDF preview", visualOff:"Text view", visualNote:"Visual preview: click a highlighted finding to select it. Add a custom text selection in the text view.", visualErr:"The visual preview could not be rendered.", selected:"Selected hit", context:"Context",
+      filterAll:"All", filterRedact:"To redact", filterKeep:"Kept", filterSecondReview:"Manual & Exceptions",
+      addSelection:"Add custom text selection", visualOn:"Visual PDF preview", visualOff:"Text view", visualNote:"Visual preview: click a finding to select it, or drag across text to redact new selection.", visualErr:"The visual preview could not be rendered.", selected:"Selected hit", context:"Context",
       high:"validated", medium:"likely match",
       reasonLabels:{
         "trigger:role": "[Trigger: role]",
@@ -1878,12 +2356,7 @@ function stemNamePart(token){
     }
     if (/ová$/u.test(t)) return t.replace(/ová$/u, "");
     return t;
-  }
-const RE_AGENDA_APELATIVA = /^(?:porad|jednán|zasedán|program|úkol|kontrol|předpis|zpráv|usnesen|rozhodnut|přehled|vývoj|činnost|řízení|hlášenk)[a-záčďéěíňóřšťúůýž]*$/iu;
-const RE_PAST_L_PARTICIPLE = /^[a-záčďéěíňóřšťúůýž]{3,}(?:il|ila|ilo|ili|ily|al|ala|alo|ali|aly|el|ela|elo|eli|ely|ěl|ěla|ělo|ěli|ěly|ul|ula|ulo|uli|uly|l|la|lo|li|ly)$/iu;
-const RE_PASSIVE_PARTICIPLE = /^[a-záčďéěíňóřšťúůýž]{3,}(?:en|ena|eno|eni|eny|án|ána|áno|áni|ány|t|ta|to|ti|ty)$/iu;
-const ADMIN_VERB_STEMS = /^(?:schvál|omluv|zaps|zaháj|projedn|informov|odpovíd|zprac|předlož|odroč|přeruš|rozhod|zamít|ulož|usnes|zvol|stanov|vyzv|vyhotov|podeps)[a-záčďéěíňóřšťúůýž]*$/iu;
-function isCzechVerbOrParticiple(word) {
+  }const RE_AGENDA_APELATIVA = /^(?:porad|jednán|zasedán|program|úkol|kontrol|předpis|zpráv|usnesen|rozhodnut|přehled|vývoj|činnost|řízení|hlášenk)[a-záčďéěíňóřšťúůýž]*$/iu;const RE_PAST_L_PARTICIPLE = /^[a-záčďéěíňóřšťúůýž]{3,}(?:il|ila|ilo|ili|ily|al|ala|alo|ali|aly|el|ela|elo|eli|ely|ěl|ěla|ělo|ěli|ěly|ul|ula|ulo|uli|uly|l|la|lo|li|ly)$/iu;const RE_PASSIVE_PARTICIPLE = /^[a-záčďéěíňóřšťúůýž]{3,}(?:en|ena|eno|eni|eny|án|ána|áno|áni|ány|t|ta|to|ti|ty)$/iu;const ADMIN_VERB_STEMS = /^(?:schvál|omluv|zaps|zaháj|projedn|informov|odpovíd|zprac|předlož|odroč|přeruš|rozhod|zamít|ulož|usnes|zvol|stanov|vyzv|vyhotov|podeps)[a-záčďéěíňóřšťúůýž]*$/iu;function isCzechVerbOrParticiple(word) {
     if (!word) return false;
     const st = typeof stripTitle === "function" ? stripTitle(word) : word;
     const low = st.toLocaleLowerCase("cs").replace(/[.,;:!?]/g, "").trim();
@@ -1894,9 +2367,7 @@ function isCzechVerbOrParticiple(word) {
     if (typeof RE_PAST_L_PARTICIPLE !== "undefined" && RE_PAST_L_PARTICIPLE.test(low)) return true;
     if (typeof RE_PASSIVE_PARTICIPLE !== "undefined" && RE_PASSIVE_PARTICIPLE.test(low) && /^(?:o|po|za|z|před|při|od|u|do|vy|na|roz|pře|se)/i.test(low)) return true;
     return false;
-  }
-const RE_CZECH_SURNAMES = /(?:ová|ský|cká|cký|ek|ík|ák|ář|íř|ec|áč|ič|ný|ná|lý|lá|tý|tá|vý|vá|chý|chá|mý|má|eš|oš|uš|iš|ů|íl|ír|ka|da|ra|la|ta|va)$/iu;
-function looksName(token){
+  }const RE_CZECH_SURNAMES = /(?:ová|ský|cká|cký|ek|ík|ák|ář|íř|ec|áč|ič|ný|ná|lý|lá|tý|tá|vý|vá|chý|chá|mý|má|eš|oš|uš|iš|ů|íl|ír|ka|da|ra|la|ta|va)$/iu;function looksName(token){
     if (!token) return false;
     const t = stripTitle(token);
     if (!t) return false;
@@ -1909,8 +2380,7 @@ function looksName(token){
     if (NAMES.has(stem) || isOnomasticName(stem)) return true;
     if (isCzechVerbOrParticiple(stem)) return false;
     return RE_CZECH_SURNAMES.test(t) || RE_CZECH_SURNAMES.test(stem);
-  }
-const ROLE_WORDS_SET = new Set([
+  }const ROLE_WORDS_SET = new Set([
     "pan", "pana", "panu", "panem", "paní", "slečna", "slečně", "slečnu", "slečnou",
     "obžalovaný", "obžalovaná", "obžalovaného", "obžalovanému", "obžalovaným", "obžalované", "obžalovanou",
     "svědek", "svědka", "svědkovi", "svědkem", "svědkyně", "svědkyni", "svědkyní",
@@ -1918,8 +2388,7 @@ const ROLE_WORDS_SET = new Set([
     "žalovaný", "žalovaného", "žalovanému", "žalovaným", "žalovaná", "žalované", "žalovanou",
     "poškozený", "poškozeného", "poškozenému", "poškozeným", "poškozená", "poškozené", "poškozenou",
     "jednatel", "jednatele", "jednateli", "jednatelem", "jednatelka", "jednatelky", "jednatelce", "jednatelku", "jednatelkou"
-  ]);
-function nameKey(value){
+  ]);function nameKey(value){
     const parts = String(value||"").split(/\s+/).map(stripTitle).filter(Boolean)
       .filter(p => {
         const low = p.toLocaleLowerCase("cs").replace(/[.,]/g,"");
@@ -1928,14 +2397,11 @@ function nameKey(value){
     const stemmed = parts.map(stemNamePart).filter(p => p.length>1);
     if (!stemmed.length) return canonToken(value);
     return stemmed.join(" ");
-  }
-function canonToken(s){
+  }function canonToken(s){
     return String(s||"").toLocaleLowerCase("cs").replace(/[^\p{L}\p{N}]+/gu,"");
-  }
-function systemCore(value){
+  }function systemCore(value){
     return String(value||"").replace(/^(?:systém|system|aplikace|modul|rozhraní|integrace|platforma)\s+/i, "").trim();
-  }
-function accountKey(raw){
+  }function accountKey(raw){
     const s = String(raw||"").replace(/\s+/g,"").toUpperCase();
     if (/^CZ\d{22}$/.test(s)) {
       const bank = s.slice(4,8);
@@ -1948,12 +2414,10 @@ function accountKey(raw){
       return "account|"+m[3]+"|"+acc;
     }
     return "account|"+canonToken(raw);
-  }
-function nameInitial(value){
+  }function nameInitial(value){
     const m = String(value||"").match(/(?<![\p{L}\p{N}])(\p{Lu})\.(?=\s|$)/u);
     return m ? m[1].toLocaleLowerCase("cs") : "";
-  }
-function isSameCzechSurname(sur, stem) {
+  }function isSameCzechSurname(sur, stem) {
     if (!sur || !stem) return false;
     if (sur === stem) return true;
     const surForms = declineCzechSurname(sur).map(nameKey);
@@ -1961,8 +2425,7 @@ function isSameCzechSurname(sur, stem) {
     const stemForms = declineCzechSurname(stem).map(nameKey);
     if (stemForms.includes(sur)) return true;
     return false;
-  }
-function clusterNameKeys(hits){
+  }function clusterNameKeys(hits){
     const names = hits.filter(h => h.type==="name");
     const full = names.filter(h => nameKey(h.value).split(" ").length>=2);
     const shorts = names.filter(h => nameKey(h.value).split(" ").length<2);
@@ -1981,8 +2444,7 @@ function clusterNameKeys(hits){
       if (keys.length===1) s.entityKey = keys[0];
     });
     return hits;
-  }
-function declineCzechFirstName(first) {
+  }function declineCzechFirstName(first) {
     if (!first) return [];
     const low = first.toLocaleLowerCase("cs");
     const forms = new Set([first]);
@@ -2032,8 +2494,7 @@ function declineCzechFirstName(first) {
     }
     [first, first + "a", first + "u", first + "ovi", first + "em", first + "e", first + "i"].forEach(f => forms.add(f));
     return Array.from(forms);
-  }
-function declineCzechSurname(sur) {
+  }function declineCzechSurname(sur) {
     if (!sur) return [];
     const forms = new Set([sur]);
     const low = sur.toLocaleLowerCase("cs");
@@ -2101,8 +2562,7 @@ function declineCzechSurname(sur) {
     }
 
     return Array.from(forms);
-  }
-function generateCzechNameForms(nameVal) {
+  }function generateCzechNameForms(nameVal) {
     const raw = String(nameVal || "").replace(/,.*$/, "").trim();
     const parts = raw.split(/\s+/).map(stripTitle).filter(Boolean)
       .filter(p => {
@@ -2229,8 +2689,7 @@ function generateCzechNameForms(nameVal) {
   const TOPONYM_WORDS_SET = new Set();
   TOPONYM_LOCATIONS_SET.forEach(loc => {
     loc.split(/\s+/).forEach(w => { if (w.length >= 3) TOPONYM_WORDS_SET.add(w); });
-  });
-function isLikelyNonPersonName(value, src, start, end, reasons){
+  });function isLikelyNonPersonName(value, src, start, end, reasons){
     if (!value || !src) return false;
     if (reasons && reasons.some(r => r.startsWith("trigger:") || r === "ocr:fuzzy" || r === "titled")) return false;
 
@@ -2305,8 +2764,7 @@ function isLikelyNonPersonName(value, src, start, end, reasons){
   }
 
   // --- Desambiguace větných verzálek a kontextové triggery (Ticket 02) ---
-  const RE_ABBR_BEFORE = /(?:např|tzv|tj|t\.j|tzn|atd|apod|popř|resp|s\.r\.o|a\.s|v\.o\.s|spol|č|č\.j|čj|sp\.?\s*zn|odst|písm|sb|str|sv|r|nar|hod|min|st|p|ing|mgr|bc|mudr|judr|mvdr|phdr|rndr|pharmdr|thdr|doc|prof)\.$/iu;
-function isSentenceStart(text, start) {
+  const RE_ABBR_BEFORE = /(?:např|tzv|tj|t\.j|tzn|atd|apod|popř|resp|s\.r\.o|a\.s|v\.o\.s|spol|č|č\.j|čj|sp\.?\s*zn|odst|písm|sb|str|sv|r|nar|hod|min|st|p|ing|mgr|bc|mudr|judr|mvdr|phdr|rndr|pharmdr|thdr|doc|prof)\.$/iu;function isSentenceStart(text, start) {
     if (!text || start <= 0) return true;
     let i = start - 1;
     while (i >= 0 && (text.charCodeAt(i) === 32 || text.charCodeAt(i) === 9)) i--;
@@ -2670,16 +3128,13 @@ class EntityPropagationCache {
       }
       return this.hits;
     }
-  }
-function createEntityPropagationCache(text, hits) {
+  }function createEntityPropagationCache(text, hits) {
     return new EntityPropagationCache(text, hits);
-  }
-function expandCzechNameMorphology(text, hits, triggerHit = null) {
+  }function expandCzechNameMorphology(text, hits, triggerHit = null) {
     if (!text || !hits || !hits.length) return hits;
     const cache = createEntityPropagationCache(text, hits);
     return cache.propagate(triggerHit);
-  }
-function alignDictEntity(h, src, options){
+  }function alignDictEntity(h, src, options){
     const s = options || ((typeof globalThis !== 'undefined' && globalThis.S) || (typeof S !== 'undefined' ? S : null)) || {};
     const sys = (options && options.systems != null) ? options.systems : (s.systems || "");
     const proj = (options && options.projects != null) ? options.projects : (s.projects || "");
@@ -2719,8 +3174,7 @@ function alignDictEntity(h, src, options){
   }
 
 // --- Module: src/core/detector.js ---
-function digits(s){ return String(s).replace(/[^\d]/g, ""); }
-function parseRC(raw){
+function digits(s){ return String(s).replace(/[^\d]/g, ""); }function parseRC(raw){
     const m = String(raw).trim().match(/^(\d{2})(\d{2})(\d{2})\s*\/?\s*(\d{3,4})$/);
     if (!m) return null;
     let month = +m[2];
@@ -2739,32 +3193,27 @@ function parseRC(raw){
     const dim = [31, (year%4===0&&year%100!==0)||year%400===0?29:28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month-1];
     if (day > dim) return null;
     return true;
-  }
-function pageOf(start, pagesList){
+  }function pageOf(start, pagesList){
     const pList = pagesList || ((typeof globalThis !== 'undefined' && globalThis.S && globalThis.S.pages) || (typeof S !== 'undefined' && S.pages) || []);
     if (!pList || !pList.length) return 1;
     for (const p of pList) if (start >= p.start && start < p.end) return p.n;
     return pList[pList.length-1].n;
-  }
-function toBytes(buf){
+  }function toBytes(buf){
     if (!buf) return new Uint8Array(0);
     if (buf instanceof Uint8Array) return buf;
     if (buf instanceof ArrayBuffer) return new Uint8Array(buf);
     if (buf.buffer) return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
     return new Uint8Array(buf);
-  }
-function isValidICO(raw){
+  }function isValidICO(raw){
     const d = digits(raw); if (d.length !== 8 || /^0+$/.test(d)) return false;
     const w = [8,7,6,5,4,3,2]; let sum = 0;
     for (let i=0;i<7;i++) sum += w[i]*+d[i];
     return (11 - (sum % 11)) % 10 === +d[7];
-  }
-function isValidDIC(raw){
+  }function isValidDIC(raw){
     const s = String(raw).replace(/\s+/g,"").toUpperCase();
     const m = s.match(/^CZ(\d{8,10})$/); if (!m) return false;
     return m[1].length === 8 ? isValidICO(m[1]) : !!parseRC(m[1]);
-  }
-function ibanOk(iban){
+  }function ibanOk(iban){
     const s = iban.replace(/\s+/g,"").toUpperCase();
     if (!/^CZ\d{22}$/.test(s)) return false;
     const rearr = s.slice(4)+s.slice(0,4);
@@ -2775,10 +3224,7 @@ function ibanOk(iban){
     }
     return rem === 1;
   }
-  // --- Fáze 2: cizí IBAN (délky podle zemí) a SWIFT/BIC ---
-const IBAN_LEN = {AD:24,AE:23,AL:28,AT:20,AZ:28,BA:20,BE:16,BG:22,BH:22,BR:29,BY:28,CH:21,CR:22,CY:28,DE:22,DK:18,DO:28,EE:20,EG:29,ES:24,FI:18,FO:18,FR:27,GB:22,GE:22,GI:23,GL:18,GR:27,GT:28,HR:21,HU:28,IE:22,IL:23,IQ:23,IS:26,IT:27,JO:30,KW:30,KZ:20,LB:28,LC:32,LI:21,LT:20,LU:20,LV:21,MC:27,MD:24,ME:22,MK:19,MR:27,MT:31,MU:30,NL:18,NO:15,PK:24,PL:28,PS:29,PT:25,QA:29,RO:24,RS:22,SA:24,SC:31,SE:24,SI:19,SK:24,SM:27,TL:23,TN:24,TR:26,UA:29,VA:22,VG:24,XK:20};
-const SWIFT_CC = new Set(Object.keys(IBAN_LEN).concat(["CZ","US","CA","JP","CN","HK","SG","AU","NZ","IN","ZA","MX","KR","TH","MY","ID","RU"]));
-function ibanForeignOk(iban){
+  // --- Fáze 2: cizí IBAN (délky podle zemí) a SWIFT/BIC ---const IBAN_LEN = {AD:24,AE:23,AL:28,AT:20,AZ:28,BA:20,BE:16,BG:22,BH:22,BR:29,BY:28,CH:21,CR:22,CY:28,DE:22,DK:18,DO:28,EE:20,EG:29,ES:24,FI:18,FO:18,FR:27,GB:22,GE:22,GI:23,GL:18,GR:27,GT:28,HR:21,HU:28,IE:22,IL:23,IQ:23,IS:26,IT:27,JO:30,KW:30,KZ:20,LB:28,LC:32,LI:21,LT:20,LU:20,LV:21,MC:27,MD:24,ME:22,MK:19,MR:27,MT:31,MU:30,NL:18,NO:15,PK:24,PL:28,PS:29,PT:25,QA:29,RO:24,RS:22,SA:24,SC:31,SE:24,SI:19,SK:24,SM:27,TL:23,TN:24,TR:26,UA:29,VA:22,VG:24,XK:20};const SWIFT_CC = new Set(Object.keys(IBAN_LEN).concat(["CZ","US","CA","JP","CN","HK","SG","AU","NZ","IN","ZA","MX","KR","TH","MY","ID","RU"]));function ibanForeignOk(iban){
     const s = String(iban).replace(/\s+/g,"").toUpperCase();
     const cc = s.slice(0,2);
     if (cc === "CZ" || IBAN_LEN[cc] !== s.length) return false;
@@ -2789,17 +3235,13 @@ function ibanForeignOk(iban){
       for (const d of v) rem = (rem * 10 + +d) % 97;
     }
     return rem === 1;
-  }
-function isPublic(text){ const l = String(text||"").toLocaleLowerCase("cs"); return PUBLIC.some(k => l.includes(k) || (l.length >= 6 && k.includes(l))); }
-function tokenizeCtx(s){
+  }function isPublic(text){ const l = String(text||"").toLocaleLowerCase("cs"); return PUBLIC.some(k => l.includes(k) || (l.length >= 6 && k.includes(l))); }function tokenizeCtx(s){
     return String(s||"").toLocaleLowerCase("cs").split(/[^\p{L}\p{N}+./]+/u).filter(Boolean);
-  }
-function ctxSlice(text, start, end, win=40, bias="both"){
+  }function ctxSlice(text, start, end, win=40, bias="both"){
     const left = bias==="right" ? 0 : (bias==="left" ? (typeof win==="number"?win:40) : (typeof win==="number"?win:40));
     const right = bias==="left" ? 10 : (typeof win==="number"?win:40);
     return (text.slice(Math.max(0,start-left), start) + " " + text.slice(end, end+right)).toLocaleLowerCase("cs");
-  }
-function matchNeedles(c, needles){
+  }function matchNeedles(c, needles){
     const tokens = tokenizeCtx(c);
     return needles.filter(n => {
       const needle = String(n).toLocaleLowerCase("cs");
@@ -2807,20 +3249,16 @@ function matchNeedles(c, needles){
       if (/[ .č]/.test(needle) && needle.length > 3) return c.includes(needle);
       return tokens.includes(needle) || tokens.some(tok => tok === needle || tok.replace(/\.$/,"") === needle);
     });
-  }
-function ctxHas(text, start, end, needles, win=40, bias="both"){
+  }function ctxHas(text, start, end, needles, win=40, bias="both"){
     return matchNeedles(ctxSlice(text, start, end, win, bias), needles).length > 0;
-  }
-function ctxWhich(text, start, end, needles, win=40, bias="both"){
+  }function ctxWhich(text, start, end, needles, win=40, bias="both"){
     return matchNeedles(ctxSlice(text, start, end, win, bias), needles);
-  }
-function isContractDateCtx(text, start, end, win=48){
+  }function isContractDateCtx(text, start, end, win=48){
     const c = (text.slice(Math.max(0,start-win), start) + " " + text.slice(end, end+win)).toLocaleLowerCase("cs");
     const born = /nar(?:\.|ozen|ozena)|datum narození|birth/.test(c);
     if (born) return false;
     return /(?:v\s+\p{Ll}+\s+dne|\bdne\b|uzavřen|uzavrena|podeps|platnost|vyhotoven|vystaven)/u.test(c);
-  }
-function makeWork(text){
+  }function makeWork(text){
     const src = String(text ?? "").normalize("NFC");
     let work = "";
     const toSrc = [];
@@ -2836,14 +3274,12 @@ function makeWork(text){
       toSrc.push(i);
     }
     return { src, work, toSrc };
-  }
-function mapSpan(toSrc, start, end){
+  }function mapSpan(toSrc, start, end){
     if (!toSrc.length) return { start:0, end:0 };
     const s = toSrc[Math.min(Math.max(0,start), toSrc.length-1)];
     const last = toSrc[Math.min(Math.max(0,end-1), toSrc.length-1)];
     return { start:s, end:last+1 };
-  }
-function parseDict(raw){
+  }function parseDict(raw){
     return String(raw||"").split(/\n/).map(line => {
       const s = line.trim();
       if (!s || s.startsWith("#")) return null;
@@ -2853,13 +3289,11 @@ function parseDict(raw){
       if (!name) return null;
       return { name, kind };
     }).filter(Boolean);
-  }
-function dictRe(name){
+  }function dictRe(name){
     const esc = name.replace(/[.*+?^${}()|[\]\\]/g,"\\/* APP_BUNDLE */");
     return new RegExp("(?<![\\p{L}\\p{N}])"+esc+"(?![\\p{L}\\p{N}])", "giu");
   }
-  const URL_TOKEN_RE = /\b(?:https?:\/\/|www\.)[^\s<>"'\u00AD\u200B]+|\b[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+\.(?:cz|sk|com|net|org|eu|io)\/[^\s<>"'\u00AD\u200B]*/gi;
-function urlSpans(text){
+  const URL_TOKEN_RE = /\b(?:https?:\/\/|www\.)[^\s<>"'\u00AD\u200B]+|\b[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+\.(?:cz|sk|com|net|org|eu|io)\/[^\s<>"'\u00AD\u200B]*/gi;function urlSpans(text){
     const spans = [];
     let m; const re = new RegExp(URL_TOKEN_RE.source, URL_TOKEN_RE.flags);
     while ((m = re.exec(text))) {
@@ -2867,11 +3301,9 @@ function urlSpans(text){
       spans.push({ start: m.index, end: m.index + m[0].length, raw: m[0] });
     }
     return spans;
-  }
-function spanInUrl(spans, start, end){
+  }function spanInUrl(spans, start, end){
     return spans.find(u => start < u.end && end > u.start) || null;
-  }
-function trimUrlValue(h, src){
+  }function trimUrlValue(h, src){
     let s = h.start, e = h.end;
     while (e>s) {
       const c = src[e-1];
@@ -2885,8 +3317,7 @@ function trimUrlValue(h, src){
     if (e<=s) return h;
     h.start = s; h.end = e; h.value = src.slice(s,e);
     return h;
-  }
-function trimHitValue(h, src){
+  }function trimHitValue(h, src){
     if (h.type === "host") return trimUrlValue(h, src);
     let v = h.value, s = h.start, e = h.end;
     while (e>s && /[.,;:)\]\s“”’‘»"']/.test(src[e-1]||"")) e--;
@@ -2894,8 +3325,7 @@ function trimHitValue(h, src){
     if (e<=s) return h;
     h.start = s; h.end = e; h.value = src.slice(s,e);
     return h;
-  }
-function findAll(text, re, type, validate, group){
+  }function findAll(text, re, type, validate, group){
     const flags = (re.flags.includes("g") ? re.flags : re.flags+"g") + (re.flags.includes("d") ? "" : "d");
     const out = []; const r = new RegExp(re.source, flags);
     let m; while ((m = r.exec(text))) {
@@ -2915,8 +3345,7 @@ function findAll(text, re, type, validate, group){
       if (m.index === r.lastIndex) r.lastIndex++;
     }
     return out;
-  }
-function scoreHit(h){
+  }function scoreHit(h){
     let s = 0;
     const rs = h.reasons || [];
     const has = (p) => rs.some(r => r===p || r.startsWith(p+":"));
@@ -2941,15 +3370,13 @@ function scoreHit(h){
     const prio = { rc:7, email:7, account:6, ico:6, dic:6, ticket:6, credential:6, phone:4, datovka:4, idcard:3, katastr:4, zahr_iban:6, doklady_extra:4, address:4, name:3, dob:2, host:5, ip:5, geo:3, spz:3 };
     s += prio[h.type] || 1;
     return s;
-  }
-function finalizeHit(h, src){
+  }function finalizeHit(h, src){
     trimHitValue(h, src);
     const sc = scoreHit(h);
     h.score = sc;
     h.confidence = (h.confidence === "high" || sc >= 48) ? "high" : "medium";
     return h;
-  }
-function projectPrefixes(dictRaw){
+  }function projectPrefixes(dictRaw){
     const dict = dictRaw != null ? dictRaw : ((typeof globalThis !== 'undefined' && globalThis.S && globalThis.S.projects) || (typeof S !== 'undefined' && S.projects) || '');
     const set = new Set();
     parseDict(dict).forEach(d => {
@@ -2960,8 +3387,7 @@ function projectPrefixes(dictRaw){
   }
 
   // Conservative post-processing for Czech person-name candidates.
-  // Exact-phrase filtering avoids a global surname blacklist.
-function detect(text, enabled, secrets, options){
+  // Exact-phrase filtering avoids a global surname blacklist.function detect(text, enabled, secrets, options){
     const bag = []; const bagMap = new Map();
     const { src, work, toSrc } = makeWork(text || "");
     const t = work;
@@ -3666,8 +4092,7 @@ function detect(text, enabled, secrets, options){
       applyCourtProfileRules(src, clustered);
     }
     return clustered;
-  }
-function applyCourtProfileRules(text, hits){
+  }function applyCourtProfileRules(text, hits){
     if (!text || !Array.isArray(hits) || hits.length === 0) return hits;
 
     // -------------------------------------------------------------------------
@@ -3774,21 +4199,17 @@ function applyCourtProfileRules(text, hits){
     });
 
     return hits;
-  }
-function filterCourtDecisionsWhitelist(text, hits){
+  }function filterCourtDecisionsWhitelist(text, hits){
     return applyCourtProfileRules(text, hits);
-  }
-function tokenBase(h, lang){
+  }function tokenBase(h, lang){
     if (h.tokenClass) return h.tokenClass;
     return LABEL[lang][h.type] || h.type.toUpperCase();
-  }
-function nextSuffix(type, n){
+  }function nextSuffix(type, n){
     if (type==="system" || type==="project" || type==="orgunit") {
       if (n <= 26) return String.fromCharCode(64 + n);
     }
     return String(n).padStart(3, "0");
-  }
-function declinedPersonTokenBase(base, h, lang){
+  }function declinedPersonTokenBase(base, h, lang){
     if (lang !== "cs" || !h || h.type !== "name" || base !== "OSOBA") return base;
     const clean = String(h.value || "").replace(/,.*$/, "").trim();
     const words = clean.toLocaleLowerCase("cs").replace(/[.,;:!?]/g, "").split(/\s+/).filter(Boolean);
@@ -3829,8 +4250,7 @@ function declinedPersonTokenBase(base, h, lang){
     if (/(?:ovi|i|ému|ě)$/u.test(last)) return "OSOBĚ";
 
     return base;
-  }
-function makeReplacer(mode, lang){
+  }function makeReplacer(mode, lang){
     const counters = {}; const map = new Map();
     return (h) => {
       if (h.type==="status" && (mode==="label" || mode==="pseudo" || mode==="xxxx")) {
@@ -3850,13 +4270,11 @@ function makeReplacer(mode, lang){
       const formBase = declinedPersonTokenBase(token.base, h, lang);
       return "["+formBase+"_"+token.suffix+"]";
     };
-  }
-function bindReplacer(mode, lang, hits){
+  }function bindReplacer(mode, lang, hits){
     const replacer = makeReplacer(mode, lang);
     effectiveHits(hits).forEach(h => { replacer(h); });
     return replacer;
-  }
-function buildGlossary(hits, mode, lang, publicOnly){
+  }function buildGlossary(hits, mode, lang, publicOnly){
     const replacer = bindReplacer(mode, lang, hits);
     const rows = [];
     const seen = new Set();
@@ -3884,8 +4302,7 @@ function buildGlossary(hits, mode, lang, publicOnly){
    * @param {object} [options]
    * @param {boolean} [options.acceptedOnly=false] - Zpracovat pouze schválené nálezy (pro exporty a náhrady)
    * @returns {Array<object>} Nepřekrývající se nálezy seřazené vzestupně podle start offsetu
-   */
-function resolveHits(hits, { acceptedOnly = false } = {}){
+   */function resolveHits(hits, { acceptedOnly = false } = {}){
     const source = (hits || []).filter(h =>
       h &&
       Number.isFinite(h.start) &&
@@ -3928,17 +4345,13 @@ function resolveHits(hits, { acceptedOnly = false } = {}){
       chosen.splice(low, 0, h);
     }
     return chosen;
-  }
-function effectiveHits(hits){
+  }function effectiveHits(hits){
     return resolveHits(hits, { acceptedOnly: true });
-  }
-function visibleHits(hits, _sel){
+  }function visibleHits(hits, _sel){
     return resolveHits(hits, { acceptedOnly: false });
-  }
-function topHits(hits){
+  }function topHits(hits){
     return effectiveHits(hits);
-  }
-function apply(text, hits, mode, lang){
+  }function apply(text, hits, mode, lang){
     const replacer = bindReplacer(mode, lang, hits);
     const accepted = effectiveHits(hits);
     if (!accepted.length) return text;
@@ -4152,14 +4565,12 @@ function xlsxToText(wb){
       }
     });
     return { text, cellMap };
-  }
-async function extractXlsx(buf){
+  }async function extractXlsx(buf){
     const xlsxLib = (typeof window !== "undefined" && window.XLSX) || (typeof globalThis !== "undefined" && globalThis.XLSX) || null;
     if (!xlsxLib) throw new Error("XLSX: knihovna se nenačetla.");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
     return xlsxToText(xlsxLib.read(u8, { type:"array" }));
-  }
-function decodeXml(str) {
+  }function decodeXml(str) {
   if (!str) return "";
   return str
     .replace(/&quot;/g, '"')
@@ -4175,8 +4586,7 @@ function decodeXml(str) {
       const code = parseInt(h, 16);
       return Number.isFinite(code) && code >= 0 ? String.fromCodePoint(code) : "";
     });
-}
-function encodeXml(str) {
+}function encodeXml(str) {
   if (!str) return "";
   return String(str)
     .replace(/&/g, "&amp;")
@@ -4184,8 +4594,7 @@ function encodeXml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
-}
-function replaceAcrossRuns(runs, values, getReplacement) {
+}function replaceAcrossRuns(runs, values, getReplacement) {
   const texts = runs.map(r => r.text || "");
   const full = texts.join("");
   if (!full) return false;
@@ -4574,8 +4983,7 @@ function sanitizeComments(xml, values, getReplacement, stripMeta) {
   });
 
   return resXml;
-}
-function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = true) {
+}function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = true) {
   if (!sourceBuf) return { ok: false, reason: "sourceBuf missing" };
   const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
   if (!flate || !flate.unzipSync) return { ok: false, reason: "fflate missing" };
@@ -4668,8 +5076,7 @@ function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = true) {
 
   const bytes = flate.zipSync(files, { level: 6 });
   return { ok: true, bytes };
-}
-function exportXlsxFile(sourceBuf, hits, mode, lang){
+}function exportXlsxFile(sourceBuf, hits, mode, lang){
     if (!sourceBuf) return null;
     const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
     const stripMetaVal = (typeof S !== "undefined" && S.stripMeta !== undefined) ? S.stripMeta : true;
@@ -4718,8 +5125,7 @@ function exportXlsxFile(sourceBuf, hits, mode, lang){
     });
     if (stripMetaVal) stripWorkbookMeta(wb);
     return xlsxLib.write(wb, { bookType:"xlsx", type:"array" });
-  }
-function stripWorkbookMeta(wb){
+  }function stripWorkbookMeta(wb){
     wb.Props = {
       Title: "anonymized",
       Subject: "",
@@ -4739,14 +5145,12 @@ function stripWorkbookMeta(wb){
 
 // --- Module: src/formats/docx.js ---
 const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships";
-  const DOCX_W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
-function docxRelationshipSourcePart(relName){
+  const DOCX_W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";function docxRelationshipSourcePart(relName){
     if (relName === "_rels/.rels") return "";
     const m = relName.match(/^(.*)\/_rels\/([^/]+)\.rels$/i);
     if (!m) throw new Error("Invalid .rels path: " + relName);
     return `${m[1]}/${m[2]}`;
-  }
-function docxNormalizeZipPath(path){
+  }function docxNormalizeZipPath(path){
     const out = [];
     String(path || "").replace(/\\/g, "/").replace(/^\/+/, "").split("/").forEach(part => {
       if (!part || part === ".") return;
@@ -4754,23 +5158,20 @@ function docxNormalizeZipPath(path){
       else out.push(part);
     });
     return out.join("/");
-  }
-function docxResolveRelTarget(sourcePart, target){
+  }function docxResolveRelTarget(sourcePart, target){
     if (!target || target.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(target)) return null;
     let decoded = target;
     try { decoded = decodeURIComponent(target); } catch (_) {}
     const base = sourcePart ? sourcePart.slice(0, sourcePart.lastIndexOf("/") + 1) : "";
     return docxNormalizeZipPath(base + decoded);
-  }
-function docxRelativeZipPath(fromDir, targetPath){
+  }function docxRelativeZipPath(fromDir, targetPath){
     const from = fromDir ? fromDir.split("/").filter(Boolean) : [];
     const to = targetPath.split("/").filter(Boolean);
     while (from.length && to.length && from[0] === to[0]) {
       from.shift(); to.shift();
     }
     return [...from.map(() => ".."), ...to].join("/");
-  }
-function docxSetTextPreservingSpace(node, text){
+  }function docxSetTextPreservingSpace(node, text){
     while (node.firstChild) node.removeChild(node.firstChild);
     node.appendChild(node.ownerDocument.createTextNode(text));
     if (/^\s|\s$/u.test(text) || /\s{2,}/u.test(text)) {
@@ -4779,8 +5180,7 @@ function docxSetTextPreservingSpace(node, text){
       node.removeAttributeNS("http://www.w3.org/XML/1998/namespace", "space");
       node.removeAttribute("xml:space");
     }
-  }
-function docxMakeWork(text){
+  }function docxMakeWork(text){
     return makeWork(text);
   }
 
@@ -4791,8 +5191,7 @@ function docxMakeWork(text){
    * tabs (\t), soft breaks, and Czech typographical punctuation and quotes.
    * The replacement is assigned to the first affected text node; subsequent
    * affected nodes are reduced to their remaining local text.
-   */
-function docxReplaceInXml(xml, map, tagName, found, occurrenceTracker){
+   */function docxReplaceInXml(xml, map, tagName, found, occurrenceTracker){
     const doc = new DOMParser().parseFromString(xml, "application/xml");
     if (doc.getElementsByTagName("parsererror").length) throw new Error("XML");
     const values = Array.from((occurrenceTracker?.allValues || map.keys())).filter(Boolean).sort((a,b) => b.length - a.length);
@@ -4932,8 +5331,7 @@ function docxReplaceInXml(xml, map, tagName, found, occurrenceTracker){
       ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
         new XMLSerializer().serializeToString(doc)
       : null;
-  }
-function docxStripVisualObjects(xml){
+  }function docxStripVisualObjects(xml){
     const doc = new DOMParser().parseFromString(xml, "application/xml");
     if (doc.getElementsByTagName("parsererror").length) throw new Error("XML");
     let removed = 0;
@@ -4950,8 +5348,7 @@ function docxStripVisualObjects(xml){
         new XMLSerializer().serializeToString(doc),
       removed
     };
-  }
-function docxStripMediaRelationships(files, dec, enc){
+  }function docxStripMediaRelationships(files, dec, enc){
     for (const name of Object.keys(files)) {
       if (name !== "_rels/.rels" && !/^.+\/_rels\/[^/]+\.rels$/i.test(name)) continue;
 
@@ -4979,19 +5376,16 @@ function docxStripMediaRelationships(files, dec, enc){
         );
       }
     }
-  }
-function docxRemoveMediaParts(files){
+  }function docxRemoveMediaParts(files){
     for (const name of Object.keys(files)) {
       if (/^word\/(?:media|embeddings)\//i.test(name)) delete files[name];
     }
-  }
-function docxAssertNoEmbeddedMedia(files){
+  }function docxAssertNoEmbeddedMedia(files){
     const leftovers = Object.keys(files).filter(name => /^word\/(?:media|embeddings)\//i.test(name));
     if (leftovers.length) {
       throw new Error("DOCX still contains embedded media: " + leftovers.join(", "));
     }
-  }
-function docxAssertNoDanglingRelationships(files, dec){
+  }function docxAssertNoDanglingRelationships(files, dec){
     for (const name of Object.keys(files)) {
       if (name !== "_rels/.rels" && !/^.+\/_rels\/[^/]+\.rels$/i.test(name)) continue;
 
@@ -5007,19 +5401,16 @@ function docxAssertNoDanglingRelationships(files, dec){
         }
       });
     }
-  }
-function docxStripMeta(name, xml){
+  }function docxStripMeta(name, xml){
     const blank = (tags) => tags.reduce((x, tg) => x.replace(new RegExp("(<" + tg + "(?:\\s[^>]*)?>)[\\s\\S]*?(</" + tg + ">)", "g"), "$1$2"), xml);
     if (/docProps\/core\.xml$/.test(name)) return blank(["dc:creator","cp:lastModifiedBy","dc:title","dc:subject","cp:keywords","dc:description"]);
     if (/docProps\/app\.xml$/.test(name)) return blank(["Company","Manager"]);
     return xml;
-  }
-function docxStripAuthorInitials(xml) {
+  }function docxStripAuthorInitials(xml) {
     return xml
       .replace(/\s+(?:w:)?author="[^"]*"/g, "")
       .replace(/\s+(?:w:)?initials="[^"]*"/g, "");
-  }
-function getOrderedDocxPartNames(files, partRe) {
+  }function getOrderedDocxPartNames(files, partRe) {
     const headers = [], body = [], footers = [], comments = [], charts = [], diagrams = [], others = [];
     for (const name of Object.keys(files)) {
       if (!partRe.test(name)) continue;
@@ -5038,8 +5429,7 @@ function getOrderedDocxPartNames(files, partRe) {
     charts.sort();
     diagrams.sort();
     return [...headers, ...body, ...footers, ...comments, ...charts, ...diagrams, ...others];
-  }
-async function exportDocxFile(sourceBuf, hits, mode, lang){
+  }async function exportDocxFile(sourceBuf, hits, mode, lang){
     const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
     if (!flate) return { ok:false, reason:"fflate" };
     if (!sourceBuf) return { ok:false, reason:"sourceBuf missing" };
@@ -5156,8 +5546,7 @@ async function exportDocxFile(sourceBuf, hits, mode, lang){
       bytes,
       removedMedia:true
     };
-  }
-function extractDocxTextWithFflate(buf){
+  }function extractDocxTextWithFflate(buf){
     const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
     if (!flate || !flate.unzipSync) throw new Error("fflate není k dispozici");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
@@ -5226,13 +5615,11 @@ function extractDocxTextWithFflate(buf){
 
 // --- Module: src/formats/pdf.js ---
 // PDF format handling and security preflights (ADR-0001, ADR-0002)
-
 function translit(ch){
   const map = { "á":"a","č":"c","ď":"d","é":"e","ě":"e","í":"i","ň":"n","ó":"o","ř":"r","š":"s","ť":"t","ú":"u","ů":"u","ý":"y","ž":"z",
                 "Á":"A","Č":"C","Ď":"D","É":"E","Ě":"E","Í":"I","Ň":"N","Ó":"O","Ř":"R","Š":"S","Ť":"T","Ú":"U","Ů":"U","Ý":"Y","Ž":"Z" };
   return map[ch] || ch;
-}
-function stampPdfMeta(doc, title){
+}function stampPdfMeta(doc, title){
     try {
       doc.setTitle((title||"document")+" — anonymized");
       doc.setAuthor("");
@@ -5242,9 +5629,7 @@ function stampPdfMeta(doc, title){
       doc.setCreator("Znečitelně");
       if (S.stripMeta && doc.setCreationDate) doc.setCreationDate(new Date(0));
     } catch (_) {}
-  }
-function pdfVisualAvailable(){ return S.kind === "pdf" && !!S.sourceBuf && !!window.pdfjsLib; }
-function pdfWordQuads(glyphs){
+  }function pdfVisualAvailable(){ return S.kind === "pdf" && !!S.sourceBuf && !!window.pdfjsLib; }function pdfWordQuads(glyphs){
     if (!glyphs || !glyphs.length) return [];
     const lines = [];
     const sorted = glyphs.slice().sort((a,b) => a.y - b.y || a.x - b.x);
@@ -5288,14 +5673,12 @@ function pdfWordQuads(glyphs){
         glyphs: l.glyphs
       };
     });
-  }
-function pdfDetectFontFamily(fontName){
+  }function pdfDetectFontFamily(fontName){
   const f = String(fontName || "").toLowerCase();
   if (/times|roman|serif|garamond|georgia|cambria|minion|baskerville/i.test(f)) return "serif";
   if (/courier|mono|consol|typewriter|menlo/i.test(f)) return "monospace";
   return "sans-serif";
-}
-function pdfDetectFontStyle(fontName){
+}function pdfDetectFontStyle(fontName){
   const f = String(fontName || "").toLowerCase();
   const isBold = /bold|black|heavy|\bbold\b/i.test(f);
   const isItalic = /italic|oblique|slanted|\bita\b/i.test(f);
@@ -5303,8 +5686,7 @@ function pdfDetectFontStyle(fontName){
     weight: isBold ? "bold" : "normal",
     style: isItalic ? "italic" : "normal"
   };
-}
-function pdfCompactToken(token){
+}function pdfCompactToken(token){
   if (!token) return "";
   const m = token.match(/^\[([A-ZÁ-Ž_]+?)(?:_([A-Za-z0-9]+))?\]$/);
   if (!m) return token;
@@ -5326,8 +5708,7 @@ function pdfCompactToken(token){
   else if (cat.startsWith("EMAIL") || cat.startsWith("E-MAIL")) p = "EML";
   else if (cat.startsWith("BANK") || cat.startsWith("ÚČET") || cat.startsWith("UCET")) p = "ÚČT";
   return suffix ? `[${p}_${suffix}]` : `[${p}]`;
-}
-function sampleCanvasBg(ctx, x, y, w, h, canvasW, canvasH){
+}function sampleCanvasBg(ctx, x, y, w, h, canvasW, canvasH){
   try {
     const samples = [];
     const collect = (px, py) => {
@@ -5368,8 +5749,7 @@ function sampleCanvasBg(ctx, x, y, w, h, canvasW, canvasH){
     }
   } catch (_) {}
   return "#ffffff";
-}
-function mergeAdjacentBoxes(quads, scale){
+}function mergeAdjacentBoxes(quads, scale){
   if (!quads || !quads.length) return [];
   const lines = [];
   quads.forEach(q => {
@@ -5406,8 +5786,7 @@ function mergeAdjacentBoxes(quads, scale){
     if (cur) out.push(cur);
   });
   return out;
-}
-function resolvePageHitQuads(pageText, pageMap, hits, pageMeta, scale){
+}function resolvePageHitQuads(pageText, pageMap, hits, pageMeta, scale){
   if (!pageMap || !pageMap.length || !hits || !hits.length) return [];
   const assignedRanges = [];
   const results = [];
@@ -5534,8 +5913,7 @@ function resolvePageHitQuads(pageText, pageMap, hits, pageMeta, scale){
   });
 
   return results;
-}
-function paintPdfVisualOverlays(){
+}function paintPdfVisualOverlays(){
   if (!PV) return;
   const previewOn = S.docView === "preview";
   const isBox = S.mode === "box" || !S.mode;
@@ -5633,7 +6011,95 @@ function paintPdfVisualOverlays(){
     });
   });
 }
-async function buildPdfVisual(token){
+function setupVisualPdfMarquee(wrap, layer, pageNum, mapped){
+  layer.addEventListener("mousedown", (e) => {
+    if (e.target && e.target.classList && e.target.classList.contains("pv-box")) return;
+    if (e.button !== 0) return;
+    const oldBtns = wrap.querySelectorAll(".pv-floating-add");
+    oldBtns.forEach(b => b.remove());
+
+    const rect = wrap.getBoundingClientRect();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const pageStartX = startX - rect.left;
+    const pageStartY = startY - rect.top;
+
+    let marquee = null;
+    let isDragging = false;
+
+    function onMouseMove(ev) {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      if (!isDragging && Math.hypot(dx, dy) > 5) {
+        isDragging = true;
+        marquee = document.createElement("div");
+        marquee.className = "pv-marquee";
+        wrap.appendChild(marquee);
+      }
+      if (isDragging && marquee) {
+        const curX = ev.clientX - rect.left;
+        const curY = ev.clientY - rect.top;
+        const l = Math.min(pageStartX, curX);
+        const t = Math.min(pageStartY, curY);
+        const w = Math.abs(curX - pageStartX);
+        const h = Math.abs(curY - pageStartY);
+        marquee.style.left = l + "px";
+        marquee.style.top = t + "px";
+        marquee.style.width = w + "px";
+        marquee.style.height = h + "px";
+      }
+    }
+
+    function onMouseUp(ev) {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      if (marquee) {
+        marquee.remove();
+        marquee = null;
+      }
+      if (isDragging) {
+        const curX = ev.clientX - rect.left;
+        const curY = ev.clientY - rect.top;
+        const minX = Math.min(pageStartX, curX);
+        const maxX = Math.max(pageStartX, curX);
+        const minY = Math.min(pageStartY, curY);
+        const maxY = Math.max(pageStartY, curY);
+
+        if ((maxX - minX) > 8 && (maxY - minY) > 8) {
+          const hitGlyphs = (mapped.map || []).filter(g => {
+            return g.x < maxX && (g.x + g.w) > minX && g.y < maxY && (g.y + g.h) > minY;
+          });
+          if (hitGlyphs.length > 0) {
+            hitGlyphs.sort((a, b) => a.start - b.start);
+            const firstStart = hitGlyphs[0].start;
+            const lastEnd = hitGlyphs[hitGlyphs.length - 1].end;
+            const selectedText = mapped.text.slice(firstStart, lastEnd).trim();
+            if (selectedText.length >= 2) {
+              const flBtn = document.createElement("button");
+              flBtn.type = "button";
+              flBtn.className = "btn btn-sm btn-add-sel pv-floating-add";
+              const label = S.lang === "cs" ? "+ Anonymizovat výběr" : "+ Redact selection";
+              flBtn.innerHTML = `${label}: <strong>${esc(selectedText.length > 20 ? selectedText.slice(0, 18) + "…" : selectedText)}</strong>`;
+              flBtn.style.left = Math.max(8, Math.min(minX, wrap.clientWidth - 240)) + "px";
+              flBtn.style.top = Math.max(8, minY - 36) + "px";
+              wrap.appendChild(flBtn);
+              flBtn.onclick = (btnEv) => {
+                btnEv.stopPropagation();
+                flBtn.remove();
+                if (typeof globalThis.addManualHitFromVisual === "function") {
+                  globalThis.addManualHitFromVisual(selectedText, pageNum, firstStart, lastEnd);
+                }
+              };
+            }
+          }
+        }
+      }
+    }
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  });
+}async function buildPdfVisual(token){
     const host = $("pdfVisual");
     if (!host) return;
     const width = Math.max(280, Math.min(900, host.clientWidth - 16 || 700));
@@ -5664,12 +6130,12 @@ async function buildPdfVisual(token){
       const raw = (meta && meta.items && meta.items.length) ? meta.items : (await page.getTextContent()).items;
       const mapped = mapPageGlyphs(raw, scale, vp);
       pages.push({ n, wrap, layer, text: mapped.text, map: mapped.map, scale });
+      setupVisualPdfMarquee(wrap, layer, n, mapped);
     }
     if (token !== pvToken) return;
     PV = { buf: S.sourceBuf, width, pages };
     paintPdfVisualOverlays();
-  }
-function paintPdfVisual(){
+  }function paintPdfVisual(){
     const btn = $("btnVisual"), host = $("pdfVisual"), t = i();
     const avail = pdfVisualAvailable();
     if (!avail && S.pdfVisual) S.pdfVisual = false;
@@ -5681,7 +6147,7 @@ function paintPdfVisual(){
     }
     document.body.classList.toggle("pdf-visual-on", S.pdfVisual);
     const btnAdd = $("btnAdd");
-    if (btnAdd) btnAdd.disabled = S.pdfVisual;
+    if (btnAdd) btnAdd.disabled = false;
     if (host) {
       host.classList.toggle("hidden", !S.pdfVisual);
       if (!S.pdfVisual) { pvToken++; return; }
@@ -5689,8 +6155,7 @@ function paintPdfVisual(){
       const token = ++pvToken;
       buildPdfVisual(token).catch(e => { console.warn("PDF visual failed:", e); if (token === pvToken) host.innerHTML = `<p class="pv-note danger">${esc(t.visualErr)}</p>`; });
     }
-  }
-function clearPdfVisual(){
+  }function clearPdfVisual(){
     PV = null;
     pvToken++;
     S.pdfVisual = false;
@@ -5700,14 +6165,12 @@ function clearPdfVisual(){
       h.innerHTML = "";
       h.classList.add("hidden");
     }
-  }
-function pdfHasSignatureBytes(buf){
+  }function pdfHasSignatureBytes(buf){
     try {
       const s = new TextDecoder("latin1").decode(toBytes(buf));
       return /\/ByteRange\s*\[/.test(s) && /\/Type\s*\/Sig\b|\/SubFilter\s*\/(?:adbe|ETSI)/.test(s);
     } catch (_) { return false; }
-  }
-function pdfWorker(){
+  }function pdfWorker(){
     const pdfjs = (typeof window !== "undefined" && window.pdfjsLib) || (typeof globalThis !== "undefined" && globalThis.pdfjsLib) || null;
     if (!pdfjs) throw new Error("PDF: knihovna se nenačetla.");
     const win = typeof window !== "undefined" ? window : globalThis;
@@ -5720,8 +6183,7 @@ function pdfWorker(){
       return "local";
     })();
     return win.__pdfWorkerReady;
-  }
-async function getPdfDocument(data){
+  }async function getPdfDocument(data){
     await pdfWorker();
     const bytes = (data instanceof Uint8Array)
       ? new Uint8Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength))
@@ -5781,8 +6243,7 @@ async function getPdfDocument(data){
     if (ch >= "a" && ch <= "z") return 0.52;
     if (ch >= "0" && ch <= "9") return 0.55;
     return 0.55;
-  }
-function computeCharWidths(str, totalW, fontH, fontFam, isMono) {
+  }function computeCharWidths(str, totalW, fontH, fontFam, isMono) {
     const len = str ? str.length : 0;
     if (len === 0) return [];
     if (len === 1 || isMono) {
@@ -6086,8 +6547,7 @@ function computeCharWidths(str, totalW, fontH, fontFam, isMono) {
   function shouldCoverVisibleStamps(){
     return !S.enabled || S.enabled.sigcert !== false;
   }
-  let _canFetchLocalCache = null;
-async function canFetchLocalAssets() {
+  let _canFetchLocalCache = null;async function canFetchLocalAssets() {
   if (_canFetchLocalCache !== null) return _canFetchLocalCache;
   if (typeof window === "undefined" || !window.fetch) {
     _canFetchLocalCache = false;
@@ -6104,8 +6564,7 @@ async function canFetchLocalAssets() {
     _canFetchLocalCache = true;
   }
   return _canFetchLocalCache;
-}
-async function extractPdf(data){
+}async function extractPdf(data){
     let pdf;
     try {
       pdf = await getPdfDocument(data);
@@ -6332,12 +6791,10 @@ async function extractPdf(data){
     }
 
     return { text, pages };
-  }
-async function exportPdfTrueRedact(source, hits, title, mode, lang){
+  }async function exportPdfTrueRedact(source, hits, title, mode, lang){
     const bytes = await exportPdfRaster(source, hits, title, mode, lang);
     return { bytes: assertSecurePdfBytes(bytes), rasterPages: new Set() };
-  }
-async function exportPdfRaster(source, hits, title, mode, lang){
+  }async function exportPdfRaster(source, hits, title, mode, lang){
     const pdf = await getPdfDocument(source);
     const { PDFDocument } = PDFLib;
     const doc = await PDFDocument.create();
@@ -6478,17 +6935,14 @@ async function exportPdfRaster(source, hits, title, mode, lang){
       verifySanitizedPdfText(verifiedBytes, effectiveHits(hits));
     }
     return verifiedBytes;
-  }
-function base64ToUint8Array(base64){
+  }function base64ToUint8Array(base64){
     const clean = String(base64 || "").replace(/^data:.*?;base64,/, "").replace(/\s+/g, "");
     if (!clean) return new Uint8Array(0);
     const bin = atob(clean);
     const out = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
-  }
-const SRGB_ICC_PROFILE_BASE64 = "AAACTGxjbXMEQAAAbW50clJHQiBYWVogB+oACgABAAkAEQATYWNzcEFQUEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPbWAAEAAAAA0y1sY21zAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALZGVzYwAAAQgAAAA2Y3BydAAAAUAAAABMd3RwdAAAAYwAAAAUY2hhZAAAAaAAAAAsclhZWgAAAcwAAAAUYlhZWgAAAeAAAAAUZ1hZWgAAAfQAAAAUclRSQwAAAggAAAAgZ1RSQwAAAggAAAAgYlRSQwAAAggAAAAgY2hybQAAAigAAAAkbWx1YwAAAAAAAAABAAAADGVuVVMAAAAaAAAAHABzAFIARwBCACAAYgB1AGkAbAB0AC0AaQBuAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAADAAAAAcAE4AbwAgAGMAbwBwAHkAcgBpAGcAaAB0ACwAIAB1AHMAZQAgAGYAcgBlAGUAbAB5WFlaIAAAAAAAAPbWAAEAAAAA0y1zZjMyAAAAAAABDEIAAAXe///zJQAAB5MAAP2Q///7of///aIAAAPcAADAblhZWiAAAAAAAABvoAAAOPUAAAOQWFlaIAAAAAAAACSfAAAPhAAAtsNYWVogAAAAAAAAYpcAALeHAAAY2XBhcmEAAAAAAAMAAAACZmYAAPKnAAANWQAAE9AAAApbY2hybQAAAAAAAwAAAACj1wAAVHsAAEzNAACZmgAAJmYAAA9c";
-function stripDiacritic(str){
+  }const SRGB_ICC_PROFILE_BASE64 = "AAACTGxjbXMEQAAAbW50clJHQiBYWVogB+oACgABAAkAEQATYWNzcEFQUEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPbWAAEAAAAA0y1sY21zAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALZGVzYwAAAQgAAAA2Y3BydAAAAUAAAABMd3RwdAAAAYwAAAAUY2hhZAAAAaAAAAAsclhZWgAAAcwAAAAUYlhZWgAAAeAAAAAUZ1hZWgAAAfQAAAAUclRSQwAAAggAAAAgZ1RSQwAAAggAAAAgYlRSQwAAAggAAAAgY2hybQAAAigAAAAkbWx1YwAAAAAAAAABAAAADGVuVVMAAAAaAAAAHABzAFIARwBCACAAYgB1AGkAbAB0AC0AaQBuAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAADAAAAAcAE4AbwAgAGMAbwBwAHkAcgBpAGcAaAB0ACwAIAB1AHMAZQAgAGYAcgBlAGUAbAB5WFlaIAAAAAAAAPbWAAEAAAAA0y1zZjMyAAAAAAABDEIAAAXe///zJQAAB5MAAP2Q///7of///aIAAAPcAADAblhZWiAAAAAAAABvoAAAOPUAAAOQWFlaIAAAAAAAACSfAAAPhAAAtsNYWVogAAAAAAAAYpcAALeHAAAY2XBhcmEAAAAAAAMAAAACZmYAAPKnAAANWQAAE9AAAApbY2hybQAAAAAAAwAAAACj1wAAVHsAAEzNAACZmgAAJmYAAA9c";function stripDiacritic(str){
     return String(str || "").split("").map(translit).join("");
   }
 
@@ -6552,8 +7006,7 @@ function stripDiacritic(str){
     });
 
     return result;
-  }
-function addSrgbOutputIntent(pdfDoc){
+  }function addSrgbOutputIntent(pdfDoc){
     const { PDFName } = PDFLib;
     const iccBytes = base64ToUint8Array(SRGB_ICC_PROFILE_BASE64);
     if (!iccBytes.length) throw new Error("Missing sRGB ICC profile");
@@ -6581,8 +7034,7 @@ function addSrgbOutputIntent(pdfDoc){
     pdfDoc.catalog.set(PDFName.of("OutputIntents"), pdfDoc.context.obj([intentRef]));
 
     return { iccRef, intentRef };
-  }
-async function applyPdfaDeclaration(bytes){
+  }async function applyPdfaDeclaration(bytes){
     const { PDFDocument, PDFName } = PDFLib;
     const doc = await PDFDocument.load(bytes, { updateMetadata:false });
 
@@ -6637,8 +7089,7 @@ function toUtf16BeHex(str) {
 
 function toAsciiHex(str) {
   return [...str].map(c => (c.charCodeAt(0) & 0xff).toString(16).padStart(2, "0")).join("").toUpperCase();
-}
-function verifySanitizedPdfText(bytes, activeHits){
+}function verifySanitizedPdfText(bytes, activeHits){
     const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
     if (!flate || !activeHits || !activeHits.length) return true;
     try {
@@ -6705,8 +7156,7 @@ function verifySanitizedPdfText(bytes, activeHits){
       if (err.message && err.message.includes("PDF security verification failed")) throw err;
       throw new Error("PDF security verification failed: " + (err.message || String(err)));
     }
-  }
-function assertSecurePdfBytes(bytes){
+  }function assertSecurePdfBytes(bytes){
     const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     const ascii = new TextDecoder("latin1").decode(u8);
     const normAscii = ascii.replace(/\/([^\s<>[\]{}/%]+)/g, (_, name) => {
@@ -6734,8 +7184,7 @@ function assertSecurePdfBytes(bytes){
    *
    * Keep this API stable, but fail closed to the isolated raster constructor
    * until a future true-redaction implementation has an object-level proof.
-   */
-async function exportTextPdf(text, title) {
+   */async function exportTextPdf(text, title) {
   if (!window.PDFLib) throw new Error("PDFLib is not loaded");
   const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
   const doc = await PDFDocument.create();
@@ -6800,8 +7249,7 @@ async function exportTextPdf(text, title) {
 
   const outBytes = await doc.save({ useObjectStreams: false });
   return assertSecurePdfBytes(outBytes);
-}
-async function exportProtocolPdf(){
+}async function exportProtocolPdf(){
   if (!window.PDFLib) {
     const t = (typeof I18N !== "undefined" && typeof S !== "undefined" && I18N[S.lang]) ? I18N[S.lang] : null;
     throw new Error((t && t.recordNeedPdfLib) || "PDFLib is not loaded");
@@ -7113,15 +7561,13 @@ async function sha256(buf){
   const source = typeof buf === "string" ? new TextEncoder().encode(buf) : buf;
   const h = await subtle.digest("SHA-256", source);
   return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2,"0")).join("");
-}
-const IngestErrorCode = Object.freeze({
+}const IngestErrorCode = Object.freeze({
     EMPTY_DOCUMENT: "errFileEmpty",
     FILE_TOO_LARGE: "errFileTooLarge",
     UNSUPPORTED_BINARY: "errFileBinary",
     LEGACY_DOC_FORMAT: "errDocOld",
     IMAGE_NEED_OCR: "errImageNeedOcr"
-  });
-class DocumentIngestionError extends Error {
+  });class DocumentIngestionError extends Error {
     constructor(code, fileName = "", cause = null) {
       super(code);
       this.name = "DocumentIngestionError";
@@ -7129,8 +7575,7 @@ class DocumentIngestionError extends Error {
       this.fileName = fileName;
       this.cause = cause;
     }
-  }
-function localizeIngestError(err, fallbackFileName = "") {
+  }function localizeIngestError(err, fallbackFileName = "") {
     if (!err) return "";
     const code = err.code || err.message;
     const f = err.fileName || fallbackFileName || "";
@@ -7151,8 +7596,7 @@ function localizeIngestError(err, fallbackFileName = "") {
       return dict.errImageNeedOcr || "Pro zpracování obrázků musí být povoleno OCR.";
     }
     return err.message || String(err);
-  }
-async function buildCanonicalDocument({ fileName, kind, text, sourceBuf = null, pages = null, cellMap = null, sigDetected = false }){
+  }async function buildCanonicalDocument({ fileName, kind, text, sourceBuf = null, pages = null, cellMap = null, sigDetected = false }){
     const cleanText = String(text || "").normalize("NFC");
     const docPages = (pages && pages.length)
       ? pages
@@ -7171,8 +7615,7 @@ async function buildCanonicalDocument({ fileName, kind, text, sourceBuf = null, 
       sigDetected: !!sigDetected,
       hashIn: hashIn
     });
-  }
-function applyDocumentToState(doc){
+  }function applyDocumentToState(doc){
     if (!doc) return;
     S.fileName = doc.fileName;
     S.kind = doc.kind;
@@ -7187,8 +7630,7 @@ function applyDocumentToState(doc){
     S.reviewed = false;
     S.hits = [];
     runAnalyze(doc.text);
-  }
-async function ingest(name, kind, text, buf, extra){
+  }async function ingest(name, kind, text, buf, extra){
     const doc = await buildCanonicalDocument({
       fileName: name,
       kind: kind,
@@ -7200,12 +7642,10 @@ async function ingest(name, kind, text, buf, extra){
     });
     applyDocumentToState(doc);
     return doc;
-  }
-function isImageFile(name, type){
+  }function isImageFile(name, type){
     const n = (name || "").toLowerCase();
     return /\.(png|jpe?g|webp|bmp|gif|tiff?)$/i.test(n) || (typeof type === "string" && type.startsWith("image/"));
-  }
-async function handleImageFile(file, buf, options = {}){
+  }async function handleImageFile(file, buf, options = {}){
     const ocrEnabled = options.ocrEnabled ?? (typeof S !== "undefined" ? S.ocrEnabled : false);
     const tesseractLib = (typeof window !== "undefined" && window.Tesseract) || (typeof globalThis !== "undefined" && globalThis.Tesseract) || null;
     if (!ocrEnabled || !tesseractLib) {
@@ -7243,8 +7683,8 @@ async function handleImageFile(file, buf, options = {}){
       const canFetch = await canFetchLocalAssets();
       if (!canFetch) {
         throw new Error(t === "cs"
-          ? "OCR v režimu souboru (file:///) není prohlížečem podporováno. Spusťte prosím aplikaci přes lokální server (např. 'npm start' -> http://localhost:3000)."
-          : "OCR under file:/// protocol is blocked by browser security. Please run via a local server (e.g. 'npm start' -> http://localhost:3000).");
+          ? "OCR vyžaduje spuštění ze síťové složky, intranetu nebo webového serveru (v režimu přímého otevření souboru file:/// prohlížeč z bezpečnostních důvodů blokuje spouštění lokálních modulů)."
+          : "OCR requires running from a web server or intranet folder (direct file:/// opening blocks WebAssembly modules due to browser security policies).");
       }
       reportProgress(t === "cs" ? "OCR: spouštím rozpoznávání textu…" : "OCR: running recognition…");
       const timeoutPromise = new Promise((_, reject) => {
@@ -7355,8 +7795,7 @@ async function handleImageFile(file, buf, options = {}){
         sourceBuf: buf
       });
     }
-  }
-async function ingestDocument(input, options = {}){
+  }async function ingestDocument(input, options = {}){
     const file = input;
     const name = (file && file.name) || options.fileName || "document";
     const size = typeof file?.size === "number" ? file.size : (file?.buffer?.byteLength || 0);
@@ -7473,8 +7912,7 @@ async function ingestDocument(input, options = {}){
       }
       return await buildCanonicalDocument({ fileName: name, kind: "text", text, sourceBuf: buf });
     }
-  }
-async function ingestDocumentBatch(list, options = {}){
+  }async function ingestDocumentBatch(list, options = {}){
     const files = Array.from(list || []);
     const results = [];
     for (const f of files) {
@@ -7494,8 +7932,7 @@ async function ingestDocumentBatch(list, options = {}){
 
 const FORMAT_ID = "znecitelne-session";
 const FORMAT_VERSION = 2;
-const PBKDF2_ITERATIONS = 100000;
-function bufferToBase64(buf) {
+const PBKDF2_ITERATIONS = 100000;function bufferToBase64(buf) {
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
   const CHUNK_SIZE = 0x8000;
   let binary = "";
@@ -7504,8 +7941,7 @@ function bufferToBase64(buf) {
     binary += String.fromCharCode.apply(null, chunk);
   }
   return btoa(binary);
-}
-function base64ToBuffer(b64) {
+}function base64ToBuffer(b64) {
   const binary = atob(b64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
@@ -7536,8 +7972,7 @@ async function deriveKey(password, saltBytes, usage) {
     false,
     usage
   );
-}
-async function exportSession(state, password, options = {}) {
+}async function exportSession(state, password, options = {}) {
   if (!password || typeof password !== "string") {
     throw new Error("Password is required for encrypting session");
   }
@@ -7575,6 +8010,7 @@ async function exportSession(state, password, options = {}) {
     replaceMode: state.replaceMode,
     lang: state.lang,
     legalReason: state.legalReason,
+    operator: state.operator || "",
     auditTrail: state.auditTrail || []
   };
 
@@ -7610,8 +8046,7 @@ async function exportSession(state, password, options = {}) {
   };
 
   return JSON.stringify(envelope, null, 2);
-}
-async function importSession(envelopeJsonOrObj, password) {
+}async function importSession(envelopeJsonOrObj, password) {
   if (!password || typeof password !== "string") {
     throw new Error("Password is required for decrypting session");
   }
@@ -7675,14 +8110,9 @@ async function importSession(envelopeJsonOrObj, password) {
 let MOVIE_TIMER = null;
   let MOVIE_PENDING = null;
   let MOVIE_TITLE_TIMER = null;
-  let MOVIE_PAUSED = false;
-let MOVIE_SPEED = 1;
-const MOVIE_SLOWDOWN = 0.3;
-function movieEffectiveSpeed(){ return MOVIE_SPEED * MOVIE_SLOWDOWN; }
-function initActionMarquees(_root){
+  let MOVIE_PAUSED = false;let MOVIE_SPEED = 1;const MOVIE_SLOWDOWN = 0.3;function movieEffectiveSpeed(){ return MOVIE_SPEED * MOVIE_SLOWDOWN; }function initActionMarquees(_root){
     /* Cleaned: text overflow handled via responsive CSS */
-  }
-function startTextMarquee(_chip){
+  }function startTextMarquee(_chip){
     /* Cleaned: chip wrapping handled via responsive CSS */
   }
 
@@ -8352,8 +8782,7 @@ function startTextMarquee(_chip){
     }
     S.movie = true;
     syncSettingsForms();
-  }
-async function startMovieTutorial(script){
+  }async function startMovieTutorial(script){
     movieCancelPlayback();
     movieClearSelectMenu();
     movieCloseTitleCard();
@@ -8487,8 +8916,7 @@ async function startMovieTutorial(script){
     const idx = S.movieStepIndex || 0;
     if (idx <= 0) return;
     await movieGoTo(idx - 1);
-  }
-function exitMovieTutorial(keepDoc){
+  }function exitMovieTutorial(keepDoc){
     MOVIE_GENERATION++;
     MOVIE_TRANSITION_LOCK = false;
     movieCancelPlayback();
@@ -8527,9 +8955,11 @@ const S = {
     barPos: (["top","bottom"].includes(localStorage.getItem("znec-barpos")) ? localStorage.getItem("znec-barpos") : "top"),
     fastApprove: localStorage.getItem("znec-fastapprove") === "1",
     ocrEnabled: localStorage.getItem("znec-ocr") !== "0",
+    ocrSupported: null,
     operator: "", sigDetected: false, fileName: "", kind: "text", text: "", sourceBuf: null,
-    pages: [], noTextPages: 0, cellMap: [],
+    pages: [], noTextPages: 0, cellMap: [], activeSheet: null,
     hashIn: "", hashOut: "", hits: [], reviewed: false, secondEyes: false,
+    isSecondReviewMode: false, firstOperator: "",
     selectedId: null, filter: "all", seen: new Set(),
     analysisContext: "",
     docView: localStorage.getItem("znec-docview") === "preview" ? "preview" : "original",
@@ -8807,8 +9237,7 @@ function download(name, blob){
       if (t) t.style.display = "none";
       _ocrProgressTimer = null;
     }, 800);
-  }
-function showConfirm(message, okLabel, cancelLabel) {
+  }function showConfirm(message, okLabel, cancelLabel) {
     const modal = $("confirmModal");
     if (!modal) {
       try {
@@ -8961,6 +9390,7 @@ function showConfirm(message, okLabel, cancelLabel) {
         <label class="check"><input type="checkbox" id="${p}chkMeta" ${S.stripMeta?"checked":""}/> ${t.stripMeta} <button type="button" class="help-i" data-tip="${t.tips.stripMeta}">?</button></label>
         <label class="check"><input type="checkbox" id="${p}chkTrueRedact" ${S.truePdfRedact?"checked":""}/> ${t.truePdfRedact} <button type="button" class="help-i" data-tip="${t.truePdfRedactHint}">?</button></label>
         <label class="check"><input type="checkbox" id="${p}chkOcr" ${S.ocrEnabled?"checked":""}/> ${t.enableOcr} <button type="button" class="help-i" data-tip="${t.tips.ocr}">?</button></label>
+        ${S.ocrSupported === false ? `<div class="ocr-unsupported-note" style="color:var(--muted);font-size:12px;margin:-2px 0 6px 28px;">⚠️ ${S.lang === "cs" ? "OCR vyžaduje spuštění ze síťové složky / intranetu (v režimu přímého otevření souboru file:/// prohlížeč blokuje spouštění lokálních modulů)." : "OCR requires running from an intranet or web server (file:/// mode blocks local modules)."}</div>` : ""}
         <label class="check"><input type="checkbox" id="${p}chkExpert" ${S.expertMode?"checked":""}/> ${t.expertMode} <button type="button" class="help-i" data-tip="${t.tips.expertMode}">?</button></label>
         <label class="check"><input type="checkbox" id="${p}chkProcessAnalysis" ${S.processAnalysis?"checked":""}/> ${t.processAnalysisLabel} <button type="button" class="help-i" data-tip="${t.tips.processAnalysis}">?</button></label>
       </div>`;
@@ -9111,6 +9541,11 @@ function showConfirm(message, okLabel, cancelLabel) {
       if (cf) cf.checked = !!S.fastApprove;
       m.querySelectorAll("[data-cat]").forEach(cb => { cb.checked = !!S.enabled[cb.getAttribute("data-cat")]; });
     });
+    document.querySelectorAll("#landingProfilePills .profile-pill-btn").forEach(pl => {
+      const isSel = pl.dataset.profile === S.profile;
+      pl.classList.toggle("on", isSel);
+      pl.setAttribute("aria-checked", isSel ? "true" : "false");
+    });
   }
   let SETTINGS_MODAL_SNAPSHOT = null;
   let LANDING_SETTINGS_SIGNATURE = "";
@@ -9240,9 +9675,35 @@ function showConfirm(message, okLabel, cancelLabel) {
     setT("title", t.name); setT("tagline", t.tagline);
     setT("lead", t.landingLead);
     setT("s1", t.landingStep1); setT("s2", t.landingStep2); setT("s3", t.landingStep3);
-    setT("privacy", t.privacy); setT("dropTitle", t.drop); setT("dropHint", S.ocrEnabled ? t.dropHintOcr : t.dropHint);
+    const showOcrHint = S.ocrEnabled && S.ocrSupported !== false;
+    setT("privacy", t.privacy); setT("dropTitle", t.drop); setT("dropHint", showOcrHint ? t.dropHintOcr : t.dropHint);
     setT("btnSample", t.trySample); setTip("btnSample", t.tips.sample);
     setT("btnMovie", t.movieTutorial); setTip("btnMovie", t.tips.movie);
+
+    const pills = document.querySelectorAll("#landingProfilePills .profile-pill-btn");
+    pills.forEach(pill => {
+      const p = pill.dataset.profile;
+      const isSelected = S.profile === p;
+      pill.classList.toggle("on", isSelected);
+      pill.setAttribute("aria-checked", isSelected ? "true" : "false");
+      pill.onclick = () => {
+        applyProfile(p);
+        pills.forEach(pl => {
+          const sel = pl.dataset.profile === p;
+          pl.classList.toggle("on", sel);
+          pl.setAttribute("aria-checked", sel ? "true" : "false");
+        });
+        syncSettingsForms();
+      };
+    });
+    const btnMoreProf = $("btnLandingProfileMore");
+    if (btnMoreProf) {
+      btnMoreProf.onclick = () => {
+        openSettings();
+        const tabBtn = $("tabBtnProfile");
+        if (tabBtn) tabBtn.click();
+      };
+    }
     const lblLang = $("lblLangText");
     if (lblLang) {
       lblLang.textContent = S.lang === "cs" ? "Jazyk: English" : "Language: Čeština";
@@ -9342,18 +9803,26 @@ function showConfirm(message, okLabel, cancelLabel) {
     paintReview();
   }
   function filtered(){
-    return S.hits.filter(h => S.filter==="all" || (S.filter==="redact"?h.accept:!h.accept));
+    if (S.filter === "all") return S.hits;
+    if (S.filter === "redact") return S.hits.filter(h => h.accept);
+    if (S.filter === "keep") return S.hits.filter(h => !h.accept);
+    if (S.filter === "secondReview") {
+      return S.hits.filter(h => {
+        const isException = !h.accept;
+        const isManual = (h.reasons && (h.reasons.includes("manual") || h.reasons.includes("morphology") || h.reasons.includes("dict"))) || h.userModified || h.confidence === "manual";
+        return isException || isManual;
+      });
+    }
+    return S.hits;
   }
-  let _reviewCache = null;
-function legalOf(h) {
+  let _reviewCache = null;function legalOf(h) {
     if (!h) return "gdpr";
     if (h.legalBasis) return h.legalBasis;
     if (S.legalReason) return S.legalReason;
     if (h.type === "secrets") return "trade";
     if (["credential", "ip", "host", "system", "project", "ticket", "incident"].includes(h.type)) return "security";
     return "gdpr";
-  }
-function buildAudit() {
+  }function buildAudit() {
     const salt = S.auditSalt || (S.auditSalt = Array.from(globalThis.crypto?.getRandomValues?.(new Uint8Array(8)) || [1,2,3,4,5,6,7,8]).map(b => b.toString(16).padStart(2, "0")).join(""));
     const items = (S.hits || []).map(h => {
       const val = String(h.value || "");
@@ -9398,8 +9867,7 @@ function buildAudit() {
       findings: items,
       auditTrail: S.auditTrail || []
     };
-  }
-function groupHitsIntoEntities(hits) {
+  }function groupHitsIntoEntities(hits) {
     const groups = new Map();
     hits.forEach(h => {
       const key = h.entityKey || `${h.type}|${(h.value || "").trim().toLocaleLowerCase("cs")}`;
@@ -9455,6 +9923,9 @@ function groupHitsIntoEntities(hits) {
     const filteredEntities = entities.filter(e => {
       if (S.filter === "redact") return e.acceptState === "all" || e.acceptState === "mixed";
       if (S.filter === "keep") return e.acceptState === "none";
+      if (S.filter === "secondReview") {
+        return e.hits.some(h => (!h.accept) || (h.reasons && (h.reasons.includes("manual") || h.reasons.includes("morphology") || h.reasons.includes("dict"))) || h.userModified || h.confidence === "manual");
+      }
       return true;
     });
 
@@ -9473,6 +9944,11 @@ function groupHitsIntoEntities(hits) {
       const formsSummary = e.formsList.length > 1
         ? `${countLabel} (${casesLabel}: ${esc(e.formsList.join(", "))})`
         : countLabel;
+      const hasException = e.acceptState === "none" || e.hits.some(h => !h.accept);
+      const hasManual = e.hits.some(h => h.reasons && (h.reasons.includes("manual") || h.confidence === "manual" || h.userModified));
+      const secondEyesBadge = hasException
+        ? `<span class="badge" style="padding:1px 5px;font-size:9px;color:var(--ok);border-color:var(--ok)">${S.lang === "cs" ? "Výjimka: Ponecháno" : "Exception: Kept"}</span>`
+        : (hasManual ? `<span class="badge" style="padding:1px 5px;font-size:9px;color:var(--hit);border-color:var(--hit)">${S.lang === "cs" ? "Ruční zásah" : "Manual entry"}</span>` : "");
 
       return `
         <div class="entity-card ${badgeCls} ${isSel ? "sel" : ""}" data-ekey="${escAttr(e.key)}">
@@ -9483,6 +9959,7 @@ function groupHitsIntoEntities(hits) {
                 <span class="pill ${e.acceptState === "all" ? "pill-hit" : "pill-ok"}" style="font-size:9px;padding:1px 6px;">${esc(catName)}</span>
                 ${e.token ? `<span class="ec-token">${esc(e.token)}</span>` : ""}
                 <span class="ec-badge-count">${esc(formsSummary)}</span>
+                ${secondEyesBadge}
               </div>
             </div>
             <span style="font-size:12px;color:var(--muted);padding-left:4px;" aria-hidden="true">${isExpanded ? "▲" : "▼"}</span>
@@ -9742,20 +10219,141 @@ function groupHitsIntoEntities(hits) {
     if (docName) docName.textContent = S.fileName || "Dokument";
 
     const queueWrap = $("headerQueueWrap");
+    const queueToggle = $("btnQueueToggle");
+    const queuePopover = $("queuePopover");
     const queueSel = $("headerQueueSelect");
-    if (queueWrap && queueSel) {
+    if (queueWrap && queueToggle && queuePopover) {
       if (Q.items.length > 1) {
         queueWrap.classList.remove("hidden");
-        queueSel.innerHTML = Q.items.map((it, idx) => {
-          const rev = idx === Q.cur ? S.reviewed : !!(it.snap && it.snap.reviewed);
-          return `<option value="${idx}" ${idx === Q.cur ? "selected" : ""}>${rev ? "✓ " : ""}${escAttr(it.name)}</option>`;
-        }).join("");
-        queueSel.onchange = (e) => {
-          const idx = +e.target.value;
-          if (idx !== Q.cur) void openQueueItem(idx);
+        const curNum = Q.cur + 1;
+        const totalNum = Q.items.length;
+        if ($("lblQueueToggle")) {
+          $("lblQueueToggle").textContent = S.lang === "cs"
+            ? `Dokument ${curNum} z ${totalNum}`
+            : `Document ${curNum} of ${totalNum}`;
+        }
+        let approvedCount = 0;
+        let pendingCount = 0;
+        let warnCount = 0;
+        Q.items.forEach((it, idx) => {
+          const isRev = idx === Q.cur ? S.reviewed : !!(it.snap && it.snap.reviewed);
+          const hasWarn = idx === Q.cur ? (S.noTextPages > 0 || S.sigDetected) : !!(it.snap && (it.snap.noTextPages > 0 || it.snap.sigDetected));
+          if (isRev) approvedCount++;
+          else pendingCount++;
+          if (hasWarn) warnCount++;
+        });
+
+        const miniBadge = $("queueMiniBadge");
+        if (miniBadge) miniBadge.textContent = `${approvedCount}/${totalNum} ✓`;
+
+        if ($("lblQpCount")) {
+          $("lblQpCount").textContent = formatPlural(totalNum, ["1 dokument", "{n} dokumenty", "{n} dokumentů"], S.lang);
+        }
+        if ($("qpStatApproved")) $("qpStatApproved").textContent = `✓ ${approvedCount} ` + (S.lang === "cs" ? "schváleno" : "approved");
+        if ($("qpStatPending")) $("qpStatPending").textContent = `⏳ ${pendingCount} ` + (S.lang === "cs" ? "nezkontrolováno" : "unreviewed");
+        const statWarn = $("qpStatWarn");
+        if (statWarn) {
+          statWarn.classList.toggle("hidden", warnCount === 0);
+          statWarn.textContent = `⚠️ ${warnCount} ` + (S.lang === "cs" ? "k pozornosti" : "attention");
+        }
+
+        const btnNextUnrev = $("btnQpNextUnreviewed");
+        if (btnNextUnrev) {
+          let nextUnrevIdx = -1;
+          for (let step = 1; step <= totalNum; step++) {
+            const checkIdx = (Q.cur + step) % totalNum;
+            const isRev = checkIdx === Q.cur ? S.reviewed : !!(Q.items[checkIdx].snap && Q.items[checkIdx].snap.reviewed);
+            if (!isRev) {
+              nextUnrevIdx = checkIdx;
+              break;
+            }
+          }
+          btnNextUnrev.disabled = nextUnrevIdx === -1;
+          btnNextUnrev.onclick = (e) => {
+            e.stopPropagation();
+            if (nextUnrevIdx !== -1) {
+              queuePopover.classList.add("hidden");
+              queueToggle.setAttribute("aria-expanded", "false");
+              void openQueueItem(nextUnrevIdx);
+            }
+          };
+        }
+
+        const itemsList = $("qpItemsList");
+        if (itemsList) {
+          itemsList.innerHTML = Q.items.map((it, idx) => {
+            const isCur = idx === Q.cur;
+            const isRev = isCur ? S.reviewed : !!(it.snap && it.snap.reviewed);
+            const hasWarn = isCur ? (S.noTextPages > 0 || S.sigDetected) : !!(it.snap && (it.snap.noTextPages > 0 || it.snap.sigDetected));
+            const statusIco = isRev ? "✓" : (hasWarn ? "⚠️" : "⏳");
+            const statusClass = isRev ? "ok" : (hasWarn ? "danger" : "muted");
+            const statusTitle = isRev ? (S.lang === "cs" ? "Schváleno" : "Approved") : (hasWarn ? (S.lang === "cs" ? "Vyžaduje pozornost" : "Needs attention") : (S.lang === "cs" ? "Nezkontrolováno" : "Unreviewed"));
+            const ext = (it.name.split('.').pop() || "doc").toUpperCase();
+            const hitsCount = isCur ? S.hits.length : (it.snap?.hits?.length ?? it.doc?.hits?.length ?? "");
+            return `
+              <div class="qp-item ${isCur ? 'active' : ''}" data-idx="${idx}" role="button" tabindex="0">
+                <span class="qp-status-ico ${statusClass}" title="${statusTitle}">${statusIco}</span>
+                <div class="qp-item-info">
+                  <span class="qp-item-name" title="${escAttr(it.name)}">${esc(it.name)}</span>
+                  <div class="qp-item-meta">
+                    <span class="badge" style="padding:1px 5px;font-size:10px">${ext}</span>
+                    ${hitsCount !== "" ? `<span>${hitsCount} ${S.lang === 'cs' ? 'nálezů' : 'hits'}</span>` : ""}
+                    ${isCur ? `<span style="font-weight:700;color:var(--accent)">(${S.lang === 'cs' ? 'aktivní' : 'active'})</span>` : ""}
+                  </div>
+                </div>
+                <button type="button" class="qp-item-del" data-del="${idx}" title="${S.lang === 'cs' ? 'Odebrat z fronty' : 'Remove'}">✕</button>
+              </div>
+            `;
+          }).join("");
+
+          itemsList.querySelectorAll(".qp-item").forEach(itemEl => {
+            itemEl.onclick = (e) => {
+              if (e.target.closest(".qp-item-del")) return;
+              const idx = +itemEl.dataset.idx;
+              queuePopover.classList.add("hidden");
+              queueToggle.setAttribute("aria-expanded", "false");
+              if (idx !== Q.cur) void openQueueItem(idx);
+            };
+          });
+
+          itemsList.querySelectorAll(".qp-item-del").forEach(delBtn => {
+            delBtn.onclick = (e) => {
+              e.stopPropagation();
+              const idx = +delBtn.dataset.del;
+              removeQueueItem(idx);
+            };
+          });
+        }
+
+        queueToggle.onclick = (e) => {
+          e.stopPropagation();
+          const isHidden = queuePopover.classList.toggle("hidden");
+          queueToggle.setAttribute("aria-expanded", !isHidden ? "true" : "false");
         };
+
+        const btnQpExportAll = $("btnQpExportAll");
+        if (btnQpExportAll) {
+          btnQpExportAll.onclick = (e) => {
+            e.stopPropagation();
+            queuePopover.classList.add("hidden");
+            queueToggle.setAttribute("aria-expanded", "false");
+            $("menuExportQueueZip")?.click();
+          };
+        }
+
+        if (queueSel) {
+          queueSel.innerHTML = Q.items.map((it, idx) => {
+            const rev = idx === Q.cur ? S.reviewed : !!(it.snap && it.snap.reviewed);
+            return `<option value="${idx}" ${idx === Q.cur ? "selected" : ""}>${rev ? "✓ " : ""}${escAttr(it.name)}</option>`;
+          }).join("");
+          queueSel.onchange = (e) => {
+            const idx = +e.target.value;
+            if (idx !== Q.cur) void openQueueItem(idx);
+          };
+        }
       } else {
         queueWrap.classList.add("hidden");
+        queuePopover.classList.add("hidden");
       }
     }
 
@@ -9777,6 +10375,17 @@ function groupHitsIntoEntities(hits) {
     const pendingBadge = $("badgePendingFindings");
     if (pendingBadge) {
       pendingBadge.textContent = formatPlural(unseenCount, t.unreviewedCountPlural || t.unreviewedCount, S.lang);
+    }
+
+    const badge2nd = $("badgeSecondReviewer");
+    if (badge2nd) {
+      if (S.isSecondReviewMode || S.secondEyes) {
+        badge2nd.classList.remove("hidden");
+        const opName = S.firstOperator || (S.lang === "cs" ? "1. kontrola hotova" : "1st review done");
+        badge2nd.innerHTML = `👁️ ${S.lang === "cs" ? "1. zpracovatel" : "1st reviewer"}: <strong>${esc(opName)}</strong>`;
+      } else {
+        badge2nd.classList.add("hidden");
+      }
     }
 
     const chkRev = $("chkRev");
@@ -9912,6 +10521,132 @@ function groupHitsIntoEntities(hits) {
     }
   }
 
+  function colLettersToIndex(letters) {
+    let idx = 0;
+    for (let i = 0; i < letters.length; i++) {
+      idx = idx * 26 + (letters.charCodeAt(i) - 64);
+    }
+    return idx - 1;
+  }
+  function indexToColLetters(idx) {
+    let str = "";
+    let n = idx;
+    while (n >= 0) {
+      str = String.fromCharCode((n % 26) + 65) + str;
+      n = Math.floor(n / 26) - 1;
+    }
+    return str;
+  }
+
+  function renderXlsxGrid(container, previewOn) {
+    const t = i();
+    const visHits = visibleHits(S.hits, S.selectedId);
+    const replacer = bindReplacer(S.mode, S.lang, S.hits);
+
+    const sheets = [];
+    const seenSheets = new Set();
+    (S.cellMap || []).forEach(c => {
+      const s = c.sheet || "List 1";
+      if (!seenSheets.has(s)) {
+        seenSheets.add(s);
+        sheets.push(s);
+      }
+    });
+
+    if (!S.activeSheet || !seenSheets.has(S.activeSheet)) {
+      S.activeSheet = sheets[0] || "List 1";
+    }
+
+    const currentCells = (S.cellMap || []).filter(c => (c.sheet || "List 1") === S.activeSheet);
+
+    let minR = Infinity, maxR = -Infinity;
+    let minC = Infinity, maxC = -Infinity;
+    const gridMap = new Map();
+
+    currentCells.forEach(cell => {
+      const m = String(cell.ref || "").match(/^([A-Za-z]+)(\d+)$/);
+      if (m) {
+        const cLetters = m[1].toUpperCase();
+        const rNum = parseInt(m[2], 10);
+        const cIdx = colLettersToIndex(cLetters);
+        if (rNum < minR) minR = rNum;
+        if (rNum > maxR) maxR = rNum;
+        if (cIdx < minC) minC = cIdx;
+        if (cIdx > maxC) maxC = cIdx;
+        gridMap.set(`${rNum},${cIdx}`, cell);
+      }
+    });
+
+    if (!Number.isFinite(minR)) { minR = 1; maxR = 1; minC = 0; maxC = 0; }
+    maxR = Math.min(maxR, minR + 500);
+    maxC = Math.min(maxC, minC + 50);
+
+    let tabsHtml = "";
+    if (sheets.length > 1) {
+      tabsHtml = `<div class="xlsx-sheet-tabs" role="tablist">` +
+        sheets.map(s => `<button type="button" class="xlsx-sheet-tab-btn ${s === S.activeSheet ? 'active' : ''}" data-sheet="${escAttr(s)}">${esc(s)}</button>`).join("") +
+        `</div>`;
+    }
+
+    let colsHtml = `<th class="xlsx-th-corner">#</th>`;
+    for (let c = minC; c <= maxC; c++) {
+      colsHtml += `<th class="xlsx-th-col">${indexToColLetters(c)}</th>`;
+    }
+
+    let rowsHtml = "";
+    for (let r = minR; r <= maxR; r++) {
+      let cellsInRow = `<td class="xlsx-td-row">${r}</td>`;
+      for (let c = minC; c <= maxC; c++) {
+        const cell = gridMap.get(`${r},${c}`);
+        if (!cell) {
+          cellsInRow += `<td class="xlsx-td-cell"></td>`;
+        } else {
+          const rawVal = S.text.slice(cell.start, cell.end);
+          const cellHits = visHits.filter(h => h.start < cell.end && h.end > cell.start);
+          if (!cellHits.length) {
+            cellsInRow += `<td class="xlsx-td-cell" title="${escAttr(cell.ref)}: ${escAttr(rawVal)}">${esc(rawVal)}</td>`;
+          } else {
+            let cellContent = "";
+            let cur = cell.start;
+            cellHits.forEach(h => {
+              if (h.start > cur) cellContent += esc(S.text.slice(cur, Math.min(h.start, cell.end)));
+              const catName = (t.cats && t.cats[h.type]) || (LABEL[S.lang] && LABEL[S.lang][h.type]) || h.type;
+              const tip = catName + " · " + hitEvidence(h, t, true);
+              const cls = "mk " + (previewOn ? (h.accept ? "mk-preview" : "mk-off") : (h.accept ? "mk-on" : "mk-off")) + (S.selectedId === h.id ? " mk-sel" : "");
+              const val = previewOn && h.accept ? replacer(h) : S.text.slice(Math.max(cell.start, h.start), Math.min(cell.end, h.end));
+              cellContent += `<button type="button" class="${cls}" data-id="${h.id}" data-tip="${esc(tip)}">${esc(val)}</button>`;
+              cur = Math.min(cell.end, h.end);
+            });
+            if (cur < cell.end) cellContent += esc(S.text.slice(cur, cell.end));
+            cellsInRow += `<td class="xlsx-td-cell" title="${escAttr(cell.ref)}">${cellContent}</td>`;
+          }
+        }
+      }
+      rowsHtml += `<tr>${cellsInRow}</tr>`;
+    }
+
+    container.innerHTML = `
+      ${tabsHtml}
+      <div class="xlsx-table-container">
+        <table class="xlsx-table">
+          <thead><tr>${colsHtml}</tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    `;
+
+    container.querySelectorAll(".xlsx-sheet-tab-btn").forEach(btn => {
+      btn.onclick = () => {
+        S.activeSheet = btn.dataset.sheet;
+        renderXlsxGrid(container, previewOn);
+      };
+    });
+
+    container.querySelectorAll("button.mk").forEach(b => {
+      b.onclick = () => select(+b.dataset.id);
+    });
+  }
+
   function paintReview(){
     const t = i();
     let acceptedCount = 0;
@@ -9978,9 +10713,20 @@ function groupHitsIntoEntities(hits) {
       $("btnAdd").textContent = t.addSelection;
       $("btnAdd").setAttribute("data-tip", t.tips.addSelection);
     }
-    if ($("orig")) {
-      $("orig").innerHTML = previewOn ? previewHTML() : origHTML();
-      $("orig").querySelectorAll("button.mk").forEach(b => b.onclick = () => select(+b.dataset.id));
+
+    const isXlsx = S.kind === "xlsx" && S.cellMap && S.cellMap.length > 0;
+    const xlsxGrid = $("xlsxGrid");
+    const origPre = $("orig");
+
+    if (isXlsx && xlsxGrid && origPre) {
+      origPre.classList.add("hidden");
+      xlsxGrid.classList.remove("hidden");
+      renderXlsxGrid(xlsxGrid, previewOn);
+    } else if (origPre) {
+      origPre.classList.remove("hidden");
+      if (xlsxGrid) xlsxGrid.classList.add("hidden");
+      origPre.innerHTML = previewOn ? previewHTML() : origHTML();
+      origPre.querySelectorAll("button.mk").forEach(b => b.onclick = () => select(+b.dataset.id));
     }
     paintPdfVisual();
 
@@ -10040,7 +10786,16 @@ function groupHitsIntoEntities(hits) {
     if ($("lblBulkAside")) $("lblBulkAside").textContent = t.lblBulkAside || (S.lang === "cs" ? "Hromadné akce" : "Bulk actions");
     if ($("shortcutHint")) $("shortcutHint").innerHTML = `<span><kbd>J</kbd>/<kbd>K</kbd> ${S.lang === "cs" ? "další" : "next"} · <kbd>R</kbd> ${S.lang === "cs" ? "anonymizovat" : "redact"} · <kbd>P</kbd> ${S.lang === "cs" ? "ponechat" : "keep"} · <kbd>F</kbd> ${S.lang === "cs" ? "celá obrazovka" : "fullscreen"}</span>`;
 
-    $("filters").innerHTML = ["all","redact","keep"].map(f => `<button type="button" class="chip ${S.filter===f?"on":""}" data-f="${f}" aria-pressed="${S.filter===f}">${f==="all"?t.filterAll:f==="redact"?t.filterRedact:t.filterKeep}</button>`).join("");
+    const filterKeys = (S.isSecondReviewMode || S.secondEyes)
+      ? ["all", "secondReview", "redact", "keep"]
+      : ["all", "redact", "keep"];
+    $("filters").innerHTML = filterKeys.map(f => {
+      let label = t.filterAll;
+      if (f === "secondReview") label = t.filterSecondReview || (S.lang === "cs" ? "Ruční změny a výjimky" : "Manual & Exceptions");
+      else if (f === "redact") label = t.filterRedact;
+      else if (f === "keep") label = t.filterKeep;
+      return `<button type="button" class="chip ${S.filter===f?"on":""}" data-f="${f}" aria-pressed="${S.filter===f}">${label}</button>`;
+    }).join("");
     $("filters").querySelectorAll("[data-f]").forEach(b => b.onclick = () => { S.filter = b.dataset.f; paintReview(); });
 
     if (isEntities) {
@@ -10361,6 +11116,9 @@ async function onFile(file){
           S.pages = sessionData.doc.pages || [sessionData.doc.text];
           S.reviewed = sessionData.doc.reviewed ?? true;
           S.secondEyes = true;
+          S.isSecondReviewMode = true;
+          S.firstOperator = sessionData.operator || "";
+          S.filter = "secondReview";
           S.cellMap = sessionData.doc.cellMap || [];
           S.sigDetected = !!sessionData.doc.sigDetected;
           S.hits = sessionData.hits || [];
@@ -10991,6 +11749,10 @@ async function maybePdfa(bytes, notes){
     S.fileName = "";
     S.reviewed = false;
     S.secondEyes = false;
+    S.isSecondReviewMode = false;
+    S.firstOperator = "";
+    S.activeSheet = null;
+    if (S.filter === "secondReview") S.filter = "all";
     S.selectedId = null;
     S.seen = new Set();
     S.hashIn = "";
@@ -11152,6 +11914,11 @@ async function maybePdfa(bytes, notes){
       moreMenu.classList.add("hidden");
       $("btnHeaderMore")?.setAttribute("aria-expanded", "false");
     }
+    const queuePopover = $("queuePopover");
+    if (queuePopover && !queuePopover.classList.contains("hidden") && !e.target.closest("#headerDocContext")) {
+      queuePopover.classList.add("hidden");
+      $("btnQueueToggle")?.setAttribute("aria-expanded", "false");
+    }
   }, { passive: true });
 
   function pickFile(){
@@ -11283,6 +12050,55 @@ async function maybePdfa(bytes, notes){
     const files = await collectFilesFromDataTransfer(e.dataTransfer);
     if (files.length) onFiles(files);
   });
+
+  globalThis.addManualHitFromVisual = (selectedText, pageNum, relStart, relEnd) => {
+    const sel = (selectedText || "").trim();
+    if (sel.length < 2) return;
+    let start = -1;
+    const pageMeta = (S.pages || []).find(p => p.n === pageNum);
+    if (pageMeta) {
+      if (typeof relStart === "number" && typeof pageMeta.start === "number") {
+        const candOffset = pageMeta.start + relStart;
+        if (S.text.slice(candOffset, candOffset + sel.length) === sel) {
+          start = candOffset;
+        }
+      }
+      if (start < 0 && pageMeta.body) {
+        const idx = pageMeta.body.indexOf(sel);
+        if (idx >= 0 && typeof pageMeta.start === "number") start = pageMeta.start + idx;
+      }
+    }
+    if (start < 0) start = S.text.indexOf(sel);
+    if (start < 0) return;
+
+    const nid = S.hits.reduce((m, h) => Math.max(m, h.id || 0), 0) + 1;
+    const words = sel.split(/\s+/);
+    const isName = looksName(sel) || (words.length >= 2 && words.some(w => looksName(w)));
+    const hitType = isName ? "name" : "secrets";
+    const entityKey = isName ? ("name|" + nameKey(sel)) : ("secrets|" + sel.toLocaleLowerCase("cs"));
+    const newHit = {
+      id: nid,
+      type: hitType,
+      value: sel,
+      start,
+      end: start + sel.length,
+      accept: true,
+      confidence: "high",
+      reasons: [isName ? "morphology" : "dict"],
+      entityKey,
+      page: pageNum || pageOf(start)
+    };
+    S.hits.push(newHit);
+    if (!isName && !secretList().includes(sel)) S.secrets += "\n" + sel;
+    if (isName) {
+      const beforeCount = S.hits.length;
+      expandCzechNameMorphology(S.text, S.hits, newHit);
+      const added = S.hits.length - beforeCount;
+      if (added > 0) toast(formatPlural(added, i().morphToastPlural || i().morphToast, S.lang));
+    }
+    paintReview();
+  };
+
   $("btnAdd").onclick = () => {
     const sel = window.getSelection().toString().trim();
     if (sel.length<3) return;
@@ -11372,6 +12188,13 @@ async function maybePdfa(bytes, notes){
         $("btnHeaderMore")?.focus();
         return;
       }
+      const queuePopover = $("queuePopover");
+      if (queuePopover && !queuePopover.classList.contains("hidden")) {
+        queuePopover.classList.add("hidden");
+        $("btnQueueToggle")?.setAttribute("aria-expanded", "false");
+        $("btnQueueToggle")?.focus();
+        return;
+      }
     }
     const expMenu = $("headerExportMenu");
     const moreMenu = $("headerMoreMenu");
@@ -11414,8 +12237,7 @@ async function maybePdfa(bytes, notes){
   window.addEventListener("resize", () => {
     updateHeaderHeightVar();
     updateBarHeightVar();
-  });
-function selfTest(){
+  });function selfTest(){
     const enabled = Object.fromEntries(KEYS.map(k => [k, true]));
     const secrets = ["jednotkové ceny"];
     const prev = S.suspicion;
@@ -12018,6 +12840,15 @@ function selfTest(){
   }
   applyTheme();
   paint();
+  if (typeof canFetchLocalAssets === "function") {
+    canFetchLocalAssets().then(supported => {
+      S.ocrSupported = !!supported;
+      if (!supported && !S.text) paintLanding();
+    }).catch(() => {
+      S.ocrSupported = false;
+      if (!S.text) paintLanding();
+    });
+  }
 })();
 </script>
 </body>

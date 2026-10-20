@@ -821,8 +821,441 @@ body.movie-active #settingsSheet {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--focus) 50%, transparent); }
   50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--focus) 0%, transparent); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .movie-pulse { animation: none; }
+/* --- Landing Publication Profile Selector (ADR-0012 refinement) --- */
+.landing-profile-box {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.landing-profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2px;
+}
+.landing-profile-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+.landing-profile-settings-btn {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 11px;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 600;
+}
+.landing-profile-settings-btn:hover {
+  text-decoration: underline;
+  color: var(--primary);
+}
+.profile-pills-seg {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+@media (max-width: 600px) {
+  .profile-pills-seg {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.profile-pill-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 6px;
+  min-height: 48px;
+  border-radius: var(--radius-sm, 6px);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
+  cursor: pointer;
+  text-align: center;
+  transition: all .14s ease;
+}
+.profile-pill-btn:hover {
+  background: var(--bg-subtle);
+  border-color: var(--accent);
+}
+.profile-pill-btn.on {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+  box-shadow: 0 2px 6px rgba(0,0,0,.14);
+}
+.profile-pill-btn .pill-title {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.profile-pill-btn .pill-badge {
+  font-size: 10px;
+  opacity: .8;
+  font-family: var(--mono);
+}
+.profile-pill-btn.on .pill-badge {
+  opacity: .95;
+}
+
+/* --- Second Eyes Badge --- */
+.badge-second-reviewer {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface)) !important;
+  border-color: var(--accent) !important;
+  color: var(--fg) !important;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+html[data-theme="dark"] .badge-second-reviewer {
+  background: color-mix(in srgb, var(--accent) 26%, var(--surface)) !important;
+  color: #fff !important;
+}
+
+/* --- Visual PDF Marquee & Floating Add --- */
+.pv-marquee {
+  position: absolute;
+  border: 1.5px dashed var(--hit);
+  background: color-mix(in srgb, var(--hit) 22%, transparent);
+  pointer-events: none;
+  border-radius: 2px;
+  z-index: 10;
+}
+.pv-floating-add {
+  position: absolute;
+  z-index: 25;
+  box-shadow: 0 6px 20px rgba(0,0,0,.3);
+  animation: menuFadeIn .14s ease;
+  white-space: nowrap;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- XLSX Grid View --- */
+.xlsx-grid-wrap {
+  display: flex;
+  flex-direction: column;
+  max-height: min(70dvh, 640px);
+  height: 100%;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  overflow: hidden;
+}
+@media (min-width: 1100px) {
+  body.has-doc .xlsx-grid-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none !important;
+    height: 100%;
+  }
+}
+.xlsx-sheet-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--bg-subtle);
+  border-bottom: 1.5px solid var(--border);
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.xlsx-sheet-tab-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-sm, 6px);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.xlsx-sheet-tab-btn:hover {
+  color: var(--fg);
+  border-color: var(--accent);
+}
+.xlsx-sheet-tab-btn.active {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+}
+.xlsx-table-container {
+  flex: 1 1 auto;
+  overflow: auto;
+  position: relative;
+}
+.xlsx-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font: 12px/1.45 var(--mono);
+  width: max-content;
+  min-width: 100%;
+}
+.xlsx-th-corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  background: var(--bg-subtle);
+  border-right: 1.5px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  min-width: 36px;
+}
+.xlsx-th-col {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--bg-subtle);
+  border-right: 1px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+  min-width: 70px;
+}
+.xlsx-td-row {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--bg-subtle);
+  border-right: 1.5px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+  user-select: none;
+}
+.xlsx-td-cell {
+  border-right: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  padding: 4px 8px;
+  color: var(--fg);
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+.xlsx-td-cell:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+.xlsx-table tr:hover .xlsx-td-row {
+  background: color-mix(in srgb, var(--primary) 12%, var(--bg-subtle));
+}
+.xlsx-td-cell .mk {
+  font-family: inherit;
+  font-size: inherit;
+  display: inline-block;
+  vertical-align: middle;
+  padding: 0 2px;
+}
+
+/* --- Queue Dashboard Popover --- */
+.queue-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.queue-mini-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--header-fg) 16%, transparent);
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-family: var(--mono);
+}
+.queue-popover {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 55;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius, 10px);
+  box-shadow: 0 12px 36px rgba(14,16,20,.26), 0 2px 6px rgba(0,0,0,.08);
+  width: min(440px, calc(100vw - 32px));
+  max-height: min(75dvh, 520px);
+  display: flex;
+  flex-direction: column;
+  animation: menuFadeIn .14s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top left;
+  overflow: hidden;
+}
+.qp-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.qp-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.qp-title {
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--fg);
+}
+.qp-count {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.qp-stats-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.qp-stat {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.qp-stat-ok {
+  background: color-mix(in srgb, var(--ok) 14%, var(--surface));
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 30%, transparent);
+}
+.qp-stat-pending {
+  background: color-mix(in srgb, var(--muted) 14%, var(--surface));
+  color: var(--muted);
+  border-color: color-mix(in srgb, var(--muted) 30%, transparent);
+}
+.qp-stat-warn {
+  background: color-mix(in srgb, var(--hit) 14%, var(--surface));
+  color: var(--hit);
+  border-color: color-mix(in srgb, var(--hit) 30%, transparent);
+}
+.qp-next-unreviewed-btn {
+  width: 100%;
+  min-height: 34px;
+  font-size: 12px;
+  font-weight: 650;
+  background: var(--primary);
+  color: var(--on-primary);
+  border: 0;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.qp-next-unreviewed-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+.qp-items-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.qp-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background .12s ease;
+}
+.qp-item:hover {
+  background: var(--bg-subtle);
+}
+.qp-item.active {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  border-color: var(--accent);
+}
+.qp-status-ico {
+  font-size: 14px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.qp-item-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.qp-item-name {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qp-item.active .qp-item-name {
+  font-weight: 700;
+  color: var(--primary);
+}
+.qp-item-meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+.qp-item-del {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.qp-item-del:hover {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
+}
+.qp-footer {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-subtle);
+  display: flex;
+  justify-content: flex-end;
+}
+.qp-export-all-btn {
+  font-size: 12px;
+  min-height: 32px;
+  padding: 0 10px;
 }
 </style>
 </head>
@@ -863,8 +1296,36 @@ body.movie-active #settingsSheet {
       <svg class="doc-badge-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       <span id="headerDocName"></span>
     </span>
-    <div class="queue-dropdown hidden" id="headerQueueWrap">
-      <select id="headerQueueSelect" aria-label="Dávková fronta"></select>
+    <div class="queue-dropdown hidden" id="headerQueueWrap" style="position:relative">
+      <button class="btn btn-sm btn-ghost queue-toggle-btn" id="btnQueueToggle" type="button" aria-haspopup="dialog" aria-expanded="false" title="Zobrazit přehled dávkové fronty">
+        <svg class="queue-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span id="lblQueueToggle">Dokument 1 ze 3</span>
+        <span class="queue-mini-badge" id="queueMiniBadge">0/3 ✓</span>
+        <svg class="queue-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <select id="headerQueueSelect" class="hidden" aria-label="Dávková fronta"></select>
+      <div class="queue-popover hidden" id="queuePopover" role="dialog" aria-modal="false" aria-label="Přehled dávkové fronty">
+        <div class="qp-header">
+          <div class="qp-title-row">
+            <span class="qp-title" id="lblQpTitle">Dávková fronta</span>
+            <span class="qp-count" id="lblQpCount"></span>
+          </div>
+          <div class="qp-stats-bar" id="qpStatsBar">
+            <span class="qp-stat qp-stat-ok" id="qpStatApproved">✓ 0 schváleno</span>
+            <span class="qp-stat qp-stat-pending" id="qpStatPending">⏳ 0 nezkontrolováno</span>
+            <span class="qp-stat qp-stat-warn hidden" id="qpStatWarn">⚠️ 0 k pozornosti</span>
+          </div>
+          <button type="button" class="qp-next-unreviewed-btn" id="btnQpNextUnreviewed">
+            ➔ Přejít na další neschválený
+          </button>
+        </div>
+        <div class="qp-items-list" id="qpItemsList" role="list"></div>
+        <div class="qp-footer">
+          <button type="button" class="btn btn-sm btn-ghost qp-export-all-btn" id="btnQpExportAll">
+            Exportovat schválené z fronty (ZIP)
+          </button>
+        </div>
+      </div>
     </div>
     <button class="btn btn-sm btn-ghost btn-icon" id="btnHeaderAddDoc" type="button" title="Přidat další dokument do fronty" aria-label="Přidat dokument">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -877,6 +1338,7 @@ body.movie-active #settingsSheet {
   <!-- Center Approval / Risk indicator (shown during review) -->
   <div class="header-approval hidden" id="headerApproval">
     <span class="badge" id="badgePendingFindings"></span>
+    <span class="badge badge-second-reviewer hidden" id="badgeSecondReviewer"></span>
     <label class="check approval-check" id="lblHeaderReviewed">
       <input type="checkbox" id="chkRev" /> <span id="lblReviewedText">Zkontrolováno</span>
     </label>
@@ -996,6 +1458,33 @@ body.movie-active #settingsSheet {
       <p class="privacy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span id="privacy"></span></p>
     </div>
     <div class="card landing-card">
+      <!-- Publication Profile Quick Selector -->
+      <div class="landing-profile-box" id="landingProfileBox">
+        <div class="landing-profile-header">
+          <label class="landing-profile-label" id="lblLandingProfile">Profil publikace:</label>
+          <button type="button" class="landing-profile-settings-btn" id="btnLandingProfileMore" title="Upravit pokročilé kategorie v Nastavení">
+            Upravit v Nastavení ⚙
+          </button>
+        </div>
+        <div class="profile-pills-seg" role="radiogroup" aria-label="Profil publikace" id="landingProfilePills">
+          <button type="button" class="profile-pill-btn" data-profile="registr" role="radio" aria-checked="false" id="pillProfileRegistr" title="Registr smluv (340/2015 Sb.) – začerní osobní údaje, ponechá IČO a název instituce">
+            <span class="pill-title">Registr smluv</span>
+            <span class="pill-badge">340/2015 Sb.</span>
+          </button>
+          <button type="button" class="profile-pill-btn" data-profile="infoact" role="radio" aria-checked="false" id="pillProfileInfoact" title="InfZ 106 (106/1999 Sb.) – začerní osobní údaje s výjimkami příjemců veřejných prostředků">
+            <span class="pill-title">InfZ 106</span>
+            <span class="pill-badge">106/1999 Sb.</span>
+          </button>
+          <button type="button" class="profile-pill-btn" data-profile="court" role="radio" aria-checked="false" id="pillProfileCourt" title="Justiční rozhodnutí (vyhl. 403/2022 Sb.) – pravidla pro anonymizaci soudních rozhodnutí">
+            <span class="pill-title">Rozhodnutí</span>
+            <span class="pill-badge">403/2022 Sb.</span>
+          </button>
+          <button type="button" class="profile-pill-btn on" data-profile="publicai" role="radio" aria-checked="true" id="pillProfilePublicai" title="Veřejná AI – kompletní pseudonymizace všech citlivých entit, systémů i projektů">
+            <span class="pill-title">Veřejná AI</span>
+            <span class="pill-badge">Všechny tokeny</span>
+          </button>
+        </div>
+      </div>
       <div class="drop" id="drop">
         <div class="drop-icon" aria-hidden="true">📄</div>
         <p style="font-weight:600;font-size:17px;margin:0" id="dropTitle"></p>
@@ -1039,6 +1528,7 @@ body.movie-active #settingsSheet {
         <button class="btn btn-sm btn-add-sel" id="btnAdd" type="button">+ Anonymizovat výběr</button>
       </div>
       <pre class="doc" id="orig"></pre>
+      <div id="xlsxGrid" class="xlsx-grid-wrap hidden" aria-label="Tabulkový náhled"></div>
       <div id="pdfVisual" class="hidden" aria-label="PDF"></div>
     </div>
     <aside id="reviewAside">

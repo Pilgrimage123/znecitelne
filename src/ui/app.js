@@ -3,9 +3,9 @@ import { I18N, formatPlural } from "../core/i18n.js";
 import { isOnomasticName, initOnomasticRegistry, createOnomasticTrie } from "../core/onomastic.js";
 import { isCzechVerbOrParticiple, isSentenceStart, declinedPersonTokenBase } from "../core/morphology.js";
 import { EntityPropagationCache, createEntityPropagationCache, expandCzechNameMorphology } from "../core/propagation.js";
-import { detect, apply, applyCourtProfileRules, filterCourtDecisionsWhitelist, effectiveHits, resolveHits, visibleHits, topHits, bindReplacer, buildGlossary } from "../core/detector.js";
+import { detect, apply, applyCourtProfileRules, filterCourtDecisionsWhitelist, effectiveHits, resolveHits, visibleHits, topHits, bindReplacer, buildGlossary, pageOf } from "../core/detector.js";
 import { exportSession, importSession } from "../crypto/session.js";
-import { extractPdf, exportPdfTrueRedact, exportPdfRaster, applyPdfaDeclaration, pdfWorker, getPdfDocument, exportTextPdf, exportProtocolPdf, base64ToUint8Array, SRGB_ICC_PROFILE_BASE64 } from "../formats/pdf.js";
+import { extractPdf, exportPdfTrueRedact, exportPdfRaster, applyPdfaDeclaration, pdfWorker, getPdfDocument, exportTextPdf, exportProtocolPdf, base64ToUint8Array, SRGB_ICC_PROFILE_BASE64, canFetchLocalAssets } from "../formats/pdf.js";
 import { exportDocxFile, docxMakeWork, docxNormalizeZipPath, docxRelativeZipPath } from "../formats/docx.js";
 import { exportXlsxFile, exportXlsxFileFflate } from "../formats/xlsx.js";
 import { ingestDocument, ingestDocumentBatch, buildCanonicalDocument, applyDocumentToState, DocumentIngestionError, IngestErrorCode, localizeIngestError, sha256 } from "../formats/ingest.js";
@@ -33,9 +33,11 @@ export const S = {
     barPos: (["top","bottom"].includes(localStorage.getItem("znec-barpos")) ? localStorage.getItem("znec-barpos") : "top"),
     fastApprove: localStorage.getItem("znec-fastapprove") === "1",
     ocrEnabled: localStorage.getItem("znec-ocr") !== "0",
+    ocrSupported: null,
     operator: "", sigDetected: false, fileName: "", kind: "text", text: "", sourceBuf: null,
-    pages: [], noTextPages: 0, cellMap: [],
+    pages: [], noTextPages: 0, cellMap: [], activeSheet: null,
     hashIn: "", hashOut: "", hits: [], reviewed: false, secondEyes: false,
+    isSecondReviewMode: false, firstOperator: "",
     selectedId: null, filter: "all", seen: new Set(),
     analysisContext: "",
     docView: localStorage.getItem("znec-docview") === "preview" ? "preview" : "original",
@@ -467,6 +469,7 @@ function download(name, blob){
         <label class="check"><input type="checkbox" id="${p}chkMeta" ${S.stripMeta?"checked":""}/> ${t.stripMeta} <button type="button" class="help-i" data-tip="${t.tips.stripMeta}">?</button></label>
         <label class="check"><input type="checkbox" id="${p}chkTrueRedact" ${S.truePdfRedact?"checked":""}/> ${t.truePdfRedact} <button type="button" class="help-i" data-tip="${t.truePdfRedactHint}">?</button></label>
         <label class="check"><input type="checkbox" id="${p}chkOcr" ${S.ocrEnabled?"checked":""}/> ${t.enableOcr} <button type="button" class="help-i" data-tip="${t.tips.ocr}">?</button></label>
+        ${S.ocrSupported === false ? `<div class="ocr-unsupported-note" style="color:var(--muted);font-size:12px;margin:-2px 0 6px 28px;">⚠️ ${S.lang === "cs" ? "OCR vyžaduje spuštění ze síťové složky / intranetu (v režimu přímého otevření souboru file:/// prohlížeč blokuje spouštění lokálních modulů)." : "OCR requires running from an intranet or web server (file:/// mode blocks local modules)."}</div>` : ""}
         <label class="check"><input type="checkbox" id="${p}chkExpert" ${S.expertMode?"checked":""}/> ${t.expertMode} <button type="button" class="help-i" data-tip="${t.tips.expertMode}">?</button></label>
         <label class="check"><input type="checkbox" id="${p}chkProcessAnalysis" ${S.processAnalysis?"checked":""}/> ${t.processAnalysisLabel} <button type="button" class="help-i" data-tip="${t.tips.processAnalysis}">?</button></label>
       </div>`;
@@ -617,6 +620,11 @@ function download(name, blob){
       if (cf) cf.checked = !!S.fastApprove;
       m.querySelectorAll("[data-cat]").forEach(cb => { cb.checked = !!S.enabled[cb.getAttribute("data-cat")]; });
     });
+    document.querySelectorAll("#landingProfilePills .profile-pill-btn").forEach(pl => {
+      const isSel = pl.dataset.profile === S.profile;
+      pl.classList.toggle("on", isSel);
+      pl.setAttribute("aria-checked", isSel ? "true" : "false");
+    });
   }
   let SETTINGS_MODAL_SNAPSHOT = null;
   let LANDING_SETTINGS_SIGNATURE = "";
@@ -746,9 +754,35 @@ function download(name, blob){
     setT("title", t.name); setT("tagline", t.tagline);
     setT("lead", t.landingLead);
     setT("s1", t.landingStep1); setT("s2", t.landingStep2); setT("s3", t.landingStep3);
-    setT("privacy", t.privacy); setT("dropTitle", t.drop); setT("dropHint", S.ocrEnabled ? t.dropHintOcr : t.dropHint);
+    const showOcrHint = S.ocrEnabled && S.ocrSupported !== false;
+    setT("privacy", t.privacy); setT("dropTitle", t.drop); setT("dropHint", showOcrHint ? t.dropHintOcr : t.dropHint);
     setT("btnSample", t.trySample); setTip("btnSample", t.tips.sample);
     setT("btnMovie", t.movieTutorial); setTip("btnMovie", t.tips.movie);
+
+    const pills = document.querySelectorAll("#landingProfilePills .profile-pill-btn");
+    pills.forEach(pill => {
+      const p = pill.dataset.profile;
+      const isSelected = S.profile === p;
+      pill.classList.toggle("on", isSelected);
+      pill.setAttribute("aria-checked", isSelected ? "true" : "false");
+      pill.onclick = () => {
+        applyProfile(p);
+        pills.forEach(pl => {
+          const sel = pl.dataset.profile === p;
+          pl.classList.toggle("on", sel);
+          pl.setAttribute("aria-checked", sel ? "true" : "false");
+        });
+        syncSettingsForms();
+      };
+    });
+    const btnMoreProf = $("btnLandingProfileMore");
+    if (btnMoreProf) {
+      btnMoreProf.onclick = () => {
+        openSettings();
+        const tabBtn = $("tabBtnProfile");
+        if (tabBtn) tabBtn.click();
+      };
+    }
     const lblLang = $("lblLangText");
     if (lblLang) {
       lblLang.textContent = S.lang === "cs" ? "Jazyk: English" : "Language: Čeština";
@@ -848,7 +882,17 @@ function download(name, blob){
     paintReview();
   }
   function filtered(){
-    return S.hits.filter(h => S.filter==="all" || (S.filter==="redact"?h.accept:!h.accept));
+    if (S.filter === "all") return S.hits;
+    if (S.filter === "redact") return S.hits.filter(h => h.accept);
+    if (S.filter === "keep") return S.hits.filter(h => !h.accept);
+    if (S.filter === "secondReview") {
+      return S.hits.filter(h => {
+        const isException = !h.accept;
+        const isManual = (h.reasons && (h.reasons.includes("manual") || h.reasons.includes("morphology") || h.reasons.includes("dict"))) || h.userModified || h.confidence === "manual";
+        return isException || isManual;
+      });
+    }
+    return S.hits;
   }
   let _reviewCache = null;
 
@@ -964,6 +1008,9 @@ function download(name, blob){
     const filteredEntities = entities.filter(e => {
       if (S.filter === "redact") return e.acceptState === "all" || e.acceptState === "mixed";
       if (S.filter === "keep") return e.acceptState === "none";
+      if (S.filter === "secondReview") {
+        return e.hits.some(h => (!h.accept) || (h.reasons && (h.reasons.includes("manual") || h.reasons.includes("morphology") || h.reasons.includes("dict"))) || h.userModified || h.confidence === "manual");
+      }
       return true;
     });
 
@@ -982,6 +1029,11 @@ function download(name, blob){
       const formsSummary = e.formsList.length > 1
         ? `${countLabel} (${casesLabel}: ${esc(e.formsList.join(", "))})`
         : countLabel;
+      const hasException = e.acceptState === "none" || e.hits.some(h => !h.accept);
+      const hasManual = e.hits.some(h => h.reasons && (h.reasons.includes("manual") || h.confidence === "manual" || h.userModified));
+      const secondEyesBadge = hasException
+        ? `<span class="badge" style="padding:1px 5px;font-size:9px;color:var(--ok);border-color:var(--ok)">${S.lang === "cs" ? "Výjimka: Ponecháno" : "Exception: Kept"}</span>`
+        : (hasManual ? `<span class="badge" style="padding:1px 5px;font-size:9px;color:var(--hit);border-color:var(--hit)">${S.lang === "cs" ? "Ruční zásah" : "Manual entry"}</span>` : "");
 
       return `
         <div class="entity-card ${badgeCls} ${isSel ? "sel" : ""}" data-ekey="${escAttr(e.key)}">
@@ -992,6 +1044,7 @@ function download(name, blob){
                 <span class="pill ${e.acceptState === "all" ? "pill-hit" : "pill-ok"}" style="font-size:9px;padding:1px 6px;">${esc(catName)}</span>
                 ${e.token ? `<span class="ec-token">${esc(e.token)}</span>` : ""}
                 <span class="ec-badge-count">${esc(formsSummary)}</span>
+                ${secondEyesBadge}
               </div>
             </div>
             <span style="font-size:12px;color:var(--muted);padding-left:4px;" aria-hidden="true">${isExpanded ? "▲" : "▼"}</span>
@@ -1251,20 +1304,141 @@ function download(name, blob){
     if (docName) docName.textContent = S.fileName || "Dokument";
 
     const queueWrap = $("headerQueueWrap");
+    const queueToggle = $("btnQueueToggle");
+    const queuePopover = $("queuePopover");
     const queueSel = $("headerQueueSelect");
-    if (queueWrap && queueSel) {
+    if (queueWrap && queueToggle && queuePopover) {
       if (Q.items.length > 1) {
         queueWrap.classList.remove("hidden");
-        queueSel.innerHTML = Q.items.map((it, idx) => {
-          const rev = idx === Q.cur ? S.reviewed : !!(it.snap && it.snap.reviewed);
-          return `<option value="${idx}" ${idx === Q.cur ? "selected" : ""}>${rev ? "✓ " : ""}${escAttr(it.name)}</option>`;
-        }).join("");
-        queueSel.onchange = (e) => {
-          const idx = +e.target.value;
-          if (idx !== Q.cur) void openQueueItem(idx);
+        const curNum = Q.cur + 1;
+        const totalNum = Q.items.length;
+        if ($("lblQueueToggle")) {
+          $("lblQueueToggle").textContent = S.lang === "cs"
+            ? `Dokument ${curNum} z ${totalNum}`
+            : `Document ${curNum} of ${totalNum}`;
+        }
+        let approvedCount = 0;
+        let pendingCount = 0;
+        let warnCount = 0;
+        Q.items.forEach((it, idx) => {
+          const isRev = idx === Q.cur ? S.reviewed : !!(it.snap && it.snap.reviewed);
+          const hasWarn = idx === Q.cur ? (S.noTextPages > 0 || S.sigDetected) : !!(it.snap && (it.snap.noTextPages > 0 || it.snap.sigDetected));
+          if (isRev) approvedCount++;
+          else pendingCount++;
+          if (hasWarn) warnCount++;
+        });
+
+        const miniBadge = $("queueMiniBadge");
+        if (miniBadge) miniBadge.textContent = `${approvedCount}/${totalNum} ✓`;
+
+        if ($("lblQpCount")) {
+          $("lblQpCount").textContent = formatPlural(totalNum, ["1 dokument", "{n} dokumenty", "{n} dokumentů"], S.lang);
+        }
+        if ($("qpStatApproved")) $("qpStatApproved").textContent = `✓ ${approvedCount} ` + (S.lang === "cs" ? "schváleno" : "approved");
+        if ($("qpStatPending")) $("qpStatPending").textContent = `⏳ ${pendingCount} ` + (S.lang === "cs" ? "nezkontrolováno" : "unreviewed");
+        const statWarn = $("qpStatWarn");
+        if (statWarn) {
+          statWarn.classList.toggle("hidden", warnCount === 0);
+          statWarn.textContent = `⚠️ ${warnCount} ` + (S.lang === "cs" ? "k pozornosti" : "attention");
+        }
+
+        const btnNextUnrev = $("btnQpNextUnreviewed");
+        if (btnNextUnrev) {
+          let nextUnrevIdx = -1;
+          for (let step = 1; step <= totalNum; step++) {
+            const checkIdx = (Q.cur + step) % totalNum;
+            const isRev = checkIdx === Q.cur ? S.reviewed : !!(Q.items[checkIdx].snap && Q.items[checkIdx].snap.reviewed);
+            if (!isRev) {
+              nextUnrevIdx = checkIdx;
+              break;
+            }
+          }
+          btnNextUnrev.disabled = nextUnrevIdx === -1;
+          btnNextUnrev.onclick = (e) => {
+            e.stopPropagation();
+            if (nextUnrevIdx !== -1) {
+              queuePopover.classList.add("hidden");
+              queueToggle.setAttribute("aria-expanded", "false");
+              void openQueueItem(nextUnrevIdx);
+            }
+          };
+        }
+
+        const itemsList = $("qpItemsList");
+        if (itemsList) {
+          itemsList.innerHTML = Q.items.map((it, idx) => {
+            const isCur = idx === Q.cur;
+            const isRev = isCur ? S.reviewed : !!(it.snap && it.snap.reviewed);
+            const hasWarn = isCur ? (S.noTextPages > 0 || S.sigDetected) : !!(it.snap && (it.snap.noTextPages > 0 || it.snap.sigDetected));
+            const statusIco = isRev ? "✓" : (hasWarn ? "⚠️" : "⏳");
+            const statusClass = isRev ? "ok" : (hasWarn ? "danger" : "muted");
+            const statusTitle = isRev ? (S.lang === "cs" ? "Schváleno" : "Approved") : (hasWarn ? (S.lang === "cs" ? "Vyžaduje pozornost" : "Needs attention") : (S.lang === "cs" ? "Nezkontrolováno" : "Unreviewed"));
+            const ext = (it.name.split('.').pop() || "doc").toUpperCase();
+            const hitsCount = isCur ? S.hits.length : (it.snap?.hits?.length ?? it.doc?.hits?.length ?? "");
+            return `
+              <div class="qp-item ${isCur ? 'active' : ''}" data-idx="${idx}" role="button" tabindex="0">
+                <span class="qp-status-ico ${statusClass}" title="${statusTitle}">${statusIco}</span>
+                <div class="qp-item-info">
+                  <span class="qp-item-name" title="${escAttr(it.name)}">${esc(it.name)}</span>
+                  <div class="qp-item-meta">
+                    <span class="badge" style="padding:1px 5px;font-size:10px">${ext}</span>
+                    ${hitsCount !== "" ? `<span>${hitsCount} ${S.lang === 'cs' ? 'nálezů' : 'hits'}</span>` : ""}
+                    ${isCur ? `<span style="font-weight:700;color:var(--accent)">(${S.lang === 'cs' ? 'aktivní' : 'active'})</span>` : ""}
+                  </div>
+                </div>
+                <button type="button" class="qp-item-del" data-del="${idx}" title="${S.lang === 'cs' ? 'Odebrat z fronty' : 'Remove'}">✕</button>
+              </div>
+            `;
+          }).join("");
+
+          itemsList.querySelectorAll(".qp-item").forEach(itemEl => {
+            itemEl.onclick = (e) => {
+              if (e.target.closest(".qp-item-del")) return;
+              const idx = +itemEl.dataset.idx;
+              queuePopover.classList.add("hidden");
+              queueToggle.setAttribute("aria-expanded", "false");
+              if (idx !== Q.cur) void openQueueItem(idx);
+            };
+          });
+
+          itemsList.querySelectorAll(".qp-item-del").forEach(delBtn => {
+            delBtn.onclick = (e) => {
+              e.stopPropagation();
+              const idx = +delBtn.dataset.del;
+              removeQueueItem(idx);
+            };
+          });
+        }
+
+        queueToggle.onclick = (e) => {
+          e.stopPropagation();
+          const isHidden = queuePopover.classList.toggle("hidden");
+          queueToggle.setAttribute("aria-expanded", !isHidden ? "true" : "false");
         };
+
+        const btnQpExportAll = $("btnQpExportAll");
+        if (btnQpExportAll) {
+          btnQpExportAll.onclick = (e) => {
+            e.stopPropagation();
+            queuePopover.classList.add("hidden");
+            queueToggle.setAttribute("aria-expanded", "false");
+            $("menuExportQueueZip")?.click();
+          };
+        }
+
+        if (queueSel) {
+          queueSel.innerHTML = Q.items.map((it, idx) => {
+            const rev = idx === Q.cur ? S.reviewed : !!(it.snap && it.snap.reviewed);
+            return `<option value="${idx}" ${idx === Q.cur ? "selected" : ""}>${rev ? "✓ " : ""}${escAttr(it.name)}</option>`;
+          }).join("");
+          queueSel.onchange = (e) => {
+            const idx = +e.target.value;
+            if (idx !== Q.cur) void openQueueItem(idx);
+          };
+        }
       } else {
         queueWrap.classList.add("hidden");
+        queuePopover.classList.add("hidden");
       }
     }
 
@@ -1286,6 +1460,17 @@ function download(name, blob){
     const pendingBadge = $("badgePendingFindings");
     if (pendingBadge) {
       pendingBadge.textContent = formatPlural(unseenCount, t.unreviewedCountPlural || t.unreviewedCount, S.lang);
+    }
+
+    const badge2nd = $("badgeSecondReviewer");
+    if (badge2nd) {
+      if (S.isSecondReviewMode || S.secondEyes) {
+        badge2nd.classList.remove("hidden");
+        const opName = S.firstOperator || (S.lang === "cs" ? "1. kontrola hotova" : "1st review done");
+        badge2nd.innerHTML = `👁️ ${S.lang === "cs" ? "1. zpracovatel" : "1st reviewer"}: <strong>${esc(opName)}</strong>`;
+      } else {
+        badge2nd.classList.add("hidden");
+      }
     }
 
     const chkRev = $("chkRev");
@@ -1421,6 +1606,132 @@ function download(name, blob){
     }
   }
 
+  function colLettersToIndex(letters) {
+    let idx = 0;
+    for (let i = 0; i < letters.length; i++) {
+      idx = idx * 26 + (letters.charCodeAt(i) - 64);
+    }
+    return idx - 1;
+  }
+  function indexToColLetters(idx) {
+    let str = "";
+    let n = idx;
+    while (n >= 0) {
+      str = String.fromCharCode((n % 26) + 65) + str;
+      n = Math.floor(n / 26) - 1;
+    }
+    return str;
+  }
+
+  function renderXlsxGrid(container, previewOn) {
+    const t = i();
+    const visHits = visibleHits(S.hits, S.selectedId);
+    const replacer = bindReplacer(S.mode, S.lang, S.hits);
+
+    const sheets = [];
+    const seenSheets = new Set();
+    (S.cellMap || []).forEach(c => {
+      const s = c.sheet || "List 1";
+      if (!seenSheets.has(s)) {
+        seenSheets.add(s);
+        sheets.push(s);
+      }
+    });
+
+    if (!S.activeSheet || !seenSheets.has(S.activeSheet)) {
+      S.activeSheet = sheets[0] || "List 1";
+    }
+
+    const currentCells = (S.cellMap || []).filter(c => (c.sheet || "List 1") === S.activeSheet);
+
+    let minR = Infinity, maxR = -Infinity;
+    let minC = Infinity, maxC = -Infinity;
+    const gridMap = new Map();
+
+    currentCells.forEach(cell => {
+      const m = String(cell.ref || "").match(/^([A-Za-z]+)(\d+)$/);
+      if (m) {
+        const cLetters = m[1].toUpperCase();
+        const rNum = parseInt(m[2], 10);
+        const cIdx = colLettersToIndex(cLetters);
+        if (rNum < minR) minR = rNum;
+        if (rNum > maxR) maxR = rNum;
+        if (cIdx < minC) minC = cIdx;
+        if (cIdx > maxC) maxC = cIdx;
+        gridMap.set(`${rNum},${cIdx}`, cell);
+      }
+    });
+
+    if (!Number.isFinite(minR)) { minR = 1; maxR = 1; minC = 0; maxC = 0; }
+    maxR = Math.min(maxR, minR + 500);
+    maxC = Math.min(maxC, minC + 50);
+
+    let tabsHtml = "";
+    if (sheets.length > 1) {
+      tabsHtml = `<div class="xlsx-sheet-tabs" role="tablist">` +
+        sheets.map(s => `<button type="button" class="xlsx-sheet-tab-btn ${s === S.activeSheet ? 'active' : ''}" data-sheet="${escAttr(s)}">${esc(s)}</button>`).join("") +
+        `</div>`;
+    }
+
+    let colsHtml = `<th class="xlsx-th-corner">#</th>`;
+    for (let c = minC; c <= maxC; c++) {
+      colsHtml += `<th class="xlsx-th-col">${indexToColLetters(c)}</th>`;
+    }
+
+    let rowsHtml = "";
+    for (let r = minR; r <= maxR; r++) {
+      let cellsInRow = `<td class="xlsx-td-row">${r}</td>`;
+      for (let c = minC; c <= maxC; c++) {
+        const cell = gridMap.get(`${r},${c}`);
+        if (!cell) {
+          cellsInRow += `<td class="xlsx-td-cell"></td>`;
+        } else {
+          const rawVal = S.text.slice(cell.start, cell.end);
+          const cellHits = visHits.filter(h => h.start < cell.end && h.end > cell.start);
+          if (!cellHits.length) {
+            cellsInRow += `<td class="xlsx-td-cell" title="${escAttr(cell.ref)}: ${escAttr(rawVal)}">${esc(rawVal)}</td>`;
+          } else {
+            let cellContent = "";
+            let cur = cell.start;
+            cellHits.forEach(h => {
+              if (h.start > cur) cellContent += esc(S.text.slice(cur, Math.min(h.start, cell.end)));
+              const catName = (t.cats && t.cats[h.type]) || (LABEL[S.lang] && LABEL[S.lang][h.type]) || h.type;
+              const tip = catName + " · " + hitEvidence(h, t, true);
+              const cls = "mk " + (previewOn ? (h.accept ? "mk-preview" : "mk-off") : (h.accept ? "mk-on" : "mk-off")) + (S.selectedId === h.id ? " mk-sel" : "");
+              const val = previewOn && h.accept ? replacer(h) : S.text.slice(Math.max(cell.start, h.start), Math.min(cell.end, h.end));
+              cellContent += `<button type="button" class="${cls}" data-id="${h.id}" data-tip="${esc(tip)}">${esc(val)}</button>`;
+              cur = Math.min(cell.end, h.end);
+            });
+            if (cur < cell.end) cellContent += esc(S.text.slice(cur, cell.end));
+            cellsInRow += `<td class="xlsx-td-cell" title="${escAttr(cell.ref)}">${cellContent}</td>`;
+          }
+        }
+      }
+      rowsHtml += `<tr>${cellsInRow}</tr>`;
+    }
+
+    container.innerHTML = `
+      ${tabsHtml}
+      <div class="xlsx-table-container">
+        <table class="xlsx-table">
+          <thead><tr>${colsHtml}</tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    `;
+
+    container.querySelectorAll(".xlsx-sheet-tab-btn").forEach(btn => {
+      btn.onclick = () => {
+        S.activeSheet = btn.dataset.sheet;
+        renderXlsxGrid(container, previewOn);
+      };
+    });
+
+    container.querySelectorAll("button.mk").forEach(b => {
+      b.onclick = () => select(+b.dataset.id);
+    });
+  }
+
   function paintReview(){
     const t = i();
     let acceptedCount = 0;
@@ -1487,9 +1798,20 @@ function download(name, blob){
       $("btnAdd").textContent = t.addSelection;
       $("btnAdd").setAttribute("data-tip", t.tips.addSelection);
     }
-    if ($("orig")) {
-      $("orig").innerHTML = previewOn ? previewHTML() : origHTML();
-      $("orig").querySelectorAll("button.mk").forEach(b => b.onclick = () => select(+b.dataset.id));
+
+    const isXlsx = S.kind === "xlsx" && S.cellMap && S.cellMap.length > 0;
+    const xlsxGrid = $("xlsxGrid");
+    const origPre = $("orig");
+
+    if (isXlsx && xlsxGrid && origPre) {
+      origPre.classList.add("hidden");
+      xlsxGrid.classList.remove("hidden");
+      renderXlsxGrid(xlsxGrid, previewOn);
+    } else if (origPre) {
+      origPre.classList.remove("hidden");
+      if (xlsxGrid) xlsxGrid.classList.add("hidden");
+      origPre.innerHTML = previewOn ? previewHTML() : origHTML();
+      origPre.querySelectorAll("button.mk").forEach(b => b.onclick = () => select(+b.dataset.id));
     }
     paintPdfVisual();
 
@@ -1549,7 +1871,16 @@ function download(name, blob){
     if ($("lblBulkAside")) $("lblBulkAside").textContent = t.lblBulkAside || (S.lang === "cs" ? "Hromadné akce" : "Bulk actions");
     if ($("shortcutHint")) $("shortcutHint").innerHTML = `<span><kbd>J</kbd>/<kbd>K</kbd> ${S.lang === "cs" ? "další" : "next"} · <kbd>R</kbd> ${S.lang === "cs" ? "anonymizovat" : "redact"} · <kbd>P</kbd> ${S.lang === "cs" ? "ponechat" : "keep"} · <kbd>F</kbd> ${S.lang === "cs" ? "celá obrazovka" : "fullscreen"}</span>`;
 
-    $("filters").innerHTML = ["all","redact","keep"].map(f => `<button type="button" class="chip ${S.filter===f?"on":""}" data-f="${f}" aria-pressed="${S.filter===f}">${f==="all"?t.filterAll:f==="redact"?t.filterRedact:t.filterKeep}</button>`).join("");
+    const filterKeys = (S.isSecondReviewMode || S.secondEyes)
+      ? ["all", "secondReview", "redact", "keep"]
+      : ["all", "redact", "keep"];
+    $("filters").innerHTML = filterKeys.map(f => {
+      let label = t.filterAll;
+      if (f === "secondReview") label = t.filterSecondReview || (S.lang === "cs" ? "Ruční změny a výjimky" : "Manual & Exceptions");
+      else if (f === "redact") label = t.filterRedact;
+      else if (f === "keep") label = t.filterKeep;
+      return `<button type="button" class="chip ${S.filter===f?"on":""}" data-f="${f}" aria-pressed="${S.filter===f}">${label}</button>`;
+    }).join("");
     $("filters").querySelectorAll("[data-f]").forEach(b => b.onclick = () => { S.filter = b.dataset.f; paintReview(); });
 
     if (isEntities) {
@@ -1870,6 +2201,9 @@ async function onFile(file){
           S.pages = sessionData.doc.pages || [sessionData.doc.text];
           S.reviewed = sessionData.doc.reviewed ?? true;
           S.secondEyes = true;
+          S.isSecondReviewMode = true;
+          S.firstOperator = sessionData.operator || "";
+          S.filter = "secondReview";
           S.cellMap = sessionData.doc.cellMap || [];
           S.sigDetected = !!sessionData.doc.sigDetected;
           S.hits = sessionData.hits || [];
@@ -2500,6 +2834,10 @@ async function maybePdfa(bytes, notes){
     S.fileName = "";
     S.reviewed = false;
     S.secondEyes = false;
+    S.isSecondReviewMode = false;
+    S.firstOperator = "";
+    S.activeSheet = null;
+    if (S.filter === "secondReview") S.filter = "all";
     S.selectedId = null;
     S.seen = new Set();
     S.hashIn = "";
@@ -2661,6 +2999,11 @@ async function maybePdfa(bytes, notes){
       moreMenu.classList.add("hidden");
       $("btnHeaderMore")?.setAttribute("aria-expanded", "false");
     }
+    const queuePopover = $("queuePopover");
+    if (queuePopover && !queuePopover.classList.contains("hidden") && !e.target.closest("#headerDocContext")) {
+      queuePopover.classList.add("hidden");
+      $("btnQueueToggle")?.setAttribute("aria-expanded", "false");
+    }
   }, { passive: true });
 
   function pickFile(){
@@ -2792,6 +3135,55 @@ async function maybePdfa(bytes, notes){
     const files = await collectFilesFromDataTransfer(e.dataTransfer);
     if (files.length) onFiles(files);
   });
+
+  globalThis.addManualHitFromVisual = (selectedText, pageNum, relStart, relEnd) => {
+    const sel = (selectedText || "").trim();
+    if (sel.length < 2) return;
+    let start = -1;
+    const pageMeta = (S.pages || []).find(p => p.n === pageNum);
+    if (pageMeta) {
+      if (typeof relStart === "number" && typeof pageMeta.start === "number") {
+        const candOffset = pageMeta.start + relStart;
+        if (S.text.slice(candOffset, candOffset + sel.length) === sel) {
+          start = candOffset;
+        }
+      }
+      if (start < 0 && pageMeta.body) {
+        const idx = pageMeta.body.indexOf(sel);
+        if (idx >= 0 && typeof pageMeta.start === "number") start = pageMeta.start + idx;
+      }
+    }
+    if (start < 0) start = S.text.indexOf(sel);
+    if (start < 0) return;
+
+    const nid = S.hits.reduce((m, h) => Math.max(m, h.id || 0), 0) + 1;
+    const words = sel.split(/\s+/);
+    const isName = looksName(sel) || (words.length >= 2 && words.some(w => looksName(w)));
+    const hitType = isName ? "name" : "secrets";
+    const entityKey = isName ? ("name|" + nameKey(sel)) : ("secrets|" + sel.toLocaleLowerCase("cs"));
+    const newHit = {
+      id: nid,
+      type: hitType,
+      value: sel,
+      start,
+      end: start + sel.length,
+      accept: true,
+      confidence: "high",
+      reasons: [isName ? "morphology" : "dict"],
+      entityKey,
+      page: pageNum || pageOf(start)
+    };
+    S.hits.push(newHit);
+    if (!isName && !secretList().includes(sel)) S.secrets += "\n" + sel;
+    if (isName) {
+      const beforeCount = S.hits.length;
+      expandCzechNameMorphology(S.text, S.hits, newHit);
+      const added = S.hits.length - beforeCount;
+      if (added > 0) toast(formatPlural(added, i().morphToastPlural || i().morphToast, S.lang));
+    }
+    paintReview();
+  };
+
   $("btnAdd").onclick = () => {
     const sel = window.getSelection().toString().trim();
     if (sel.length<3) return;
@@ -2879,6 +3271,13 @@ async function maybePdfa(bytes, notes){
         moreMenu.classList.add("hidden");
         $("btnHeaderMore")?.setAttribute("aria-expanded", "false");
         $("btnHeaderMore")?.focus();
+        return;
+      }
+      const queuePopover = $("queuePopover");
+      if (queuePopover && !queuePopover.classList.contains("hidden")) {
+        queuePopover.classList.add("hidden");
+        $("btnQueueToggle")?.setAttribute("aria-expanded", "false");
+        $("btnQueueToggle")?.focus();
         return;
       }
     }
@@ -3528,3 +3927,12 @@ export function selfTest(){
   }
   applyTheme();
   paint();
+  if (typeof canFetchLocalAssets === "function") {
+    canFetchLocalAssets().then(supported => {
+      S.ocrSupported = !!supported;
+      if (!supported && !S.text) paintLanding();
+    }).catch(() => {
+      S.ocrSupported = false;
+      if (!S.text) paintLanding();
+    });
+  }

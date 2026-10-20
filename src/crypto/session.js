@@ -87,6 +87,7 @@ export async function exportSession(state, password, options = {}) {
     replaceMode: state.replaceMode,
     lang: state.lang,
     legalReason: state.legalReason,
+    operator: state.operator || "",
     auditTrail: state.auditTrail || []
   };
 

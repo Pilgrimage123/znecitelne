@@ -149,8 +149,8 @@ export const IngestErrorCode = Object.freeze({
       const canFetch = await canFetchLocalAssets();
       if (!canFetch) {
         throw new Error(t === "cs"
-          ? "OCR v režimu souboru (file:///) není prohlížečem podporováno. Spusťte prosím aplikaci přes lokální server (např. 'npm start' -> http://localhost:3000)."
-          : "OCR under file:/// protocol is blocked by browser security. Please run via a local server (e.g. 'npm start' -> http://localhost:3000).");
+          ? "OCR vyžaduje spuštění ze síťové složky, intranetu nebo webového serveru (v režimu přímého otevření souboru file:/// prohlížeč z bezpečnostních důvodů blokuje spouštění lokálních modulů)."
+          : "OCR requires running from a web server or intranet folder (direct file:/// opening blocks WebAssembly modules due to browser security policies).");
       }
       reportProgress(t === "cs" ? "OCR: spouštím rozpoznávání textu…" : "OCR: running recognition…");
       const timeoutPromise = new Promise((_, reject) => {

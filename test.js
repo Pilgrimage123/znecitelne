@@ -2251,6 +2251,56 @@ try {
   failures.push("Recommendations test failed: " + (recErr.message || String(recErr)));
 }
 
+// UI/UX Improvements A-F: Landing Profile, PDF Marquee, XLSX Grid, 4-Eyes, Queue Popover, Offline OCR
+try {
+  // A. Landing Profile selector
+  check(canonical.includes('id="landingProfileBox"'), "Landing page must contain #landingProfileBox");
+  check(canonical.includes('class="profile-pills-seg"'), "Landing page must have segmented profile pills control");
+  check(
+    canonical.includes('data-profile="registr"') &&
+    canonical.includes('data-profile="infoact"') &&
+    canonical.includes('data-profile="court"') &&
+    canonical.includes('data-profile="publicai"'),
+    "Landing profile pills must cover 4 primary publication profiles: registr, infoact, court, publicai"
+  );
+
+  // B. Visual PDF Marquee & floating redact button
+  check(canonical.includes(".pv-marquee") && canonical.includes(".pv-floating-add"), "Visual PDF must have styling for marquee selection and floating button");
+  check(canonical.includes("setupVisualPdfMarquee"), "PDF module must implement setupVisualPdfMarquee");
+  check(canonical.includes("addManualHitFromVisual"), "App must provide addManualHitFromVisual for visual PDF selections");
+  check(I18N.cs.visualNote.includes("tažením myši"), "visualNote in Czech must inform user about drag selection");
+  check(I18N.en.visualNote.includes("drag across text"), "visualNote in English must inform user about drag selection");
+
+  // C. XLSX Grid View
+  check(canonical.includes('id="xlsxGrid"'), "Document pane must contain #xlsxGrid");
+  check(canonical.includes(".xlsx-grid-wrap") && canonical.includes(".xlsx-sheet-tabs") && canonical.includes(".xlsx-table"), "XLSX grid styling must be present");
+  check(canonical.includes("function renderXlsxGrid"), "App must contain renderXlsxGrid implementation");
+
+  // D. Principle of 4 Eyes
+  check(canonical.includes('id="badgeSecondReviewer"'), "Work bar must contain #badgeSecondReviewer");
+  check(I18N.cs.filterSecondReview === "Ruční změny a výjimky", "Czech filterSecondReview must be defined");
+  check(I18N.en.filterSecondReview === "Manual & Exceptions", "English filterSecondReview must be defined");
+  check(canonical.includes('S.filter = "secondReview"') || canonical.includes("isSecondReviewMode"), "Session loading must activate second review mode");
+
+  // E. Batch Queue Dashboard / Popover
+  check(canonical.includes('id="btnQueueToggle"') && canonical.includes('id="queuePopover"'), "Header queue must have #btnQueueToggle and #queuePopover");
+  check(canonical.includes(".qp-stats-bar") && canonical.includes(".qp-item") && canonical.includes(".qp-next-unreviewed-btn"), "Queue Popover must have styling for stats, items, and next unreviewed button");
+  check(canonical.includes("btnQpNextUnreviewed"), "Queue Popover must have next unreviewed navigation button");
+
+  // F. Offline OCR / file:/// clarity
+  check(canonical.includes("canFetchLocalAssets"), "PDF and app modules must implement canFetchLocalAssets check");
+  check(
+    !canonical.includes("npm start") || !canonical.includes("http://localhost:3000"),
+    "Ingest error messages must not present developer-only npm start jargon"
+  );
+  check(
+    canonical.includes("síťové složky") && canonical.includes("file:///"),
+    "Ingest error message must explain file:/// protocol restrictions without dev jargon"
+  );
+} catch (uxErr) {
+  failures.push("UI/UX improvements A-F test failed: " + (uxErr.message || String(uxErr)));
+}
+
 
 if (failures.length) {
   console.error("Quality gate failed:");

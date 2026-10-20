@@ -125,8 +125,8 @@ export const I18N = {
       landingStep1:"Nahrajte smlouvu, ticket, rozhodnutí, PDF s textovou vrstvou nebo XLSX.",
       landingStep2:"Projdete nálezy: RČ a účty i JIRA ID, systémy, řízení a stav produkce.",
       landingStep3:"Exportujte začerněné PDF, XLSX bez metadat, nebo balíček pro AI s osnovou postupu.",
-      filterAll:"Vše", filterRedact:"K anonymizaci", filterKeep:"Ponecháno",
-      addSelection:"Přidat vlastní výběr textu", visualOn:"Vizuální náhled PDF", visualOff:"Textový náhled", visualNote:"Vizuální náhled: kliknutím na zvýrazněný nález jej vyberete. Vlastní výběr textu přidáte v textovém náhledu.", visualErr:"Vizuální náhled se nepodařilo vykreslit.", selected:"Vybraný nález", context:"Kontext",
+      filterAll:"Vše", filterRedact:"K anonymizaci", filterKeep:"Ponecháno", filterSecondReview:"Ruční změny a výjimky",
+      addSelection:"Přidat vlastní výběr textu", visualOn:"Vizuální náhled PDF", visualOff:"Textový náhled", visualNote:"Vizuální náhled: kliknutím na nález jej vyberete, tažením myši označíte nový úsek k anonymizaci.", visualErr:"Vizuální náhled se nepodařilo vykreslit.", selected:"Vybraný nález", context:"Kontext",
       high:"ověřeno", medium:"pravděpodobná shoda",
       reasonLabels:{
         "trigger:role": "[Trigger: role]",
@@ -357,8 +357,8 @@ export const I18N = {
       landingStep1:"Upload a contract, ticket, decision, a searchable PDF, or an XLSX sheet.",
       landingStep2:"Walk the hits: birth numbers and accounts, plus JIRA IDs, systems, case files and production status.",
       landingStep3:"Export a rasterized PDF, metadata-stripped XLSX, or an AI pack with a process outline.",
-      filterAll:"All", filterRedact:"To redact", filterKeep:"Kept",
-      addSelection:"Add custom text selection", visualOn:"Visual PDF preview", visualOff:"Text view", visualNote:"Visual preview: click a highlighted finding to select it. Add a custom text selection in the text view.", visualErr:"The visual preview could not be rendered.", selected:"Selected hit", context:"Context",
+      filterAll:"All", filterRedact:"To redact", filterKeep:"Kept", filterSecondReview:"Manual & Exceptions",
+      addSelection:"Add custom text selection", visualOn:"Visual PDF preview", visualOff:"Text view", visualNote:"Visual preview: click a finding to select it, or drag across text to redact new selection.", visualErr:"The visual preview could not be rendered.", selected:"Selected hit", context:"Context",
       high:"validated", medium:"likely match",
       reasonLabels:{
         "trigger:role": "[Trigger: role]",

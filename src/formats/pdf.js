@@ -416,7 +416,97 @@ export function paintPdfVisualOverlays(){
     });
   });
 }
-  export async function buildPdfVisual(token){
+function setupVisualPdfMarquee(wrap, layer, pageNum, mapped){
+  layer.addEventListener("mousedown", (e) => {
+    if (e.target && e.target.classList && e.target.classList.contains("pv-box")) return;
+    if (e.button !== 0) return;
+    const oldBtns = wrap.querySelectorAll(".pv-floating-add");
+    oldBtns.forEach(b => b.remove());
+
+    const rect = wrap.getBoundingClientRect();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const pageStartX = startX - rect.left;
+    const pageStartY = startY - rect.top;
+
+    let marquee = null;
+    let isDragging = false;
+
+    function onMouseMove(ev) {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      if (!isDragging && Math.hypot(dx, dy) > 5) {
+        isDragging = true;
+        marquee = document.createElement("div");
+        marquee.className = "pv-marquee";
+        wrap.appendChild(marquee);
+      }
+      if (isDragging && marquee) {
+        const curX = ev.clientX - rect.left;
+        const curY = ev.clientY - rect.top;
+        const l = Math.min(pageStartX, curX);
+        const t = Math.min(pageStartY, curY);
+        const w = Math.abs(curX - pageStartX);
+        const h = Math.abs(curY - pageStartY);
+        marquee.style.left = l + "px";
+        marquee.style.top = t + "px";
+        marquee.style.width = w + "px";
+        marquee.style.height = h + "px";
+      }
+    }
+
+    function onMouseUp(ev) {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      if (marquee) {
+        marquee.remove();
+        marquee = null;
+      }
+      if (isDragging) {
+        const curX = ev.clientX - rect.left;
+        const curY = ev.clientY - rect.top;
+        const minX = Math.min(pageStartX, curX);
+        const maxX = Math.max(pageStartX, curX);
+        const minY = Math.min(pageStartY, curY);
+        const maxY = Math.max(pageStartY, curY);
+
+        if ((maxX - minX) > 8 && (maxY - minY) > 8) {
+          const hitGlyphs = (mapped.map || []).filter(g => {
+            return g.x < maxX && (g.x + g.w) > minX && g.y < maxY && (g.y + g.h) > minY;
+          });
+          if (hitGlyphs.length > 0) {
+            hitGlyphs.sort((a, b) => a.start - b.start);
+            const firstStart = hitGlyphs[0].start;
+            const lastEnd = hitGlyphs[hitGlyphs.length - 1].end;
+            const selectedText = mapped.text.slice(firstStart, lastEnd).trim();
+            if (selectedText.length >= 2) {
+              const flBtn = document.createElement("button");
+              flBtn.type = "button";
+              flBtn.className = "btn btn-sm btn-add-sel pv-floating-add";
+              const label = S.lang === "cs" ? "+ Anonymizovat výběr" : "+ Redact selection";
+              flBtn.innerHTML = `${label}: <strong>${esc(selectedText.length > 20 ? selectedText.slice(0, 18) + "…" : selectedText)}</strong>`;
+              flBtn.style.left = Math.max(8, Math.min(minX, wrap.clientWidth - 240)) + "px";
+              flBtn.style.top = Math.max(8, minY - 36) + "px";
+              wrap.appendChild(flBtn);
+              flBtn.onclick = (btnEv) => {
+                btnEv.stopPropagation();
+                flBtn.remove();
+                if (typeof globalThis.addManualHitFromVisual === "function") {
+                  globalThis.addManualHitFromVisual(selectedText, pageNum, firstStart, lastEnd);
+                }
+              };
+            }
+          }
+        }
+      }
+    }
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  });
+}
+
+export async function buildPdfVisual(token){
     const host = $("pdfVisual");
     if (!host) return;
     const width = Math.max(280, Math.min(900, host.clientWidth - 16 || 700));
@@ -447,6 +537,7 @@ export function paintPdfVisualOverlays(){
       const raw = (meta && meta.items && meta.items.length) ? meta.items : (await page.getTextContent()).items;
       const mapped = mapPageGlyphs(raw, scale, vp);
       pages.push({ n, wrap, layer, text: mapped.text, map: mapped.map, scale });
+      setupVisualPdfMarquee(wrap, layer, n, mapped);
     }
     if (token !== pvToken) return;
     PV = { buf: S.sourceBuf, width, pages };
@@ -464,7 +555,7 @@ export function paintPdfVisualOverlays(){
     }
     document.body.classList.toggle("pdf-visual-on", S.pdfVisual);
     const btnAdd = $("btnAdd");
-    if (btnAdd) btnAdd.disabled = S.pdfVisual;
+    if (btnAdd) btnAdd.disabled = false;
     if (host) {
       host.classList.toggle("hidden", !S.pdfVisual);
       if (!S.pdfVisual) { pvToken++; return; }
