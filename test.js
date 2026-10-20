@@ -2241,6 +2241,12 @@ try {
   check(canonical.includes('overflow-y: auto;') && canonical.includes('body.has-doc #reviewAside'), "body.has-doc #reviewAside must have overflow-y: auto to prevent panel clipping");
   check(!canonical.includes('document.addEventListener("click"') || (canonical.match(/document\.addEventListener\("click"/g) || []).length <= 1, "Must not leak document click listener inside paintWorkBar");
   check(canonical.includes('id="lblThemeText"') && canonical.includes('id="lblLangText"'), "Header overflow items must retain text span labels");
+
+  // 9. Fullscreen toggle & menu button
+  check(canonical.includes('id="btnFullscreen"'), "Header icon group must include #btnFullscreen button");
+  check(canonical.includes('id="btnMenuFullscreen"'), "Header overflow menu must include #btnMenuFullscreen item");
+  check(canonical.includes('id="lblFullscreenMenuText"'), "Fullscreen menu item must include #lblFullscreenMenuText label");
+  check(I18N.cs.fullscreen === "Celá obrazovka" && I18N.en.fullscreen === "Fullscreen", "Fullscreen translations must be defined in CS and EN");
 } catch (recErr) {
   failures.push("Recommendations test failed: " + (recErr.message || String(recErr)));
 }

@@ -77,6 +77,78 @@ export const S = {
     applyTheme();
   }
 
+  function isFullscreen() {
+    return !!(
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement
+    );
+  }
+
+  async function toggleFullscreen() {
+    try {
+      if (!isFullscreen()) {
+        const docEl = document.documentElement;
+        if (docEl.requestFullscreen) {
+          await docEl.requestFullscreen();
+        } else if (docEl.webkitRequestFullscreen) {
+          await docEl.webkitRequestFullscreen();
+        } else if (docEl.mozRequestFullScreen) {
+          await docEl.mozRequestFullScreen();
+        } else if (docEl.msRequestFullscreen) {
+          await docEl.msRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          await document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+          await document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+          await document.msExitFullscreen();
+        }
+      }
+    } catch (err) {
+      console.warn("Fullscreen toggle failed:", err);
+      const t = i();
+      toast(t.fullscreenNotAllowed || (S.lang === "cs" ? "Režim celé obrazovky není v tomto okně povolen." : "Fullscreen mode is not permitted in this window."));
+    }
+  }
+
+  function updateFullscreenUI() {
+    const fs = isFullscreen();
+    document.body.classList.toggle("is-fullscreen", fs);
+    const t = i();
+    const enterTip = t.fullscreenTip || (S.lang === "cs" ? "Celá obrazovka (F)" : "Fullscreen (F)");
+    const exitTip = t.fullscreenExitTip || (S.lang === "cs" ? "Ukončit celou obrazovku (F)" : "Exit fullscreen (F)");
+    const tipText = fs ? exitTip : enterTip;
+
+    const btn = $("btnFullscreen");
+    if (btn) {
+      btn.title = tipText;
+      btn.setAttribute("aria-label", tipText);
+      btn.setAttribute("data-tip", tipText);
+      btn.setAttribute("aria-pressed", fs ? "true" : "false");
+      btn.innerHTML = fs
+        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>'
+        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>';
+    }
+
+    const lblMenu = $("lblFullscreenMenuText");
+    if (lblMenu) {
+      lblMenu.textContent = fs ? (t.fullscreenExit || (S.lang === "cs" ? "Ukončit celou obrazovku" : "Exit fullscreen")) : (t.fullscreen || (S.lang === "cs" ? "Celá obrazovka" : "Fullscreen"));
+    }
+
+    const menuIcon = $("btnMenuFullscreen")?.querySelector(".dropdown-item-icon");
+    if (menuIcon) {
+      menuIcon.innerHTML = fs
+        ? '<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>'
+        : '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>';
+    }
+  }
+
 function leakScan(text){
     const checks = [
       { id:"ticket", re:/\b[A-Z][A-Z0-9]{1,9}-\d{2,7}\b/g },
@@ -1171,6 +1243,7 @@ function download(name, blob){
     if ($("lblHelpText")) $("lblHelpText").textContent = t.helpTitle || "Nápověda a klávesy";
     if ($("lblFeaturesText")) $("lblFeaturesText").textContent = t.featuresBtn || "Přehled funkcí";
     if ($("lblChangelogText")) $("lblChangelogText").textContent = t.changelogBtn || "Historie verzí";
+    updateFullscreenUI();
 
     if (!isReviewActive) return;
 
@@ -1474,7 +1547,7 @@ function download(name, blob){
 
     if ($("lblFiltersAside")) $("lblFiltersAside").textContent = t.lblFiltersAside || (S.lang === "cs" ? "Filtrovat zobrazení" : "Filter view");
     if ($("lblBulkAside")) $("lblBulkAside").textContent = t.lblBulkAside || (S.lang === "cs" ? "Hromadné akce" : "Bulk actions");
-    if ($("shortcutHint")) $("shortcutHint").innerHTML = `<span><kbd>J</kbd>/<kbd>K</kbd> ${S.lang === "cs" ? "další" : "next"} · <kbd>R</kbd> ${S.lang === "cs" ? "anonymizovat" : "redact"} · <kbd>P</kbd> ${S.lang === "cs" ? "ponechat" : "keep"}</span>`;
+    if ($("shortcutHint")) $("shortcutHint").innerHTML = `<span><kbd>J</kbd>/<kbd>K</kbd> ${S.lang === "cs" ? "další" : "next"} · <kbd>R</kbd> ${S.lang === "cs" ? "anonymizovat" : "redact"} · <kbd>P</kbd> ${S.lang === "cs" ? "ponechat" : "keep"} · <kbd>F</kbd> ${S.lang === "cs" ? "celá obrazovka" : "fullscreen"}</span>`;
 
     $("filters").innerHTML = ["all","redact","keep"].map(f => `<button type="button" class="chip ${S.filter===f?"on":""}" data-f="${f}" aria-pressed="${S.filter===f}">${f==="all"?t.filterAll:f==="redact"?t.filterRedact:t.filterKeep}</button>`).join("");
     $("filters").querySelectorAll("[data-f]").forEach(b => b.onclick = () => { S.filter = b.dataset.f; paintReview(); });
@@ -2450,6 +2523,15 @@ async function maybePdfa(bytes, notes){
 
   $("btnLang").onclick = () => { S.lang = S.lang==="cs"?"en":"cs"; localStorage.setItem("znec-lang", S.lang); paint(); };
   $("btnTheme").onclick = toggleTheme;
+  if ($("btnFullscreen")) $("btnFullscreen").onclick = () => { void toggleFullscreen(); };
+  if ($("btnMenuFullscreen")) $("btnMenuFullscreen").onclick = () => {
+    $("headerMoreMenu")?.classList.add("hidden");
+    $("btnHeaderMore")?.setAttribute("aria-expanded", "false");
+    void toggleFullscreen();
+  };
+  ["fullscreenchange", "webkitfullscreenchange", "mozfullscreenchange", "MSFullscreenChange"].forEach((evt) => {
+    document.addEventListener(evt, updateFullscreenUI);
+  });
   $("btnSettings").onclick = openSettings;
   $("btnSettingsApply").onclick = () => {
     const root = $("settingsModalMount");
@@ -2486,7 +2568,8 @@ async function maybePdfa(bytes, notes){
     $("helpSheet").innerHTML = `<h2>${t.helpTitle}</h2><p style="color:var(--muted)">${t.help}</p>
       <ul style="padding:0;list-style:none"><li><kbd>J</kbd> ${t.kbdNext} · <kbd>K</kbd> ${t.kbdPrev}</li>
       <li style="margin-top:8px"><kbd>R</kbd> ${t.kbdRedact}</li>
-      <li style="margin-top:8px"><kbd>P</kbd> ${t.kbdKeep}</li></ul>
+      <li style="margin-top:8px"><kbd>P</kbd> ${t.kbdKeep}</li>
+      <li style="margin-top:8px"><kbd>F</kbd> ${t.kbdFullscreen || "Celá obrazovka"}</li></ul>
       <p style="color:var(--muted);font-size:13px">Profil „Veřejná AI“ drží konzistentní tokeny (CBUAIS-5164 → [TICKET_001]) a maže Author / lastModifiedBy. Stejná osoba s titulem, iniciálou i v pádě sdílí token. Slovník a osnova používají stejná čísla jako text. Slovník pište jako <span class="mono">eSpis | INTEGRACE</span> — krátké názvy se berou jen na hranici slova.</p>
       <button class="btn" style="margin-top:12px" id="okHelp">OK</button>`;
     const btnOkHelp = $("okHelp");
@@ -2819,9 +2902,17 @@ async function maybePdfa(bytes, notes){
         return;
       }
     }
-    const tag = (e.target.tagName||"");
-    if (tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
-    if (e.metaKey||e.ctrlKey||e.altKey||!S.text) return;
+    const tag = (e.target && e.target.tagName) || "";
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target && e.target.isContentEditable)) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+    if (e.key === "f" || e.key === "F") {
+      e.preventDefault();
+      void toggleFullscreen();
+      return;
+    }
+
+    if (!S.text) return;
     const list = filtered();
     if (!list.length) return;
     if (e.key==="j"||e.key==="J"||e.key==="ArrowDown") { e.preventDefault(); selectNextHit(); }
