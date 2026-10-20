@@ -2043,12 +2043,30 @@ function download(name, blob){
     bindTips();
     requestAnimationFrame(updateBarHeightVar);
   }
+  function scrollChildIntoContainer(container, child, margin = 8) {
+    if (!container || !child) return;
+    const cRect = container.getBoundingClientRect();
+    const chRect = child.getBoundingClientRect();
+    if (chRect.top < cRect.top) {
+      container.scrollTop -= (cRect.top - chRect.top) + margin;
+    } else if (chRect.bottom > cRect.bottom) {
+      container.scrollTop += (chRect.bottom - cRect.bottom) + margin;
+    }
+  }
   function select(id){
     S.selectedId = id; S.seen.add(id); paintReview();
     const el = (S.pdfVisual ? $("pdfVisual") : $("orig")).querySelector(`[data-id="${id}"]`);
     if (el) el.scrollIntoView({ block:"center", behavior:"smooth" });
     const asideItem = $("entityList")?.querySelector(".entity-card.sel") || $("hitList")?.querySelector(".hit.sel");
-    if (asideItem) asideItem.scrollIntoView({ block:"nearest", behavior:"smooth" });
+    const asideList = $("entityList")?.classList.contains("hidden") ? $("hitList") : $("entityList");
+    if (asideList && asideItem) {
+      scrollChildIntoContainer(asideList, asideItem, 6);
+    }
+    const insp = $("inspector");
+    const aside = $("reviewAside");
+    if (insp && aside && !insp.classList.contains("hidden") && S.selectedId) {
+      scrollChildIntoContainer(aside, insp, 16);
+    }
   }
   function patch(id, accept){ const h = S.hits.find(x=>x.id===id); if (h) h.accept = accept; S.seen.add(id); paintReview(); }
   function selectNextHit(){

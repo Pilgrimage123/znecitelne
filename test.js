@@ -2301,6 +2301,18 @@ try {
   failures.push("UI/UX improvements A-F test failed: " + (uxErr.message || String(uxErr)));
 }
 
+// Card & Scrollbar accessibility: Selected finding card and panel scrollbars
+try {
+  check(htmlSourceIncludes("padding-bottom: 24px;") && htmlSourceIncludes("body.has-doc #reviewAside"), "reviewAside must have 24px bottom padding to prevent card clipping");
+  check(!htmlSourceIncludes("body.has-doc .work {\n    flex: 1 1 auto;\n    min-height: 0;\n    grid-template-columns: minmax(0, 1fr) 420px;\n    align-items: stretch;\n    height: 100%;"), "body.has-doc .work must not force height: 100% which clips review bottom on banners");
+  check(htmlSourceIncludes("#inspector {\n  flex-shrink: 0;\n}"), "inspector must have flex-shrink: 0 to protect card form fields and buttons");
+  check(htmlSourceIncludes("#inspector:empty {\n  display: none !important;\n}"), "empty inspector must be hidden");
+  check(htmlSourceIncludes(".insp-marquee {\n  max-height: 120px;\n  overflow-y: auto;"), "insp-marquee must constrain multi-line text with max-height and internal scroll");
+  check(htmlSourceIncludes("function scrollChildIntoContainer"), "App must implement scrollChildIntoContainer for isolated container scrolling");
+} catch (cardErr) {
+  failures.push("Card & scrollbar test failed: " + (cardErr.message || String(cardErr)));
+}
+
 
 if (failures.length) {
   console.error("Quality gate failed:");

@@ -194,10 +194,10 @@ textarea { min-height: 80px; font-family: var(--mono); font-size: 13px; }
 .work { display: grid; gap: 16px; }
 @media (min-width: 1100px) { .work { grid-template-columns: minmax(0,1fr) 420px; } }
 .pane { background: var(--surface); border-radius: 16px; padding: 12px; box-shadow: 0 0 0 1.5px var(--border); }
-pre.doc { max-height: min(70dvh, 640px); overflow: auto; white-space: pre-wrap; word-break: break-word; font: 13px/1.65 var(--mono); margin: 0; color: var(--fg); }
+pre.doc { max-height: min(70dvh, 640px); overflow: auto; white-space: pre-wrap; word-break: break-word; font: 13px/1.65 var(--mono); margin: 0; color: var(--fg); padding-bottom: 16px; scrollbar-gutter: stable; }
 @media (min-width: 1100px) { #orig { max-height: min(85dvh, 980px); } }
 body.pdf-visual-on #orig { display: none; }
-#pdfVisual { max-height: min(70dvh, 640px); overflow: auto; background: var(--bg-subtle); border-radius: 8px; padding: 8px; }
+#pdfVisual { max-height: min(70dvh, 640px); overflow: auto; background: var(--bg-subtle); border-radius: 8px; padding: 8px; scrollbar-gutter: stable; }
 @media (min-width: 1100px) { #pdfVisual { max-height: min(85dvh, 980px); } }
 #pdfVisual.hidden { display: none; }
 .pv-page { position: relative; margin: 0 auto 12px; box-shadow: 0 0 0 1.5px var(--border); background: #fff; }
@@ -265,7 +265,7 @@ html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--prima
 .filters { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { min-height: 36px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--surface); color: var(--fg); padding: 0 12px; font-size: 13px; font-weight: 500; }
 .chip.on { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
-.hits { max-height: 42dvh; overflow: auto; border-radius: 16px; background: var(--surface); box-shadow: 0 0 0 1.5px var(--border); }
+.hits { max-height: 42dvh; overflow: auto; border-radius: 16px; background: var(--surface); box-shadow: 0 0 0 1.5px var(--border); padding: 4px 2px 8px 2px; scrollbar-gutter: stable; }
 .hit { display: flex; gap: 8px; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--fg); padding: 10px 12px; font: inherit; }
 .hit.sel { background: var(--bg-subtle); box-shadow: inset 3px 0 0 var(--accent); }
 .mono { font-family: var(--mono); font-size: 12px; }
@@ -298,7 +298,6 @@ html[data-theme="dark"] .pill-ok { background: var(--ok); color: #12161c; }
     min-height: 0;
     grid-template-columns: minmax(0, 1fr) 420px;
     align-items: stretch;
-    height: 100%;
     overflow: hidden;
   }
   body.has-doc .doc-pane {
@@ -314,6 +313,8 @@ html[data-theme="dark"] .pill-ok { background: var(--ok); color: #12161c; }
     max-height: none !important;
     height: 100%;
     overflow-y: auto;
+    padding-bottom: 16px;
+    scrollbar-gutter: stable;
   }
   body.has-doc #pdfVisual {
     flex: 1 1 auto;
@@ -321,6 +322,7 @@ html[data-theme="dark"] .pill-ok { background: var(--ok); color: #12161c; }
     max-height: none !important;
     height: 100%;
     overflow-y: auto;
+    scrollbar-gutter: stable;
   }
   body.has-doc #reviewAside {
     display: flex;
@@ -329,6 +331,9 @@ html[data-theme="dark"] .pill-ok { background: var(--ok); color: #12161c; }
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
+    padding-bottom: 24px;
+    box-sizing: border-box;
+    scrollbar-gutter: stable;
   }
   body.has-doc .entities-container,
   body.has-doc .hits {
@@ -336,6 +341,7 @@ html[data-theme="dark"] .pill-ok { background: var(--ok); color: #12161c; }
     min-height: 120px;
     max-height: none !important;
     overflow-y: auto;
+    scrollbar-gutter: stable;
   }
   body.has-doc footer { display: none; }
 }
@@ -562,7 +568,14 @@ html[data-theme="dark"] .privacy-badge {
 
 .entities-container {
   max-height: 48dvh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
-  border-radius: var(--radius); padding-right: 2px;
+  border-radius: var(--radius); padding: 2px 4px 8px 2px;
+  scrollbar-gutter: stable;
+}
+#inspector {
+  flex-shrink: 0;
+}
+#inspector:empty {
+  display: none !important;
 }
 .entity-card {
   background: var(--surface); border: 1.5px solid var(--border);
@@ -650,7 +663,7 @@ kbd { display: inline-block; min-width: 1.4rem; padding: .1rem .4rem; border-rad
   position: fixed; right: 16px; bottom: calc(var(--bar-h, 80px) + 12px); z-index: 50; background: var(--primary); color: var(--on-primary);
   padding: 10px 16px; border-radius: 10px; font-size: 13px; display: none;
 }
-.process { font-size: 13px; line-height: 1.45; max-height: 22rem; overflow: auto; }
+.process { font-size: 13px; line-height: 1.45; max-height: 22rem; overflow: auto; padding-bottom: 8px; scrollbar-gutter: stable; }
 .process h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; font-family: var(--font); }
 .process ul { margin: 0; padding-left: 1.1rem; }
 .process .token { font-family: var(--mono); font-size: 12px; }
@@ -761,6 +774,13 @@ body.movie-active [inert] {
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+.insp-marquee {
+  max-height: 120px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: 4px;
 }
 body.movie-paused .chip-track,
 body.movie-paused .movie-pulse {
@@ -991,6 +1011,8 @@ html[data-theme="dark"] .badge-second-reviewer {
   flex: 1 1 auto;
   overflow: auto;
   position: relative;
+  padding-bottom: 8px;
+  scrollbar-gutter: stable;
 }
 .xlsx-table {
   border-collapse: separate;
@@ -1668,7 +1690,8 @@ html[data-theme="dark"] .badge-second-reviewer {
 <script>
 (function () {
 // --- Module: src/core/rules.js ---
-const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];const KEYS = PII_KEYS.concat(ORG_KEYS);const RULES = "2026.10.20-ai51";const CHANGELOG = [
+const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];const KEYS = PII_KEYS.concat(ORG_KEYS);const RULES = "2026.10.20-ai52";const CHANGELOG = [
+  { version: "2026.10.20-ai52", notes: { cs: "Oprava přístupnosti karet a rozvržení posuvníků (scrollbarů): Vyřešeno ořezávání a nedostupnost spodních akčních tlačítek karty Vybraný nález (#inspector) a panelů v revizním aside odstraněním chybného height: 100% u .work způsobujícího přetékání a ořezání v .review. Zaveden bezpečný spodní padding (24 px) a scrollbar-gutter: stable u #reviewAside, .entities-container a .hits. Zajištěno deterministické scrollování aktivního nálezu a inspektoru do zorného pole (scrollChildIntoContainer) bez nežádoucího odskakování rodičovského panelu nahoru. Omezeno přetékání u dlouhých textů v inspektoru (.insp-marquee s max-height: 120px) a skrytí prázdného inspektoru (#inspector:empty).", en: "Card accessibility and scrollbar layout fix: Resolved clipping and inaccessibility of bottom action buttons in Selected Finding card (#inspector) and aside subpanels by removing invalid height: 100% on .work that caused parent .review overflow clipping. Added protective bottom padding (24px) and scrollbar-gutter: stable on #reviewAside, .entities-container and .hits. Implemented deterministic, container-isolated scrolling for selected findings and inspector (scrollChildIntoContainer) without unwanted parent scroll resets. Constrained multiline text overflow in inspector (.insp-marquee with max-height: 120px) and hid empty inspector card (#inspector:empty)." } },
   { version: "2026.10.20-ai51", notes: { cs: "Komplexní ergonomická a workflow vylepšení UI/UX: Rychlý výběr Profilu publikace (Registr smluv, InfZ 106, Rozhodnutí, Veřejná AI) přímo nad dropzónou úvodní obrazovky s obousměrnou synchronizací do Nastavení. Možnost ručního výběru textu myší tažením (Marquee selection) ve Vizuálním náhledu PDF s detekcí glyfů, plovoucí akcí [+ Anonymizovat výběr] a automatickou morfologickou expanzí pádů. Tabulková mřížka (Grid View) pro XLSX a ODS s přepínáním listů a souřadnicemi buněk (A, B, C...) namísto prostého textu. Zpřehlednění workflow Principu 4 očí (.znecitelne-session) s odznakem 1. kontrolora v Pracovní liště a rychlým filtrem ručních zásahů a výjimek v Revizním panelu. Přehledový dashboard (Popover) Dávkové fronty se stavovými indikátory (schváleno, k pozornosti, nezkontrolováno) a navigací na další neschválený dokument. Uživatelsky srozumitelné ošetření a startup detekce dostupnosti OCR v offline prostředí (file:///) bez vývojářského žargonu.", en: "Comprehensive ergonomic and workflow UI/UX enhancements: Quick publication profile selector (Contracts Register, InfZ 106, Court Decisions, Public AI) on landing card above dropzone with two-way Settings synchronization. Direct mouse drag selection (Marquee selection) in Visual PDF preview with glyph intersection, floating [+ Redact selection] action button, and morphological declension expansion. Interactive Grid View table for XLSX and ODS spreadsheets with sheet tabs and coordinates (A, B, C...) replacing plain text preview. Four-Eyes principle workflow enhancements (.znecitelne-session) displaying 1st reviewer identity badge in Workplace bar and dedicated aside filter for manual interventions and exceptions. Batch Queue Dashboard Popover with per-document status indicators (approved, warning, unreviewed) and quick jump to next unreviewed file. Clear offline OCR availability preflight and user-facing explanation in file:/// protocol without developer jargon." } },
   { version: "2026.10.20-ai50", notes: { cs: "Vizuální harmonizace a sjednocení ikon v horní liště (UI/UX Pro Max): Všechna samostatná tlačítka ikon v liště (#btnHeaderAddDoc, #btnHeaderClear, #btnSettings, #btnHeaderMore) sjednocena na přesný čtvercový rozměr 36×36 px s flexibilním středěním, jednotným poloměrem zaoblení (var(--radius-sm, 6px)) a neviditelným rozšířením dotykové zóny na minimálně 44×44 pt pro bezchybnou mobilní přístupnost (WCAG 2.5.5). Sjednocení rozměrů a tahů vektorových SVG ikon v záhlaví na lineární styl (Phosphor/Lucide, stroke-width: 2/2.2). Textový znak šipky ▾ u rozbalovacího exportu nahrazen centrovaným SVG chevronem s plynulou rotací při otevření. Všechny nesourodé systémové emoji v exportním i overflow menu nahrazeny monochromatickými SVG ikonami a štítek aktivního souboru (.doc-badge) doplněn o vektorovou ikonu dokumentu se zarovnáním výšky na 36 px.", en: "Visual harmonization and icon system unification in top bar (UI/UX Pro Max): Unified all standalone icon buttons (#btnHeaderAddDoc, #btnHeaderClear, #btnSettings, #btnHeaderMore) to exact 36×36 px squares with optical centering, consistent corner radii (var(--radius-sm, 6px)), and invisible touch target expansions (>=44×44 pt) for WCAG 2.5.5 compliance. Standardized header vector SVG icons to clean linear Phosphor/Lucide style (stroke-width: 2/2.2). Replaced text arrow ▾ on split export button with an SVG chevron rotating smoothly on menu open. Replaced all emoji glyphs in export and overflow menus with crisp monochrome SVG icons, and enhanced active document badge (.doc-badge) with a document icon aligned to 36 px toolbar height." } },
   { version: "2026.10.20-ai49", notes: { cs: "UI/UX audit a oprava regresí (WCAG 2.1 AA): Odstraněn memory leak opakovaného navěšování posluchače click na document v paintWorkBar, opraveno přepisování textových popisků (#lblThemeText a #lblLangText) v overflow menu záhlaví, vyřešeno ořezávání spodních panelů (inspektor, proces, média) v review aside povolením plynulého svislého posunu, nahrazeny zbývající nativní confirm() za jednotný in-app dialog showConfirm pro „Vše ponechat“ i potvrzení neprohlédnutých nálezů, dopojeny pomocné funkce skloňování formatPlural() na zbývající výskyty v app.js (smartScanTitle, scanWarning, morphToast, queueDone), zajištěno okamžité zaměření (focus) bezpečného tlačítka při otevření modálních oken, ošetřena klávesová kolize šipek v rozbalovacích nabídkách se synchronizací aria-expanded a návratem focusu na toggle tlačítko po Escape, odstraněn nevalidní duplicitní atribut id v šabloně a doplněno automatické scrollování aktivní karty v bočním panelu.", en: "UI/UX audit and regression fixes (WCAG 2.1 AA): Fixed global click event listener leak inside paintWorkBar, resolved DOM clobbering of theme and language text labels (#lblThemeText and #lblLangText) in header overflow menu, eliminated content clipping of sidebar subpanels (inspector, process, media) by enabling vertical scrolling in review aside, replaced remaining native confirm() prompts with reusable in-app showConfirm modal for 'Keep all' and unreviewed findings confirmation, connected formatPlural() across all remaining call sites in app.js (smartScanTitle, scanWarning, morphToast, queueDone), ensured immediate keyboard focus on safe action buttons upon opening modals, fixed arrow key keyboard collision in open dropdown menus with aria-expanded synchronization and focus return on Escape, removed invalid duplicate id attribute in template, and added auto-scrolling to active entity cards in the sidebar." } },
@@ -10958,12 +10981,30 @@ function download(name, blob){
     bindTips();
     requestAnimationFrame(updateBarHeightVar);
   }
+  function scrollChildIntoContainer(container, child, margin = 8) {
+    if (!container || !child) return;
+    const cRect = container.getBoundingClientRect();
+    const chRect = child.getBoundingClientRect();
+    if (chRect.top < cRect.top) {
+      container.scrollTop -= (cRect.top - chRect.top) + margin;
+    } else if (chRect.bottom > cRect.bottom) {
+      container.scrollTop += (chRect.bottom - cRect.bottom) + margin;
+    }
+  }
   function select(id){
     S.selectedId = id; S.seen.add(id); paintReview();
     const el = (S.pdfVisual ? $("pdfVisual") : $("orig")).querySelector(`[data-id="${id}"]`);
     if (el) el.scrollIntoView({ block:"center", behavior:"smooth" });
     const asideItem = $("entityList")?.querySelector(".entity-card.sel") || $("hitList")?.querySelector(".hit.sel");
-    if (asideItem) asideItem.scrollIntoView({ block:"nearest", behavior:"smooth" });
+    const asideList = $("entityList")?.classList.contains("hidden") ? $("hitList") : $("entityList");
+    if (asideList && asideItem) {
+      scrollChildIntoContainer(asideList, asideItem, 6);
+    }
+    const insp = $("inspector");
+    const aside = $("reviewAside");
+    if (insp && aside && !insp.classList.contains("hidden") && S.selectedId) {
+      scrollChildIntoContainer(aside, insp, 16);
+    }
   }
   function patch(id, accept){ const h = S.hits.find(x=>x.id===id); if (h) h.accept = accept; S.seen.add(id); paintReview(); }
   function selectNextHit(){

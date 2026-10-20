@@ -2,6 +2,13 @@
 
 ## 2026-10-20
 
+- Oprava přístupnosti karet a rozvržení posuvníků (scrollbarů):
+  - **Eliminace ořezání a plná dostupnost karty Vybraný nález (`#inspector`):** Odstraněna redundantní vlastnost `height: 100%` u `.work`, která při přítomnosti asistenčních bannerů (`#smartBanners`) nebo varování způsobovala přetečení pracovní plochy mimo viditelnou část `.review` a fyzické ořezání spodních akčních tlačítek inspektoru (*Anonymizovat*, *Ponechat*, *Schválit skupinu*, *Rozbalit skloňování*).
+  - **Bezpečný spodní padding a stabilní posuvníky:** Pro `#reviewAside` zaveden spodní padding 24 px (`padding-bottom: 24px`) a `scrollbar-gutter: stable`, což zaručuje, že karta vybraného nálezu má při doscrolování na konec dostatečný prostor a není nalepena na spodní hranu okna. Stejně tak pro `.entities-container` a `.hits` zavedeno `padding-bottom: 8px` a `scrollbar-gutter: stable`.
+  - **Izolované a spolehlivé scrollování aktivního nálezu a inspektoru (`scrollChildIntoContainer`):** Nahrazeno nativní `scrollIntoView` na kartách entit v `select(id)`, které nežádoucím způsobem vytahovalo celý rodičovský panel `#reviewAside` nahoru a skrývalo inspektor, za izolovaný posun uvnitř seznamu entit. Současně je inspektor `#inspector` při výběru nálezu plynule a deterministicky uveden do zorného pole v `#reviewAside`.
+  - **Ochrana proti přetečení dlouhých hodnot nálezů:** U prvku `.insp-marquee` nastaven `max-height: 120px` s vnitřním posuvem `overflow-y: auto`, čímž je zamezeno nekonečnému roztahování karty při ručním označení dlouhých odstavců.
+  - **Skrytí prázdného inspektoru:** Pro `#inspector:empty` zavedeno pravidlo `display: none !important`, které zamezuje vykreslování prázdného rámečku bez vybraného nálezu.
+
 - Vizuální harmonizace a sjednocení ikon v horní liště (UI/UX Pro Max):
   - **Jednotná geometrie ovládacích ikon (`.btn-icon`):** Všechna samostatná tlačítka ikon v liště (`#btnHeaderAddDoc`, `#btnHeaderClear`, `#btnSettings`, `#btnHeaderMore`) sjednocena na přesný čtvercový rozměr 36×36 px s flexibilním středěním, jednotným poloměrem zaoblení (`var(--radius-sm, 6px)`) a neviditelným rozšířením dotykové zóny na minimálně 44×44 pt pro bezchybnou mobilní přístupnost (WCAG 2.5.5).
   - **Sjednocení rozměrů a tahů vektorových SVG ikon:** Všechny ikony v záhlaví standardizovány na jednotný lineární styl (Phosphor/Lucide) s konzistentní tloušťkou tahu (`stroke-width: 2` / `2.2`) namísto dřívějšího mixu nesourodých velikostí (12, 14, 15 px) a tlouštěk.

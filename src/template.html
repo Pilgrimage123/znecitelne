@@ -194,10 +194,10 @@ textarea { min-height: 80px; font-family: var(--mono); font-size: 13px; }
 .work { display: grid; gap: 16px; }
 @media (min-width: 1100px) { .work { grid-template-columns: minmax(0,1fr) 420px; } }
 .pane { background: var(--surface); border-radius: 16px; padding: 12px; box-shadow: 0 0 0 1.5px var(--border); }
-pre.doc { max-height: min(70dvh, 640px); overflow: auto; white-space: pre-wrap; word-break: break-word; font: 13px/1.65 var(--mono); margin: 0; color: var(--fg); }
+pre.doc { max-height: min(70dvh, 640px); overflow: auto; white-space: pre-wrap; word-break: break-word; font: 13px/1.65 var(--mono); margin: 0; color: var(--fg); padding-bottom: 16px; scrollbar-gutter: stable; }
 @media (min-width: 1100px) { #orig { max-height: min(85dvh, 980px); } }
 body.pdf-visual-on #orig { display: none; }
-#pdfVisual { max-height: min(70dvh, 640px); overflow: auto; background: var(--bg-subtle); border-radius: 8px; padding: 8px; }
+#pdfVisual { max-height: min(70dvh, 640px); overflow: auto; background: var(--bg-subtle); border-radius: 8px; padding: 8px; scrollbar-gutter: stable; }
 @media (min-width: 1100px) { #pdfVisual { max-height: min(85dvh, 980px); } }
 #pdfVisual.hidden { display: none; }
 .pv-page { position: relative; margin: 0 auto 12px; box-shadow: 0 0 0 1.5px var(--border); background: #fff; }
@@ -265,7 +265,7 @@ html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--prima
 .filters { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { min-height: 36px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--surface); color: var(--fg); padding: 0 12px; font-size: 13px; font-weight: 500; }
 .chip.on { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
-.hits { max-height: 42dvh; overflow: auto; border-radius: 16px; background: var(--surface); box-shadow: 0 0 0 1.5px var(--border); }
+.hits { max-height: 42dvh; overflow: auto; border-radius: 16px; background: var(--surface); box-shadow: 0 0 0 1.5px var(--border); padding: 4px 2px 8px 2px; scrollbar-gutter: stable; }
 .hit { display: flex; gap: 8px; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--fg); padding: 10px 12px; font: inherit; }
 .hit.sel { background: var(--bg-subtle); box-shadow: inset 3px 0 0 var(--accent); }
 .mono { font-family: var(--mono); font-size: 12px; }
@@ -298,7 +298,6 @@ html[data-theme="dark"] .pill-ok { background: var(--ok); color: #12161c; }
     min-height: 0;
     grid-template-columns: minmax(0, 1fr) 420px;
     align-items: stretch;
-    height: 100%;
     overflow: hidden;
   }
   body.has-doc .doc-pane {
@@ -314,6 +313,8 @@ html[data-theme="dark"] .pill-ok { background: var(--ok); color: #12161c; }
     max-height: none !important;
     height: 100%;
     overflow-y: auto;
+    padding-bottom: 16px;
+    scrollbar-gutter: stable;
   }
   body.has-doc #pdfVisual {
     flex: 1 1 auto;
@@ -321,6 +322,7 @@ html[data-theme="dark"] .pill-ok { background: var(--ok); color: #12161c; }
     max-height: none !important;
     height: 100%;
     overflow-y: auto;
+    scrollbar-gutter: stable;
   }
   body.has-doc #reviewAside {
     display: flex;
@@ -329,6 +331,9 @@ html[data-theme="dark"] .pill-ok { background: var(--ok); color: #12161c; }
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
+    padding-bottom: 24px;
+    box-sizing: border-box;
+    scrollbar-gutter: stable;
   }
   body.has-doc .entities-container,
   body.has-doc .hits {
@@ -336,6 +341,7 @@ html[data-theme="dark"] .pill-ok { background: var(--ok); color: #12161c; }
     min-height: 120px;
     max-height: none !important;
     overflow-y: auto;
+    scrollbar-gutter: stable;
   }
   body.has-doc footer { display: none; }
 }
@@ -562,7 +568,14 @@ html[data-theme="dark"] .privacy-badge {
 
 .entities-container {
   max-height: 48dvh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
-  border-radius: var(--radius); padding-right: 2px;
+  border-radius: var(--radius); padding: 2px 4px 8px 2px;
+  scrollbar-gutter: stable;
+}
+#inspector {
+  flex-shrink: 0;
+}
+#inspector:empty {
+  display: none !important;
 }
 .entity-card {
   background: var(--surface); border: 1.5px solid var(--border);
@@ -650,7 +663,7 @@ kbd { display: inline-block; min-width: 1.4rem; padding: .1rem .4rem; border-rad
   position: fixed; right: 16px; bottom: calc(var(--bar-h, 80px) + 12px); z-index: 50; background: var(--primary); color: var(--on-primary);
   padding: 10px 16px; border-radius: 10px; font-size: 13px; display: none;
 }
-.process { font-size: 13px; line-height: 1.45; max-height: 22rem; overflow: auto; }
+.process { font-size: 13px; line-height: 1.45; max-height: 22rem; overflow: auto; padding-bottom: 8px; scrollbar-gutter: stable; }
 .process h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; font-family: var(--font); }
 .process ul { margin: 0; padding-left: 1.1rem; }
 .process .token { font-family: var(--mono); font-size: 12px; }
@@ -761,6 +774,13 @@ body.movie-active [inert] {
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+.insp-marquee {
+  max-height: 120px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: 4px;
 }
 body.movie-paused .chip-track,
 body.movie-paused .movie-pulse {
@@ -991,6 +1011,8 @@ html[data-theme="dark"] .badge-second-reviewer {
   flex: 1 1 auto;
   overflow: auto;
   position: relative;
+  padding-bottom: 8px;
+  scrollbar-gutter: stable;
 }
 .xlsx-table {
   border-collapse: separate;
