@@ -231,6 +231,50 @@ function download(name, blob){
       _ocrProgressTimer = null;
     }, 800);
   }
+  export function showConfirm(message, okLabel, cancelLabel) {
+    const modal = $("confirmModal");
+    if (!modal) {
+      try {
+        return Promise.resolve(window.confirm(message));
+      } catch (_) {
+        return Promise.resolve(true);
+      }
+    }
+    return new Promise((resolve) => {
+      const msgEl = $("confirmMessage");
+      const btnOk = $("btnConfirmOk");
+      const btnCancel = $("btnConfirmCancel");
+      const t = i();
+      if (msgEl) msgEl.textContent = message;
+      if (btnOk) btnOk.textContent = okLabel || (t.clear || (S.lang === "cs" ? "Zavřít" : "Close"));
+      if (btnCancel) btnCancel.textContent = cancelLabel || (t.cancel || (S.lang === "cs" ? "Zpět" : "Cancel"));
+
+      modal.classList.remove("hidden");
+
+      const onKeyDown = (e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          cleanup(false);
+        }
+      };
+
+      const cleanup = (res) => {
+        modal.classList.add("hidden");
+        if (btnOk) btnOk.onclick = null;
+        if (btnCancel) btnCancel.onclick = null;
+        modal.onclick = null;
+        document.removeEventListener("keydown", onKeyDown);
+        resolve(res);
+      };
+
+      if (btnOk) btnOk.onclick = () => cleanup(true);
+      if (btnCancel) btnCancel.onclick = () => cleanup(false);
+      modal.onclick = (e) => {
+        if (e.target === modal) cleanup(false);
+      };
+      document.addEventListener("keydown", onKeyDown);
+    });
+  }
   let tipTimer = null;
   let tipAnchor = null;
   const TIP_DELAY_MS = 350;
@@ -1001,15 +1045,28 @@ function download(name, blob){
 
     const btnHdrClear = $("btnHeaderClear");
     if (btnHdrClear) {
-      btnHdrClear.onclick = () => {
+      btnHdrClear.title = t.clear || "Zavřít dokument";
+      btnHdrClear.setAttribute("aria-label", btnHdrClear.title);
+      btnHdrClear.setAttribute("data-tip", btnHdrClear.title);
+      btnHdrClear.onclick = async () => {
         if (Q.items.length > 1) {
-          if (confirm(S.lang === "cs" ? "Opravdu chcete odebrat tento dokument z fronty?" : "Remove this document from queue?")) {
+          const ok = await showConfirm(
+            S.lang === "cs" ? "Opravdu chcete odebrat tento dokument z fronty?" : "Remove this document from queue?",
+            S.lang === "cs" ? "Odebrat z fronty" : "Remove from queue",
+            S.lang === "cs" ? "Zpět" : "Cancel"
+          );
+          if (ok) {
             removeQueueItem(Q.cur);
           }
           return;
         }
-        if (S.hits && S.hits.length && !confirm(S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.")) {
-          return;
+        if (S.hits && S.hits.length) {
+          const ok = await showConfirm(
+            S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.",
+            S.lang === "cs" ? "Zavřít dokument" : "Close document",
+            S.lang === "cs" ? "Zpět" : "Cancel"
+          );
+          if (!ok) return;
         }
         reset();
       };
@@ -1087,7 +1144,7 @@ function download(name, blob){
         if (!pwd) return;
         const pwdConfirm = prompt(S.lang === "cs" ? "Potvrďte heslo:" : "Confirm password:");
         if (pwd !== pwdConfirm) {
-          alert(S.lang === "cs" ? "Hesla se neshodují." : "Passwords do not match.");
+          toast(S.lang === "cs" ? "Hesla se neshodují." : "Passwords do not match.");
           return;
         }
         try {
@@ -1097,7 +1154,7 @@ function download(name, blob){
           download(`${baseName}.znecitelne-session`, blob);
           toast(S.lang === "cs" ? "Šifrované sezení bylo uloženo." : "Encrypted session saved.");
         } catch (err) {
-          alert((S.lang === "cs" ? "Chyba při exportu sezení: " : "Error exporting session: ") + (err.message || String(err)));
+          toast((S.lang === "cs" ? "Chyba při exportu sezení: " : "Error exporting session: ") + (err.message || String(err)));
         }
       };
     }

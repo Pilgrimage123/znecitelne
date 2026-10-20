@@ -248,6 +248,17 @@ html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--prima
   border-radius: var(--radius-sm, 6px); background: var(--surface); color: var(--fg);
   border-color: var(--border);
 }
+#btnHeaderClear {
+  min-width: 36px;
+  padding: 0 10px;
+  font-weight: 700;
+  transition: background .15s, border-color .15s, color .15s;
+}
+#btnHeaderClear:hover {
+  background: color-mix(in srgb, var(--danger) 28%, transparent) !important;
+  border-color: color-mix(in srgb, var(--danger) 70%, transparent) !important;
+  color: #ffb4b4 !important;
+}
 .header-approval {
   display: flex; align-items: center; gap: 8px;
 }
@@ -763,6 +774,15 @@ body.movie-active #settingsSheet {
 </div>
 <div class="modal hidden" id="exportModal">
   <div class="sheet" id="exportSheet"></div>
+</div>
+<div class="modal hidden" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmMessage">
+  <div class="sheet" id="confirmSheet" style="max-width:440px;text-align:center">
+    <p id="confirmMessage" style="font-size:15px;font-weight:600;margin:12px 0 20px;line-height:1.5"></p>
+    <div style="display:flex;justify-content:center;gap:10px">
+      <button type="button" class="btn btn-sec btn-sm" id="btnConfirmCancel">Zrušit</button>
+      <button type="button" class="btn btn-sm" id="btnConfirmOk" style="background:var(--danger);border-color:var(--danger);color:#fff">Potvrdit</button>
+    </div>
+  </div>
 </div>
 <div class="modal hidden" id="settingsModal">
   <div class="sheet" id="settingsSheet" style="max-height:min(90dvh,760px);overflow:auto">
