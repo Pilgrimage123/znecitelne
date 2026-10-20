@@ -1,5 +1,5 @@
 import { KEYS, PII_KEYS, ORG_KEYS, RULES, CHANGELOG, LABEL, STATUS_GENERIC, PUBLIC, SAMPLE } from "../core/rules.js";
-import { I18N } from "../core/i18n.js";
+import { I18N, formatPlural } from "../core/i18n.js";
 import { isOnomasticName, initOnomasticRegistry, createOnomasticTrie } from "../core/onomastic.js";
 import { isCzechVerbOrParticiple, isSentenceStart, declinedPersonTokenBase } from "../core/morphology.js";
 import { EntityPropagationCache, createEntityPropagationCache, expandCzechNameMorphology } from "../core/propagation.js";
@@ -58,6 +58,10 @@ export const S = {
       btn.setAttribute("aria-pressed", dark ? "true" : "false");
       btn.setAttribute("aria-label", dark ? t.themeLight : t.themeDark);
       btn.setAttribute("data-tip", t.tips.theme);
+    }
+    const lblTheme = $("lblThemeText");
+    if (lblTheme) {
+      lblTheme.textContent = dark ? "☀ " + (S.lang === "cs" ? "Světlý režim" : "Light mode") : "☾ " + (S.lang === "cs" ? "Tmavý režim" : "Dark mode");
     }
   }
   function toggleTheme(){
@@ -581,7 +585,10 @@ function download(name, blob){
 
   function switchSettingsTab(tabId) {
     document.querySelectorAll(".settings-tab-btn").forEach(btn => {
-      btn.classList.toggle("active", btn.dataset.tab === tabId);
+      const active = btn.dataset.tab === tabId;
+      btn.classList.toggle("active", active);
+      btn.setAttribute("aria-selected", active ? "true" : "false");
+      btn.setAttribute("tabindex", active ? "0" : "-1");
     });
     const paneProfile = $("m_tabPaneProfile");
     const paneDicts = $("m_tabPaneDicts");
@@ -863,14 +870,15 @@ function download(name, blob){
       const catName = (t.cats && t.cats[e.type]) || (LABEL[S.lang] && LABEL[S.lang][e.type]) || e.type;
       const badgeCls = e.acceptState === "all" ? "ec-redact" : (e.acceptState === "none" ? "ec-keep" : "ec-mixed");
       const isSel = e.hits.some(h => h.id === S.selectedId);
-      const countLabel = (t.entityOccurrences || "{n} výskytů").replace("{n}", e.totalCount);
+      const countLabel = formatPlural(e.totalCount, t.entityOccurrencesPlural || t.entityOccurrences, S.lang);
+      const casesLabel = formatPlural(e.formsList.length, t.entityCasesPlural || t.entityCases, S.lang);
       const formsSummary = e.formsList.length > 1
-        ? `${countLabel} (${e.formsList.length} tvarů: ${esc(e.formsList.join(", "))})`
+        ? `${countLabel} (${casesLabel}: ${esc(e.formsList.join(", "))})`
         : countLabel;
 
       return `
         <div class="entity-card ${badgeCls} ${isSel ? "sel" : ""}" data-ekey="${escAttr(e.key)}">
-          <div class="ec-header" data-etoggle="${escAttr(e.key)}">
+          <div class="ec-header" role="button" tabindex="0" aria-expanded="${isExpanded}" aria-label="${escAttr(e.canonicalValue)}: ${isExpanded ? 'skrýt' : 'zobrazit'}" data-etoggle="${escAttr(e.key)}">
             <div style="flex:1;min-width:0">
               <h3 class="ec-title">${esc(e.canonicalValue)}</h3>
               <div class="ec-meta">
@@ -879,13 +887,13 @@ function download(name, blob){
                 <span class="ec-badge-count">${esc(formsSummary)}</span>
               </div>
             </div>
-            <span style="font-size:12px;color:var(--muted);padding-left:4px;">${isExpanded ? "▲" : "▼"}</span>
+            <span style="font-size:12px;color:var(--muted);padding-left:4px;" aria-hidden="true">${isExpanded ? "▲" : "▼"}</span>
           </div>
           <div class="ec-actions">
-            <button type="button" class="btn btn-sm ${e.acceptState === "all" ? "btn-sec" : "btn-ghost"}" data-eact="redact" data-ekey="${escAttr(e.key)}">${esc(t.redact)}</button>
-            <button type="button" class="btn btn-sm ${e.acceptState === "none" ? "btn-sec" : "btn-ghost"}" data-eact="keep" data-ekey="${escAttr(e.key)}">${esc(t.keep)}</button>
+            <button type="button" class="btn btn-sm ${e.acceptState === "all" ? "btn-sec" : "btn-ghost"}" data-eact="redact" data-ekey="${escAttr(e.key)}" aria-label="${escAttr(t.redact)}">🔒 ${esc(t.redact)}</button>
+            <button type="button" class="btn btn-sm ${e.acceptState === "none" ? "btn-sec" : "btn-ghost"}" data-eact="keep" data-ekey="${escAttr(e.key)}" aria-label="${escAttr(t.keep)}">✓ ${esc(t.keep)}</button>
             <span style="flex:1"></span>
-            <button type="button" class="btn btn-sm btn-ghost" data-etoggle="${escAttr(e.key)}" style="font-size:11px;min-height:28px;padding:0 8px;">
+            <button type="button" class="btn btn-sm btn-ghost" data-etoggle="${escAttr(e.key)}" style="font-size:11px;min-height:36px;padding:0 10px;">
               ${isExpanded ? esc(t.entityCollapse || "Skrýt") : esc(t.entityExpand || "Výskyty")}
             </button>
           </div>
@@ -895,7 +903,7 @@ function download(name, blob){
                 <div class="ec-subhit ${S.selectedId === h.id ? "mk-sel" : ""}" data-hid="${h.id}">
                   <span class="mono" style="font-weight:600">${esc(h.value)}</span>
                   <span style="display:inline-flex;gap:4px;align-items:center;">
-                    <span class="pill ${h.accept ? "pill-hit" : "pill-ok"}" style="font-size:8px;padding:1px 5px;">${h.accept ? t.redact : t.keep}</span>
+                    <span class="pill ${h.accept ? "pill-hit" : "pill-ok"}" style="font-size:8px;padding:1px 5px;"><span class="pill-label">${h.accept ? "🔒 " + esc(t.redact) : "✓ " + esc(t.keep)}</span></span>
                     <span class="mono" style="color:var(--muted);font-size:10px">#${h.id}</span>
                   </span>
                 </div>
@@ -907,12 +915,19 @@ function download(name, blob){
     }).join("");
 
     container.querySelectorAll("[data-etoggle]").forEach(el => {
-      el.onclick = (e) => {
+      const toggle = (e) => {
         e.stopPropagation();
         const k = el.dataset.etoggle;
         if (S.expandedEntities.has(k)) S.expandedEntities.delete(k);
         else S.expandedEntities.add(k);
         paintReview();
+      };
+      el.onclick = toggle;
+      el.onkeydown = (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggle(e);
+        }
       };
     });
 
@@ -1004,8 +1019,89 @@ function download(name, blob){
     }
   }
 
+  async function exportSessionPrompt(){
+    const pwd = prompt(S.lang === "cs" ? "Zadejte heslo pro zašifrování sezení (pro druhou kontrolu):" : "Enter password to encrypt session (for second review):");
+    if (!pwd) return false;
+    const pwdConfirm = prompt(S.lang === "cs" ? "Potvrďte heslo:" : "Confirm password:");
+    if (pwd !== pwdConfirm) {
+      toast(S.lang === "cs" ? "Hesla se neshodují." : "Passwords do not match.");
+      return false;
+    }
+    try {
+      const envelopeJson = await exportSession(S, pwd);
+      const blob = new Blob([envelopeJson], { type: "application/json" });
+      const baseName = (S.fileName || "dokument").replace(/\.[^/.]+$/, "");
+      download(`${baseName}.znecitelne-session`, blob);
+      toast(S.lang === "cs" ? "Šifrované sezení bylo uloženo." : "Encrypted session saved.");
+      return true;
+    } catch (err) {
+      toast((S.lang === "cs" ? "Chyba při exportu sezení: " : "Error exporting session: ") + (err.message || String(err)));
+      return false;
+    }
+  }
+
+  async function openCloseDocModal(){
+    if (Q.items.length > 1) {
+      const ok = await showConfirm(
+        S.lang === "cs" ? "Opravdu chcete odebrat tento dokument z fronty?" : "Remove this document from queue?",
+        S.lang === "cs" ? "Odebrat z fronty" : "Remove from queue",
+        S.lang === "cs" ? "Zpět" : "Cancel"
+      );
+      if (ok) {
+        removeQueueItem(Q.cur);
+      }
+      return;
+    }
+    if (!S.hits || !S.hits.length) {
+      reset();
+      return;
+    }
+    const t = i();
+    const modal = $("closeDocModal");
+    if (!modal) {
+      const ok = await showConfirm(
+        S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.",
+        S.lang === "cs" ? "Zavřít dokument" : "Close document",
+        S.lang === "cs" ? "Zpět" : "Cancel"
+      );
+      if (ok) reset();
+      return;
+    }
+    if ($("closeDocTitle")) $("closeDocTitle").textContent = t.closeDocTitle || "Zavřít dokument?";
+    if ($("closeDocDesc")) $("closeDocDesc").textContent = t.closeDocDesc || "Máte rozpracované změny v anonymizaci dokumentu. Neuložené změny budou ztraceny. Můžete si stav bezpečně uložit pro druhou kontrolu.";
+    if ($("lblCloseSaveSession")) $("lblCloseSaveSession").textContent = t.closeSaveSession || "Předat pro 4 oči (uložit sezení)";
+    if ($("lblCloseDiscard")) $("lblCloseDiscard").textContent = t.closeDiscard || "Zavřít bez uložení";
+    if ($("btnCloseCancel")) $("btnCloseCancel").textContent = S.lang === "cs" ? "Zpět k dokumentu" : "Back to document";
+
+    const btnSave = $("btnCloseSaveSession");
+    if (btnSave) {
+      btnSave.onclick = async () => {
+        const saved = await exportSessionPrompt();
+        if (saved) {
+          modal.classList.add("hidden");
+          reset();
+        }
+      };
+    }
+    const btnDiscard = $("btnCloseDiscard");
+    if (btnDiscard) {
+      btnDiscard.onclick = () => {
+        modal.classList.add("hidden");
+        reset();
+      };
+    }
+    const btnCancel = $("btnCloseCancel");
+    if (btnCancel) {
+      btnCancel.onclick = () => {
+        modal.classList.add("hidden");
+      };
+    }
+    modal.classList.remove("hidden");
+  }
+
   function paintWorkBar(acceptedCount, totalCount, t) {
     const isReviewActive = !!(S.text || (S.kind === "pdf" && S.sourceBuf));
+    document.body.classList.toggle("has-doc", isReviewActive);
     const docContext = $("headerDocContext");
     const approval = $("headerApproval");
     const exportGroup = $("headerExportGroup");
@@ -1013,6 +1109,25 @@ function download(name, blob){
     if (docContext) docContext.classList.toggle("hidden", !isReviewActive);
     if (approval) approval.classList.toggle("hidden", !isReviewActive);
     if (exportGroup) exportGroup.classList.toggle("hidden", !isReviewActive);
+
+    const lblPriv = $("lblHeaderPrivacy");
+    if (lblPriv) lblPriv.textContent = t.processedLocally || "Zpracováno lokálně";
+
+    const btnMore = $("btnHeaderMore");
+    const moreMenu = $("headerMoreMenu");
+    if (btnMore && moreMenu) {
+      btnMore.onclick = (e) => {
+        e.stopPropagation();
+        const isHidden = moreMenu.classList.toggle("hidden");
+        btnMore.setAttribute("aria-expanded", !isHidden ? "true" : "false");
+      };
+    }
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    if ($("lblThemeText")) $("lblThemeText").textContent = isDark ? "☀ " + (S.lang === "cs" ? "Světlý režim" : "Light mode") : "☾ " + (S.lang === "cs" ? "Tmavý režim" : "Dark mode");
+    if ($("lblLangText")) $("lblLangText").textContent = "🌐 " + (S.lang === "cs" ? "Jazyk: English" : "Language: Čeština");
+    if ($("lblHelpText")) $("lblHelpText").textContent = "❓ " + (t.helpTitle || "Nápověda");
+    if ($("lblFeaturesText")) $("lblFeaturesText").textContent = "✨ " + (t.featuresBtn || "Přehled funkcí");
+    if ($("lblChangelogText")) $("lblChangelogText").textContent = "📋 " + (t.changelogBtn || "Historie verzí");
 
     if (!isReviewActive) return;
 
@@ -1048,39 +1163,26 @@ function download(name, blob){
       btnHdrClear.title = t.clear || "Zavřít dokument";
       btnHdrClear.setAttribute("aria-label", btnHdrClear.title);
       btnHdrClear.setAttribute("data-tip", btnHdrClear.title);
-      btnHdrClear.onclick = async () => {
-        if (Q.items.length > 1) {
-          const ok = await showConfirm(
-            S.lang === "cs" ? "Opravdu chcete odebrat tento dokument z fronty?" : "Remove this document from queue?",
-            S.lang === "cs" ? "Odebrat z fronty" : "Remove from queue",
-            S.lang === "cs" ? "Zpět" : "Cancel"
-          );
-          if (ok) {
-            removeQueueItem(Q.cur);
-          }
-          return;
-        }
-        if (S.hits && S.hits.length) {
-          const ok = await showConfirm(
-            S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.",
-            S.lang === "cs" ? "Zavřít dokument" : "Close document",
-            S.lang === "cs" ? "Zpět" : "Cancel"
-          );
-          if (!ok) return;
-        }
-        reset();
-      };
+      btnHdrClear.onclick = () => openCloseDocModal();
     }
 
+    const unseenCount = Math.max(0, S.hits.filter(h => !S.seen.has(h.id)).length);
     const pendingBadge = $("badgePendingFindings");
     if (pendingBadge) {
-      pendingBadge.textContent = `${totalCount - S.seen.size} ${t.unreviewedCount || "k posouzení"}`;
+      pendingBadge.textContent = formatPlural(unseenCount, t.unreviewedCountPlural || t.unreviewedCount, S.lang);
     }
 
     const chkRev = $("chkRev");
     if (chkRev) {
       chkRev.checked = !!S.reviewed;
       chkRev.onchange = (e) => {
+        if (e.target.checked && unseenCount > 0) {
+          const confirmMsg = formatPlural(unseenCount, t.unseenConfirm, S.lang);
+          if (!confirm(confirmMsg)) {
+            e.target.checked = false;
+            return;
+          }
+        }
         S.reviewed = e.target.checked;
         paintReview();
       };
@@ -1097,6 +1199,17 @@ function download(name, blob){
     }
 
     const exportReady = !!(S.reviewed || reviewSkipped());
+    const gateHint = $("exportGateHint");
+    if (gateHint) {
+      if (!exportReady) {
+        gateHint.classList.remove("hidden");
+        gateHint.textContent = t.exportLockedReason || (S.lang === "cs" ? "Nejprve zaškrtněte Zkontrolováno" : "Tick Reviewed first");
+      } else {
+        gateHint.classList.add("hidden");
+        gateHint.textContent = "";
+      }
+    }
+
     const btnExp = $("btnExp");
     if (btnExp) {
       btnExp.disabled = !exportReady;
@@ -1113,6 +1226,15 @@ function download(name, blob){
         expMenu.classList.toggle("hidden");
       };
     }
+
+    if ($("lblExpGroupDoc")) $("lblExpGroupDoc").textContent = t.lblExpGroupDoc || "Výstup dokumentu";
+    if ($("lblExpGroupCollab")) $("lblExpGroupCollab").textContent = t.lblExpGroupCollab || "Předání a spolupráce";
+    if ($("lblExpGroupAudit")) $("lblExpGroupAudit").textContent = t.lblExpGroupAudit || "Evidence a audit";
+    if ($("lblExportSession")) $("lblExportSession").textContent = t.exportSession || "Uložit šifrované sezení (.znecitelne-session)";
+    if ($("lblExportSessionHelp")) $("lblExportSessionHelp").textContent = t.exportSessionHelp || "Pro druhou kontrolu";
+    if ($("lblExportAudit")) $("lblExportAudit").textContent = t.exportAudit || "Auditní stopa rozhodnutí (JSON)";
+    if ($("lblExportRecord")) $("lblExportRecord").textContent = t.exportRecord || "Protokol o znečitelnění (PDF)";
+    if ($("lblExportAi")) $("lblExportAi").textContent = t.exportAiPack || "Balíček pro AI (ZIP)";
 
     const menuQueueZip = $("menuExportQueueZip");
     if (menuQueueZip) {
@@ -1140,22 +1262,7 @@ function download(name, blob){
     if (menuSession) {
       menuSession.onclick = async () => {
         expMenu?.classList.add("hidden");
-        const pwd = prompt(S.lang === "cs" ? "Zadejte heslo pro zašifrování sezení (pro druhou kontrolu):" : "Enter password to encrypt session (for second review):");
-        if (!pwd) return;
-        const pwdConfirm = prompt(S.lang === "cs" ? "Potvrďte heslo:" : "Confirm password:");
-        if (pwd !== pwdConfirm) {
-          toast(S.lang === "cs" ? "Hesla se neshodují." : "Passwords do not match.");
-          return;
-        }
-        try {
-          const envelopeJson = await exportSession(S, pwd);
-          const blob = new Blob([envelopeJson], { type: "application/json" });
-          const baseName = (S.fileName || "dokument").replace(/\.[^/.]+$/, "");
-          download(`${baseName}.znecitelne-session`, blob);
-          toast(S.lang === "cs" ? "Šifrované sezení bylo uloženo." : "Encrypted session saved.");
-        } catch (err) {
-          toast((S.lang === "cs" ? "Chyba při exportu sezení: " : "Error exporting session: ") + (err.message || String(err)));
-        }
+        await exportSessionPrompt();
       };
     }
 
@@ -1183,6 +1290,10 @@ function download(name, blob){
     document.addEventListener("click", (e) => {
       if (expMenu && !expMenu.classList.contains("hidden") && !e.target.closest("#headerExportGroup")) {
         expMenu.classList.add("hidden");
+      }
+      if (moreMenu && !moreMenu.classList.contains("hidden") && !e.target.closest(".header-more-group")) {
+        moreMenu.classList.add("hidden");
+        btnMore?.setAttribute("aria-expanded", "false");
       }
     }, { passive: true });
   }
@@ -1264,14 +1375,18 @@ function download(name, blob){
     const btnPrev = $("btnViewPreview");
     const btnVis = $("btnVisual");
     if (btnOrig) {
-      btnOrig.classList.toggle("on", !previewOn && !S.pdfVisual);
+      const isSel = !previewOn && !S.pdfVisual;
+      btnOrig.classList.toggle("on", isSel);
+      btnOrig.setAttribute("aria-pressed", isSel ? "true" : "false");
       btnOrig.onclick = () => {
         if (S.pdfVisual) S.pdfVisual = false;
         setDocView("original");
       };
     }
     if (btnPrev) {
-      btnPrev.classList.toggle("on", previewOn && !S.pdfVisual);
+      const isSel = previewOn && !S.pdfVisual;
+      btnPrev.classList.toggle("on", isSel);
+      btnPrev.setAttribute("aria-pressed", isSel ? "true" : "false");
       btnPrev.onclick = () => {
         if (S.pdfVisual) S.pdfVisual = false;
         setDocView("preview");
@@ -1279,6 +1394,7 @@ function download(name, blob){
     }
     if (btnVis) {
       btnVis.classList.toggle("on", !!S.pdfVisual);
+      btnVis.setAttribute("aria-pressed", S.pdfVisual ? "true" : "false");
     }
 
     // View mode: entities vs individual hits
@@ -1287,6 +1403,7 @@ function download(name, blob){
     const btnModeH = $("btnModeHits");
     if (btnModeEnt) {
       btnModeEnt.classList.toggle("on", isEntities);
+      btnModeEnt.setAttribute("aria-pressed", isEntities ? "true" : "false");
       btnModeEnt.onclick = () => {
         S.viewMode = "entities";
         try { localStorage.setItem("znec-viewmode", "entities"); } catch (_) {}
@@ -1295,6 +1412,7 @@ function download(name, blob){
     }
     if (btnModeH) {
       btnModeH.classList.toggle("on", !isEntities);
+      btnModeH.setAttribute("aria-pressed", !isEntities ? "true" : "false");
       btnModeH.onclick = () => {
         S.viewMode = "hits";
         try { localStorage.setItem("znec-viewmode", "hits"); } catch (_) {}
@@ -1304,7 +1422,11 @@ function download(name, blob){
     if ($("entityList")) $("entityList").classList.toggle("hidden", !isEntities);
     if ($("hitList")) $("hitList").classList.toggle("hidden", isEntities);
 
-    $("filters").innerHTML = ["all","redact","keep"].map(f => `<button type="button" class="chip ${S.filter===f?"on":""}" data-f="${f}">${f==="all"?t.filterAll:f==="redact"?t.filterRedact:t.filterKeep}</button>`).join("");
+    if ($("lblFiltersAside")) $("lblFiltersAside").textContent = t.lblFiltersAside || (S.lang === "cs" ? "Filtrovat zobrazení" : "Filter view");
+    if ($("lblBulkAside")) $("lblBulkAside").textContent = t.lblBulkAside || (S.lang === "cs" ? "Hromadné akce" : "Bulk actions");
+    if ($("shortcutHint")) $("shortcutHint").innerHTML = `<span><kbd>J</kbd>/<kbd>K</kbd> ${S.lang === "cs" ? "další" : "next"} · <kbd>R</kbd> ${S.lang === "cs" ? "anonymizovat" : "redact"} · <kbd>P</kbd> ${S.lang === "cs" ? "ponechat" : "keep"}</span>`;
+
+    $("filters").innerHTML = ["all","redact","keep"].map(f => `<button type="button" class="chip ${S.filter===f?"on":""}" data-f="${f}" aria-pressed="${S.filter===f}">${f==="all"?t.filterAll:f==="redact"?t.filterRedact:t.filterKeep}</button>`).join("");
     $("filters").querySelectorAll("[data-f]").forEach(b => b.onclick = () => { S.filter = b.dataset.f; paintReview(); });
 
     if (isEntities) {
@@ -1317,7 +1439,7 @@ function download(name, blob){
       return `<button type="button" class="hit ${S.selectedId===h.id?"sel":""}" data-id="${h.id}">
       <span class="mono" style="width:24px;color:var(--muted)">${h.id}</span>
       <span style="flex:1;min-width:0"><span class="wrap-line" style="font-size:12px;color:var(--muted)">${catName} · ${hitEvidence(h,t,S.expertMode)}</span><span class="hit-value mono">${esc(h.value)}</span></span>
-      <span class="pill ${h.accept?"pill-hit":"pill-ok"}"><span class="pill-label">${h.accept?t.redact:t.keep}</span><span class="pill-ghost" aria-hidden="true">${h.accept?t.keep:t.redact}</span></span>
+      <span class="pill ${h.accept?"pill-hit":"pill-ok"}"><span class="pill-label">${h.accept ? "🔒 " + esc(t.redact) : "✓ " + esc(t.keep)}</span><span class="pill-ghost" aria-hidden="true">${h.accept ? "✓ " + esc(t.keep) : "🔒 " + esc(t.redact)}</span></span>
     </button>`;
     }).join("");
     $("hitList").querySelectorAll(".hit").forEach(b => b.onclick = () => select(+b.dataset.id));
@@ -1413,19 +1535,53 @@ function download(name, blob){
     const exportReady = !!(S.reviewed || reviewSkipped());
 
     // Bulk actions
-    const doAll = () => { S.hits.forEach(h=>h.accept=true); paintReview(); };
-    const doNone = () => { S.hits.forEach(h=>h.accept=false); paintReview(); };
+    const doAll = () => {
+      S._bulkUndoState = S.hits.map(h => ({ id: h.id, accept: h.accept }));
+      S.hits.forEach(h => { h.accept = true; });
+      toast(t.bulkUndoToast || (S.lang === "cs" ? "Akci lze vrátit tlačítkem Zpět." : "You can undo this with the Undo button."));
+      paintReview();
+    };
+    const doNone = () => {
+      if (S.hits.some(h => h.accept)) {
+        if (!confirm(t.bulkConfirmNone || (S.lang === "cs" ? "Opravdu chcete ponechat všechny nálezy (zrušit veškeré začernění)?" : "Keep all findings (clear all redactions)?"))) {
+          return;
+        }
+      }
+      S._bulkUndoState = S.hits.map(h => ({ id: h.id, accept: h.accept }));
+      S.hits.forEach(h => { h.accept = false; });
+      toast(t.bulkUndoToast || (S.lang === "cs" ? "Akci lze vrátit tlačítkem Zpět." : "You can undo this with the Undo button."));
+      paintReview();
+    };
     const doOff = () => {
+      S._bulkUndoState = S.hits.map(h => ({ id: h.id, accept: h.accept }));
       S.hits.forEach(h => {
         const around = S.text.slice(Math.max(0,h.start-80), h.end+20);
-        if (isPublic(h.value) || isPublic(around) || (h.type==="ico" && /státní podnik|ministerstvo|úřad|správa|republik/i.test(around))) h.accept=false;
+        if (isPublic(h.value) || isPublic(around) || (h.type==="ico" && /státní podnik|ministerstvo|úřad|správa|republik/i.test(around))) h.accept = false;
       });
+      toast(t.bulkUndoToast || (S.lang === "cs" ? "Akci lze vrátit tlačítkem Zpět." : "You can undo this with the Undo button."));
       paintReview();
     };
 
     if ($("btnAll")) $("btnAll").onclick = doAll;
     if ($("btnNone")) $("btnNone").onclick = doNone;
     if ($("btnOff")) $("btnOff").onclick = doOff;
+
+    const btnBulkUndo = $("btnBulkUndo");
+    if (btnBulkUndo) {
+      btnBulkUndo.classList.toggle("hidden", !S._bulkUndoState);
+      btnBulkUndo.textContent = t.undoBtn || (S.lang === "cs" ? "↶ Zpět" : "↶ Undo");
+      btnBulkUndo.onclick = () => {
+        if (S._bulkUndoState) {
+          const map = new Map(S._bulkUndoState.map(x => [x.id, x.accept]));
+          S.hits.forEach(h => {
+            if (map.has(h.id)) h.accept = map.get(h.id);
+          });
+          S._bulkUndoState = null;
+          toast(t.bulkReverted || (S.lang === "cs" ? "Hromadná akce byla vrácena." : "Bulk action reverted."));
+          paintReview();
+        }
+      };
+    }
 
     bindTips();
     requestAnimationFrame(updateBarHeightVar);
@@ -2228,6 +2384,11 @@ async function maybePdfa(bytes, notes){
     S._exportNotice = null;
     S._aiPack = false;
     S._batchExport = false;
+    S._bulkUndoState = null;
+
+    document.body.classList.remove("has-doc");
+    const closeDocModal = $("closeDocModal");
+    if (closeDocModal) closeDocModal.classList.add("hidden");
 
     paint();
   }
@@ -2265,7 +2426,7 @@ async function maybePdfa(bytes, notes){
     applyBarPos();
   };
   $("btnSettingsClose").onclick = closeSettings;
-  $("btnHelp").onclick = () => {
+  function openHelpModal(){
     const t=i(); $("helpModal").classList.remove("hidden");
     $("helpSheet").innerHTML = `<h2>${t.helpTitle}</h2><p style="color:var(--muted)">${t.help}</p>
       <ul style="padding:0;list-style:none"><li><kbd>J</kbd> ${t.kbdNext} · <kbd>K</kbd> ${t.kbdPrev}</li>
@@ -2274,8 +2435,9 @@ async function maybePdfa(bytes, notes){
       <p style="color:var(--muted);font-size:13px">Profil „Veřejná AI“ drží konzistentní tokeny (CBUAIS-5164 → [TICKET_001]) a maže Author / lastModifiedBy. Stejná osoba s titulem, iniciálou i v pádě sdílí token. Slovník a osnova používají stejná čísla jako text. Slovník pište jako <span class="mono">eSpis | INTEGRACE</span> — krátké názvy se berou jen na hranici slova.</p>
       <button class="btn" style="margin-top:12px" id="okHelp">OK</button>`;
     $("okHelp").onclick = () => $("helpModal").classList.add("hidden");
-  };
-  $("btnFeatures").onclick = () => {
+  }
+
+  function openFeaturesModal(){
     const t = i(); $("featuresModal").classList.remove("hidden");
     const helpBtn = tip => tip ? ` <button type="button" class="help-i" data-tip="${escAttr(tip)}">?</button>` : "";
     const li = arr => arr.map(k => `<li>${t.cats[k] || k}${helpBtn(t.tips.cats[k])}</li>`).join("");
@@ -2319,8 +2481,9 @@ async function maybePdfa(bytes, notes){
       </p>
       <button class="btn" style="margin-top:12px" id="okFeatures">OK</button>`;
     $("okFeatures").onclick = () => $("featuresModal").classList.add("hidden");
-  };
-  $("btnChangelog").onclick = () => {
+  }
+
+  function openChangelogModal(){
     const t = i(); $("changelogModal").classList.remove("hidden");
     const rows = CHANGELOG.map(c => `<li><strong>${c.version}</strong> — ${c.notes[S.lang] || c.notes.cs}</li>`).join("");
     $("changelogSheet").innerHTML = `<h2>${t.changelogTitle}</h2>
@@ -2329,7 +2492,14 @@ async function maybePdfa(bytes, notes){
       <p style="color:var(--muted);font-size:13px;margin-top:16px">${t.changelogNote}</p>
       <button class="btn" style="margin-top:12px" id="okChangelog">OK</button>`;
     $("okChangelog").onclick = () => $("changelogModal").classList.add("hidden");
-  };
+  }
+
+  $("btnHelp").onclick = openHelpModal;
+  if ($("btnFeatures")) $("btnFeatures").onclick = openFeaturesModal;
+  if ($("btnChangelog")) $("btnChangelog").onclick = openChangelogModal;
+  if ($("btnHdrFeatures")) $("btnHdrFeatures").onclick = () => { $("headerMoreMenu")?.classList.add("hidden"); openFeaturesModal(); };
+  if ($("btnHdrChangelog")) $("btnHdrChangelog").onclick = () => { $("headerMoreMenu")?.classList.add("hidden"); openChangelogModal(); };
+
   function pickFile(){
     if (S.movie) return;
     const f = $("file");
@@ -2341,6 +2511,8 @@ async function maybePdfa(bytes, notes){
   $("changelogModal").onclick = (e) => { if (e.target.id==="changelogModal") e.target.classList.add("hidden"); };
   $("exportModal").onclick = (e) => { if (e.target.id==="exportModal") e.target.classList.add("hidden"); };
   $("settingsModal").onclick = (e) => { if (e.target.id==="settingsModal") closeSettings(); };
+  const closeDocModalEl = $("closeDocModal");
+  if (closeDocModalEl) closeDocModalEl.onclick = (e) => { if (e.target.id==="closeDocModal") e.target.classList.add("hidden"); };
   $("btnSample").onclick = async () => {
     if (S.movie) return;
     const enc = new TextEncoder().encode(SAMPLE);
@@ -2510,8 +2682,36 @@ async function maybePdfa(bytes, notes){
       if (e.key === "Escape" || e.key === "Esc") {
         if (openModal.id === "settingsModal") closeSettings();
         else openModal.classList.add("hidden");
+        return;
+      }
+      if (e.key === "Tab") {
+        const focusables = Array.from(openModal.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+        if (focusables.length > 0) {
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
       }
       return;
+    }
+    if (e.key === "Escape" || e.key === "Esc") {
+      const expMenu = $("headerExportMenu");
+      const moreMenu = $("headerMoreMenu");
+      if (expMenu && !expMenu.classList.contains("hidden")) {
+        expMenu.classList.add("hidden");
+        return;
+      }
+      if (moreMenu && !moreMenu.classList.contains("hidden")) {
+        moreMenu.classList.add("hidden");
+        $("btnHeaderMore")?.setAttribute("aria-expanded", "false");
+        return;
+      }
     }
     const tag = (e.target.tagName||"");
     if (tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
@@ -3113,6 +3313,7 @@ export function selfTest(){
     window.exportProtocolPdf = exportProtocolPdf;
     window.exportTextPdf = exportTextPdf;
     window.groupHitsIntoEntities = groupHitsIntoEntities;
+    window.showConfirm = showConfirm;
     window.S = S;
   }
   if (typeof queueMicrotask === "function") {

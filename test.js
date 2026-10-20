@@ -53,6 +53,7 @@ import {
   buildCanonicalDocument, applyDocumentToState, ingestDocument, ingestDocumentBatch
 } from "./src/formats/ingest.js";
 import { exportSession, importSession } from "./src/crypto/session.js";
+import { I18N, formatPlural } from "./src/core/i18n.js";
 
 const canonical = readFileSync("znecitelne.html", "utf8");
 const server = readFileSync("server.js", "utf8");
@@ -2179,6 +2180,61 @@ try {
   );
 } catch (adr13Err) {
   failures.push("ADR-0013 test failed: " + (adr13Err.message || String(adr13Err)));
+}
+
+// Recommendations test: Usability, Accessibility, Decisions, and Export Gate
+try {
+  // 1. Plural formatting & {n} bug resolution
+  const csUnreviewed = I18N.cs.unreviewedCountPlural;
+  check(formatPlural(1, csUnreviewed, "cs") === "1 nález k posouzení", "Czech plural for 1 must be '1 nález k posouzení'");
+  check(formatPlural(2, csUnreviewed, "cs") === "2 nálezy k posouzení", "Czech plural for 2 must be '2 nálezy k posouzení'");
+  check(formatPlural(4, csUnreviewed, "cs") === "4 nálezy k posouzení", "Czech plural for 4 must be '4 nálezy k posouzení'");
+  check(formatPlural(5, csUnreviewed, "cs") === "5 nálezů k posouzení", "Czech plural for 5 must be '5 nálezů k posouzení'");
+  check(formatPlural(32, csUnreviewed, "cs") === "32 nálezů k posouzení", "Czech plural for 32 must be '32 nálezů k posouzení'");
+
+  const csOccurrences = I18N.cs.entityOccurrencesPlural;
+  check(formatPlural(1, csOccurrences, "cs") === "1 výskyt", "Czech plural for 1 occurrence must be '1 výskyt', not '1 výskytů'");
+  check(formatPlural(2, csOccurrences, "cs") === "2 výskyty", "Czech plural for 2 occurrences must be '2 výskyty'");
+  check(formatPlural(5, csOccurrences, "cs") === "5 výskytů", "Czech plural for 5 occurrences must be '5 výskytů'");
+
+  const enUnreviewed = I18N.en.unreviewedCountPlural;
+  check(formatPlural(1, enUnreviewed, "en") === "1 finding to review", "English plural for 1 finding must be '1 finding to review'");
+  check(formatPlural(32, enUnreviewed, "en") === "32 findings to review", "English plural for 32 findings must be '32 findings to review'");
+
+  // 2. Export gate hint & unseen confirmation strings
+  check(canonical.includes('id="exportGateHint"'), "Export gate must have a visible reason element #exportGateHint");
+  check(formatPlural(32, I18N.cs.unseenConfirm, "cs") === "32 nálezů jste neprohlédl. Pokračovat?", "Unseen confirmation prompt must format 32 correctly");
+
+  // 3. Decisions & bulk actions separation and undo
+  check(canonical.includes('id="lblFiltersAside"') && canonical.includes('id="lblBulkAside"'), "Filters and bulk actions must be separated with distinct headers");
+  check(canonical.includes('id="btnBulkUndo"'), "Bulk actions must have an undo button #btnBulkUndo");
+  check(canonical.includes('id="shortcutHint"'), "Keyboard shortcuts hint #shortcutHint must be visible near findings list");
+
+  // 4. Non-color visual cues
+  check(canonical.includes(".mk-on") && canonical.includes("text-decoration: line-through"), "Redacted text (.mk-on) must have strikethrough cue");
+  check(canonical.includes(".mk-off") && canonical.includes("text-decoration-style: dashed"), "Kept text (.mk-off) must have dashed underline cue");
+  check(canonical.includes("ec-redact") && canonical.includes("border-left: 5px solid"), "Redacted entity card must have 5px solid border cue");
+  check(canonical.includes("ec-keep") && canonical.includes("border-left: 5px dashed"), "Kept entity card must have 5px dashed border cue");
+  check(canonical.includes("ec-mixed") && canonical.includes("border-left: 5px dotted"), "Mixed entity card must have 5px dotted border cue");
+
+  // 5. In-app close document dialog offering 4-eyes review session
+  check(canonical.includes('id="closeDocModal"'), "Closing document must have in-app modal #closeDocModal");
+  check(canonical.includes('id="btnCloseSaveSession"'), "Close document modal must offer session save for 4-eyes review");
+  check(canonical.includes('role="dialog"') && canonical.includes('aria-modal="true"'), "Modals must declare role=dialog and aria-modal=true");
+
+  // 6. Accessibility & contrast
+  check(canonical.includes('[data-theme="dark"] .pill-hit') && canonical.includes("color: #12161c"), "Dark mode --hit pill must have dark readable text");
+  check(canonical.includes('[data-theme="dark"] .pill-ok') && canonical.includes("color: #12161c"), "Dark mode --ok pill must have dark readable text");
+  check(canonical.includes('role="tablist"') && canonical.includes('role="tab"'), "Settings tabs must declare role=tablist and role=tab");
+
+  // 7. Usability improvements
+  check(canonical.includes('id="headerPrivacyBadge"'), "Persistent 'Zpracováno lokálně' badge must be present in header");
+  check(canonical.includes('id="headerMoreMenu"'), "Header overflow menu #headerMoreMenu must be present");
+  check(canonical.includes('id="lblExpGroupDoc"') && canonical.includes('id="lblExpGroupCollab"') && canonical.includes('id="lblExpGroupAudit"'), "Export menu must be grouped into 3 titled sections");
+  check(!I18N.cs.tips.features.includes("všechod"), "Typo 'všechod' in Czech dictionary must be fixed");
+  check(I18N.en.queueLbl === "Batch queue", "English queueLbl must be translated to 'Batch queue'");
+} catch (recErr) {
+  failures.push("Recommendations test failed: " + (recErr.message || String(recErr)));
 }
 
 

@@ -5,14 +5,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; child-src 'self' blob:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none';" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="theme-color" content="#1f3348" />
-<meta name="description" content="Lokální anonymizace dokumentů pro české státní firmy a přípravu textu pro veřejnou AI. Jeden HTML soubor. Žádný cloud." />
+<meta name="description" content="Lokální anonymizace dokumentů pro české státní firmy a přípravu textu pro veřejnou AI. Jedna složka, bez serveru. Žádný cloud." />
 <meta property="og:title" content="Znečitelně" />
-<meta property="og:description" content="Lokální anonymizace dokumentů pro české státní firmy a přípravu textu pro veřejnou AI. Jeden HTML soubor. Žádný cloud." />
+<meta property="og:description" content="Lokální anonymizace dokumentů pro české státní firmy a přípravu textu pro veřejnou AI. Jedna složka, bez serveru. Žádný cloud." />
 <title>Znečitelně</title>
 <style>
 :root {
   --bg: #f3efe6; --bg-subtle: #e3dcc9; --surface: #fffcf6; --fg: #14161a;
-  --muted: #464e57; --border: #b9ae94; --primary: #1a2c40; --on-primary: #ffffff;
+  --muted: #464e57; --border: #8f8268; --primary: #1a2c40; --on-primary: #ffffff;
   --accent: #2c4658; --danger: #7a1f1f; --ok: #1e5a3f; --hit: #a8460f; --add: #1f6b5c;
   --focus: #0f5fa8;
   --header-bg: #1a2c40; --header-fg: #ffffff; --header-muted: #d7e0e8;
@@ -25,7 +25,7 @@
 }
 html[data-theme="dark"] {
   --bg: #12161c; --bg-subtle: #1b222c; --surface: #1c2430; --fg: #e8e4d8;
-  --muted: #9aa4b0; --border: #3a4656; --primary: #c9b896; --on-primary: #14161a;
+  --muted: #9aa4b0; --border: #63768e; --primary: #c9b896; --on-primary: #14161a;
   --accent: #8fb4c9; --danger: #e07a6a; --ok: #6fbf96; --hit: #e09a5a; --add: #6ec4b0;
   --focus: #7eb6e8;
   --header-bg: #0d1218; --header-fg: #e8e4d8; --header-muted: #9aa4b0;
@@ -58,35 +58,38 @@ header.app {
   background: var(--primary); color: var(--on-primary); font-weight: 500; line-height: 1;
 }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
-.btn-sm { min-height: 36px; padding: 0 12px; font-size: 13px; }
+.btn-sm { min-height: 36px; padding: 0 12px; font-size: 13px; border-radius: var(--radius-sm, 6px); }
 .btn-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .btn-pair .btn { width: 100%; min-height: 40px; }
 .btn-eq { min-width: 140px; }
 .btn-ghost {
   background: var(--surface); color: var(--fg);
   border-color: var(--border);
+  border-radius: var(--radius-sm, 6px);
 }
 .btn-ghost:hover { background: var(--bg-subtle); border-color: var(--accent); }
 header.app .btn-ghost {
   background: color-mix(in srgb, var(--header-fg) 10%, transparent);
   color: var(--header-fg);
   border-color: color-mix(in srgb, var(--header-fg) 48%, transparent);
+  border-radius: var(--radius-sm, 6px);
 }
 header.app .btn-ghost:hover {
   background: color-mix(in srgb, var(--header-fg) 20%, transparent);
   border-color: color-mix(in srgb, var(--header-fg) 78%, transparent);
 }
-.btn-sec { background: var(--surface); color: var(--fg); border: 1.5px solid var(--border); }
+.btn-sec { background: var(--surface); color: var(--fg); border: 1.5px solid var(--border); border-radius: var(--radius-sm, 6px); }
 .btn-sec:hover { background: var(--bg-subtle); border-color: var(--accent); }
 .btn-file {
   background: var(--surface); color: var(--primary); border-color: var(--surface);
   font-weight: 650; box-shadow: 0 0 0 2px color-mix(in srgb, var(--header-fg) 28%, transparent);
+  border-radius: 999px;
 }
 .btn-file:hover { background: var(--bg); color: var(--fg); }
 .btn-file .plus { font-size: 18px; line-height: 1; font-weight: 700; }
 .btn-add-sel {
   background: var(--primary); color: var(--on-primary); border-color: var(--primary);
-  font-weight: 700;
+  font-weight: 700; border-radius: 999px;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 38%, transparent);
 }
 .btn-add-sel:hover {
@@ -143,7 +146,7 @@ textarea { min-height: 80px; font-family: var(--mono); font-size: 13px; }
 .badge { display: inline-flex; align-items: center; border-radius: 999px; border: 1.5px solid var(--border); background: var(--bg-subtle); padding: 4px 10px; font-size: 12px; color: var(--fg); font-family: var(--mono); font-weight: 600; }
 .ok { color: var(--ok); font-weight: 600; } .danger { color: var(--danger); font-weight: 600; }
 .work { display: grid; gap: 16px; }
-@media (min-width: 1100px) { .work { grid-template-columns: minmax(0,1fr) 340px; } }
+@media (min-width: 1100px) { .work { grid-template-columns: minmax(0,1fr) 420px; } }
 .pane { background: var(--surface); border-radius: 16px; padding: 12px; box-shadow: 0 0 0 1.5px var(--border); }
 pre.doc { max-height: min(70dvh, 640px); overflow: auto; white-space: pre-wrap; word-break: break-word; font: 13px/1.65 var(--mono); margin: 0; color: var(--fg); }
 @media (min-width: 1100px) { #orig { max-height: min(85dvh, 980px); } }
@@ -197,8 +200,19 @@ pre.doc button.mk {
   cursor: pointer;
   box-shadow: inset 0 -2px 0 var(--border);
 }
-.mk-on { background: color-mix(in srgb, var(--hit) 35%, transparent); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--hit) 80%, black); }
-.mk-off { background: color-mix(in srgb, var(--ok) 25%, transparent); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--ok) 70%, black); }
+.mk-on {
+  background: color-mix(in srgb, var(--hit) 35%, transparent);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--hit) 80%, black);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+.mk-off {
+  background: color-mix(in srgb, var(--ok) 25%, transparent);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--ok) 70%, black);
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 3px;
+}
 .mk-sel { outline: 2px solid var(--focus); outline-offset: 1px; }
 .mk-preview { background: color-mix(in srgb, var(--primary) 22%, transparent); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--primary) 65%, black); }
 html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--primary) 28%, var(--surface)); box-shadow: inset 0 -2px 0 var(--primary); }
@@ -218,6 +232,118 @@ html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--prima
 .pill-ghost { visibility: hidden; }
 .pill-hit { background: var(--hit); color: #fff; }
 .pill-ok { background: var(--ok); color: #fff; }
+html[data-theme="dark"] .pill-hit { background: var(--hit); color: #12161c; }
+html[data-theme="dark"] .pill-ok { background: var(--ok); color: #12161c; }
+
+@media (min-width: 1100px) {
+  body.has-doc { overflow: hidden; }
+  body.has-doc header.app { flex-shrink: 0; }
+  body.has-doc .review {
+    height: calc(100dvh - var(--hdr-h, 60px));
+    max-height: calc(100dvh - var(--hdr-h, 60px));
+    padding: 10px 16px 12px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  body.has-doc .work {
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    align-items: stretch;
+    height: 100%;
+    overflow: hidden;
+  }
+  body.has-doc .doc-pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+  body.has-doc pre.doc {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none !important;
+    height: 100%;
+    overflow-y: auto;
+  }
+  body.has-doc #pdfVisual {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none !important;
+    height: 100%;
+    overflow-y: auto;
+  }
+  body.has-doc #reviewAside {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+  body.has-doc .entities-container,
+  body.has-doc .hits {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none !important;
+    overflow-y: auto;
+  }
+  body.has-doc footer { display: none; }
+}
+
+.privacy-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600;
+  color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ok) 32%, transparent);
+  padding: 3px 8px; border-radius: 999px;
+  white-space: nowrap;
+}
+html[data-theme="dark"] .privacy-badge {
+  color: var(--ok); background: color-mix(in srgb, var(--ok) 20%, transparent);
+}
+.export-gate-hint {
+  font-size: 11px; color: var(--header-muted); font-weight: 500;
+  padding: 3px 8px; background: color-mix(in srgb, var(--header-fg) 10%, transparent);
+  border-radius: var(--radius-sm, 6px); border: 1px solid color-mix(in srgb, var(--header-fg) 20%, transparent);
+  white-space: nowrap;
+}
+.shortcut-hint {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 11px; color: var(--muted); padding: 5px 8px; margin: 4px 0 8px;
+  background: var(--bg-subtle); border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border);
+}
+.shortcut-hint .sc-dot { color: var(--border); font-weight: bold; }
+.shortcut-hint kbd {
+  display: inline-block; padding: 1px 4px; font-size: 10px; font-family: var(--mono);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 3px;
+  color: var(--fg); font-weight: 700;
+}
+.aside-group { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.aside-group-header { display: flex; justify-content: space-between; align-items: center; }
+.lbl-aside { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.btn-undo {
+  background: transparent; border: 0; color: var(--accent); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 6px;
+}
+.btn-undo:hover { text-decoration: underline; color: var(--primary); }
+.btn-bulk {
+  min-height: 36px !important; padding: 0 8px !important; font-size: 12px !important; border-radius: var(--radius-sm, 6px) !important;
+}
+.btn-bulk-danger { border-color: color-mix(in srgb, var(--danger) 40%, var(--border)) !important; }
+.btn-bulk-danger:hover { background: color-mix(in srgb, var(--danger) 10%, var(--surface)) !important; border-color: var(--danger) !important; }
+.dropdown-section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--muted); padding: 6px 10px 2px;
+}
+.dropdown-divider {
+  height: 1px; background: var(--border); margin: 4px 0; opacity: .6;
+}
+.dropdown-desc {
+  display: block; font-size: 11px; color: var(--muted); font-weight: normal; margin-top: 1px;
+}
 #quickHitBar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 35;
   background: var(--primary); color: var(--on-primary);
@@ -335,11 +461,11 @@ html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--prima
 .sb-desc { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
 
 /* --- Entity Cards & Review Aside --- */
-.aside-nav { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.aside-nav { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
 .view-mode-seg { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
 .view-mode-seg .seg-btn { text-align: center; justify-content: center; }
 .bulk-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
-.bulk-actions .btn { min-height: 32px; padding: 0 6px; font-size: 11px; white-space: nowrap; }
+.bulk-actions .btn { min-height: 36px; padding: 0 8px; font-size: 12px; white-space: nowrap; }
 
 .entities-container {
   max-height: 48dvh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
@@ -352,21 +478,22 @@ html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--prima
 }
 .entity-card:hover { border-color: var(--accent); }
 .entity-card.sel { border-color: var(--focus); box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 25%, transparent); }
-.entity-card.ec-redact { border-left: 4px solid var(--hit); }
-.entity-card.ec-keep { border-left: 4px solid var(--ok); }
-.entity-card.ec-mixed { border-left: 4px solid var(--muted); }
-.ec-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; cursor: pointer; }
+.entity-card.ec-redact { border-left: 5px solid var(--hit); }
+.entity-card.ec-keep { border-left: 5px dashed var(--ok); }
+.entity-card.ec-mixed { border-left: 5px dotted var(--muted); }
+.ec-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; cursor: pointer; border-radius: var(--radius-sm, 6px); }
+.ec-header:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .ec-title { font-weight: 650; font-size: 13px; color: var(--fg); margin: 0; }
 .ec-meta { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .ec-token { font-family: var(--mono); font-size: 11px; font-weight: 600; background: var(--bg-subtle); padding: 1px 5px; border-radius: 4px; }
 .ec-actions { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
-.ec-actions .btn-sm { min-height: 28px; padding: 0 10px; font-size: 11px; }
+.ec-actions .btn-sm { min-height: 36px; padding: 0 12px; font-size: 12px; }
 .ec-subhits {
   margin-top: 8px; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
   display: flex; flex-direction: column; gap: 4px;
 }
 .ec-subhit {
-  display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 5px 8px;
+  display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 6px 8px;
   border-radius: var(--radius-sm, 6px); background: var(--bg-subtle); cursor: pointer;
 }
 .ec-subhit:hover { background: color-mix(in srgb, var(--primary) 12%, var(--surface)); }
@@ -631,6 +758,10 @@ body.movie-active #settingsSheet {
       <h1 style="margin:0;font-size:18px" id="title">Znečitelně</h1>
       <p class="tag" id="tagline"></p>
     </div>
+    <span class="privacy-badge" id="headerPrivacyBadge" title="Zpracováno lokálně ve vašem zařízení. Žádný server ani cloud.">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span id="lblHeaderPrivacy">Zpracováno lokálně</span>
+    </span>
   </div>
 
   <!-- Active Document info & Queue dropdown (shown during review) -->
@@ -639,8 +770,12 @@ body.movie-active #settingsSheet {
     <div class="queue-dropdown hidden" id="headerQueueWrap">
       <select id="headerQueueSelect" aria-label="Dávková fronta"></select>
     </div>
-    <button class="btn btn-sm btn-ghost" id="btnHeaderAddDoc" type="button" title="Přidat další dokument do fronty" aria-label="Přidat dokument">+</button>
-    <button class="btn btn-sm btn-ghost" id="btnHeaderClear" type="button" title="Zavřít dokument">✕</button>
+    <button class="btn btn-sm btn-ghost" id="btnHeaderAddDoc" type="button" title="Přidat další dokument do fronty" aria-label="Přidat dokument">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <button class="btn btn-sm btn-ghost" id="btnHeaderClear" type="button" title="Zavřít dokument" aria-label="Zavřít dokument">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
   </div>
 
   <!-- Center Approval / Risk indicator (shown during review) -->
@@ -652,6 +787,7 @@ body.movie-active #settingsSheet {
     <label class="check approval-check hidden" id="lblHeaderSecondEyes">
       <input type="checkbox" id="chk2" /> <span id="lblSecondEyesText">2. kontrola</span>
     </label>
+    <span class="export-gate-hint hidden" id="exportGateHint" role="status"></span>
   </div>
 
   <div class="hdr-actions" id="hdrActions">
@@ -660,18 +796,60 @@ body.movie-active #settingsSheet {
       <button class="btn btn-sm btn-export" id="btnExp" type="button">Anonymizovat a exportovat</button>
       <button class="btn btn-sm btn-export btn-split-toggle" id="btnExpMenuToggle" type="button" aria-haspopup="true" aria-expanded="false" title="Další možnosti exportu">▾</button>
       <div class="dropdown-menu hidden" id="headerExportMenu" role="menu">
+        <div class="dropdown-section-title" id="lblExpGroupDoc">Dokumentový výstup</div>
         <button type="button" class="dropdown-item hidden" id="menuExportQueueZip">📁 Exportovat schválené z fronty (ZIP)</button>
-        <button type="button" class="dropdown-item" id="menuExportAi">📦 AI balíček (ZIP)</button>
-        <button type="button" class="dropdown-item" id="menuExportSession">💾 Předat pro 4 oči (.znecitelne-session)</button>
-        <button type="button" class="dropdown-item" id="menuExportAudit">📋 Auditní protokol (JSON)</button>
-        <button type="button" class="dropdown-item" id="menuExportRecord">🔒 Protokol o anonymizaci (PDF)</button>
+        <button type="button" class="dropdown-item" id="menuExportAi">
+          <span>📦 AI balíček (ZIP)</span>
+          <span class="dropdown-desc" id="lblExpAiDesc">Čistý text, osnova postupu a veřejný slovník tokenů</span>
+        </button>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-section-title" id="lblExpGroupCollab">Předání a spolupráce</div>
+        <button type="button" class="dropdown-item" id="menuExportSession">
+          <span>💾 Předat pro 4 oči (.znecitelne-session)</span>
+          <span class="dropdown-desc" id="lblExpSessionDesc">Šifrované rozpracované sezení pro druhou kontrolu</span>
+        </button>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-section-title" id="lblExpGroupAudit">Audit a evidence</div>
+        <button type="button" class="dropdown-item" id="menuExportAudit">
+          <span>📋 Auditní protokol (JSON)</span>
+          <span class="dropdown-desc" id="lblExpAuditDesc">Hash rozhodnutí se zkrácenými hodnotami pro doložení</span>
+        </button>
+        <button type="button" class="dropdown-item" id="menuExportRecord">
+          <span>🔒 Protokol o anonymizaci (PDF)</span>
+          <span class="dropdown-desc" id="lblExpRecordDesc">Formální záznam o začernění pro spis</span>
+        </button>
       </div>
     </div>
 
-    <button class="btn btn-sm btn-ghost" id="btnTheme" type="button" aria-pressed="false" aria-label="Tmavý režim">☾</button>
-    <button class="btn btn-sm btn-ghost" id="btnSettings" type="button" aria-label="Nastavení">⚙</button>
-    <button class="btn btn-sm btn-ghost" id="btnLang" type="button">EN</button>
-    <button class="btn btn-sm btn-ghost" id="btnHelp" type="button">?</button>
+    <!-- Settings button -->
+    <button class="btn btn-sm btn-ghost" id="btnSettings" type="button" aria-label="Nastavení" title="Nastavení">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+
+    <!-- Header overflow menu toggle -->
+    <div class="header-more-group" style="position:relative;display:inline-block;">
+      <button class="btn btn-sm btn-ghost" id="btnHeaderMore" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Další možnosti" title="Další možnosti">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+      </button>
+      <div class="dropdown-menu hidden" id="headerMoreMenu" role="menu">
+        <button type="button" class="dropdown-item" id="btnTheme" role="menuitem">
+          <span id="lblThemeText">☾ Tmavý režim</span>
+        </button>
+        <button type="button" class="dropdown-item" id="btnLang" role="menuitem">
+          <span id="lblLangText">🌐 Jazyk: EN</span>
+        </button>
+        <button type="button" class="dropdown-item" id="btnHelp" role="menuitem">
+          <span id="lblHelpText">❓ Nápověda a klávesy</span>
+        </button>
+        <div class="dropdown-divider"></div>
+        <button type="button" class="dropdown-item" id="btnHdrFeatures" role="menuitem">
+          <span id="lblFeaturesText">✨ Přehled funkcí</span>
+        </button>
+        <button type="button" class="dropdown-item" id="btnHdrChangelog" role="menuitem">
+          <span id="lblChangelogText">📜 Changelog</span>
+        </button>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -723,9 +901,9 @@ body.movie-active #settingsSheet {
     <div class="pane doc-pane">
       <div class="pane-header doc-pane-header">
         <div class="doc-view-seg" role="group" aria-label="Režim zobrazení dokumentu">
-          <button type="button" class="seg-btn on" id="btnViewOrig">Původní text</button>
-          <button type="button" class="seg-btn" id="btnViewPreview">Náhled změn</button>
-          <button type="button" class="seg-btn hidden" id="btnVisual">Vizuální PDF</button>
+          <button type="button" class="seg-btn on" id="btnViewOrig" aria-pressed="true">Původní text</button>
+          <button type="button" class="seg-btn" id="btnViewPreview" aria-pressed="false">Náhled změn</button>
+          <button type="button" class="seg-btn hidden" id="btnVisual" aria-pressed="false">Vizuální PDF</button>
         </div>
         <button class="btn btn-sm btn-add-sel" id="btnAdd" type="button">+ Anonymizovat výběr</button>
       </div>
@@ -735,15 +913,33 @@ body.movie-active #settingsSheet {
     <aside id="reviewAside">
       <div class="aside-nav">
         <div class="seg-ctrl view-mode-seg" role="group" aria-label="Pohled na nálezy">
-          <button type="button" class="seg-btn on" id="btnModeEntities">Entitní přehled</button>
-          <button type="button" class="seg-btn" id="btnModeHits">Jednotlivé nálezy</button>
+          <button type="button" class="seg-btn on" id="btnModeEntities" aria-pressed="true">Entitní přehled</button>
+          <button type="button" class="seg-btn" id="btnModeHits" aria-pressed="false">Jednotlivé nálezy</button>
         </div>
-        <div class="filters" id="filters"></div>
-        <div class="bulk-actions" id="bulkActions">
-          <button type="button" class="btn btn-sm btn-sec" id="btnAll">Vše anonymizovat</button>
-          <button type="button" class="btn btn-sm btn-sec" id="btnOff">Ponechat instituce</button>
-          <button type="button" class="btn btn-sm btn-sec" id="btnNone">Vše ponechat</button>
+        <div class="aside-group">
+          <div class="aside-group-header">
+            <span class="lbl-aside" id="lblFiltersAside">Filtrovat zobrazení</span>
+          </div>
+          <div class="filters" id="filters" role="group" aria-label="Filtry zobrazení"></div>
         </div>
+        <div class="aside-group">
+          <div class="aside-group-header">
+            <span class="lbl-aside" id="lblBulkAside">Hromadné akce</span>
+            <button type="button" class="btn-undo hidden" id="btnBulkUndo" title="Vrátit poslední hromadnou akci">↶ Zpět</button>
+          </div>
+          <div class="bulk-actions" id="bulkActions" role="group" aria-label="Hromadné akce">
+            <button type="button" class="btn btn-sm btn-sec btn-bulk" id="btnAll">Vše anonymizovat</button>
+            <button type="button" class="btn btn-sm btn-sec btn-bulk" id="btnOff">Ponechat instituce</button>
+            <button type="button" class="btn btn-sm btn-sec btn-bulk btn-bulk-danger" id="btnNone">Vše ponechat</button>
+          </div>
+        </div>
+      </div>
+      <div class="shortcut-hint" id="shortcutHint" aria-label="Klávesové zkratky">
+        <span><kbd>J</kbd>/<kbd>K</kbd> další</span>
+        <span class="sc-dot">·</span>
+        <span><kbd>R</kbd> anonymizovat</span>
+        <span class="sc-dot">·</span>
+        <span><kbd>P</kbd> ponechat</span>
       </div>
       <div class="entities-container" id="entityList"></div>
       <div class="hits hidden" id="hitList"></div>
@@ -763,16 +959,16 @@ body.movie-active #settingsSheet {
 <div class="bar hidden" id="quickHitBar"></div>
 <footer id="footer"></footer>
 
-<div class="modal hidden" id="helpModal">
+<div class="modal hidden" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
   <div class="sheet" id="helpSheet"></div>
 </div>
-<div class="modal hidden" id="featuresModal">
+<div class="modal hidden" id="featuresModal" role="dialog" aria-modal="true" aria-labelledby="featuresTitle">
   <div class="sheet" id="featuresSheet" style="max-height:min(90dvh,720px);overflow:auto"></div>
 </div>
-<div class="modal hidden" id="changelogModal">
+<div class="modal hidden" id="changelogModal" role="dialog" aria-modal="true" aria-labelledby="changelogTitle">
   <div class="sheet" id="changelogSheet"></div>
 </div>
-<div class="modal hidden" id="exportModal">
+<div class="modal hidden" id="exportModal" role="dialog" aria-modal="true" aria-labelledby="diffTitle">
   <div class="sheet" id="exportSheet"></div>
 </div>
 <div class="modal hidden" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmMessage">
@@ -784,18 +980,38 @@ body.movie-active #settingsSheet {
     </div>
   </div>
 </div>
-<div class="modal hidden" id="settingsModal">
+<div class="modal hidden" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
   <div class="sheet" id="settingsSheet" style="max-height:min(90dvh,760px);overflow:auto">
     <h2 id="settingsTitle" style="margin-top:0"></h2>
-    <div class="settings-tabs" role="tablist">
-      <button type="button" class="settings-tab-btn active" data-tab="tabProfile" id="tabBtnProfile">Profil publikace</button>
-      <button type="button" class="settings-tab-btn" data-tab="tabDicts" id="tabBtnDicts">Projektové slovníky</button>
-      <button type="button" class="settings-tab-btn" data-tab="tabFormats" id="tabBtnFormats">Formáty a zabezpečení</button>
+    <div class="settings-tabs" role="tablist" aria-label="Záložky nastavení">
+      <button type="button" class="settings-tab-btn active" role="tab" aria-selected="true" data-tab="tabProfile" id="tabBtnProfile" aria-controls="m_tabPaneProfile">Profil publikace</button>
+      <button type="button" class="settings-tab-btn" role="tab" aria-selected="false" tabindex="-1" data-tab="tabDicts" id="tabBtnDicts" aria-controls="m_tabPaneDicts">Projektové slovníky</button>
+      <button type="button" class="settings-tab-btn" role="tab" aria-selected="false" tabindex="-1" data-tab="tabFormats" id="tabBtnFormats" aria-controls="m_tabPaneFormats">Formáty a zabezpečení</button>
     </div>
     <div id="settingsModalMount"></div>
     <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
       <button class="btn" id="btnSettingsApply" type="button"></button>
       <button class="btn btn-sec" id="btnSettingsClose" type="button"></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal hidden" id="closeDocModal" role="dialog" aria-modal="true" aria-labelledby="closeDocTitle">
+  <div class="sheet" style="max-width:480px;">
+    <h2 id="closeDocTitle" style="margin-top:0">Zavřít dokument?</h2>
+    <p id="closeDocDesc" style="color:var(--muted);font-size:14px;line-height:1.5;">
+      Máte rozpracované změny v anonymizaci dokumentu. Neuložené změny budou ztraceny. Můžete si stav bezpečně uložit pro druhou kontrolu.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:20px;">
+      <button class="btn btn-file" id="btnCloseSaveSession" type="button" style="justify-content:flex-start;text-align:left;">
+        💾 <span style="font-weight:600" id="lblCloseSaveSession">Předat pro 4 oči (uložit sezení)</span>
+      </button>
+      <button class="btn btn-sec" id="btnCloseDiscard" type="button" style="justify-content:flex-start;color:var(--danger);border-color:var(--danger);">
+        ✕ <span id="lblCloseDiscard">Zavřít bez uložení</span>
+      </button>
+      <button class="btn btn-ghost" id="btnCloseCancel" type="button" id="lblCloseCancel">
+        Zpět k dokumentu
+      </button>
     </div>
   </div>
 </div>

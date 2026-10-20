@@ -5,14 +5,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; child-src 'self' blob:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none';" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="theme-color" content="#1f3348" />
-<meta name="description" content="Lokální anonymizace dokumentů pro české státní firmy a přípravu textu pro veřejnou AI. Jeden HTML soubor. Žádný cloud." />
+<meta name="description" content="Lokální anonymizace dokumentů pro české státní firmy a přípravu textu pro veřejnou AI. Jedna složka, bez serveru. Žádný cloud." />
 <meta property="og:title" content="Znečitelně" />
-<meta property="og:description" content="Lokální anonymizace dokumentů pro české státní firmy a přípravu textu pro veřejnou AI. Jeden HTML soubor. Žádný cloud." />
+<meta property="og:description" content="Lokální anonymizace dokumentů pro české státní firmy a přípravu textu pro veřejnou AI. Jedna složka, bez serveru. Žádný cloud." />
 <title>Znečitelně</title>
 <style>
 :root {
   --bg: #f3efe6; --bg-subtle: #e3dcc9; --surface: #fffcf6; --fg: #14161a;
-  --muted: #464e57; --border: #b9ae94; --primary: #1a2c40; --on-primary: #ffffff;
+  --muted: #464e57; --border: #8f8268; --primary: #1a2c40; --on-primary: #ffffff;
   --accent: #2c4658; --danger: #7a1f1f; --ok: #1e5a3f; --hit: #a8460f; --add: #1f6b5c;
   --focus: #0f5fa8;
   --header-bg: #1a2c40; --header-fg: #ffffff; --header-muted: #d7e0e8;
@@ -25,7 +25,7 @@
 }
 html[data-theme="dark"] {
   --bg: #12161c; --bg-subtle: #1b222c; --surface: #1c2430; --fg: #e8e4d8;
-  --muted: #9aa4b0; --border: #3a4656; --primary: #c9b896; --on-primary: #14161a;
+  --muted: #9aa4b0; --border: #63768e; --primary: #c9b896; --on-primary: #14161a;
   --accent: #8fb4c9; --danger: #e07a6a; --ok: #6fbf96; --hit: #e09a5a; --add: #6ec4b0;
   --focus: #7eb6e8;
   --header-bg: #0d1218; --header-fg: #e8e4d8; --header-muted: #9aa4b0;
@@ -58,35 +58,38 @@ header.app {
   background: var(--primary); color: var(--on-primary); font-weight: 500; line-height: 1;
 }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
-.btn-sm { min-height: 36px; padding: 0 12px; font-size: 13px; }
+.btn-sm { min-height: 36px; padding: 0 12px; font-size: 13px; border-radius: var(--radius-sm, 6px); }
 .btn-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .btn-pair .btn { width: 100%; min-height: 40px; }
 .btn-eq { min-width: 140px; }
 .btn-ghost {
   background: var(--surface); color: var(--fg);
   border-color: var(--border);
+  border-radius: var(--radius-sm, 6px);
 }
 .btn-ghost:hover { background: var(--bg-subtle); border-color: var(--accent); }
 header.app .btn-ghost {
   background: color-mix(in srgb, var(--header-fg) 10%, transparent);
   color: var(--header-fg);
   border-color: color-mix(in srgb, var(--header-fg) 48%, transparent);
+  border-radius: var(--radius-sm, 6px);
 }
 header.app .btn-ghost:hover {
   background: color-mix(in srgb, var(--header-fg) 20%, transparent);
   border-color: color-mix(in srgb, var(--header-fg) 78%, transparent);
 }
-.btn-sec { background: var(--surface); color: var(--fg); border: 1.5px solid var(--border); }
+.btn-sec { background: var(--surface); color: var(--fg); border: 1.5px solid var(--border); border-radius: var(--radius-sm, 6px); }
 .btn-sec:hover { background: var(--bg-subtle); border-color: var(--accent); }
 .btn-file {
   background: var(--surface); color: var(--primary); border-color: var(--surface);
   font-weight: 650; box-shadow: 0 0 0 2px color-mix(in srgb, var(--header-fg) 28%, transparent);
+  border-radius: 999px;
 }
 .btn-file:hover { background: var(--bg); color: var(--fg); }
 .btn-file .plus { font-size: 18px; line-height: 1; font-weight: 700; }
 .btn-add-sel {
   background: var(--primary); color: var(--on-primary); border-color: var(--primary);
-  font-weight: 700;
+  font-weight: 700; border-radius: 999px;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 38%, transparent);
 }
 .btn-add-sel:hover {
@@ -143,7 +146,7 @@ textarea { min-height: 80px; font-family: var(--mono); font-size: 13px; }
 .badge { display: inline-flex; align-items: center; border-radius: 999px; border: 1.5px solid var(--border); background: var(--bg-subtle); padding: 4px 10px; font-size: 12px; color: var(--fg); font-family: var(--mono); font-weight: 600; }
 .ok { color: var(--ok); font-weight: 600; } .danger { color: var(--danger); font-weight: 600; }
 .work { display: grid; gap: 16px; }
-@media (min-width: 1100px) { .work { grid-template-columns: minmax(0,1fr) 340px; } }
+@media (min-width: 1100px) { .work { grid-template-columns: minmax(0,1fr) 420px; } }
 .pane { background: var(--surface); border-radius: 16px; padding: 12px; box-shadow: 0 0 0 1.5px var(--border); }
 pre.doc { max-height: min(70dvh, 640px); overflow: auto; white-space: pre-wrap; word-break: break-word; font: 13px/1.65 var(--mono); margin: 0; color: var(--fg); }
 @media (min-width: 1100px) { #orig { max-height: min(85dvh, 980px); } }
@@ -197,8 +200,19 @@ pre.doc button.mk {
   cursor: pointer;
   box-shadow: inset 0 -2px 0 var(--border);
 }
-.mk-on { background: color-mix(in srgb, var(--hit) 35%, transparent); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--hit) 80%, black); }
-.mk-off { background: color-mix(in srgb, var(--ok) 25%, transparent); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--ok) 70%, black); }
+.mk-on {
+  background: color-mix(in srgb, var(--hit) 35%, transparent);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--hit) 80%, black);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+.mk-off {
+  background: color-mix(in srgb, var(--ok) 25%, transparent);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--ok) 70%, black);
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 3px;
+}
 .mk-sel { outline: 2px solid var(--focus); outline-offset: 1px; }
 .mk-preview { background: color-mix(in srgb, var(--primary) 22%, transparent); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--primary) 65%, black); }
 html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--primary) 28%, var(--surface)); box-shadow: inset 0 -2px 0 var(--primary); }
@@ -218,6 +232,118 @@ html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--prima
 .pill-ghost { visibility: hidden; }
 .pill-hit { background: var(--hit); color: #fff; }
 .pill-ok { background: var(--ok); color: #fff; }
+html[data-theme="dark"] .pill-hit { background: var(--hit); color: #12161c; }
+html[data-theme="dark"] .pill-ok { background: var(--ok); color: #12161c; }
+
+@media (min-width: 1100px) {
+  body.has-doc { overflow: hidden; }
+  body.has-doc header.app { flex-shrink: 0; }
+  body.has-doc .review {
+    height: calc(100dvh - var(--hdr-h, 60px));
+    max-height: calc(100dvh - var(--hdr-h, 60px));
+    padding: 10px 16px 12px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  body.has-doc .work {
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    align-items: stretch;
+    height: 100%;
+    overflow: hidden;
+  }
+  body.has-doc .doc-pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+  body.has-doc pre.doc {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none !important;
+    height: 100%;
+    overflow-y: auto;
+  }
+  body.has-doc #pdfVisual {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none !important;
+    height: 100%;
+    overflow-y: auto;
+  }
+  body.has-doc #reviewAside {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+  body.has-doc .entities-container,
+  body.has-doc .hits {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none !important;
+    overflow-y: auto;
+  }
+  body.has-doc footer { display: none; }
+}
+
+.privacy-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600;
+  color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ok) 32%, transparent);
+  padding: 3px 8px; border-radius: 999px;
+  white-space: nowrap;
+}
+html[data-theme="dark"] .privacy-badge {
+  color: var(--ok); background: color-mix(in srgb, var(--ok) 20%, transparent);
+}
+.export-gate-hint {
+  font-size: 11px; color: var(--header-muted); font-weight: 500;
+  padding: 3px 8px; background: color-mix(in srgb, var(--header-fg) 10%, transparent);
+  border-radius: var(--radius-sm, 6px); border: 1px solid color-mix(in srgb, var(--header-fg) 20%, transparent);
+  white-space: nowrap;
+}
+.shortcut-hint {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 11px; color: var(--muted); padding: 5px 8px; margin: 4px 0 8px;
+  background: var(--bg-subtle); border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border);
+}
+.shortcut-hint .sc-dot { color: var(--border); font-weight: bold; }
+.shortcut-hint kbd {
+  display: inline-block; padding: 1px 4px; font-size: 10px; font-family: var(--mono);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 3px;
+  color: var(--fg); font-weight: 700;
+}
+.aside-group { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.aside-group-header { display: flex; justify-content: space-between; align-items: center; }
+.lbl-aside { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.btn-undo {
+  background: transparent; border: 0; color: var(--accent); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 6px;
+}
+.btn-undo:hover { text-decoration: underline; color: var(--primary); }
+.btn-bulk {
+  min-height: 36px !important; padding: 0 8px !important; font-size: 12px !important; border-radius: var(--radius-sm, 6px) !important;
+}
+.btn-bulk-danger { border-color: color-mix(in srgb, var(--danger) 40%, var(--border)) !important; }
+.btn-bulk-danger:hover { background: color-mix(in srgb, var(--danger) 10%, var(--surface)) !important; border-color: var(--danger) !important; }
+.dropdown-section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--muted); padding: 6px 10px 2px;
+}
+.dropdown-divider {
+  height: 1px; background: var(--border); margin: 4px 0; opacity: .6;
+}
+.dropdown-desc {
+  display: block; font-size: 11px; color: var(--muted); font-weight: normal; margin-top: 1px;
+}
 #quickHitBar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 35;
   background: var(--primary); color: var(--on-primary);
@@ -335,11 +461,11 @@ html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--prima
 .sb-desc { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
 
 /* --- Entity Cards & Review Aside --- */
-.aside-nav { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.aside-nav { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
 .view-mode-seg { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
 .view-mode-seg .seg-btn { text-align: center; justify-content: center; }
 .bulk-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
-.bulk-actions .btn { min-height: 32px; padding: 0 6px; font-size: 11px; white-space: nowrap; }
+.bulk-actions .btn { min-height: 36px; padding: 0 8px; font-size: 12px; white-space: nowrap; }
 
 .entities-container {
   max-height: 48dvh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
@@ -352,21 +478,22 @@ html[data-theme="dark"] .mk-preview { background: color-mix(in srgb, var(--prima
 }
 .entity-card:hover { border-color: var(--accent); }
 .entity-card.sel { border-color: var(--focus); box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 25%, transparent); }
-.entity-card.ec-redact { border-left: 4px solid var(--hit); }
-.entity-card.ec-keep { border-left: 4px solid var(--ok); }
-.entity-card.ec-mixed { border-left: 4px solid var(--muted); }
-.ec-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; cursor: pointer; }
+.entity-card.ec-redact { border-left: 5px solid var(--hit); }
+.entity-card.ec-keep { border-left: 5px dashed var(--ok); }
+.entity-card.ec-mixed { border-left: 5px dotted var(--muted); }
+.ec-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; cursor: pointer; border-radius: var(--radius-sm, 6px); }
+.ec-header:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .ec-title { font-weight: 650; font-size: 13px; color: var(--fg); margin: 0; }
 .ec-meta { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .ec-token { font-family: var(--mono); font-size: 11px; font-weight: 600; background: var(--bg-subtle); padding: 1px 5px; border-radius: 4px; }
 .ec-actions { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
-.ec-actions .btn-sm { min-height: 28px; padding: 0 10px; font-size: 11px; }
+.ec-actions .btn-sm { min-height: 36px; padding: 0 12px; font-size: 12px; }
 .ec-subhits {
   margin-top: 8px; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
   display: flex; flex-direction: column; gap: 4px;
 }
 .ec-subhit {
-  display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 5px 8px;
+  display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 6px 8px;
   border-radius: var(--radius-sm, 6px); background: var(--bg-subtle); cursor: pointer;
 }
 .ec-subhit:hover { background: color-mix(in srgb, var(--primary) 12%, var(--surface)); }
@@ -631,6 +758,10 @@ body.movie-active #settingsSheet {
       <h1 style="margin:0;font-size:18px" id="title">Znečitelně</h1>
       <p class="tag" id="tagline"></p>
     </div>
+    <span class="privacy-badge" id="headerPrivacyBadge" title="Zpracováno lokálně ve vašem zařízení. Žádný server ani cloud.">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span id="lblHeaderPrivacy">Zpracováno lokálně</span>
+    </span>
   </div>
 
   <!-- Active Document info & Queue dropdown (shown during review) -->
@@ -639,8 +770,12 @@ body.movie-active #settingsSheet {
     <div class="queue-dropdown hidden" id="headerQueueWrap">
       <select id="headerQueueSelect" aria-label="Dávková fronta"></select>
     </div>
-    <button class="btn btn-sm btn-ghost" id="btnHeaderAddDoc" type="button" title="Přidat další dokument do fronty" aria-label="Přidat dokument">+</button>
-    <button class="btn btn-sm btn-ghost" id="btnHeaderClear" type="button" title="Zavřít dokument">✕</button>
+    <button class="btn btn-sm btn-ghost" id="btnHeaderAddDoc" type="button" title="Přidat další dokument do fronty" aria-label="Přidat dokument">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <button class="btn btn-sm btn-ghost" id="btnHeaderClear" type="button" title="Zavřít dokument" aria-label="Zavřít dokument">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
   </div>
 
   <!-- Center Approval / Risk indicator (shown during review) -->
@@ -652,6 +787,7 @@ body.movie-active #settingsSheet {
     <label class="check approval-check hidden" id="lblHeaderSecondEyes">
       <input type="checkbox" id="chk2" /> <span id="lblSecondEyesText">2. kontrola</span>
     </label>
+    <span class="export-gate-hint hidden" id="exportGateHint" role="status"></span>
   </div>
 
   <div class="hdr-actions" id="hdrActions">
@@ -660,18 +796,60 @@ body.movie-active #settingsSheet {
       <button class="btn btn-sm btn-export" id="btnExp" type="button">Anonymizovat a exportovat</button>
       <button class="btn btn-sm btn-export btn-split-toggle" id="btnExpMenuToggle" type="button" aria-haspopup="true" aria-expanded="false" title="Další možnosti exportu">▾</button>
       <div class="dropdown-menu hidden" id="headerExportMenu" role="menu">
+        <div class="dropdown-section-title" id="lblExpGroupDoc">Dokumentový výstup</div>
         <button type="button" class="dropdown-item hidden" id="menuExportQueueZip">📁 Exportovat schválené z fronty (ZIP)</button>
-        <button type="button" class="dropdown-item" id="menuExportAi">📦 AI balíček (ZIP)</button>
-        <button type="button" class="dropdown-item" id="menuExportSession">💾 Předat pro 4 oči (.znecitelne-session)</button>
-        <button type="button" class="dropdown-item" id="menuExportAudit">📋 Auditní protokol (JSON)</button>
-        <button type="button" class="dropdown-item" id="menuExportRecord">🔒 Protokol o anonymizaci (PDF)</button>
+        <button type="button" class="dropdown-item" id="menuExportAi">
+          <span>📦 AI balíček (ZIP)</span>
+          <span class="dropdown-desc" id="lblExpAiDesc">Čistý text, osnova postupu a veřejný slovník tokenů</span>
+        </button>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-section-title" id="lblExpGroupCollab">Předání a spolupráce</div>
+        <button type="button" class="dropdown-item" id="menuExportSession">
+          <span>💾 Předat pro 4 oči (.znecitelne-session)</span>
+          <span class="dropdown-desc" id="lblExpSessionDesc">Šifrované rozpracované sezení pro druhou kontrolu</span>
+        </button>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-section-title" id="lblExpGroupAudit">Audit a evidence</div>
+        <button type="button" class="dropdown-item" id="menuExportAudit">
+          <span>📋 Auditní protokol (JSON)</span>
+          <span class="dropdown-desc" id="lblExpAuditDesc">Hash rozhodnutí se zkrácenými hodnotami pro doložení</span>
+        </button>
+        <button type="button" class="dropdown-item" id="menuExportRecord">
+          <span>🔒 Protokol o anonymizaci (PDF)</span>
+          <span class="dropdown-desc" id="lblExpRecordDesc">Formální záznam o začernění pro spis</span>
+        </button>
       </div>
     </div>
 
-    <button class="btn btn-sm btn-ghost" id="btnTheme" type="button" aria-pressed="false" aria-label="Tmavý režim">☾</button>
-    <button class="btn btn-sm btn-ghost" id="btnSettings" type="button" aria-label="Nastavení">⚙</button>
-    <button class="btn btn-sm btn-ghost" id="btnLang" type="button">EN</button>
-    <button class="btn btn-sm btn-ghost" id="btnHelp" type="button">?</button>
+    <!-- Settings button -->
+    <button class="btn btn-sm btn-ghost" id="btnSettings" type="button" aria-label="Nastavení" title="Nastavení">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+
+    <!-- Header overflow menu toggle -->
+    <div class="header-more-group" style="position:relative;display:inline-block;">
+      <button class="btn btn-sm btn-ghost" id="btnHeaderMore" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Další možnosti" title="Další možnosti">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+      </button>
+      <div class="dropdown-menu hidden" id="headerMoreMenu" role="menu">
+        <button type="button" class="dropdown-item" id="btnTheme" role="menuitem">
+          <span id="lblThemeText">☾ Tmavý režim</span>
+        </button>
+        <button type="button" class="dropdown-item" id="btnLang" role="menuitem">
+          <span id="lblLangText">🌐 Jazyk: EN</span>
+        </button>
+        <button type="button" class="dropdown-item" id="btnHelp" role="menuitem">
+          <span id="lblHelpText">❓ Nápověda a klávesy</span>
+        </button>
+        <div class="dropdown-divider"></div>
+        <button type="button" class="dropdown-item" id="btnHdrFeatures" role="menuitem">
+          <span id="lblFeaturesText">✨ Přehled funkcí</span>
+        </button>
+        <button type="button" class="dropdown-item" id="btnHdrChangelog" role="menuitem">
+          <span id="lblChangelogText">📜 Changelog</span>
+        </button>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -723,9 +901,9 @@ body.movie-active #settingsSheet {
     <div class="pane doc-pane">
       <div class="pane-header doc-pane-header">
         <div class="doc-view-seg" role="group" aria-label="Režim zobrazení dokumentu">
-          <button type="button" class="seg-btn on" id="btnViewOrig">Původní text</button>
-          <button type="button" class="seg-btn" id="btnViewPreview">Náhled změn</button>
-          <button type="button" class="seg-btn hidden" id="btnVisual">Vizuální PDF</button>
+          <button type="button" class="seg-btn on" id="btnViewOrig" aria-pressed="true">Původní text</button>
+          <button type="button" class="seg-btn" id="btnViewPreview" aria-pressed="false">Náhled změn</button>
+          <button type="button" class="seg-btn hidden" id="btnVisual" aria-pressed="false">Vizuální PDF</button>
         </div>
         <button class="btn btn-sm btn-add-sel" id="btnAdd" type="button">+ Anonymizovat výběr</button>
       </div>
@@ -735,15 +913,33 @@ body.movie-active #settingsSheet {
     <aside id="reviewAside">
       <div class="aside-nav">
         <div class="seg-ctrl view-mode-seg" role="group" aria-label="Pohled na nálezy">
-          <button type="button" class="seg-btn on" id="btnModeEntities">Entitní přehled</button>
-          <button type="button" class="seg-btn" id="btnModeHits">Jednotlivé nálezy</button>
+          <button type="button" class="seg-btn on" id="btnModeEntities" aria-pressed="true">Entitní přehled</button>
+          <button type="button" class="seg-btn" id="btnModeHits" aria-pressed="false">Jednotlivé nálezy</button>
         </div>
-        <div class="filters" id="filters"></div>
-        <div class="bulk-actions" id="bulkActions">
-          <button type="button" class="btn btn-sm btn-sec" id="btnAll">Vše anonymizovat</button>
-          <button type="button" class="btn btn-sm btn-sec" id="btnOff">Ponechat instituce</button>
-          <button type="button" class="btn btn-sm btn-sec" id="btnNone">Vše ponechat</button>
+        <div class="aside-group">
+          <div class="aside-group-header">
+            <span class="lbl-aside" id="lblFiltersAside">Filtrovat zobrazení</span>
+          </div>
+          <div class="filters" id="filters" role="group" aria-label="Filtry zobrazení"></div>
         </div>
+        <div class="aside-group">
+          <div class="aside-group-header">
+            <span class="lbl-aside" id="lblBulkAside">Hromadné akce</span>
+            <button type="button" class="btn-undo hidden" id="btnBulkUndo" title="Vrátit poslední hromadnou akci">↶ Zpět</button>
+          </div>
+          <div class="bulk-actions" id="bulkActions" role="group" aria-label="Hromadné akce">
+            <button type="button" class="btn btn-sm btn-sec btn-bulk" id="btnAll">Vše anonymizovat</button>
+            <button type="button" class="btn btn-sm btn-sec btn-bulk" id="btnOff">Ponechat instituce</button>
+            <button type="button" class="btn btn-sm btn-sec btn-bulk btn-bulk-danger" id="btnNone">Vše ponechat</button>
+          </div>
+        </div>
+      </div>
+      <div class="shortcut-hint" id="shortcutHint" aria-label="Klávesové zkratky">
+        <span><kbd>J</kbd>/<kbd>K</kbd> další</span>
+        <span class="sc-dot">·</span>
+        <span><kbd>R</kbd> anonymizovat</span>
+        <span class="sc-dot">·</span>
+        <span><kbd>P</kbd> ponechat</span>
       </div>
       <div class="entities-container" id="entityList"></div>
       <div class="hits hidden" id="hitList"></div>
@@ -763,16 +959,16 @@ body.movie-active #settingsSheet {
 <div class="bar hidden" id="quickHitBar"></div>
 <footer id="footer"></footer>
 
-<div class="modal hidden" id="helpModal">
+<div class="modal hidden" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
   <div class="sheet" id="helpSheet"></div>
 </div>
-<div class="modal hidden" id="featuresModal">
+<div class="modal hidden" id="featuresModal" role="dialog" aria-modal="true" aria-labelledby="featuresTitle">
   <div class="sheet" id="featuresSheet" style="max-height:min(90dvh,720px);overflow:auto"></div>
 </div>
-<div class="modal hidden" id="changelogModal">
+<div class="modal hidden" id="changelogModal" role="dialog" aria-modal="true" aria-labelledby="changelogTitle">
   <div class="sheet" id="changelogSheet"></div>
 </div>
-<div class="modal hidden" id="exportModal">
+<div class="modal hidden" id="exportModal" role="dialog" aria-modal="true" aria-labelledby="diffTitle">
   <div class="sheet" id="exportSheet"></div>
 </div>
 <div class="modal hidden" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmMessage">
@@ -784,18 +980,38 @@ body.movie-active #settingsSheet {
     </div>
   </div>
 </div>
-<div class="modal hidden" id="settingsModal">
+<div class="modal hidden" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
   <div class="sheet" id="settingsSheet" style="max-height:min(90dvh,760px);overflow:auto">
     <h2 id="settingsTitle" style="margin-top:0"></h2>
-    <div class="settings-tabs" role="tablist">
-      <button type="button" class="settings-tab-btn active" data-tab="tabProfile" id="tabBtnProfile">Profil publikace</button>
-      <button type="button" class="settings-tab-btn" data-tab="tabDicts" id="tabBtnDicts">Projektové slovníky</button>
-      <button type="button" class="settings-tab-btn" data-tab="tabFormats" id="tabBtnFormats">Formáty a zabezpečení</button>
+    <div class="settings-tabs" role="tablist" aria-label="Záložky nastavení">
+      <button type="button" class="settings-tab-btn active" role="tab" aria-selected="true" data-tab="tabProfile" id="tabBtnProfile" aria-controls="m_tabPaneProfile">Profil publikace</button>
+      <button type="button" class="settings-tab-btn" role="tab" aria-selected="false" tabindex="-1" data-tab="tabDicts" id="tabBtnDicts" aria-controls="m_tabPaneDicts">Projektové slovníky</button>
+      <button type="button" class="settings-tab-btn" role="tab" aria-selected="false" tabindex="-1" data-tab="tabFormats" id="tabBtnFormats" aria-controls="m_tabPaneFormats">Formáty a zabezpečení</button>
     </div>
     <div id="settingsModalMount"></div>
     <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
       <button class="btn" id="btnSettingsApply" type="button"></button>
       <button class="btn btn-sec" id="btnSettingsClose" type="button"></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal hidden" id="closeDocModal" role="dialog" aria-modal="true" aria-labelledby="closeDocTitle">
+  <div class="sheet" style="max-width:480px;">
+    <h2 id="closeDocTitle" style="margin-top:0">Zavřít dokument?</h2>
+    <p id="closeDocDesc" style="color:var(--muted);font-size:14px;line-height:1.5;">
+      Máte rozpracované změny v anonymizaci dokumentu. Neuložené změny budou ztraceny. Můžete si stav bezpečně uložit pro druhou kontrolu.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:20px;">
+      <button class="btn btn-file" id="btnCloseSaveSession" type="button" style="justify-content:flex-start;text-align:left;">
+        💾 <span style="font-weight:600" id="lblCloseSaveSession">Předat pro 4 oči (uložit sezení)</span>
+      </button>
+      <button class="btn btn-sec" id="btnCloseDiscard" type="button" style="justify-content:flex-start;color:var(--danger);border-color:var(--danger);">
+        ✕ <span id="lblCloseDiscard">Zavřít bez uložení</span>
+      </button>
+      <button class="btn btn-ghost" id="btnCloseCancel" type="button" id="lblCloseCancel">
+        Zpět k dokumentu
+      </button>
     </div>
   </div>
 </div>
@@ -831,11 +1047,8 @@ body.movie-active #settingsSheet {
 <script>
 (function () {
 // --- Module: src/core/rules.js ---
-const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];
-const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];
-const KEYS = PII_KEYS.concat(ORG_KEYS);
-const RULES = "2026.10.20-ai47";
-const CHANGELOG = [
+const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];const KEYS = PII_KEYS.concat(ORG_KEYS);const RULES = "2026.10.20-ai48";const CHANGELOG = [
+  { version: "2026.10.20-ai48", notes: { cs: "Ergonomie, přístupnost (WCAG 2.1 AA), oprava flexe {n} a bezpečnost rozhodování: Odstraněna chyba {n} a implementováno plnohodnotné české i anglické skloňování počtů nálezů a výskytů (1 / 2–4 / 5+). Viditelné odůvodnění uzamčení exportu (#exportGateHint) a potvrzovací dialog při pokusu označit Zkontrolováno s neprohlédnutými nálezy. Vizuální oddělení filtrů od hromadných akcí v postranním panelu, potvrzení pro „Vše ponechat“, historie a tlačítko Zpět (Undo), rozšíření panelu na 420 px a zvětšení dotykových cílů na 36 px+. Nekolorní odlišení anonymizace a ponechání (přeškrtnutí .mk-on, čárkované podtržení .mk-off, styly ohraničení karet entit, ikony 🔒 a ✓). In-app dialog pro zavření dokumentu (#closeDocModal) s možností bezpečného uložení šifrovaného sezení pro 4 oči. Oprava kontrastu pilulek v tmavém režimu (#12161c na --hit a --ok) a posílení hranic UI (> 3:1). Plná ARIA sémantika (role dialog, tablist, tab, aria-pressed, focus trap v modálech a klávesnice v kartách entit). Full-height rozvržení bez vícenásobných posuvníků, viditelná nápověda klávesových zkratek, strukturované exportní menu, kompaktní overflow menu v hlavičce a trvalý odznak lokálního zpracování.", en: "Usability, accessibility (WCAG 2.1 AA), {n} pluralization fix and decision safety: Fixed {n} counter bug with full Czech/English pluralization for findings and occurrence counts (1 / 2–4 / 5+). Visible export gate lock explanation (#exportGateHint) and confirmation prompt when ticking Reviewed with unseen findings. Visual separation of filters and bulk actions in aside, confirmation for 'Keep all', action undo state with Undo button, aside widened to 420px, and enlarged touch targets (36px+). Non-color cues for redact vs. keep (strikethrough on .mk-on, dashed underline on .mk-off, distinct entity card borders, 🔒 and ✓ icons). In-app close document modal (#closeDocModal) offering encrypted session save for 4-eyes review. Dark mode pill contrast fix (#12161c on --hit/--ok) and enhanced non-text UI boundaries (> 3:1). Comprehensive ARIA semantics (dialog, tablist, tab, aria-pressed, modal focus trap, and keyboard navigation for entity cards). Full-height desktop review layout eliminating nested scrollbars, visible shortcut hints, categorized export menu, header overflow menu, and persistent local processing badge." } },
   { version: "2026.10.20-ai47", notes: { cs: "Konsolidace pracovní lišty, eliminace duplicitních prvků a zrušení stažení offline aplikace (ADR-0013): Odstraněna redundantní lišta #bar (8 duplicitních tlačítek), mrtvý #toolbar a samostatná lišta čipů #queueBar. Dávková fronta je plně integrována do levého kontextu Pracovní lišty s tlačítkem přidání dokumentu (+) a bezpečným odebráním/vymazáním (✕). Export dávky jako ZIP přesunut výhradně do rozbalovací nabídky exportu. Hromadné akce (schválit/zamítnout vše) vyhrazeny Reviznímu panelu. Úplné odstranění funkce stažení offline aplikace (tlačítko #btnHtml a podpora generování samostatné HTML aplikace) dle explicitního požadavku. Vyčištění zastaralých stylů a optimalizace výšky Pracovní lišty.", en: "Workplace bar consolidation, duplicate control elimination and removal of offline HTML app download (ADR-0013): Removed redundant #bar (8 duplicate controls), dead #toolbar and separate #queueBar chip bar. Batch queue is fully consolidated into Workplace bar document context with add document (+) and safe clear/remove (✕) controls. Bulk queue ZIP export relocated into export dropdown menu. Bulk actions (approve/reject all) reserved exclusively for Review panel. Completely removed offline HTML app download button (#btnHtml) and related self-export generation per explicit requirement. Cleaned up obsolete CSS and dynamic bar height variables." } },
   { version: "2026.10.19-ai46", notes: { cs: "Omezení expanze tokenů, deterministické sledování výskytů a layoutová dekonflikce v PDF (ADR-0011): Zákaz horizontálního přetékání pseudonymizačních tokenů v pevném layoutu PDF s adaptivním zkracováním tokenů a kompresí písma v rámci boxW, proporční rozdělení šířek znaků v mapPageGlyphs eliminující kumulativní chybu posunu nálezu (10–19 px) u proporčních písem, deterministický occurrence tracking v okně ±50 znaků eliminující kolize duplicitních jmen na stránce, vertikální kalibrace výšky boxu (baseLine - 0.95*fH až baseLine + 0.22*fH = 1.17 em) nepřesahující standardní řádkování a chránící descenders/diakritiku sousedních řádků, horizontální padding škálovaný dle mezery k sousedním nálezům (gap/2 - 0.5) a přilehlé interpunkci (gap - 0.5), vizuální sloučení těsně sousedících nálezů na řádku v exportu i náhledu zamezující překryvu vycpávek s ochranou proti pohlcení krátkých slov, mediánové vzorkování podkladové barvy z plátna odolné vůči antialiasingu a tmavým hlavičkám, zachování řezu písma (tučné, kurzíva) i adaptivní šířka režimu xxxx a inline styl značek v pre.doc bez uskakování řádků.", en: "PDF token expansion limits, deterministic occurrence tracking and layout deconfliction (ADR-0011): Strict horizontal bounding of pseudonym tokens within boxW in fixed-layout PDFs with compact token fallbacks and text condensing, proportional character width distribution in mapPageGlyphs eliminating 10-19px cumulative finding offset errors in proportional fonts, deterministic occurrence tracking within ±50 char window eliminating duplicate value collapses on a page, line-height calibrated vertical bounds (baseLine - 0.95*fH to baseLine + 0.22*fH = 1.17 em) preventing multi-line box collision and protecting descenders/diacritics of adjacent lines, gap-adaptive horizontal padding preventing bleed between adjacent words and preserving punctuation, visual merging of adjacent findings in both export and preview with threshold guarding intervening short words, median canvas background sampling robust to antialiasing and dark table headers, font weight/style preservation (bold, italic) and adaptive xxxx mode length, and pure inline marker styling in pre.doc eliminating line-height jumping." } },
   { version: "2026.10.19-ai45", notes: { cs: "Náprava chyb a nekonzistencí: bezpečný přístup k běhovým knihovnám bez přímého window v Node.js/worker prostředí (ODT, DOCX, XLSX, Ingest, PDF), oprava podpory Unicode code points v decodeXml (> 0xFFFF), podpora českých uvozovek v isSentenceStart(), sjednocení kanonických důvodů nálezu onomastic namísto zastaralého gazetteer dle GLOSSARY.md a odstranění zbytků panelu Návrh.", en: "Bug fixes and inconsistency resolution: safe runtime library resolution without naked window references in Node.js/worker environments (ODT, DOCX, XLSX, Ingest, PDF), support for astral Unicode code points in decodeXml (> 0xFFFF), support for Czech quotation marks in isSentenceStart(), alignment of canonical detection reason onomastic over deprecated gazetteer per GLOSSARY.md, and removal of dead Proposal pane residues." } },
@@ -878,13 +1091,10 @@ const CHANGELOG = [
   { version: "2026.09.21-ai6", notes: { cs: "Menší mezera mezi horní lištou akcí a bublinami souboru — padding recenze už nezapočítává výšku hlavičky dvakrát.", en: "Tighter gap between the top action bar and the file badges — review padding no longer double-counts the header height." } },
   { version: "2026.09.21-ai5", notes: { cs: "Tlačítko „Přidat vlastní výběr textu“ nyní funguje i v náhledu (Preview) dokumentu, ne jen u originálu.", en: "The \"Add custom text selection\" button now also works in the document Preview, not just the original." } },
   { version: "2026.09.17-ai4", notes: { cs: "Aktuální verze pravidel detekce.", en: "Current detection ruleset." } }
-];
-const LABEL = {
+];const LABEL = {
   cs: { rc:"RČ", ico:"IČO", dic:"DIČ", account:"ÚČET", phone:"TELEFON", email:"E-MAIL", address:"ADRESA", dob:"DATUM_NAROZENÍ", name:"OSOBA", idcard:"DOKLAD", datovka:"DS", spz:"SPZ", geo:"GPS", sigcert:"CERT_PODPISU", katastr:"KATASTR", zahr_iban:"IBAN_ZAHR", doklady_extra:"DOKLAD_DALSI", secrets:"TAJEMSTVÍ", ticket:"TICKET", system:"SYSTÉM", project:"PROJEKT", incident:"INCIDENT", casefile:"ŘÍZENÍ", status:"STAV", orgunit:"ORGÁN", host:"HOST", ip:"IP", credential:"TAJNÉ" },
   en: { rc:"BIRTH_NO", ico:"COMPANY_ID", dic:"VAT_ID", account:"ACCOUNT", phone:"PHONE", email:"EMAIL", address:"ADDRESS", dob:"DOB", name:"PERSON", idcard:"ID_DOC", datovka:"MAILBOX", spz:"PLATE", geo:"GPS", sigcert:"SIG_CERT", katastr:"CADASTRE", zahr_iban:"FOREIGN_IBAN", doklady_extra:"ID_DOC_EXTRA", secrets:"SECRET", ticket:"TICKET", system:"SYSTEM", project:"PROJECT", incident:"INCIDENT", casefile:"CASE", status:"STATUS", orgunit:"ORG", host:"HOST", ip:"IP", credential:"SECRET" }
-};
-const TICKET_STOP = new Set(["COVID","ISO","IEC","UTF","SHA","RFC","HTTP","HTML","JSON","GDPR","IEEE","W3C","CEN","XML","PDF","CSV","XLSX","DOCX","YAML","SMTP","IMAP","LDAP","SAML","OAUTH","OPENAPI","REST","SOAP","JIRA","CONFLUENCE","GITLAB","GITHUB","BITBUCKET","WINDOWS","LINUX","ANDROID","CHROME","CSN","MHD","Sb","API","SQL","NATO","VIN","IPV","AES","TLS","CPU","GPU","USB","ICD","DSM","OECD","UNESCO","UNICEF","WHO","WTO","SWIFT","IBAN","VAT","CIDR","UUID","MD5","SHA256","IPv","IPv4","IPv6"]);
-const STATUS_GENERIC = {
+};const TICKET_STOP = new Set(["COVID","ISO","IEC","UTF","SHA","RFC","HTTP","HTML","JSON","GDPR","IEEE","W3C","CEN","XML","PDF","CSV","XLSX","DOCX","YAML","SMTP","IMAP","LDAP","SAML","OAUTH","OPENAPI","REST","SOAP","JIRA","CONFLUENCE","GITLAB","GITHUB","BITBUCKET","WINDOWS","LINUX","ANDROID","CHROME","CSN","MHD","Sb","API","SQL","NATO","VIN","IPV","AES","TLS","CPU","GPU","USB","ICD","DSM","OECD","UNESCO","UNICEF","WHO","WTO","SWIFT","IBAN","VAT","CIDR","UUID","MD5","SHA256","IPv","IPv4","IPv6"]);const STATUS_GENERIC = {
   cs: {
     prod: "nasazeno v produkčním prostředí (konkrétní stav a termín odstraněny)",
     incident: "provozní incident (konkrétní závada zobecněna)",
@@ -897,13 +1107,8 @@ const STATUS_GENERIC = {
     release: "planned or completed release (version and date removed)",
     defect: "logged defect (specific description shortened)"
   }
-};
-const NAMES = new Set("Adam Aleš Alexandr Vítězslav Alexandra Alena Alice Alois Alžběta Andrea Anežka Anna Antonín Barbora Běla Blanka Bohdan Bohumil Bohuslav Božena Čeněk Dagmar Dalibor Dana Daniel Daniela David Denis Dominik Drahomíra Dušan Edita Eduard Eliška Ema Emil Emilie Erik Eva Filip František Františka Gabriela Hana Helena Hynek Ivan Ivana Iva Iveta Ivo Jáchym Jakub Jan Jana Jarmila Jaromír Jaroslav Jaroslava Jindřich Jiří Jiřina Jitka Josef Julie Kamila Karel Karla Kateřina Klára Kristýna Květa Ladislav Lenka Leoš Libor Libuše Linda Luboš Lucie Ludmila Luděk Lukáš Magdalena Marcel Marcela Marek Marie Markéta Marta Martin Martina Matěj Matyáš Michaela Michal Mikuláš Milan Milada Milena Miloslav Miloš Miroslav Miroslava Monika Naděžda Natálie Nela Nikola Oldřich Olga Ondřej Otto Patrik Pavel Pavla Pavlína Petr Petra Přemysl Radek Radim Radka Renata René Robert Roman Romana Rudolf Růžena Sabina Samuel Sandra Simona Soňa Stanislav Šárka Šimon Štěpán Tadeáš Tereza Tomáš Václav Vendula Věra Veronika Viktor Viktorie Vilém Vladimír Vlasta Vojtěch Zdeněk Zdeňka Zuzana Žaneta Žofie Alex Emma Hannah Jacob James Liam Noah Oliver Olivia Sophia William".split(" ").map(s => s.toLocaleLowerCase("cs")));
-const FIRST_NAMES = new Set(NAMES);
-const TITLES = ["prof","doc","mudr","judr","phdr","rndr","ing","arch","mgr","mga","bc","bca","dis","mba","phd","csc","dr","pplk","plk","npor","por","kpt","mjr","gen"];
-const PUBLIC = ["česká republika","ministerstvo","úřad","krajský úřad","obecní úřad","městský úřad","okresní soud","krajský soud","státní podnik","národní podnik","české dráhy","česká pošta","správa železnic","praha","brno","ostrava","plzeň",
-  "postsignum","i.ca","ica a.s","eidentity","first certification authority","qualified certification authority","certifikační autorita","kvalifikovaný poskytovatel","kvalifikovaný elektronický podpis","kvalifikovaná elektronická pečeť","zaručený elektronický podpis","uznávaný elektronický podpis","časové razítko","kvalifikované časové razítko","timestamping authority"];
-const SAMPLE = `SMLOUVA O DÍLO
+};const NAMES = new Set("Adam Aleš Alexandr Vítězslav Alexandra Alena Alice Alois Alžběta Andrea Anežka Anna Antonín Barbora Běla Blanka Bohdan Bohumil Bohuslav Božena Čeněk Dagmar Dalibor Dana Daniel Daniela David Denis Dominik Drahomíra Dušan Edita Eduard Eliška Ema Emil Emilie Erik Eva Filip František Františka Gabriela Hana Helena Hynek Ivan Ivana Iva Iveta Ivo Jáchym Jakub Jan Jana Jarmila Jaromír Jaroslav Jaroslava Jindřich Jiří Jiřina Jitka Josef Julie Kamila Karel Karla Kateřina Klára Kristýna Květa Ladislav Lenka Leoš Libor Libuše Linda Luboš Lucie Ludmila Luděk Lukáš Magdalena Marcel Marcela Marek Marie Markéta Marta Martin Martina Matěj Matyáš Michaela Michal Mikuláš Milan Milada Milena Miloslav Miloš Miroslav Miroslava Monika Naděžda Natálie Nela Nikola Oldřich Olga Ondřej Otto Patrik Pavel Pavla Pavlína Petr Petra Přemysl Radek Radim Radka Renata René Robert Roman Romana Rudolf Růžena Sabina Samuel Sandra Simona Soňa Stanislav Šárka Šimon Štěpán Tadeáš Tereza Tomáš Václav Vendula Věra Veronika Viktor Viktorie Vilém Vladimír Vlasta Vojtěch Zdeněk Zdeňka Zuzana Žaneta Žofie Alex Emma Hannah Jacob James Liam Noah Oliver Olivia Sophia William".split(" ").map(s => s.toLocaleLowerCase("cs")));const FIRST_NAMES = new Set(NAMES);const TITLES = ["prof","doc","mudr","judr","phdr","rndr","ing","arch","mgr","mga","bc","bca","dis","mba","phd","csc","dr","pplk","plk","npor","por","kpt","mjr","gen"];const PUBLIC = ["česká republika","ministerstvo","úřad","krajský úřad","obecní úřad","městský úřad","okresní soud","krajský soud","státní podnik","národní podnik","české dráhy","česká pošta","správa železnic","praha","brno","ostrava","plzeň",
+  "postsignum","i.ca","ica a.s","eidentity","first certification authority","qualified certification authority","certifikační autorita","kvalifikovaný poskytovatel","kvalifikovaný elektronický podpis","kvalifikovaná elektronická pečeť","zaručený elektronický podpis","uznávaný elektronický podpis","časové razítko","kvalifikované časové razítko","timestamping authority"];const SAMPLE = `SMLOUVA O DÍLO
 uzavřená dle § 2586 a násl. zákona č. 89/2012 Sb., občanský zákoník
 
 Smluvní strany
@@ -945,11 +1150,29 @@ Orgán: OBÚ.
 `;
 
 // --- Module: src/core/i18n.js ---
-const I18N = {
+function formatPlural(n, forms, lang = "cs") {
+  const num = typeof n === "number" ? n : parseInt(n, 10) || 0;
+  if (!Array.isArray(forms)) {
+    return String(forms || "").replace("{n}", String(num));
+  }
+  if (lang === "cs") {
+    const abs = Math.abs(num);
+    let form;
+    if (abs === 1) form = forms[0];
+    else if (abs >= 2 && abs <= 4) form = forms[1] || forms[0];
+    else form = forms[2] || forms[1] || forms[0];
+    return form.replace("{n}", String(num));
+  } else {
+    const abs = Math.abs(num);
+    const form = (abs === 1 ? forms[0] : (forms[1] || forms[0]));
+    return form.replace("{n}", String(num));
+  }
+}const I18N = {
     cs: {
       name:"Znečitelně", tagline:"Anonymizace pro úřady i veřejnou AI",
       themeDark:"Tmavý režim", themeLight:"Světlý režim",
       privacy:"Soubor nikam neodesíláme. Detekce, začernění i analýza postupu běží v tomto zařízení.",
+      processedLocally:"Zpracováno lokálně",
       trySample:"Vyzkoušet vzorový dokument", movieTutorial:"Video tutoriál", newFile:"Nový dokument",
       drop:"Přetáhněte dokumenty (PDF, DOCX, XLSX, TXT, skeny…)",
       dropHint:"Nebo vyberte z úložiště. Podporuje PDF, DOCX, XLSX, TXT, tabulky i skeny.",
@@ -994,12 +1217,13 @@ const I18N = {
       leakBad:"Po anonymizaci zbývají vzory, které by veřejná AI ještě mohla zneužít.",
       stripMeta:"Odstranit metadata",
       pdfaDecl:"Deklarace PDF/A-2b + sRGB OutputIntent (preflight stále nutný)", pdfaNote:"PDF/A metadata a sRGB OutputIntent byly vloženy; shoda stále není certifikována bez externího preflightu.", pdfaFontWarn:"Nevložené fonty nalezeny na stránkách {n}; tyto stránky se mají při bezpečném exportu převést na raster.", pdfaFail:"PDF/A metadata nebo OutputIntent se nepodařilo vložit.",
-      queueLbl:"Dávková fronta", queueAll:"Exportovat dávkovou frontu (ZIP)", queueNone:"Žádný dokument ve frontě zatím není zkontrolovaný.", queueDone:"Exportováno dokumentů: {n}", queueBad:"Dokument „{f}“ se nepodařilo načíst.", queueRemove:"Odebrat z fronty", errPdfPassword:"PDF je chráněno heslem. Před zpracováním heslo odstraňte.", errPdfInvalid:"Soubor PDF je poškozený nebo neúplný.", errFileEmpty:"Dokument „{f}“ je prázdný (0 B).", errFileTooLarge:"Dokument „{f}“ je příliš velký (maximum je 100 MB).", errFileBinary:"Dokument „{f}“ je v nepodporovaném binárním formátu.", errDocOld:"Starší formát .doc (Word 97-2003) uložte prosím jako .docx nebo .pdf.", errImageNeedOcr:"Zpracování obrázku (skenu) vyžaduje zapnutí OCR v nastavení.",
+      queueLbl:"Dávková fronta", queueAll:"Exportovat dávkovou frontu (ZIP)", queueNone:"Žádný dokument ve frontě zatím není zkontrolovaný.", queueDone:"Exportováno dokumentů: {n}", queueDonePlural:["Exportován 1 dokument", "Exportovány {n} dokumenty", "Exportováno {n} dokumentů"], queueBad:"Dokument „{f}“ se nepodařilo načíst.", queueRemove:"Odebrat z fronty", errPdfPassword:"PDF je chráněno heslem. Před zpracováním heslo odstraňte.", errPdfInvalid:"Soubor PDF je poškozený nebo neúplný.", errFileEmpty:"Dokument „{f}“ je prázdný (0 B).", errFileTooLarge:"Dokument „{f}“ je příliš velký (maximum je 100 MB).", errFileBinary:"Dokument „{f}“ je v nepodporovaném binárním formátu.", errDocOld:"Starší formát .doc (Word 97-2003) uložte prosím jako .docx nebo .pdf.", errImageNeedOcr:"Zpracování obrázku (skenu) vyžaduje zapnutí OCR v nastavení.",
       truePdfRedact:"Při anonymizaci PDF zůstává textová vrstva",
       truePdfRedactHint:"Zachová prohledávatelný text mimo začerněné nebo nahrazené úseky, ve všech režimech výstupu (začernění, XXXX, štítek i pseudonym). Stránky, které nelze bezpečně ověřit, se přesto převedou na obrázek.",
       morphBtn:"Skloňování: dohledat všechny pády v textu",
       morphTip:"Najde v dokumentu všechny pády (2.–7. pád), přechýlení a tvary tohoto jména a sjednotí jejich pseudonymní token.",
       morphToast:"Skloňování: nalezeno a přiřazeno {n} dalších tvarů jména.",
+      morphToastPlural:["Skloňování: nalezen a přiřazen 1 další tvar jména.", "Skloňování: nalezeny a přiřazeny {n} další tvary jména.", "Skloňování: nalezeno a přiřazeno {n} dalších tvarů jména."],
       pdfSearchableVerified:"Bezpečné vyhledatelné PDF: ověřeno, čistá textová vrstva bez začerněných údajů.",
       aiPack:"AI balíček (ZIP)", includeOutline:"Přiložit osnovu postupu",
       publicGlossary:"Slovník bez původních hodnot (pro veřejnou AI)",
@@ -1021,7 +1245,7 @@ const I18N = {
       diffCleanCheck:"Přesné obrysy slov (quads) se svislým zúžením: sousední řádky („Termín…“, „o činnosti…“) jsou nedotčeny.",
       diffApproveExport:"Schválit odstranění a exportovat",
       needReview:"Než exportujete, potvrďte kontrolu.", exporting:"Exportuji…",
-      footer:"Jeden HTML soubor · GDPR čl. 25 a 32 · zákon 340/2015 · InfZ 106/1999 · vrstva pro veřejnou AI",
+      footer:"Jedna složka, bez serveru · Žádný cloud · GDPR čl. 25 a 32 · zákon 340/2015 · InfZ 106/1999 · vrstva pro veřejnou AI",
       helpTitle:"Jak to používat",
       help:"Černé zvýraznění ve Wordu nestačí. Pro veřejnou AI nestačí ani jen rodná čísla — zakryjte tickety, názvy systémů, stav produkce, viditelné razítko elektronického podpisu a metadata souboru. Vždy zkontrolujte nálezy.",
       featuresBtn:"Přehled funkcí", changelogBtn:"Changelog",
@@ -1076,17 +1300,21 @@ const I18N = {
       settings:"Nastavení", apply:"Použít", cancel:"Zrušit", confirmTitle:"Nevratný export",
       residual:"V dokumentu zůstal podezřelý řetězec.", residualOk:"Žádný podezřelý řetězec v dokumentu nezůstal.",
       exported:"Export hotov", walk:"z",
-      exportedMixed:"Export hotov — {n} stránka/y musely být z bezpečnostních důvodů převedeny na obrázek",
+      exportedMixed:"Export hotov — {n} stránek muselo být z bezpečnostních důvodů převedeno na obrázek",
+      exportedMixedPlural:["Export hotov — 1 stránka musela být z bezpečnostních důvodů převedena na obrázek", "Export hotov — {n} stránky musely být z bezpečnostních důvodů převedeny na obrázek", "Export hotov — {n} stránek muselo být z bezpečnostních důvodů převedeno na obrázek"],
       exportedDocx:"Export DOCX hotov se zachovaným formátováním. Obrázky, VML/OLE a vložené binární objekty byly z bezpečnostních důvodů odstraněny; citlivé názvy media partů se nepřenášejí.", docxFallback:"DOCX se nepodařilo bezpečně přepsat se zachováním formátování ({r}) — exportován prostý text (TXT/PDF).",
       scanWarning:"{n} stránek nemá textovou vrstvu a nebylo možné je prohledat — zapněte OCR",
+      scanWarningPlural:["1 stránka nemá textovou vrstvu a nebylo možné ji prohledat — zapněte OCR", "{n} stránky nemají textovou vrstvu a nebylo možné je prohledat — zapněte OCR", "{n} stránek nemá textovou vrstvu a nebylo možné je prohledat — zapněte OCR"],
       viewEntities:"Entitní přehled", viewHits:"Jednotlivé nálezy",
-      entityOccurrences:"{n} výskytů", entityCases:"{n} tvarů / pádů",
+      entityOccurrences:"{n} výskytů", entityOccurrencesPlural:["{n} výskyt", "{n} výskyty", "{n} výskytů"],
+      entityCases:"{n} tvarů / pádů", entityCasesPlural:["{n} tvar / pád", "{n} tvary / pády", "{n} tvarů / pádů"],
       entityRedactAll:"Anonymizovat entitu", entityKeepAll:"Ponechat entitu",
       entityExpand:"Zobrazit výskyty", entityCollapse:"Skrýt výskyty",
       tabProfile:"Profil publikace a citlivost", tabDicts:"Projektové slovníky", tabFormats:"Formáty a zabezpečení",
       smartSigTitle:"Detekováno razítko elektronického podpisu",
       smartSigDesc:"Vizuální razítko podpisu bude zachováno, začerní se pouze jméno podepsané osoby.",
       smartScanTitle:"Naskenované stránky bez textu ({n})",
+      smartScanTitlePlural:["Naskenovaná stránka bez textu (1)", "Naskenované stránky bez textu ({n})", "Naskenovaných stránek bez textu ({n})"],
       smartScanDesc:"Tyto stránky neobsahují strojově čitelný text a vyžadují OCR.",
       smartScanBtn:"Spustit OCR",
       smartRiskTitle:"Zbytková rizika v dokumentu",
@@ -1096,6 +1324,27 @@ const I18N = {
       docQueueSwitch:"Dokument {cur} z {total}",
       appBarBrand:"Znečitelně",
       unreviewedCount:"{n} k posouzení",
+      unreviewedCountPlural:["{n} nález k posouzení", "{n} nálezy k posouzení", "{n} nálezů k posouzení"],
+      unseenConfirm:["1 nález jste neprohlédl. Pokračovat?", "{n} nálezy jste neprohlédl. Pokračovat?", "{n} nálezů jste neprohlédl. Pokračovat?"],
+      exportLockedReason:"Nejprve zaškrtněte Zkontrolováno",
+      shortcutHint:"J/K další · R anonymizovat · P ponechat",
+      closeDocTitle:"Zavřít dokument?",
+      closeDocDesc:"Máte rozpracované změny v anonymizaci dokumentu. Neuložené změny budou ztraceny. Můžete si stav bezpečně uložit pro druhou kontrolu.",
+      closeSaveSession:"Předat pro 4 oči (uložit sezení)",
+      closeDiscard:"Zavřít bez uložení",
+      closeCancel:"Zpět k dokumentu",
+      bulkConfirmNone:"Opravdu chcete ponechat všechny nálezy (zrušit veškeré začernění)?",
+      bulkUndoToast:"Akci lze vrátit tlačítkem Zpět.",
+      bulkReverted:"Hromadná akce byla vrácena.",
+      undoBtn:"↶ Zpět",
+      exportGroupDoc:"Dokumentový výstup",
+      exportGroupHandoff:"Předání a spolupráce",
+      exportGroupAudit:"Audit a evidence",
+      exportAiDesc:"Čistý text, osnova postupu a veřejný slovník tokenů",
+      exportSessionDesc:"Šifrované rozpracované sezení pro druhou kontrolu",
+      exportAuditDesc:"Hash rozhodnutí se zkrácenými hodnotami pro doložení",
+      exportRecordDesc:"Formální záznam o začernění pro spis",
+      headerMore:"Další možnosti",
       approvedBadge:"Schváleno",
       approveDoc:"Schválit dokument",
       legalLabel:"Zákonný důvod anonymizace",
@@ -1114,7 +1363,7 @@ const I18N = {
       suspicions:{ high:"Vysoké — méně promeškaných", medium:"Střední — kompromis", low:"Nízké — méně falešných poplachů" },
       cats:{ rc:"Rodné číslo", ico:"IČO", dic:"DIČ", account:"Účet / IBAN", phone:"Telefon", email:"E-mail", address:"Adresa / PSČ", dob:"Datum narození", name:"Jména a tituly", idcard:"Číslo dokladu", datovka:"Datová schránka", spz:"SPZ", geo:"Souřadnice", sigcert:"Podpisový certifikát", katastr:"Katastr nemovitostí", zahr_iban:"Zahraniční IBAN / SWIFT", doklady_extra:"Další doklady (pas, ŘP, ZTP)", secrets:"Tajemství", ticket:"Ticket / JIRA", system:"Interní systém", project:"Projekt", incident:"Incident / HD", casefile:"Č.j. / řízení", status:"Stav produkce", orgunit:"Orgán / útvar", host:"Interní URL / host", ip:"Privátní IP", credential:"Klíč / heslo" },
       tips:{
-        lang:"Přepnout jazyk (CS / EN).", theme:"Přepnout světlý / tmavý režim.", help:"Jak anonymizace funguje.", features:"Co všechod aplikace umí.", changelog:"Přehled verzí a změn.", sample:"Fiktivní smlouva s RČ, IČO a IBAN.", movie:"Automatická prohlídka vzorové smlouvy — pauza, 1×/1,75×, další krok.",
+        lang:"Přepnout jazyk (CS / EN).", theme:"Přepnout světlý / tmavý režim.", help:"Jak anonymizace funguje.", features:"Co všechno aplikace umí.", changelog:"Přehled verzí a změn.", sample:"Fiktivní smlouva s RČ, IČO a IBAN.", movie:"Automatická prohlídka vzorové smlouvy — pauza, 1×/1,75×, další krok.",
         settings:"Profil, režim, podezření a kategorie — lze měnit i během kontroly.",
         quickMode:"Skryje seznam nálezů, náhled výstupu i rozbor postupu. Nic se neztratí, jen se to nezobrazuje.",
         fastApprove:"Skryje Zkontrolováno i Druhou kontrolu a při exportu nevyžaduje jméno úředníka.",
@@ -1194,12 +1443,13 @@ const I18N = {
       leakBad:"After redaction, patterns remain that a public AI could still misuse.",
       stripMeta:"Strip metadata",
       pdfaDecl:"PDF/A-2b declaration (XMP) – not certified conformance", pdfaNote:"The PDF only carries a PDF/A declaration (XMP); it is not certified PDF/A – embedded fonts and an OutputIntent are missing.", pdfaFontWarn:"Unembedded fonts found on page(s) {n}; these pages should be converted to raster for secure export.", pdfaFail:"Could not embed the PDF/A declaration.",
-      queueLbl:"Dávková fronta", queueAll:"Export batch queue (ZIP)", queueNone:"No document in the queue has been reviewed yet.", queueDone:"Documents exported: {n}", queueBad:"Document “{f}” could not be loaded.", queueRemove:"Remove from queue", errPdfPassword:"PDF is password-protected. Please remove the password before processing.", errPdfInvalid:"PDF file is damaged or incomplete.", errFileEmpty:"Document “{f}” is empty (0 bytes).", errFileTooLarge:"Document “{f}” is too large (maximum is 100 MB).", errFileBinary:"Document “{f}” is in an unsupported binary format.", errDocOld:"Legacy .doc format (Word 97-2003) should be saved as .docx or .pdf.", errImageNeedOcr:"Image processing (scans) requires OCR enabled in settings.",
+      queueLbl:"Batch queue", queueAll:"Export batch queue (ZIP)", queueNone:"No document in the queue has been reviewed yet.", queueDone:"Documents exported: {n}", queueDonePlural:["1 document exported", "{n} documents exported"], queueBad:"Document “{f}” could not be loaded.", queueRemove:"Remove from queue", errPdfPassword:"PDF is password-protected. Please remove the password before processing.", errPdfInvalid:"PDF file is damaged or incomplete.", errFileEmpty:"Document “{f}” is empty (0 bytes).", errFileTooLarge:"Document “{f}” is too large (maximum is 100 MB).", errFileBinary:"Document “{f}” is in an unsupported binary format.", errDocOld:"Legacy .doc format (Word 97-2003) should be saved as .docx or .pdf.", errImageNeedOcr:"Image processing (scans) requires OCR enabled in settings.",
       truePdfRedact:"Truly remove redacted text from PDF (not just an image)",
       truePdfRedactHint:"Keeps the rest of the document as searchable text, in every output mode (black-box, XXXX, label, and pseudonym alike). Pages that can't be safely verified are still converted to an image.",
       morphBtn:"Declension: find all cases in text",
       morphTip:"Finds all grammatical cases, inflections and forms of this name in the document and unifies their pseudonym token.",
       morphToast:"Declension: found and matched {n} other inflected forms.",
+      morphToastPlural:["Declension: found and matched 1 other inflected form.", "Declension: found and matched {n} other inflected forms."],
       pdfSearchableVerified:"Secure searchable PDF: verified clean text layer with 0 redacted values.",
       aiPack:"AI pack (ZIP)", includeOutline:"Attach process outline",
       publicGlossary:"Glossary without original values (for public AI)",
@@ -1221,7 +1471,7 @@ const I18N = {
       diffCleanCheck:"Exact word quads with vertical inset: adjacent lines are untouched.",
       diffApproveExport:"Approve removal & export",
       needReview:"Confirm review before export.", exporting:"Exporting…",
-      footer:"Single HTML file · GDPR Arts. 25 & 32 · Act 340/2015 · Info Act 106/1999 · public-AI layer",
+      footer:"Single folder, serverless · No cloud · GDPR Arts. 25 & 32 · Act 340/2015 · Info Act 106/1999 · public-AI layer",
       helpTitle:"How to use it",
       help:"Black highlighting in Word is not anonymization. For public AI, also hide tickets, system names, production status, the visible e-signature stamp and file metadata. Always review hits.",
       featuresBtn:"Feature overview", changelogBtn:"Changelog",
@@ -1277,16 +1527,20 @@ const I18N = {
       residual:"A suspicious string remains in the document.", residualOk:"No suspicious string remains in the document.",
       exported:"Export complete", walk:"of",
       exportedMixed:"Export complete — {n} page(s) had to be converted to an image for safety",
+      exportedMixedPlural:["Export complete — 1 page had to be converted to an image for safety", "Export complete — {n} pages had to be converted to an image for safety"],
       exportedDocx:"DOCX export complete with formatting preserved. Images, VML/OLE and embedded binary objects were removed for safety; sensitive media part names are not carried into the output.", docxFallback:"The DOCX could not be safely rewritten with formatting preserved ({r}) — plain text (TXT/PDF) was exported instead.",
       scanWarning:"{n} page(s) have no text layer and could not be searched — turn on OCR",
+      scanWarningPlural:["1 page has no text layer and could not be searched — turn on OCR", "{n} pages have no text layer and could not be searched — turn on OCR"],
       viewEntities:"Entity view", viewHits:"Individual findings",
-      entityOccurrences:"{n} occurrences", entityCases:"{n} forms / cases",
+      entityOccurrences:"{n} occurrences", entityOccurrencesPlural:["{n} occurrence", "{n} occurrences"],
+      entityCases:"{n} forms / cases", entityCasesPlural:["{n} form / case", "{n} forms / cases"],
       entityRedactAll:"Redact entity", entityKeepAll:"Keep entity",
       entityExpand:"Show occurrences", entityCollapse:"Hide occurrences",
       tabProfile:"Publication profile", tabDicts:"Project dictionaries", tabFormats:"Formats & security",
       smartSigTitle:"Digital signature stamp detected",
       smartSigDesc:"Signature stamp visual frame preserved; only signer name will be redacted.",
       smartScanTitle:"Scanned pages without text ({n})",
+      smartScanTitlePlural:["Scanned page without text (1)", "Scanned pages without text ({n})"],
       smartScanDesc:"These pages contain no machine-readable text and require OCR.",
       smartScanBtn:"Run OCR",
       smartRiskTitle:"Residual risks detected",
@@ -1296,6 +1550,27 @@ const I18N = {
       docQueueSwitch:"Document {cur} of {total}",
       appBarBrand:"Znečitelně",
       unreviewedCount:"{n} to review",
+      unreviewedCountPlural:["{n} finding to review", "{n} findings to review"],
+      unseenConfirm:["You haven't reviewed 1 finding. Continue?", "You haven't reviewed {n} findings. Continue?"],
+      exportLockedReason:"Tick Reviewed first",
+      shortcutHint:"J/K next · R redact · P keep",
+      closeDocTitle:"Close document?",
+      closeDocDesc:"You have active redaction changes in this document. Unsaved changes will be lost. You can save your session for second review.",
+      closeSaveSession:"Save for 4-eyes review (session)",
+      closeDiscard:"Close without saving",
+      closeCancel:"Back to document",
+      bulkConfirmNone:"Keep all findings (clear all redactions)?",
+      bulkUndoToast:"You can undo this with the Undo button.",
+      bulkReverted:"Bulk action reverted.",
+      undoBtn:"↶ Undo",
+      exportGroupDoc:"Document output",
+      exportGroupHandoff:"Handoff & Collaboration",
+      exportGroupAudit:"Audit & Evidence",
+      exportAiDesc:"Clean text, outline, and public token glossary",
+      exportSessionDesc:"Encrypted session for supervisor / DPO review",
+      exportAuditDesc:"Hash audit record with truncated values",
+      exportRecordDesc:"Formal PDF redaction certificate",
+      headerMore:"More options",
       approvedBadge:"Approved",
       approveDoc:"Approve document",
       legalLabel:"Legal basis for redaction",
@@ -1445,12 +1720,7 @@ function stemNamePart(token){
     }
     if (/ová$/u.test(t)) return t.replace(/ová$/u, "");
     return t;
-  }
-const RE_AGENDA_APELATIVA = /^(?:porad|jednán|zasedán|program|úkol|kontrol|předpis|zpráv|usnesen|rozhodnut|přehled|vývoj|činnost|řízení|hlášenk)[a-záčďéěíňóřšťúůýž]*$/iu;
-const RE_PAST_L_PARTICIPLE = /^[a-záčďéěíňóřšťúůýž]{3,}(?:il|ila|ilo|ili|ily|al|ala|alo|ali|aly|el|ela|elo|eli|ely|ěl|ěla|ělo|ěli|ěly|ul|ula|ulo|uli|uly|l|la|lo|li|ly)$/iu;
-const RE_PASSIVE_PARTICIPLE = /^[a-záčďéěíňóřšťúůýž]{3,}(?:en|ena|eno|eni|eny|án|ána|áno|áni|ány|t|ta|to|ti|ty)$/iu;
-const ADMIN_VERB_STEMS = /^(?:schvál|omluv|zaps|zaháj|projedn|informov|odpovíd|zprac|předlož|odroč|přeruš|rozhod|zamít|ulož|usnes|zvol|stanov|vyzv|vyhotov|podeps)[a-záčďéěíňóřšťúůýž]*$/iu;
-function isCzechVerbOrParticiple(word) {
+  }const RE_AGENDA_APELATIVA = /^(?:porad|jednán|zasedán|program|úkol|kontrol|předpis|zpráv|usnesen|rozhodnut|přehled|vývoj|činnost|řízení|hlášenk)[a-záčďéěíňóřšťúůýž]*$/iu;const RE_PAST_L_PARTICIPLE = /^[a-záčďéěíňóřšťúůýž]{3,}(?:il|ila|ilo|ili|ily|al|ala|alo|ali|aly|el|ela|elo|eli|ely|ěl|ěla|ělo|ěli|ěly|ul|ula|ulo|uli|uly|l|la|lo|li|ly)$/iu;const RE_PASSIVE_PARTICIPLE = /^[a-záčďéěíňóřšťúůýž]{3,}(?:en|ena|eno|eni|eny|án|ána|áno|áni|ány|t|ta|to|ti|ty)$/iu;const ADMIN_VERB_STEMS = /^(?:schvál|omluv|zaps|zaháj|projedn|informov|odpovíd|zprac|předlož|odroč|přeruš|rozhod|zamít|ulož|usnes|zvol|stanov|vyzv|vyhotov|podeps)[a-záčďéěíňóřšťúůýž]*$/iu;function isCzechVerbOrParticiple(word) {
     if (!word) return false;
     const st = typeof stripTitle === "function" ? stripTitle(word) : word;
     const low = st.toLocaleLowerCase("cs").replace(/[.,;:!?]/g, "").trim();
@@ -1461,9 +1731,7 @@ function isCzechVerbOrParticiple(word) {
     if (typeof RE_PAST_L_PARTICIPLE !== "undefined" && RE_PAST_L_PARTICIPLE.test(low)) return true;
     if (typeof RE_PASSIVE_PARTICIPLE !== "undefined" && RE_PASSIVE_PARTICIPLE.test(low) && /^(?:o|po|za|z|před|při|od|u|do|vy|na|roz|pře|se)/i.test(low)) return true;
     return false;
-  }
-const RE_CZECH_SURNAMES = /(?:ová|ský|cká|cký|ek|ík|ák|ář|íř|ec|áč|ič|ný|ná|lý|lá|tý|tá|vý|vá|chý|chá|mý|má|eš|oš|uš|iš|ů|íl|ír|ka|da|ra|la|ta|va)$/iu;
-function looksName(token){
+  }const RE_CZECH_SURNAMES = /(?:ová|ský|cká|cký|ek|ík|ák|ář|íř|ec|áč|ič|ný|ná|lý|lá|tý|tá|vý|vá|chý|chá|mý|má|eš|oš|uš|iš|ů|íl|ír|ka|da|ra|la|ta|va)$/iu;function looksName(token){
     if (!token) return false;
     const t = stripTitle(token);
     if (!t) return false;
@@ -1476,8 +1744,7 @@ function looksName(token){
     if (NAMES.has(stem) || isOnomasticName(stem)) return true;
     if (isCzechVerbOrParticiple(stem)) return false;
     return RE_CZECH_SURNAMES.test(t) || RE_CZECH_SURNAMES.test(stem);
-  }
-const ROLE_WORDS_SET = new Set([
+  }const ROLE_WORDS_SET = new Set([
     "pan", "pana", "panu", "panem", "paní", "slečna", "slečně", "slečnu", "slečnou",
     "obžalovaný", "obžalovaná", "obžalovaného", "obžalovanému", "obžalovaným", "obžalované", "obžalovanou",
     "svědek", "svědka", "svědkovi", "svědkem", "svědkyně", "svědkyni", "svědkyní",
@@ -1485,8 +1752,7 @@ const ROLE_WORDS_SET = new Set([
     "žalovaný", "žalovaného", "žalovanému", "žalovaným", "žalovaná", "žalované", "žalovanou",
     "poškozený", "poškozeného", "poškozenému", "poškozeným", "poškozená", "poškozené", "poškozenou",
     "jednatel", "jednatele", "jednateli", "jednatelem", "jednatelka", "jednatelky", "jednatelce", "jednatelku", "jednatelkou"
-  ]);
-function nameKey(value){
+  ]);function nameKey(value){
     const parts = String(value||"").split(/\s+/).map(stripTitle).filter(Boolean)
       .filter(p => {
         const low = p.toLocaleLowerCase("cs").replace(/[.,]/g,"");
@@ -1495,14 +1761,11 @@ function nameKey(value){
     const stemmed = parts.map(stemNamePart).filter(p => p.length>1);
     if (!stemmed.length) return canonToken(value);
     return stemmed.join(" ");
-  }
-function canonToken(s){
+  }function canonToken(s){
     return String(s||"").toLocaleLowerCase("cs").replace(/[^\p{L}\p{N}]+/gu,"");
-  }
-function systemCore(value){
+  }function systemCore(value){
     return String(value||"").replace(/^(?:systém|system|aplikace|modul|rozhraní|integrace|platforma)\s+/i, "").trim();
-  }
-function accountKey(raw){
+  }function accountKey(raw){
     const s = String(raw||"").replace(/\s+/g,"").toUpperCase();
     if (/^CZ\d{22}$/.test(s)) {
       const bank = s.slice(4,8);
@@ -1515,12 +1778,10 @@ function accountKey(raw){
       return "account|"+m[3]+"|"+acc;
     }
     return "account|"+canonToken(raw);
-  }
-function nameInitial(value){
+  }function nameInitial(value){
     const m = String(value||"").match(/(?<![\p{L}\p{N}])(\p{Lu})\.(?=\s|$)/u);
     return m ? m[1].toLocaleLowerCase("cs") : "";
-  }
-function isSameCzechSurname(sur, stem) {
+  }function isSameCzechSurname(sur, stem) {
     if (!sur || !stem) return false;
     if (sur === stem) return true;
     const surForms = declineCzechSurname(sur).map(nameKey);
@@ -1528,8 +1789,7 @@ function isSameCzechSurname(sur, stem) {
     const stemForms = declineCzechSurname(stem).map(nameKey);
     if (stemForms.includes(sur)) return true;
     return false;
-  }
-function clusterNameKeys(hits){
+  }function clusterNameKeys(hits){
     const names = hits.filter(h => h.type==="name");
     const full = names.filter(h => nameKey(h.value).split(" ").length>=2);
     const shorts = names.filter(h => nameKey(h.value).split(" ").length<2);
@@ -1548,8 +1808,7 @@ function clusterNameKeys(hits){
       if (keys.length===1) s.entityKey = keys[0];
     });
     return hits;
-  }
-function declineCzechFirstName(first) {
+  }function declineCzechFirstName(first) {
     if (!first) return [];
     const low = first.toLocaleLowerCase("cs");
     const forms = new Set([first]);
@@ -1599,8 +1858,7 @@ function declineCzechFirstName(first) {
     }
     [first, first + "a", first + "u", first + "ovi", first + "em", first + "e", first + "i"].forEach(f => forms.add(f));
     return Array.from(forms);
-  }
-function declineCzechSurname(sur) {
+  }function declineCzechSurname(sur) {
     if (!sur) return [];
     const forms = new Set([sur]);
     const low = sur.toLocaleLowerCase("cs");
@@ -1668,8 +1926,7 @@ function declineCzechSurname(sur) {
     }
 
     return Array.from(forms);
-  }
-function generateCzechNameForms(nameVal) {
+  }function generateCzechNameForms(nameVal) {
     const raw = String(nameVal || "").replace(/,.*$/, "").trim();
     const parts = raw.split(/\s+/).map(stripTitle).filter(Boolean)
       .filter(p => {
@@ -1796,8 +2053,7 @@ function generateCzechNameForms(nameVal) {
   const TOPONYM_WORDS_SET = new Set();
   TOPONYM_LOCATIONS_SET.forEach(loc => {
     loc.split(/\s+/).forEach(w => { if (w.length >= 3) TOPONYM_WORDS_SET.add(w); });
-  });
-function isLikelyNonPersonName(value, src, start, end, reasons){
+  });function isLikelyNonPersonName(value, src, start, end, reasons){
     if (!value || !src) return false;
     if (reasons && reasons.some(r => r.startsWith("trigger:") || r === "ocr:fuzzy" || r === "titled")) return false;
 
@@ -1872,8 +2128,7 @@ function isLikelyNonPersonName(value, src, start, end, reasons){
   }
 
   // --- Desambiguace větných verzálek a kontextové triggery (Ticket 02) ---
-  const RE_ABBR_BEFORE = /(?:např|tzv|tj|t\.j|tzn|atd|apod|popř|resp|s\.r\.o|a\.s|v\.o\.s|spol|č|č\.j|čj|sp\.?\s*zn|odst|písm|sb|str|sv|r|nar|hod|min|st|p|ing|mgr|bc|mudr|judr|mvdr|phdr|rndr|pharmdr|thdr|doc|prof)\.$/iu;
-function isSentenceStart(text, start) {
+  const RE_ABBR_BEFORE = /(?:např|tzv|tj|t\.j|tzn|atd|apod|popř|resp|s\.r\.o|a\.s|v\.o\.s|spol|č|č\.j|čj|sp\.?\s*zn|odst|písm|sb|str|sv|r|nar|hod|min|st|p|ing|mgr|bc|mudr|judr|mvdr|phdr|rndr|pharmdr|thdr|doc|prof)\.$/iu;function isSentenceStart(text, start) {
     if (!text || start <= 0) return true;
     let i = start - 1;
     while (i >= 0 && (text.charCodeAt(i) === 32 || text.charCodeAt(i) === 9)) i--;
@@ -2237,16 +2492,13 @@ class EntityPropagationCache {
       }
       return this.hits;
     }
-  }
-function createEntityPropagationCache(text, hits) {
+  }function createEntityPropagationCache(text, hits) {
     return new EntityPropagationCache(text, hits);
-  }
-function expandCzechNameMorphology(text, hits, triggerHit = null) {
+  }function expandCzechNameMorphology(text, hits, triggerHit = null) {
     if (!text || !hits || !hits.length) return hits;
     const cache = createEntityPropagationCache(text, hits);
     return cache.propagate(triggerHit);
-  }
-function alignDictEntity(h, src, options){
+  }function alignDictEntity(h, src, options){
     const s = options || ((typeof globalThis !== 'undefined' && globalThis.S) || (typeof S !== 'undefined' ? S : null)) || {};
     const sys = (options && options.systems != null) ? options.systems : (s.systems || "");
     const proj = (options && options.projects != null) ? options.projects : (s.projects || "");
@@ -2286,8 +2538,7 @@ function alignDictEntity(h, src, options){
   }
 
 // --- Module: src/core/detector.js ---
-function digits(s){ return String(s).replace(/[^\d]/g, ""); }
-function parseRC(raw){
+function digits(s){ return String(s).replace(/[^\d]/g, ""); }function parseRC(raw){
     const m = String(raw).trim().match(/^(\d{2})(\d{2})(\d{2})\s*\/?\s*(\d{3,4})$/);
     if (!m) return null;
     let month = +m[2];
@@ -2306,32 +2557,27 @@ function parseRC(raw){
     const dim = [31, (year%4===0&&year%100!==0)||year%400===0?29:28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month-1];
     if (day > dim) return null;
     return true;
-  }
-function pageOf(start, pagesList){
+  }function pageOf(start, pagesList){
     const pList = pagesList || ((typeof globalThis !== 'undefined' && globalThis.S && globalThis.S.pages) || (typeof S !== 'undefined' && S.pages) || []);
     if (!pList || !pList.length) return 1;
     for (const p of pList) if (start >= p.start && start < p.end) return p.n;
     return pList[pList.length-1].n;
-  }
-function toBytes(buf){
+  }function toBytes(buf){
     if (!buf) return new Uint8Array(0);
     if (buf instanceof Uint8Array) return buf;
     if (buf instanceof ArrayBuffer) return new Uint8Array(buf);
     if (buf.buffer) return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
     return new Uint8Array(buf);
-  }
-function isValidICO(raw){
+  }function isValidICO(raw){
     const d = digits(raw); if (d.length !== 8 || /^0+$/.test(d)) return false;
     const w = [8,7,6,5,4,3,2]; let sum = 0;
     for (let i=0;i<7;i++) sum += w[i]*+d[i];
     return (11 - (sum % 11)) % 10 === +d[7];
-  }
-function isValidDIC(raw){
+  }function isValidDIC(raw){
     const s = String(raw).replace(/\s+/g,"").toUpperCase();
     const m = s.match(/^CZ(\d{8,10})$/); if (!m) return false;
     return m[1].length === 8 ? isValidICO(m[1]) : !!parseRC(m[1]);
-  }
-function ibanOk(iban){
+  }function ibanOk(iban){
     const s = iban.replace(/\s+/g,"").toUpperCase();
     if (!/^CZ\d{22}$/.test(s)) return false;
     const rearr = s.slice(4)+s.slice(0,4);
@@ -2342,10 +2588,7 @@ function ibanOk(iban){
     }
     return rem === 1;
   }
-  // --- Fáze 2: cizí IBAN (délky podle zemí) a SWIFT/BIC ---
-const IBAN_LEN = {AD:24,AE:23,AL:28,AT:20,AZ:28,BA:20,BE:16,BG:22,BH:22,BR:29,BY:28,CH:21,CR:22,CY:28,DE:22,DK:18,DO:28,EE:20,EG:29,ES:24,FI:18,FO:18,FR:27,GB:22,GE:22,GI:23,GL:18,GR:27,GT:28,HR:21,HU:28,IE:22,IL:23,IQ:23,IS:26,IT:27,JO:30,KW:30,KZ:20,LB:28,LC:32,LI:21,LT:20,LU:20,LV:21,MC:27,MD:24,ME:22,MK:19,MR:27,MT:31,MU:30,NL:18,NO:15,PK:24,PL:28,PS:29,PT:25,QA:29,RO:24,RS:22,SA:24,SC:31,SE:24,SI:19,SK:24,SM:27,TL:23,TN:24,TR:26,UA:29,VA:22,VG:24,XK:20};
-const SWIFT_CC = new Set(Object.keys(IBAN_LEN).concat(["CZ","US","CA","JP","CN","HK","SG","AU","NZ","IN","ZA","MX","KR","TH","MY","ID","RU"]));
-function ibanForeignOk(iban){
+  // --- Fáze 2: cizí IBAN (délky podle zemí) a SWIFT/BIC ---const IBAN_LEN = {AD:24,AE:23,AL:28,AT:20,AZ:28,BA:20,BE:16,BG:22,BH:22,BR:29,BY:28,CH:21,CR:22,CY:28,DE:22,DK:18,DO:28,EE:20,EG:29,ES:24,FI:18,FO:18,FR:27,GB:22,GE:22,GI:23,GL:18,GR:27,GT:28,HR:21,HU:28,IE:22,IL:23,IQ:23,IS:26,IT:27,JO:30,KW:30,KZ:20,LB:28,LC:32,LI:21,LT:20,LU:20,LV:21,MC:27,MD:24,ME:22,MK:19,MR:27,MT:31,MU:30,NL:18,NO:15,PK:24,PL:28,PS:29,PT:25,QA:29,RO:24,RS:22,SA:24,SC:31,SE:24,SI:19,SK:24,SM:27,TL:23,TN:24,TR:26,UA:29,VA:22,VG:24,XK:20};const SWIFT_CC = new Set(Object.keys(IBAN_LEN).concat(["CZ","US","CA","JP","CN","HK","SG","AU","NZ","IN","ZA","MX","KR","TH","MY","ID","RU"]));function ibanForeignOk(iban){
     const s = String(iban).replace(/\s+/g,"").toUpperCase();
     const cc = s.slice(0,2);
     if (cc === "CZ" || IBAN_LEN[cc] !== s.length) return false;
@@ -2356,17 +2599,13 @@ function ibanForeignOk(iban){
       for (const d of v) rem = (rem * 10 + +d) % 97;
     }
     return rem === 1;
-  }
-function isPublic(text){ const l = String(text||"").toLocaleLowerCase("cs"); return PUBLIC.some(k => l.includes(k) || (l.length >= 6 && k.includes(l))); }
-function tokenizeCtx(s){
+  }function isPublic(text){ const l = String(text||"").toLocaleLowerCase("cs"); return PUBLIC.some(k => l.includes(k) || (l.length >= 6 && k.includes(l))); }function tokenizeCtx(s){
     return String(s||"").toLocaleLowerCase("cs").split(/[^\p{L}\p{N}+./]+/u).filter(Boolean);
-  }
-function ctxSlice(text, start, end, win=40, bias="both"){
+  }function ctxSlice(text, start, end, win=40, bias="both"){
     const left = bias==="right" ? 0 : (bias==="left" ? (typeof win==="number"?win:40) : (typeof win==="number"?win:40));
     const right = bias==="left" ? 10 : (typeof win==="number"?win:40);
     return (text.slice(Math.max(0,start-left), start) + " " + text.slice(end, end+right)).toLocaleLowerCase("cs");
-  }
-function matchNeedles(c, needles){
+  }function matchNeedles(c, needles){
     const tokens = tokenizeCtx(c);
     return needles.filter(n => {
       const needle = String(n).toLocaleLowerCase("cs");
@@ -2374,20 +2613,16 @@ function matchNeedles(c, needles){
       if (/[ .č]/.test(needle) && needle.length > 3) return c.includes(needle);
       return tokens.includes(needle) || tokens.some(tok => tok === needle || tok.replace(/\.$/,"") === needle);
     });
-  }
-function ctxHas(text, start, end, needles, win=40, bias="both"){
+  }function ctxHas(text, start, end, needles, win=40, bias="both"){
     return matchNeedles(ctxSlice(text, start, end, win, bias), needles).length > 0;
-  }
-function ctxWhich(text, start, end, needles, win=40, bias="both"){
+  }function ctxWhich(text, start, end, needles, win=40, bias="both"){
     return matchNeedles(ctxSlice(text, start, end, win, bias), needles);
-  }
-function isContractDateCtx(text, start, end, win=48){
+  }function isContractDateCtx(text, start, end, win=48){
     const c = (text.slice(Math.max(0,start-win), start) + " " + text.slice(end, end+win)).toLocaleLowerCase("cs");
     const born = /nar(?:\.|ozen|ozena)|datum narození|birth/.test(c);
     if (born) return false;
     return /(?:v\s+\p{Ll}+\s+dne|\bdne\b|uzavřen|uzavrena|podeps|platnost|vyhotoven|vystaven)/u.test(c);
-  }
-function makeWork(text){
+  }function makeWork(text){
     const src = String(text ?? "").normalize("NFC");
     let work = "";
     const toSrc = [];
@@ -2403,14 +2638,12 @@ function makeWork(text){
       toSrc.push(i);
     }
     return { src, work, toSrc };
-  }
-function mapSpan(toSrc, start, end){
+  }function mapSpan(toSrc, start, end){
     if (!toSrc.length) return { start:0, end:0 };
     const s = toSrc[Math.min(Math.max(0,start), toSrc.length-1)];
     const last = toSrc[Math.min(Math.max(0,end-1), toSrc.length-1)];
     return { start:s, end:last+1 };
-  }
-function parseDict(raw){
+  }function parseDict(raw){
     return String(raw||"").split(/\n/).map(line => {
       const s = line.trim();
       if (!s || s.startsWith("#")) return null;
@@ -2420,13 +2653,11 @@ function parseDict(raw){
       if (!name) return null;
       return { name, kind };
     }).filter(Boolean);
-  }
-function dictRe(name){
+  }function dictRe(name){
     const esc = name.replace(/[.*+?^${}()|[\]\\]/g,"\\/* APP_BUNDLE */");
     return new RegExp("(?<![\\p{L}\\p{N}])"+esc+"(?![\\p{L}\\p{N}])", "giu");
   }
-  const URL_TOKEN_RE = /\b(?:https?:\/\/|www\.)[^\s<>"'\u00AD\u200B]+|\b[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+\.(?:cz|sk|com|net|org|eu|io)\/[^\s<>"'\u00AD\u200B]*/gi;
-function urlSpans(text){
+  const URL_TOKEN_RE = /\b(?:https?:\/\/|www\.)[^\s<>"'\u00AD\u200B]+|\b[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+\.(?:cz|sk|com|net|org|eu|io)\/[^\s<>"'\u00AD\u200B]*/gi;function urlSpans(text){
     const spans = [];
     let m; const re = new RegExp(URL_TOKEN_RE.source, URL_TOKEN_RE.flags);
     while ((m = re.exec(text))) {
@@ -2434,11 +2665,9 @@ function urlSpans(text){
       spans.push({ start: m.index, end: m.index + m[0].length, raw: m[0] });
     }
     return spans;
-  }
-function spanInUrl(spans, start, end){
+  }function spanInUrl(spans, start, end){
     return spans.find(u => start < u.end && end > u.start) || null;
-  }
-function trimUrlValue(h, src){
+  }function trimUrlValue(h, src){
     let s = h.start, e = h.end;
     while (e>s) {
       const c = src[e-1];
@@ -2452,8 +2681,7 @@ function trimUrlValue(h, src){
     if (e<=s) return h;
     h.start = s; h.end = e; h.value = src.slice(s,e);
     return h;
-  }
-function trimHitValue(h, src){
+  }function trimHitValue(h, src){
     if (h.type === "host") return trimUrlValue(h, src);
     let v = h.value, s = h.start, e = h.end;
     while (e>s && /[.,;:)\]\s“”’‘»"']/.test(src[e-1]||"")) e--;
@@ -2461,8 +2689,7 @@ function trimHitValue(h, src){
     if (e<=s) return h;
     h.start = s; h.end = e; h.value = src.slice(s,e);
     return h;
-  }
-function findAll(text, re, type, validate, group){
+  }function findAll(text, re, type, validate, group){
     const flags = (re.flags.includes("g") ? re.flags : re.flags+"g") + (re.flags.includes("d") ? "" : "d");
     const out = []; const r = new RegExp(re.source, flags);
     let m; while ((m = r.exec(text))) {
@@ -2482,8 +2709,7 @@ function findAll(text, re, type, validate, group){
       if (m.index === r.lastIndex) r.lastIndex++;
     }
     return out;
-  }
-function scoreHit(h){
+  }function scoreHit(h){
     let s = 0;
     const rs = h.reasons || [];
     const has = (p) => rs.some(r => r===p || r.startsWith(p+":"));
@@ -2508,15 +2734,13 @@ function scoreHit(h){
     const prio = { rc:7, email:7, account:6, ico:6, dic:6, ticket:6, credential:6, phone:4, datovka:4, idcard:3, katastr:4, zahr_iban:6, doklady_extra:4, address:4, name:3, dob:2, host:5, ip:5, geo:3, spz:3 };
     s += prio[h.type] || 1;
     return s;
-  }
-function finalizeHit(h, src){
+  }function finalizeHit(h, src){
     trimHitValue(h, src);
     const sc = scoreHit(h);
     h.score = sc;
     h.confidence = (h.confidence === "high" || sc >= 48) ? "high" : "medium";
     return h;
-  }
-function projectPrefixes(dictRaw){
+  }function projectPrefixes(dictRaw){
     const dict = dictRaw != null ? dictRaw : ((typeof globalThis !== 'undefined' && globalThis.S && globalThis.S.projects) || (typeof S !== 'undefined' && S.projects) || '');
     const set = new Set();
     parseDict(dict).forEach(d => {
@@ -2527,8 +2751,7 @@ function projectPrefixes(dictRaw){
   }
 
   // Conservative post-processing for Czech person-name candidates.
-  // Exact-phrase filtering avoids a global surname blacklist.
-function detect(text, enabled, secrets, options){
+  // Exact-phrase filtering avoids a global surname blacklist.function detect(text, enabled, secrets, options){
     const bag = []; const bagMap = new Map();
     const { src, work, toSrc } = makeWork(text || "");
     const t = work;
@@ -3233,8 +3456,7 @@ function detect(text, enabled, secrets, options){
       applyCourtProfileRules(src, clustered);
     }
     return clustered;
-  }
-function applyCourtProfileRules(text, hits){
+  }function applyCourtProfileRules(text, hits){
     if (!text || !Array.isArray(hits) || hits.length === 0) return hits;
 
     // -------------------------------------------------------------------------
@@ -3341,21 +3563,17 @@ function applyCourtProfileRules(text, hits){
     });
 
     return hits;
-  }
-function filterCourtDecisionsWhitelist(text, hits){
+  }function filterCourtDecisionsWhitelist(text, hits){
     return applyCourtProfileRules(text, hits);
-  }
-function tokenBase(h, lang){
+  }function tokenBase(h, lang){
     if (h.tokenClass) return h.tokenClass;
     return LABEL[lang][h.type] || h.type.toUpperCase();
-  }
-function nextSuffix(type, n){
+  }function nextSuffix(type, n){
     if (type==="system" || type==="project" || type==="orgunit") {
       if (n <= 26) return String.fromCharCode(64 + n);
     }
     return String(n).padStart(3, "0");
-  }
-function declinedPersonTokenBase(base, h, lang){
+  }function declinedPersonTokenBase(base, h, lang){
     if (lang !== "cs" || !h || h.type !== "name" || base !== "OSOBA") return base;
     const clean = String(h.value || "").replace(/,.*$/, "").trim();
     const words = clean.toLocaleLowerCase("cs").replace(/[.,;:!?]/g, "").split(/\s+/).filter(Boolean);
@@ -3396,8 +3614,7 @@ function declinedPersonTokenBase(base, h, lang){
     if (/(?:ovi|i|ému|ě)$/u.test(last)) return "OSOBĚ";
 
     return base;
-  }
-function makeReplacer(mode, lang){
+  }function makeReplacer(mode, lang){
     const counters = {}; const map = new Map();
     return (h) => {
       if (h.type==="status" && (mode==="label" || mode==="pseudo" || mode==="xxxx")) {
@@ -3417,13 +3634,11 @@ function makeReplacer(mode, lang){
       const formBase = declinedPersonTokenBase(token.base, h, lang);
       return "["+formBase+"_"+token.suffix+"]";
     };
-  }
-function bindReplacer(mode, lang, hits){
+  }function bindReplacer(mode, lang, hits){
     const replacer = makeReplacer(mode, lang);
     effectiveHits(hits).forEach(h => { replacer(h); });
     return replacer;
-  }
-function buildGlossary(hits, mode, lang, publicOnly){
+  }function buildGlossary(hits, mode, lang, publicOnly){
     const replacer = bindReplacer(mode, lang, hits);
     const rows = [];
     const seen = new Set();
@@ -3451,8 +3666,7 @@ function buildGlossary(hits, mode, lang, publicOnly){
    * @param {object} [options]
    * @param {boolean} [options.acceptedOnly=false] - Zpracovat pouze schválené nálezy (pro exporty a náhrady)
    * @returns {Array<object>} Nepřekrývající se nálezy seřazené vzestupně podle start offsetu
-   */
-function resolveHits(hits, { acceptedOnly = false } = {}){
+   */function resolveHits(hits, { acceptedOnly = false } = {}){
     const source = (hits || []).filter(h =>
       h &&
       Number.isFinite(h.start) &&
@@ -3495,17 +3709,13 @@ function resolveHits(hits, { acceptedOnly = false } = {}){
       chosen.splice(low, 0, h);
     }
     return chosen;
-  }
-function effectiveHits(hits){
+  }function effectiveHits(hits){
     return resolveHits(hits, { acceptedOnly: true });
-  }
-function visibleHits(hits, _sel){
+  }function visibleHits(hits, _sel){
     return resolveHits(hits, { acceptedOnly: false });
-  }
-function topHits(hits){
+  }function topHits(hits){
     return effectiveHits(hits);
-  }
-function apply(text, hits, mode, lang){
+  }function apply(text, hits, mode, lang){
     const replacer = bindReplacer(mode, lang, hits);
     const accepted = effectiveHits(hits);
     if (!accepted.length) return text;
@@ -3719,14 +3929,12 @@ function xlsxToText(wb){
       }
     });
     return { text, cellMap };
-  }
-async function extractXlsx(buf){
+  }async function extractXlsx(buf){
     const xlsxLib = (typeof window !== "undefined" && window.XLSX) || (typeof globalThis !== "undefined" && globalThis.XLSX) || null;
     if (!xlsxLib) throw new Error("XLSX: knihovna se nenačetla.");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
     return xlsxToText(xlsxLib.read(u8, { type:"array" }));
-  }
-function decodeXml(str) {
+  }function decodeXml(str) {
   if (!str) return "";
   return str
     .replace(/&quot;/g, '"')
@@ -3742,8 +3950,7 @@ function decodeXml(str) {
       const code = parseInt(h, 16);
       return Number.isFinite(code) && code >= 0 ? String.fromCodePoint(code) : "";
     });
-}
-function encodeXml(str) {
+}function encodeXml(str) {
   if (!str) return "";
   return String(str)
     .replace(/&/g, "&amp;")
@@ -3751,8 +3958,7 @@ function encodeXml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
-}
-function replaceAcrossRuns(runs, values, getReplacement) {
+}function replaceAcrossRuns(runs, values, getReplacement) {
   const texts = runs.map(r => r.text || "");
   const full = texts.join("");
   if (!full) return false;
@@ -4141,8 +4347,7 @@ function sanitizeComments(xml, values, getReplacement, stripMeta) {
   });
 
   return resXml;
-}
-function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = true) {
+}function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = true) {
   if (!sourceBuf) return { ok: false, reason: "sourceBuf missing" };
   const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
   if (!flate || !flate.unzipSync) return { ok: false, reason: "fflate missing" };
@@ -4235,8 +4440,7 @@ function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = true) {
 
   const bytes = flate.zipSync(files, { level: 6 });
   return { ok: true, bytes };
-}
-function exportXlsxFile(sourceBuf, hits, mode, lang){
+}function exportXlsxFile(sourceBuf, hits, mode, lang){
     if (!sourceBuf) return null;
     const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
     const stripMetaVal = (typeof S !== "undefined" && S.stripMeta !== undefined) ? S.stripMeta : true;
@@ -4285,8 +4489,7 @@ function exportXlsxFile(sourceBuf, hits, mode, lang){
     });
     if (stripMetaVal) stripWorkbookMeta(wb);
     return xlsxLib.write(wb, { bookType:"xlsx", type:"array" });
-  }
-function stripWorkbookMeta(wb){
+  }function stripWorkbookMeta(wb){
     wb.Props = {
       Title: "anonymized",
       Subject: "",
@@ -4306,14 +4509,12 @@ function stripWorkbookMeta(wb){
 
 // --- Module: src/formats/docx.js ---
 const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships";
-  const DOCX_W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
-function docxRelationshipSourcePart(relName){
+  const DOCX_W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";function docxRelationshipSourcePart(relName){
     if (relName === "_rels/.rels") return "";
     const m = relName.match(/^(.*)\/_rels\/([^/]+)\.rels$/i);
     if (!m) throw new Error("Invalid .rels path: " + relName);
     return `${m[1]}/${m[2]}`;
-  }
-function docxNormalizeZipPath(path){
+  }function docxNormalizeZipPath(path){
     const out = [];
     String(path || "").replace(/\\/g, "/").replace(/^\/+/, "").split("/").forEach(part => {
       if (!part || part === ".") return;
@@ -4321,23 +4522,20 @@ function docxNormalizeZipPath(path){
       else out.push(part);
     });
     return out.join("/");
-  }
-function docxResolveRelTarget(sourcePart, target){
+  }function docxResolveRelTarget(sourcePart, target){
     if (!target || target.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(target)) return null;
     let decoded = target;
     try { decoded = decodeURIComponent(target); } catch (_) {}
     const base = sourcePart ? sourcePart.slice(0, sourcePart.lastIndexOf("/") + 1) : "";
     return docxNormalizeZipPath(base + decoded);
-  }
-function docxRelativeZipPath(fromDir, targetPath){
+  }function docxRelativeZipPath(fromDir, targetPath){
     const from = fromDir ? fromDir.split("/").filter(Boolean) : [];
     const to = targetPath.split("/").filter(Boolean);
     while (from.length && to.length && from[0] === to[0]) {
       from.shift(); to.shift();
     }
     return [...from.map(() => ".."), ...to].join("/");
-  }
-function docxSetTextPreservingSpace(node, text){
+  }function docxSetTextPreservingSpace(node, text){
     while (node.firstChild) node.removeChild(node.firstChild);
     node.appendChild(node.ownerDocument.createTextNode(text));
     if (/^\s|\s$/u.test(text) || /\s{2,}/u.test(text)) {
@@ -4346,8 +4544,7 @@ function docxSetTextPreservingSpace(node, text){
       node.removeAttributeNS("http://www.w3.org/XML/1998/namespace", "space");
       node.removeAttribute("xml:space");
     }
-  }
-function docxMakeWork(text){
+  }function docxMakeWork(text){
     return makeWork(text);
   }
 
@@ -4358,8 +4555,7 @@ function docxMakeWork(text){
    * tabs (\t), soft breaks, and Czech typographical punctuation and quotes.
    * The replacement is assigned to the first affected text node; subsequent
    * affected nodes are reduced to their remaining local text.
-   */
-function docxReplaceInXml(xml, map, tagName, found, occurrenceTracker){
+   */function docxReplaceInXml(xml, map, tagName, found, occurrenceTracker){
     const doc = new DOMParser().parseFromString(xml, "application/xml");
     if (doc.getElementsByTagName("parsererror").length) throw new Error("XML");
     const values = Array.from((occurrenceTracker?.allValues || map.keys())).filter(Boolean).sort((a,b) => b.length - a.length);
@@ -4499,8 +4695,7 @@ function docxReplaceInXml(xml, map, tagName, found, occurrenceTracker){
       ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
         new XMLSerializer().serializeToString(doc)
       : null;
-  }
-function docxStripVisualObjects(xml){
+  }function docxStripVisualObjects(xml){
     const doc = new DOMParser().parseFromString(xml, "application/xml");
     if (doc.getElementsByTagName("parsererror").length) throw new Error("XML");
     let removed = 0;
@@ -4517,8 +4712,7 @@ function docxStripVisualObjects(xml){
         new XMLSerializer().serializeToString(doc),
       removed
     };
-  }
-function docxStripMediaRelationships(files, dec, enc){
+  }function docxStripMediaRelationships(files, dec, enc){
     for (const name of Object.keys(files)) {
       if (name !== "_rels/.rels" && !/^.+\/_rels\/[^/]+\.rels$/i.test(name)) continue;
 
@@ -4546,19 +4740,16 @@ function docxStripMediaRelationships(files, dec, enc){
         );
       }
     }
-  }
-function docxRemoveMediaParts(files){
+  }function docxRemoveMediaParts(files){
     for (const name of Object.keys(files)) {
       if (/^word\/(?:media|embeddings)\//i.test(name)) delete files[name];
     }
-  }
-function docxAssertNoEmbeddedMedia(files){
+  }function docxAssertNoEmbeddedMedia(files){
     const leftovers = Object.keys(files).filter(name => /^word\/(?:media|embeddings)\//i.test(name));
     if (leftovers.length) {
       throw new Error("DOCX still contains embedded media: " + leftovers.join(", "));
     }
-  }
-function docxAssertNoDanglingRelationships(files, dec){
+  }function docxAssertNoDanglingRelationships(files, dec){
     for (const name of Object.keys(files)) {
       if (name !== "_rels/.rels" && !/^.+\/_rels\/[^/]+\.rels$/i.test(name)) continue;
 
@@ -4574,19 +4765,16 @@ function docxAssertNoDanglingRelationships(files, dec){
         }
       });
     }
-  }
-function docxStripMeta(name, xml){
+  }function docxStripMeta(name, xml){
     const blank = (tags) => tags.reduce((x, tg) => x.replace(new RegExp("(<" + tg + "(?:\\s[^>]*)?>)[\\s\\S]*?(</" + tg + ">)", "g"), "$1$2"), xml);
     if (/docProps\/core\.xml$/.test(name)) return blank(["dc:creator","cp:lastModifiedBy","dc:title","dc:subject","cp:keywords","dc:description"]);
     if (/docProps\/app\.xml$/.test(name)) return blank(["Company","Manager"]);
     return xml;
-  }
-function docxStripAuthorInitials(xml) {
+  }function docxStripAuthorInitials(xml) {
     return xml
       .replace(/\s+(?:w:)?author="[^"]*"/g, "")
       .replace(/\s+(?:w:)?initials="[^"]*"/g, "");
-  }
-function getOrderedDocxPartNames(files, partRe) {
+  }function getOrderedDocxPartNames(files, partRe) {
     const headers = [], body = [], footers = [], comments = [], charts = [], diagrams = [], others = [];
     for (const name of Object.keys(files)) {
       if (!partRe.test(name)) continue;
@@ -4605,8 +4793,7 @@ function getOrderedDocxPartNames(files, partRe) {
     charts.sort();
     diagrams.sort();
     return [...headers, ...body, ...footers, ...comments, ...charts, ...diagrams, ...others];
-  }
-async function exportDocxFile(sourceBuf, hits, mode, lang){
+  }async function exportDocxFile(sourceBuf, hits, mode, lang){
     const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
     if (!flate) return { ok:false, reason:"fflate" };
     if (!sourceBuf) return { ok:false, reason:"sourceBuf missing" };
@@ -4723,8 +4910,7 @@ async function exportDocxFile(sourceBuf, hits, mode, lang){
       bytes,
       removedMedia:true
     };
-  }
-function extractDocxTextWithFflate(buf){
+  }function extractDocxTextWithFflate(buf){
     const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
     if (!flate || !flate.unzipSync) throw new Error("fflate není k dispozici");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
@@ -4793,13 +4979,11 @@ function extractDocxTextWithFflate(buf){
 
 // --- Module: src/formats/pdf.js ---
 // PDF format handling and security preflights (ADR-0001, ADR-0002)
-
 function translit(ch){
   const map = { "á":"a","č":"c","ď":"d","é":"e","ě":"e","í":"i","ň":"n","ó":"o","ř":"r","š":"s","ť":"t","ú":"u","ů":"u","ý":"y","ž":"z",
                 "Á":"A","Č":"C","Ď":"D","É":"E","Ě":"E","Í":"I","Ň":"N","Ó":"O","Ř":"R","Š":"S","Ť":"T","Ú":"U","Ů":"U","Ý":"Y","Ž":"Z" };
   return map[ch] || ch;
-}
-function stampPdfMeta(doc, title){
+}function stampPdfMeta(doc, title){
     try {
       doc.setTitle((title||"document")+" — anonymized");
       doc.setAuthor("");
@@ -4809,9 +4993,7 @@ function stampPdfMeta(doc, title){
       doc.setCreator("Znečitelně");
       if (S.stripMeta && doc.setCreationDate) doc.setCreationDate(new Date(0));
     } catch (_) {}
-  }
-function pdfVisualAvailable(){ return S.kind === "pdf" && !!S.sourceBuf && !!window.pdfjsLib; }
-function pdfWordQuads(glyphs){
+  }function pdfVisualAvailable(){ return S.kind === "pdf" && !!S.sourceBuf && !!window.pdfjsLib; }function pdfWordQuads(glyphs){
     if (!glyphs || !glyphs.length) return [];
     const lines = [];
     const sorted = glyphs.slice().sort((a,b) => a.y - b.y || a.x - b.x);
@@ -4855,14 +5037,12 @@ function pdfWordQuads(glyphs){
         glyphs: l.glyphs
       };
     });
-  }
-function pdfDetectFontFamily(fontName){
+  }function pdfDetectFontFamily(fontName){
   const f = String(fontName || "").toLowerCase();
   if (/times|roman|serif|garamond|georgia|cambria|minion|baskerville/i.test(f)) return "serif";
   if (/courier|mono|consol|typewriter|menlo/i.test(f)) return "monospace";
   return "sans-serif";
-}
-function pdfDetectFontStyle(fontName){
+}function pdfDetectFontStyle(fontName){
   const f = String(fontName || "").toLowerCase();
   const isBold = /bold|black|heavy|\bbold\b/i.test(f);
   const isItalic = /italic|oblique|slanted|\bita\b/i.test(f);
@@ -4870,8 +5050,7 @@ function pdfDetectFontStyle(fontName){
     weight: isBold ? "bold" : "normal",
     style: isItalic ? "italic" : "normal"
   };
-}
-function pdfCompactToken(token){
+}function pdfCompactToken(token){
   if (!token) return "";
   const m = token.match(/^\[([A-ZÁ-Ž_]+?)(?:_([A-Za-z0-9]+))?\]$/);
   if (!m) return token;
@@ -4893,8 +5072,7 @@ function pdfCompactToken(token){
   else if (cat.startsWith("EMAIL") || cat.startsWith("E-MAIL")) p = "EML";
   else if (cat.startsWith("BANK") || cat.startsWith("ÚČET") || cat.startsWith("UCET")) p = "ÚČT";
   return suffix ? `[${p}_${suffix}]` : `[${p}]`;
-}
-function sampleCanvasBg(ctx, x, y, w, h, canvasW, canvasH){
+}function sampleCanvasBg(ctx, x, y, w, h, canvasW, canvasH){
   try {
     const samples = [];
     const collect = (px, py) => {
@@ -4935,8 +5113,7 @@ function sampleCanvasBg(ctx, x, y, w, h, canvasW, canvasH){
     }
   } catch (_) {}
   return "#ffffff";
-}
-function mergeAdjacentBoxes(quads, scale){
+}function mergeAdjacentBoxes(quads, scale){
   if (!quads || !quads.length) return [];
   const lines = [];
   quads.forEach(q => {
@@ -4973,8 +5150,7 @@ function mergeAdjacentBoxes(quads, scale){
     if (cur) out.push(cur);
   });
   return out;
-}
-function resolvePageHitQuads(pageText, pageMap, hits, pageMeta, scale){
+}function resolvePageHitQuads(pageText, pageMap, hits, pageMeta, scale){
   if (!pageMap || !pageMap.length || !hits || !hits.length) return [];
   const assignedRanges = [];
   const results = [];
@@ -5101,8 +5277,7 @@ function resolvePageHitQuads(pageText, pageMap, hits, pageMeta, scale){
   });
 
   return results;
-}
-function paintPdfVisualOverlays(){
+}function paintPdfVisualOverlays(){
   if (!PV) return;
   const previewOn = S.docView === "preview";
   const isBox = S.mode === "box" || !S.mode;
@@ -5199,8 +5374,7 @@ function paintPdfVisualOverlays(){
       pg.layer.appendChild(b);
     });
   });
-}
-async function buildPdfVisual(token){
+}async function buildPdfVisual(token){
     const host = $("pdfVisual");
     if (!host) return;
     const width = Math.max(280, Math.min(900, host.clientWidth - 16 || 700));
@@ -5235,8 +5409,7 @@ async function buildPdfVisual(token){
     if (token !== pvToken) return;
     PV = { buf: S.sourceBuf, width, pages };
     paintPdfVisualOverlays();
-  }
-function paintPdfVisual(){
+  }function paintPdfVisual(){
     const btn = $("btnVisual"), host = $("pdfVisual"), t = i();
     const avail = pdfVisualAvailable();
     if (!avail && S.pdfVisual) S.pdfVisual = false;
@@ -5256,8 +5429,7 @@ function paintPdfVisual(){
       const token = ++pvToken;
       buildPdfVisual(token).catch(e => { console.warn("PDF visual failed:", e); if (token === pvToken) host.innerHTML = `<p class="pv-note danger">${esc(t.visualErr)}</p>`; });
     }
-  }
-function clearPdfVisual(){
+  }function clearPdfVisual(){
     PV = null;
     pvToken++;
     S.pdfVisual = false;
@@ -5267,14 +5439,12 @@ function clearPdfVisual(){
       h.innerHTML = "";
       h.classList.add("hidden");
     }
-  }
-function pdfHasSignatureBytes(buf){
+  }function pdfHasSignatureBytes(buf){
     try {
       const s = new TextDecoder("latin1").decode(toBytes(buf));
       return /\/ByteRange\s*\[/.test(s) && /\/Type\s*\/Sig\b|\/SubFilter\s*\/(?:adbe|ETSI)/.test(s);
     } catch (_) { return false; }
-  }
-function pdfWorker(){
+  }function pdfWorker(){
     const pdfjs = (typeof window !== "undefined" && window.pdfjsLib) || (typeof globalThis !== "undefined" && globalThis.pdfjsLib) || null;
     if (!pdfjs) throw new Error("PDF: knihovna se nenačetla.");
     const win = typeof window !== "undefined" ? window : globalThis;
@@ -5287,8 +5457,7 @@ function pdfWorker(){
       return "local";
     })();
     return win.__pdfWorkerReady;
-  }
-async function getPdfDocument(data){
+  }async function getPdfDocument(data){
     await pdfWorker();
     const bytes = (data instanceof Uint8Array)
       ? new Uint8Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength))
@@ -5348,8 +5517,7 @@ async function getPdfDocument(data){
     if (ch >= "a" && ch <= "z") return 0.52;
     if (ch >= "0" && ch <= "9") return 0.55;
     return 0.55;
-  }
-function computeCharWidths(str, totalW, fontH, fontFam, isMono) {
+  }function computeCharWidths(str, totalW, fontH, fontFam, isMono) {
     const len = str ? str.length : 0;
     if (len === 0) return [];
     if (len === 1 || isMono) {
@@ -5653,8 +5821,7 @@ function computeCharWidths(str, totalW, fontH, fontFam, isMono) {
   function shouldCoverVisibleStamps(){
     return !S.enabled || S.enabled.sigcert !== false;
   }
-  let _canFetchLocalCache = null;
-async function canFetchLocalAssets() {
+  let _canFetchLocalCache = null;async function canFetchLocalAssets() {
   if (_canFetchLocalCache !== null) return _canFetchLocalCache;
   if (typeof window === "undefined" || !window.fetch) {
     _canFetchLocalCache = false;
@@ -5671,8 +5838,7 @@ async function canFetchLocalAssets() {
     _canFetchLocalCache = true;
   }
   return _canFetchLocalCache;
-}
-async function extractPdf(data){
+}async function extractPdf(data){
     let pdf;
     try {
       pdf = await getPdfDocument(data);
@@ -5899,12 +6065,10 @@ async function extractPdf(data){
     }
 
     return { text, pages };
-  }
-async function exportPdfTrueRedact(source, hits, title, mode, lang){
+  }async function exportPdfTrueRedact(source, hits, title, mode, lang){
     const bytes = await exportPdfRaster(source, hits, title, mode, lang);
     return { bytes: assertSecurePdfBytes(bytes), rasterPages: new Set() };
-  }
-async function exportPdfRaster(source, hits, title, mode, lang){
+  }async function exportPdfRaster(source, hits, title, mode, lang){
     const pdf = await getPdfDocument(source);
     const { PDFDocument } = PDFLib;
     const doc = await PDFDocument.create();
@@ -6045,17 +6209,14 @@ async function exportPdfRaster(source, hits, title, mode, lang){
       verifySanitizedPdfText(verifiedBytes, effectiveHits(hits));
     }
     return verifiedBytes;
-  }
-function base64ToUint8Array(base64){
+  }function base64ToUint8Array(base64){
     const clean = String(base64 || "").replace(/^data:.*?;base64,/, "").replace(/\s+/g, "");
     if (!clean) return new Uint8Array(0);
     const bin = atob(clean);
     const out = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
-  }
-const SRGB_ICC_PROFILE_BASE64 = "AAACTGxjbXMEQAAAbW50clJHQiBYWVogB+oACgABAAkAEQATYWNzcEFQUEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPbWAAEAAAAA0y1sY21zAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALZGVzYwAAAQgAAAA2Y3BydAAAAUAAAABMd3RwdAAAAYwAAAAUY2hhZAAAAaAAAAAsclhZWgAAAcwAAAAUYlhZWgAAAeAAAAAUZ1hZWgAAAfQAAAAUclRSQwAAAggAAAAgZ1RSQwAAAggAAAAgYlRSQwAAAggAAAAgY2hybQAAAigAAAAkbWx1YwAAAAAAAAABAAAADGVuVVMAAAAaAAAAHABzAFIARwBCACAAYgB1AGkAbAB0AC0AaQBuAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAADAAAAAcAE4AbwAgAGMAbwBwAHkAcgBpAGcAaAB0ACwAIAB1AHMAZQAgAGYAcgBlAGUAbAB5WFlaIAAAAAAAAPbWAAEAAAAA0y1zZjMyAAAAAAABDEIAAAXe///zJQAAB5MAAP2Q///7of///aIAAAPcAADAblhZWiAAAAAAAABvoAAAOPUAAAOQWFlaIAAAAAAAACSfAAAPhAAAtsNYWVogAAAAAAAAYpcAALeHAAAY2XBhcmEAAAAAAAMAAAACZmYAAPKnAAANWQAAE9AAAApbY2hybQAAAAAAAwAAAACj1wAAVHsAAEzNAACZmgAAJmYAAA9c";
-function stripDiacritic(str){
+  }const SRGB_ICC_PROFILE_BASE64 = "AAACTGxjbXMEQAAAbW50clJHQiBYWVogB+oACgABAAkAEQATYWNzcEFQUEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPbWAAEAAAAA0y1sY21zAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALZGVzYwAAAQgAAAA2Y3BydAAAAUAAAABMd3RwdAAAAYwAAAAUY2hhZAAAAaAAAAAsclhZWgAAAcwAAAAUYlhZWgAAAeAAAAAUZ1hZWgAAAfQAAAAUclRSQwAAAggAAAAgZ1RSQwAAAggAAAAgYlRSQwAAAggAAAAgY2hybQAAAigAAAAkbWx1YwAAAAAAAAABAAAADGVuVVMAAAAaAAAAHABzAFIARwBCACAAYgB1AGkAbAB0AC0AaQBuAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAADAAAAAcAE4AbwAgAGMAbwBwAHkAcgBpAGcAaAB0ACwAIAB1AHMAZQAgAGYAcgBlAGUAbAB5WFlaIAAAAAAAAPbWAAEAAAAA0y1zZjMyAAAAAAABDEIAAAXe///zJQAAB5MAAP2Q///7of///aIAAAPcAADAblhZWiAAAAAAAABvoAAAOPUAAAOQWFlaIAAAAAAAACSfAAAPhAAAtsNYWVogAAAAAAAAYpcAALeHAAAY2XBhcmEAAAAAAAMAAAACZmYAAPKnAAANWQAAE9AAAApbY2hybQAAAAAAAwAAAACj1wAAVHsAAEzNAACZmgAAJmYAAA9c";function stripDiacritic(str){
     return String(str || "").split("").map(translit).join("");
   }
 
@@ -6119,8 +6280,7 @@ function stripDiacritic(str){
     });
 
     return result;
-  }
-function addSrgbOutputIntent(pdfDoc){
+  }function addSrgbOutputIntent(pdfDoc){
     const { PDFName } = PDFLib;
     const iccBytes = base64ToUint8Array(SRGB_ICC_PROFILE_BASE64);
     if (!iccBytes.length) throw new Error("Missing sRGB ICC profile");
@@ -6148,8 +6308,7 @@ function addSrgbOutputIntent(pdfDoc){
     pdfDoc.catalog.set(PDFName.of("OutputIntents"), pdfDoc.context.obj([intentRef]));
 
     return { iccRef, intentRef };
-  }
-async function applyPdfaDeclaration(bytes){
+  }async function applyPdfaDeclaration(bytes){
     const { PDFDocument, PDFName } = PDFLib;
     const doc = await PDFDocument.load(bytes, { updateMetadata:false });
 
@@ -6204,8 +6363,7 @@ function toUtf16BeHex(str) {
 
 function toAsciiHex(str) {
   return [...str].map(c => (c.charCodeAt(0) & 0xff).toString(16).padStart(2, "0")).join("").toUpperCase();
-}
-function verifySanitizedPdfText(bytes, activeHits){
+}function verifySanitizedPdfText(bytes, activeHits){
     const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
     if (!flate || !activeHits || !activeHits.length) return true;
     try {
@@ -6272,8 +6430,7 @@ function verifySanitizedPdfText(bytes, activeHits){
       if (err.message && err.message.includes("PDF security verification failed")) throw err;
       throw new Error("PDF security verification failed: " + (err.message || String(err)));
     }
-  }
-function assertSecurePdfBytes(bytes){
+  }function assertSecurePdfBytes(bytes){
     const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     const ascii = new TextDecoder("latin1").decode(u8);
     const normAscii = ascii.replace(/\/([^\s<>[\]{}/%]+)/g, (_, name) => {
@@ -6301,8 +6458,7 @@ function assertSecurePdfBytes(bytes){
    *
    * Keep this API stable, but fail closed to the isolated raster constructor
    * until a future true-redaction implementation has an object-level proof.
-   */
-async function exportTextPdf(text, title) {
+   */async function exportTextPdf(text, title) {
   if (!window.PDFLib) throw new Error("PDFLib is not loaded");
   const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
   const doc = await PDFDocument.create();
@@ -6367,8 +6523,7 @@ async function exportTextPdf(text, title) {
 
   const outBytes = await doc.save({ useObjectStreams: false });
   return assertSecurePdfBytes(outBytes);
-}
-async function exportProtocolPdf(){
+}async function exportProtocolPdf(){
   if (!window.PDFLib) {
     const t = (typeof I18N !== "undefined" && typeof S !== "undefined" && I18N[S.lang]) ? I18N[S.lang] : null;
     throw new Error((t && t.recordNeedPdfLib) || "PDFLib is not loaded");
@@ -6680,15 +6835,13 @@ async function sha256(buf){
   const source = typeof buf === "string" ? new TextEncoder().encode(buf) : buf;
   const h = await subtle.digest("SHA-256", source);
   return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2,"0")).join("");
-}
-const IngestErrorCode = Object.freeze({
+}const IngestErrorCode = Object.freeze({
     EMPTY_DOCUMENT: "errFileEmpty",
     FILE_TOO_LARGE: "errFileTooLarge",
     UNSUPPORTED_BINARY: "errFileBinary",
     LEGACY_DOC_FORMAT: "errDocOld",
     IMAGE_NEED_OCR: "errImageNeedOcr"
-  });
-class DocumentIngestionError extends Error {
+  });class DocumentIngestionError extends Error {
     constructor(code, fileName = "", cause = null) {
       super(code);
       this.name = "DocumentIngestionError";
@@ -6696,8 +6849,7 @@ class DocumentIngestionError extends Error {
       this.fileName = fileName;
       this.cause = cause;
     }
-  }
-function localizeIngestError(err, fallbackFileName = "") {
+  }function localizeIngestError(err, fallbackFileName = "") {
     if (!err) return "";
     const code = err.code || err.message;
     const f = err.fileName || fallbackFileName || "";
@@ -6718,8 +6870,7 @@ function localizeIngestError(err, fallbackFileName = "") {
       return dict.errImageNeedOcr || "Pro zpracování obrázků musí být povoleno OCR.";
     }
     return err.message || String(err);
-  }
-async function buildCanonicalDocument({ fileName, kind, text, sourceBuf = null, pages = null, cellMap = null, sigDetected = false }){
+  }async function buildCanonicalDocument({ fileName, kind, text, sourceBuf = null, pages = null, cellMap = null, sigDetected = false }){
     const cleanText = String(text || "").normalize("NFC");
     const docPages = (pages && pages.length)
       ? pages
@@ -6738,8 +6889,7 @@ async function buildCanonicalDocument({ fileName, kind, text, sourceBuf = null, 
       sigDetected: !!sigDetected,
       hashIn: hashIn
     });
-  }
-function applyDocumentToState(doc){
+  }function applyDocumentToState(doc){
     if (!doc) return;
     S.fileName = doc.fileName;
     S.kind = doc.kind;
@@ -6754,8 +6904,7 @@ function applyDocumentToState(doc){
     S.reviewed = false;
     S.hits = [];
     runAnalyze(doc.text);
-  }
-async function ingest(name, kind, text, buf, extra){
+  }async function ingest(name, kind, text, buf, extra){
     const doc = await buildCanonicalDocument({
       fileName: name,
       kind: kind,
@@ -6767,12 +6916,10 @@ async function ingest(name, kind, text, buf, extra){
     });
     applyDocumentToState(doc);
     return doc;
-  }
-function isImageFile(name, type){
+  }function isImageFile(name, type){
     const n = (name || "").toLowerCase();
     return /\.(png|jpe?g|webp|bmp|gif|tiff?)$/i.test(n) || (typeof type === "string" && type.startsWith("image/"));
-  }
-async function handleImageFile(file, buf, options = {}){
+  }async function handleImageFile(file, buf, options = {}){
     const ocrEnabled = options.ocrEnabled ?? (typeof S !== "undefined" ? S.ocrEnabled : false);
     const tesseractLib = (typeof window !== "undefined" && window.Tesseract) || (typeof globalThis !== "undefined" && globalThis.Tesseract) || null;
     if (!ocrEnabled || !tesseractLib) {
@@ -6922,8 +7069,7 @@ async function handleImageFile(file, buf, options = {}){
         sourceBuf: buf
       });
     }
-  }
-async function ingestDocument(input, options = {}){
+  }async function ingestDocument(input, options = {}){
     const file = input;
     const name = (file && file.name) || options.fileName || "document";
     const size = typeof file?.size === "number" ? file.size : (file?.buffer?.byteLength || 0);
@@ -7040,8 +7186,7 @@ async function ingestDocument(input, options = {}){
       }
       return await buildCanonicalDocument({ fileName: name, kind: "text", text, sourceBuf: buf });
     }
-  }
-async function ingestDocumentBatch(list, options = {}){
+  }async function ingestDocumentBatch(list, options = {}){
     const files = Array.from(list || []);
     const results = [];
     for (const f of files) {
@@ -7242,14 +7387,9 @@ async function importSession(envelopeJsonOrObj, password) {
 let MOVIE_TIMER = null;
   let MOVIE_PENDING = null;
   let MOVIE_TITLE_TIMER = null;
-  let MOVIE_PAUSED = false;
-let MOVIE_SPEED = 1;
-const MOVIE_SLOWDOWN = 0.3;
-function movieEffectiveSpeed(){ return MOVIE_SPEED * MOVIE_SLOWDOWN; }
-function initActionMarquees(_root){
+  let MOVIE_PAUSED = false;let MOVIE_SPEED = 1;const MOVIE_SLOWDOWN = 0.3;function movieEffectiveSpeed(){ return MOVIE_SPEED * MOVIE_SLOWDOWN; }function initActionMarquees(_root){
     /* Cleaned: text overflow handled via responsive CSS */
-  }
-function startTextMarquee(_chip){
+  }function startTextMarquee(_chip){
     /* Cleaned: chip wrapping handled via responsive CSS */
   }
 
@@ -7919,8 +8059,7 @@ function startTextMarquee(_chip){
     }
     S.movie = true;
     syncSettingsForms();
-  }
-async function startMovieTutorial(script){
+  }async function startMovieTutorial(script){
     movieCancelPlayback();
     movieClearSelectMenu();
     movieCloseTitleCard();
@@ -8054,8 +8193,7 @@ async function startMovieTutorial(script){
     const idx = S.movieStepIndex || 0;
     if (idx <= 0) return;
     await movieGoTo(idx - 1);
-  }
-function exitMovieTutorial(keepDoc){
+  }function exitMovieTutorial(keepDoc){
     MOVIE_GENERATION++;
     MOVIE_TRANSITION_LOCK = false;
     movieCancelPlayback();
@@ -8119,6 +8257,10 @@ const S = {
       btn.setAttribute("aria-pressed", dark ? "true" : "false");
       btn.setAttribute("aria-label", dark ? t.themeLight : t.themeDark);
       btn.setAttribute("data-tip", t.tips.theme);
+    }
+    const lblTheme = $("lblThemeText");
+    if (lblTheme) {
+      lblTheme.textContent = dark ? "☀ " + (S.lang === "cs" ? "Světlý režim" : "Light mode") : "☾ " + (S.lang === "cs" ? "Tmavý režim" : "Dark mode");
     }
   }
   function toggleTheme(){
@@ -8291,8 +8433,7 @@ function download(name, blob){
       if (t) t.style.display = "none";
       _ocrProgressTimer = null;
     }, 800);
-  }
-function showConfirm(message, okLabel, cancelLabel) {
+  }function showConfirm(message, okLabel, cancelLabel) {
     const modal = $("confirmModal");
     if (!modal) {
       try {
@@ -8642,7 +8783,10 @@ function showConfirm(message, okLabel, cancelLabel) {
 
   function switchSettingsTab(tabId) {
     document.querySelectorAll(".settings-tab-btn").forEach(btn => {
-      btn.classList.toggle("active", btn.dataset.tab === tabId);
+      const active = btn.dataset.tab === tabId;
+      btn.classList.toggle("active", active);
+      btn.setAttribute("aria-selected", active ? "true" : "false");
+      btn.setAttribute("tabindex", active ? "0" : "-1");
     });
     const paneProfile = $("m_tabPaneProfile");
     const paneDicts = $("m_tabPaneDicts");
@@ -8797,16 +8941,14 @@ function showConfirm(message, okLabel, cancelLabel) {
   function filtered(){
     return S.hits.filter(h => S.filter==="all" || (S.filter==="redact"?h.accept:!h.accept));
   }
-  let _reviewCache = null;
-function legalOf(h) {
+  let _reviewCache = null;function legalOf(h) {
     if (!h) return "gdpr";
     if (h.legalBasis) return h.legalBasis;
     if (S.legalReason) return S.legalReason;
     if (h.type === "secrets") return "trade";
     if (["credential", "ip", "host", "system", "project", "ticket", "incident"].includes(h.type)) return "security";
     return "gdpr";
-  }
-function buildAudit() {
+  }function buildAudit() {
     const salt = S.auditSalt || (S.auditSalt = Array.from(globalThis.crypto?.getRandomValues?.(new Uint8Array(8)) || [1,2,3,4,5,6,7,8]).map(b => b.toString(16).padStart(2, "0")).join(""));
     const items = (S.hits || []).map(h => {
       const val = String(h.value || "");
@@ -8851,8 +8993,7 @@ function buildAudit() {
       findings: items,
       auditTrail: S.auditTrail || []
     };
-  }
-function groupHitsIntoEntities(hits) {
+  }function groupHitsIntoEntities(hits) {
     const groups = new Map();
     hits.forEach(h => {
       const key = h.entityKey || `${h.type}|${(h.value || "").trim().toLocaleLowerCase("cs")}`;
@@ -8921,14 +9062,15 @@ function groupHitsIntoEntities(hits) {
       const catName = (t.cats && t.cats[e.type]) || (LABEL[S.lang] && LABEL[S.lang][e.type]) || e.type;
       const badgeCls = e.acceptState === "all" ? "ec-redact" : (e.acceptState === "none" ? "ec-keep" : "ec-mixed");
       const isSel = e.hits.some(h => h.id === S.selectedId);
-      const countLabel = (t.entityOccurrences || "{n} výskytů").replace("{n}", e.totalCount);
+      const countLabel = formatPlural(e.totalCount, t.entityOccurrencesPlural || t.entityOccurrences, S.lang);
+      const casesLabel = formatPlural(e.formsList.length, t.entityCasesPlural || t.entityCases, S.lang);
       const formsSummary = e.formsList.length > 1
-        ? `${countLabel} (${e.formsList.length} tvarů: ${esc(e.formsList.join(", "))})`
+        ? `${countLabel} (${casesLabel}: ${esc(e.formsList.join(", "))})`
         : countLabel;
 
       return `
         <div class="entity-card ${badgeCls} ${isSel ? "sel" : ""}" data-ekey="${escAttr(e.key)}">
-          <div class="ec-header" data-etoggle="${escAttr(e.key)}">
+          <div class="ec-header" role="button" tabindex="0" aria-expanded="${isExpanded}" aria-label="${escAttr(e.canonicalValue)}: ${isExpanded ? 'skrýt' : 'zobrazit'}" data-etoggle="${escAttr(e.key)}">
             <div style="flex:1;min-width:0">
               <h3 class="ec-title">${esc(e.canonicalValue)}</h3>
               <div class="ec-meta">
@@ -8937,13 +9079,13 @@ function groupHitsIntoEntities(hits) {
                 <span class="ec-badge-count">${esc(formsSummary)}</span>
               </div>
             </div>
-            <span style="font-size:12px;color:var(--muted);padding-left:4px;">${isExpanded ? "▲" : "▼"}</span>
+            <span style="font-size:12px;color:var(--muted);padding-left:4px;" aria-hidden="true">${isExpanded ? "▲" : "▼"}</span>
           </div>
           <div class="ec-actions">
-            <button type="button" class="btn btn-sm ${e.acceptState === "all" ? "btn-sec" : "btn-ghost"}" data-eact="redact" data-ekey="${escAttr(e.key)}">${esc(t.redact)}</button>
-            <button type="button" class="btn btn-sm ${e.acceptState === "none" ? "btn-sec" : "btn-ghost"}" data-eact="keep" data-ekey="${escAttr(e.key)}">${esc(t.keep)}</button>
+            <button type="button" class="btn btn-sm ${e.acceptState === "all" ? "btn-sec" : "btn-ghost"}" data-eact="redact" data-ekey="${escAttr(e.key)}" aria-label="${escAttr(t.redact)}">🔒 ${esc(t.redact)}</button>
+            <button type="button" class="btn btn-sm ${e.acceptState === "none" ? "btn-sec" : "btn-ghost"}" data-eact="keep" data-ekey="${escAttr(e.key)}" aria-label="${escAttr(t.keep)}">✓ ${esc(t.keep)}</button>
             <span style="flex:1"></span>
-            <button type="button" class="btn btn-sm btn-ghost" data-etoggle="${escAttr(e.key)}" style="font-size:11px;min-height:28px;padding:0 8px;">
+            <button type="button" class="btn btn-sm btn-ghost" data-etoggle="${escAttr(e.key)}" style="font-size:11px;min-height:36px;padding:0 10px;">
               ${isExpanded ? esc(t.entityCollapse || "Skrýt") : esc(t.entityExpand || "Výskyty")}
             </button>
           </div>
@@ -8953,7 +9095,7 @@ function groupHitsIntoEntities(hits) {
                 <div class="ec-subhit ${S.selectedId === h.id ? "mk-sel" : ""}" data-hid="${h.id}">
                   <span class="mono" style="font-weight:600">${esc(h.value)}</span>
                   <span style="display:inline-flex;gap:4px;align-items:center;">
-                    <span class="pill ${h.accept ? "pill-hit" : "pill-ok"}" style="font-size:8px;padding:1px 5px;">${h.accept ? t.redact : t.keep}</span>
+                    <span class="pill ${h.accept ? "pill-hit" : "pill-ok"}" style="font-size:8px;padding:1px 5px;"><span class="pill-label">${h.accept ? "🔒 " + esc(t.redact) : "✓ " + esc(t.keep)}</span></span>
                     <span class="mono" style="color:var(--muted);font-size:10px">#${h.id}</span>
                   </span>
                 </div>
@@ -8965,12 +9107,19 @@ function groupHitsIntoEntities(hits) {
     }).join("");
 
     container.querySelectorAll("[data-etoggle]").forEach(el => {
-      el.onclick = (e) => {
+      const toggle = (e) => {
         e.stopPropagation();
         const k = el.dataset.etoggle;
         if (S.expandedEntities.has(k)) S.expandedEntities.delete(k);
         else S.expandedEntities.add(k);
         paintReview();
+      };
+      el.onclick = toggle;
+      el.onkeydown = (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggle(e);
+        }
       };
     });
 
@@ -9062,8 +9211,89 @@ function groupHitsIntoEntities(hits) {
     }
   }
 
+  async function exportSessionPrompt(){
+    const pwd = prompt(S.lang === "cs" ? "Zadejte heslo pro zašifrování sezení (pro druhou kontrolu):" : "Enter password to encrypt session (for second review):");
+    if (!pwd) return false;
+    const pwdConfirm = prompt(S.lang === "cs" ? "Potvrďte heslo:" : "Confirm password:");
+    if (pwd !== pwdConfirm) {
+      toast(S.lang === "cs" ? "Hesla se neshodují." : "Passwords do not match.");
+      return false;
+    }
+    try {
+      const envelopeJson = await exportSession(S, pwd);
+      const blob = new Blob([envelopeJson], { type: "application/json" });
+      const baseName = (S.fileName || "dokument").replace(/\.[^/.]+$/, "");
+      download(`${baseName}.znecitelne-session`, blob);
+      toast(S.lang === "cs" ? "Šifrované sezení bylo uloženo." : "Encrypted session saved.");
+      return true;
+    } catch (err) {
+      toast((S.lang === "cs" ? "Chyba při exportu sezení: " : "Error exporting session: ") + (err.message || String(err)));
+      return false;
+    }
+  }
+
+  async function openCloseDocModal(){
+    if (Q.items.length > 1) {
+      const ok = await showConfirm(
+        S.lang === "cs" ? "Opravdu chcete odebrat tento dokument z fronty?" : "Remove this document from queue?",
+        S.lang === "cs" ? "Odebrat z fronty" : "Remove from queue",
+        S.lang === "cs" ? "Zpět" : "Cancel"
+      );
+      if (ok) {
+        removeQueueItem(Q.cur);
+      }
+      return;
+    }
+    if (!S.hits || !S.hits.length) {
+      reset();
+      return;
+    }
+    const t = i();
+    const modal = $("closeDocModal");
+    if (!modal) {
+      const ok = await showConfirm(
+        S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.",
+        S.lang === "cs" ? "Zavřít dokument" : "Close document",
+        S.lang === "cs" ? "Zpět" : "Cancel"
+      );
+      if (ok) reset();
+      return;
+    }
+    if ($("closeDocTitle")) $("closeDocTitle").textContent = t.closeDocTitle || "Zavřít dokument?";
+    if ($("closeDocDesc")) $("closeDocDesc").textContent = t.closeDocDesc || "Máte rozpracované změny v anonymizaci dokumentu. Neuložené změny budou ztraceny. Můžete si stav bezpečně uložit pro druhou kontrolu.";
+    if ($("lblCloseSaveSession")) $("lblCloseSaveSession").textContent = t.closeSaveSession || "Předat pro 4 oči (uložit sezení)";
+    if ($("lblCloseDiscard")) $("lblCloseDiscard").textContent = t.closeDiscard || "Zavřít bez uložení";
+    if ($("btnCloseCancel")) $("btnCloseCancel").textContent = S.lang === "cs" ? "Zpět k dokumentu" : "Back to document";
+
+    const btnSave = $("btnCloseSaveSession");
+    if (btnSave) {
+      btnSave.onclick = async () => {
+        const saved = await exportSessionPrompt();
+        if (saved) {
+          modal.classList.add("hidden");
+          reset();
+        }
+      };
+    }
+    const btnDiscard = $("btnCloseDiscard");
+    if (btnDiscard) {
+      btnDiscard.onclick = () => {
+        modal.classList.add("hidden");
+        reset();
+      };
+    }
+    const btnCancel = $("btnCloseCancel");
+    if (btnCancel) {
+      btnCancel.onclick = () => {
+        modal.classList.add("hidden");
+      };
+    }
+    modal.classList.remove("hidden");
+  }
+
   function paintWorkBar(acceptedCount, totalCount, t) {
     const isReviewActive = !!(S.text || (S.kind === "pdf" && S.sourceBuf));
+    document.body.classList.toggle("has-doc", isReviewActive);
     const docContext = $("headerDocContext");
     const approval = $("headerApproval");
     const exportGroup = $("headerExportGroup");
@@ -9071,6 +9301,25 @@ function groupHitsIntoEntities(hits) {
     if (docContext) docContext.classList.toggle("hidden", !isReviewActive);
     if (approval) approval.classList.toggle("hidden", !isReviewActive);
     if (exportGroup) exportGroup.classList.toggle("hidden", !isReviewActive);
+
+    const lblPriv = $("lblHeaderPrivacy");
+    if (lblPriv) lblPriv.textContent = t.processedLocally || "Zpracováno lokálně";
+
+    const btnMore = $("btnHeaderMore");
+    const moreMenu = $("headerMoreMenu");
+    if (btnMore && moreMenu) {
+      btnMore.onclick = (e) => {
+        e.stopPropagation();
+        const isHidden = moreMenu.classList.toggle("hidden");
+        btnMore.setAttribute("aria-expanded", !isHidden ? "true" : "false");
+      };
+    }
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    if ($("lblThemeText")) $("lblThemeText").textContent = isDark ? "☀ " + (S.lang === "cs" ? "Světlý režim" : "Light mode") : "☾ " + (S.lang === "cs" ? "Tmavý režim" : "Dark mode");
+    if ($("lblLangText")) $("lblLangText").textContent = "🌐 " + (S.lang === "cs" ? "Jazyk: English" : "Language: Čeština");
+    if ($("lblHelpText")) $("lblHelpText").textContent = "❓ " + (t.helpTitle || "Nápověda");
+    if ($("lblFeaturesText")) $("lblFeaturesText").textContent = "✨ " + (t.featuresBtn || "Přehled funkcí");
+    if ($("lblChangelogText")) $("lblChangelogText").textContent = "📋 " + (t.changelogBtn || "Historie verzí");
 
     if (!isReviewActive) return;
 
@@ -9106,39 +9355,26 @@ function groupHitsIntoEntities(hits) {
       btnHdrClear.title = t.clear || "Zavřít dokument";
       btnHdrClear.setAttribute("aria-label", btnHdrClear.title);
       btnHdrClear.setAttribute("data-tip", btnHdrClear.title);
-      btnHdrClear.onclick = async () => {
-        if (Q.items.length > 1) {
-          const ok = await showConfirm(
-            S.lang === "cs" ? "Opravdu chcete odebrat tento dokument z fronty?" : "Remove this document from queue?",
-            S.lang === "cs" ? "Odebrat z fronty" : "Remove from queue",
-            S.lang === "cs" ? "Zpět" : "Cancel"
-          );
-          if (ok) {
-            removeQueueItem(Q.cur);
-          }
-          return;
-        }
-        if (S.hits && S.hits.length) {
-          const ok = await showConfirm(
-            S.lang === "cs" ? "Opravdu chcete zavřít dokument? Neuložené změny budou ztraceny." : "Close document? Unsaved changes will be lost.",
-            S.lang === "cs" ? "Zavřít dokument" : "Close document",
-            S.lang === "cs" ? "Zpět" : "Cancel"
-          );
-          if (!ok) return;
-        }
-        reset();
-      };
+      btnHdrClear.onclick = () => openCloseDocModal();
     }
 
+    const unseenCount = Math.max(0, S.hits.filter(h => !S.seen.has(h.id)).length);
     const pendingBadge = $("badgePendingFindings");
     if (pendingBadge) {
-      pendingBadge.textContent = `${totalCount - S.seen.size} ${t.unreviewedCount || "k posouzení"}`;
+      pendingBadge.textContent = formatPlural(unseenCount, t.unreviewedCountPlural || t.unreviewedCount, S.lang);
     }
 
     const chkRev = $("chkRev");
     if (chkRev) {
       chkRev.checked = !!S.reviewed;
       chkRev.onchange = (e) => {
+        if (e.target.checked && unseenCount > 0) {
+          const confirmMsg = formatPlural(unseenCount, t.unseenConfirm, S.lang);
+          if (!confirm(confirmMsg)) {
+            e.target.checked = false;
+            return;
+          }
+        }
         S.reviewed = e.target.checked;
         paintReview();
       };
@@ -9155,6 +9391,17 @@ function groupHitsIntoEntities(hits) {
     }
 
     const exportReady = !!(S.reviewed || reviewSkipped());
+    const gateHint = $("exportGateHint");
+    if (gateHint) {
+      if (!exportReady) {
+        gateHint.classList.remove("hidden");
+        gateHint.textContent = t.exportLockedReason || (S.lang === "cs" ? "Nejprve zaškrtněte Zkontrolováno" : "Tick Reviewed first");
+      } else {
+        gateHint.classList.add("hidden");
+        gateHint.textContent = "";
+      }
+    }
+
     const btnExp = $("btnExp");
     if (btnExp) {
       btnExp.disabled = !exportReady;
@@ -9171,6 +9418,15 @@ function groupHitsIntoEntities(hits) {
         expMenu.classList.toggle("hidden");
       };
     }
+
+    if ($("lblExpGroupDoc")) $("lblExpGroupDoc").textContent = t.lblExpGroupDoc || "Výstup dokumentu";
+    if ($("lblExpGroupCollab")) $("lblExpGroupCollab").textContent = t.lblExpGroupCollab || "Předání a spolupráce";
+    if ($("lblExpGroupAudit")) $("lblExpGroupAudit").textContent = t.lblExpGroupAudit || "Evidence a audit";
+    if ($("lblExportSession")) $("lblExportSession").textContent = t.exportSession || "Uložit šifrované sezení (.znecitelne-session)";
+    if ($("lblExportSessionHelp")) $("lblExportSessionHelp").textContent = t.exportSessionHelp || "Pro druhou kontrolu";
+    if ($("lblExportAudit")) $("lblExportAudit").textContent = t.exportAudit || "Auditní stopa rozhodnutí (JSON)";
+    if ($("lblExportRecord")) $("lblExportRecord").textContent = t.exportRecord || "Protokol o znečitelnění (PDF)";
+    if ($("lblExportAi")) $("lblExportAi").textContent = t.exportAiPack || "Balíček pro AI (ZIP)";
 
     const menuQueueZip = $("menuExportQueueZip");
     if (menuQueueZip) {
@@ -9198,22 +9454,7 @@ function groupHitsIntoEntities(hits) {
     if (menuSession) {
       menuSession.onclick = async () => {
         expMenu?.classList.add("hidden");
-        const pwd = prompt(S.lang === "cs" ? "Zadejte heslo pro zašifrování sezení (pro druhou kontrolu):" : "Enter password to encrypt session (for second review):");
-        if (!pwd) return;
-        const pwdConfirm = prompt(S.lang === "cs" ? "Potvrďte heslo:" : "Confirm password:");
-        if (pwd !== pwdConfirm) {
-          toast(S.lang === "cs" ? "Hesla se neshodují." : "Passwords do not match.");
-          return;
-        }
-        try {
-          const envelopeJson = await exportSession(S, pwd);
-          const blob = new Blob([envelopeJson], { type: "application/json" });
-          const baseName = (S.fileName || "dokument").replace(/\.[^/.]+$/, "");
-          download(`${baseName}.znecitelne-session`, blob);
-          toast(S.lang === "cs" ? "Šifrované sezení bylo uloženo." : "Encrypted session saved.");
-        } catch (err) {
-          toast((S.lang === "cs" ? "Chyba při exportu sezení: " : "Error exporting session: ") + (err.message || String(err)));
-        }
+        await exportSessionPrompt();
       };
     }
 
@@ -9241,6 +9482,10 @@ function groupHitsIntoEntities(hits) {
     document.addEventListener("click", (e) => {
       if (expMenu && !expMenu.classList.contains("hidden") && !e.target.closest("#headerExportGroup")) {
         expMenu.classList.add("hidden");
+      }
+      if (moreMenu && !moreMenu.classList.contains("hidden") && !e.target.closest(".header-more-group")) {
+        moreMenu.classList.add("hidden");
+        btnMore?.setAttribute("aria-expanded", "false");
       }
     }, { passive: true });
   }
@@ -9322,14 +9567,18 @@ function groupHitsIntoEntities(hits) {
     const btnPrev = $("btnViewPreview");
     const btnVis = $("btnVisual");
     if (btnOrig) {
-      btnOrig.classList.toggle("on", !previewOn && !S.pdfVisual);
+      const isSel = !previewOn && !S.pdfVisual;
+      btnOrig.classList.toggle("on", isSel);
+      btnOrig.setAttribute("aria-pressed", isSel ? "true" : "false");
       btnOrig.onclick = () => {
         if (S.pdfVisual) S.pdfVisual = false;
         setDocView("original");
       };
     }
     if (btnPrev) {
-      btnPrev.classList.toggle("on", previewOn && !S.pdfVisual);
+      const isSel = previewOn && !S.pdfVisual;
+      btnPrev.classList.toggle("on", isSel);
+      btnPrev.setAttribute("aria-pressed", isSel ? "true" : "false");
       btnPrev.onclick = () => {
         if (S.pdfVisual) S.pdfVisual = false;
         setDocView("preview");
@@ -9337,6 +9586,7 @@ function groupHitsIntoEntities(hits) {
     }
     if (btnVis) {
       btnVis.classList.toggle("on", !!S.pdfVisual);
+      btnVis.setAttribute("aria-pressed", S.pdfVisual ? "true" : "false");
     }
 
     // View mode: entities vs individual hits
@@ -9345,6 +9595,7 @@ function groupHitsIntoEntities(hits) {
     const btnModeH = $("btnModeHits");
     if (btnModeEnt) {
       btnModeEnt.classList.toggle("on", isEntities);
+      btnModeEnt.setAttribute("aria-pressed", isEntities ? "true" : "false");
       btnModeEnt.onclick = () => {
         S.viewMode = "entities";
         try { localStorage.setItem("znec-viewmode", "entities"); } catch (_) {}
@@ -9353,6 +9604,7 @@ function groupHitsIntoEntities(hits) {
     }
     if (btnModeH) {
       btnModeH.classList.toggle("on", !isEntities);
+      btnModeH.setAttribute("aria-pressed", !isEntities ? "true" : "false");
       btnModeH.onclick = () => {
         S.viewMode = "hits";
         try { localStorage.setItem("znec-viewmode", "hits"); } catch (_) {}
@@ -9362,7 +9614,11 @@ function groupHitsIntoEntities(hits) {
     if ($("entityList")) $("entityList").classList.toggle("hidden", !isEntities);
     if ($("hitList")) $("hitList").classList.toggle("hidden", isEntities);
 
-    $("filters").innerHTML = ["all","redact","keep"].map(f => `<button type="button" class="chip ${S.filter===f?"on":""}" data-f="${f}">${f==="all"?t.filterAll:f==="redact"?t.filterRedact:t.filterKeep}</button>`).join("");
+    if ($("lblFiltersAside")) $("lblFiltersAside").textContent = t.lblFiltersAside || (S.lang === "cs" ? "Filtrovat zobrazení" : "Filter view");
+    if ($("lblBulkAside")) $("lblBulkAside").textContent = t.lblBulkAside || (S.lang === "cs" ? "Hromadné akce" : "Bulk actions");
+    if ($("shortcutHint")) $("shortcutHint").innerHTML = `<span><kbd>J</kbd>/<kbd>K</kbd> ${S.lang === "cs" ? "další" : "next"} · <kbd>R</kbd> ${S.lang === "cs" ? "anonymizovat" : "redact"} · <kbd>P</kbd> ${S.lang === "cs" ? "ponechat" : "keep"}</span>`;
+
+    $("filters").innerHTML = ["all","redact","keep"].map(f => `<button type="button" class="chip ${S.filter===f?"on":""}" data-f="${f}" aria-pressed="${S.filter===f}">${f==="all"?t.filterAll:f==="redact"?t.filterRedact:t.filterKeep}</button>`).join("");
     $("filters").querySelectorAll("[data-f]").forEach(b => b.onclick = () => { S.filter = b.dataset.f; paintReview(); });
 
     if (isEntities) {
@@ -9375,7 +9631,7 @@ function groupHitsIntoEntities(hits) {
       return `<button type="button" class="hit ${S.selectedId===h.id?"sel":""}" data-id="${h.id}">
       <span class="mono" style="width:24px;color:var(--muted)">${h.id}</span>
       <span style="flex:1;min-width:0"><span class="wrap-line" style="font-size:12px;color:var(--muted)">${catName} · ${hitEvidence(h,t,S.expertMode)}</span><span class="hit-value mono">${esc(h.value)}</span></span>
-      <span class="pill ${h.accept?"pill-hit":"pill-ok"}"><span class="pill-label">${h.accept?t.redact:t.keep}</span><span class="pill-ghost" aria-hidden="true">${h.accept?t.keep:t.redact}</span></span>
+      <span class="pill ${h.accept?"pill-hit":"pill-ok"}"><span class="pill-label">${h.accept ? "🔒 " + esc(t.redact) : "✓ " + esc(t.keep)}</span><span class="pill-ghost" aria-hidden="true">${h.accept ? "✓ " + esc(t.keep) : "🔒 " + esc(t.redact)}</span></span>
     </button>`;
     }).join("");
     $("hitList").querySelectorAll(".hit").forEach(b => b.onclick = () => select(+b.dataset.id));
@@ -9471,19 +9727,53 @@ function groupHitsIntoEntities(hits) {
     const exportReady = !!(S.reviewed || reviewSkipped());
 
     // Bulk actions
-    const doAll = () => { S.hits.forEach(h=>h.accept=true); paintReview(); };
-    const doNone = () => { S.hits.forEach(h=>h.accept=false); paintReview(); };
+    const doAll = () => {
+      S._bulkUndoState = S.hits.map(h => ({ id: h.id, accept: h.accept }));
+      S.hits.forEach(h => { h.accept = true; });
+      toast(t.bulkUndoToast || (S.lang === "cs" ? "Akci lze vrátit tlačítkem Zpět." : "You can undo this with the Undo button."));
+      paintReview();
+    };
+    const doNone = () => {
+      if (S.hits.some(h => h.accept)) {
+        if (!confirm(t.bulkConfirmNone || (S.lang === "cs" ? "Opravdu chcete ponechat všechny nálezy (zrušit veškeré začernění)?" : "Keep all findings (clear all redactions)?"))) {
+          return;
+        }
+      }
+      S._bulkUndoState = S.hits.map(h => ({ id: h.id, accept: h.accept }));
+      S.hits.forEach(h => { h.accept = false; });
+      toast(t.bulkUndoToast || (S.lang === "cs" ? "Akci lze vrátit tlačítkem Zpět." : "You can undo this with the Undo button."));
+      paintReview();
+    };
     const doOff = () => {
+      S._bulkUndoState = S.hits.map(h => ({ id: h.id, accept: h.accept }));
       S.hits.forEach(h => {
         const around = S.text.slice(Math.max(0,h.start-80), h.end+20);
-        if (isPublic(h.value) || isPublic(around) || (h.type==="ico" && /státní podnik|ministerstvo|úřad|správa|republik/i.test(around))) h.accept=false;
+        if (isPublic(h.value) || isPublic(around) || (h.type==="ico" && /státní podnik|ministerstvo|úřad|správa|republik/i.test(around))) h.accept = false;
       });
+      toast(t.bulkUndoToast || (S.lang === "cs" ? "Akci lze vrátit tlačítkem Zpět." : "You can undo this with the Undo button."));
       paintReview();
     };
 
     if ($("btnAll")) $("btnAll").onclick = doAll;
     if ($("btnNone")) $("btnNone").onclick = doNone;
     if ($("btnOff")) $("btnOff").onclick = doOff;
+
+    const btnBulkUndo = $("btnBulkUndo");
+    if (btnBulkUndo) {
+      btnBulkUndo.classList.toggle("hidden", !S._bulkUndoState);
+      btnBulkUndo.textContent = t.undoBtn || (S.lang === "cs" ? "↶ Zpět" : "↶ Undo");
+      btnBulkUndo.onclick = () => {
+        if (S._bulkUndoState) {
+          const map = new Map(S._bulkUndoState.map(x => [x.id, x.accept]));
+          S.hits.forEach(h => {
+            if (map.has(h.id)) h.accept = map.get(h.id);
+          });
+          S._bulkUndoState = null;
+          toast(t.bulkReverted || (S.lang === "cs" ? "Hromadná akce byla vrácena." : "Bulk action reverted."));
+          paintReview();
+        }
+      };
+    }
 
     bindTips();
     requestAnimationFrame(updateBarHeightVar);
@@ -10286,6 +10576,11 @@ async function maybePdfa(bytes, notes){
     S._exportNotice = null;
     S._aiPack = false;
     S._batchExport = false;
+    S._bulkUndoState = null;
+
+    document.body.classList.remove("has-doc");
+    const closeDocModal = $("closeDocModal");
+    if (closeDocModal) closeDocModal.classList.add("hidden");
 
     paint();
   }
@@ -10323,7 +10618,7 @@ async function maybePdfa(bytes, notes){
     applyBarPos();
   };
   $("btnSettingsClose").onclick = closeSettings;
-  $("btnHelp").onclick = () => {
+  function openHelpModal(){
     const t=i(); $("helpModal").classList.remove("hidden");
     $("helpSheet").innerHTML = `<h2>${t.helpTitle}</h2><p style="color:var(--muted)">${t.help}</p>
       <ul style="padding:0;list-style:none"><li><kbd>J</kbd> ${t.kbdNext} · <kbd>K</kbd> ${t.kbdPrev}</li>
@@ -10332,8 +10627,9 @@ async function maybePdfa(bytes, notes){
       <p style="color:var(--muted);font-size:13px">Profil „Veřejná AI“ drží konzistentní tokeny (CBUAIS-5164 → [TICKET_001]) a maže Author / lastModifiedBy. Stejná osoba s titulem, iniciálou i v pádě sdílí token. Slovník a osnova používají stejná čísla jako text. Slovník pište jako <span class="mono">eSpis | INTEGRACE</span> — krátké názvy se berou jen na hranici slova.</p>
       <button class="btn" style="margin-top:12px" id="okHelp">OK</button>`;
     $("okHelp").onclick = () => $("helpModal").classList.add("hidden");
-  };
-  $("btnFeatures").onclick = () => {
+  }
+
+  function openFeaturesModal(){
     const t = i(); $("featuresModal").classList.remove("hidden");
     const helpBtn = tip => tip ? ` <button type="button" class="help-i" data-tip="${escAttr(tip)}">?</button>` : "";
     const li = arr => arr.map(k => `<li>${t.cats[k] || k}${helpBtn(t.tips.cats[k])}</li>`).join("");
@@ -10377,8 +10673,9 @@ async function maybePdfa(bytes, notes){
       </p>
       <button class="btn" style="margin-top:12px" id="okFeatures">OK</button>`;
     $("okFeatures").onclick = () => $("featuresModal").classList.add("hidden");
-  };
-  $("btnChangelog").onclick = () => {
+  }
+
+  function openChangelogModal(){
     const t = i(); $("changelogModal").classList.remove("hidden");
     const rows = CHANGELOG.map(c => `<li><strong>${c.version}</strong> — ${c.notes[S.lang] || c.notes.cs}</li>`).join("");
     $("changelogSheet").innerHTML = `<h2>${t.changelogTitle}</h2>
@@ -10387,7 +10684,14 @@ async function maybePdfa(bytes, notes){
       <p style="color:var(--muted);font-size:13px;margin-top:16px">${t.changelogNote}</p>
       <button class="btn" style="margin-top:12px" id="okChangelog">OK</button>`;
     $("okChangelog").onclick = () => $("changelogModal").classList.add("hidden");
-  };
+  }
+
+  $("btnHelp").onclick = openHelpModal;
+  if ($("btnFeatures")) $("btnFeatures").onclick = openFeaturesModal;
+  if ($("btnChangelog")) $("btnChangelog").onclick = openChangelogModal;
+  if ($("btnHdrFeatures")) $("btnHdrFeatures").onclick = () => { $("headerMoreMenu")?.classList.add("hidden"); openFeaturesModal(); };
+  if ($("btnHdrChangelog")) $("btnHdrChangelog").onclick = () => { $("headerMoreMenu")?.classList.add("hidden"); openChangelogModal(); };
+
   function pickFile(){
     if (S.movie) return;
     const f = $("file");
@@ -10399,6 +10703,8 @@ async function maybePdfa(bytes, notes){
   $("changelogModal").onclick = (e) => { if (e.target.id==="changelogModal") e.target.classList.add("hidden"); };
   $("exportModal").onclick = (e) => { if (e.target.id==="exportModal") e.target.classList.add("hidden"); };
   $("settingsModal").onclick = (e) => { if (e.target.id==="settingsModal") closeSettings(); };
+  const closeDocModalEl = $("closeDocModal");
+  if (closeDocModalEl) closeDocModalEl.onclick = (e) => { if (e.target.id==="closeDocModal") e.target.classList.add("hidden"); };
   $("btnSample").onclick = async () => {
     if (S.movie) return;
     const enc = new TextEncoder().encode(SAMPLE);
@@ -10568,8 +10874,36 @@ async function maybePdfa(bytes, notes){
       if (e.key === "Escape" || e.key === "Esc") {
         if (openModal.id === "settingsModal") closeSettings();
         else openModal.classList.add("hidden");
+        return;
+      }
+      if (e.key === "Tab") {
+        const focusables = Array.from(openModal.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+        if (focusables.length > 0) {
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
       }
       return;
+    }
+    if (e.key === "Escape" || e.key === "Esc") {
+      const expMenu = $("headerExportMenu");
+      const moreMenu = $("headerMoreMenu");
+      if (expMenu && !expMenu.classList.contains("hidden")) {
+        expMenu.classList.add("hidden");
+        return;
+      }
+      if (moreMenu && !moreMenu.classList.contains("hidden")) {
+        moreMenu.classList.add("hidden");
+        $("btnHeaderMore")?.setAttribute("aria-expanded", "false");
+        return;
+      }
     }
     const tag = (e.target.tagName||"");
     if (tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
@@ -10584,8 +10918,7 @@ async function maybePdfa(bytes, notes){
   window.addEventListener("resize", () => {
     updateHeaderHeightVar();
     updateBarHeightVar();
-  });
-function selfTest(){
+  });function selfTest(){
     const enabled = Object.fromEntries(KEYS.map(k => [k, true]));
     const secrets = ["jednotkové ceny"];
     const prev = S.suspicion;
@@ -11170,6 +11503,7 @@ function selfTest(){
     window.exportProtocolPdf = exportProtocolPdf;
     window.exportTextPdf = exportTextPdf;
     window.groupHitsIntoEntities = groupHitsIntoEntities;
+    window.showConfirm = showConfirm;
     window.S = S;
   }
   if (typeof queueMicrotask === "function") {
