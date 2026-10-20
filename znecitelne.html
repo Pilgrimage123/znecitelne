@@ -281,12 +281,13 @@ html[data-theme="dark"] .pill-ok { background: var(--ok); color: #12161c; }
     flex-direction: column;
     min-height: 0;
     height: 100%;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
   body.has-doc .entities-container,
   body.has-doc .hits {
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: 120px;
     max-height: none !important;
     overflow-y: auto;
   }
@@ -1009,8 +1010,8 @@ body.movie-active #settingsSheet {
       <button class="btn btn-sec" id="btnCloseDiscard" type="button" style="justify-content:flex-start;color:var(--danger);border-color:var(--danger);">
         ✕ <span id="lblCloseDiscard">Zavřít bez uložení</span>
       </button>
-      <button class="btn btn-ghost" id="btnCloseCancel" type="button" id="lblCloseCancel">
-        Zpět k dokumentu
+      <button class="btn btn-ghost" id="btnCloseCancel" type="button">
+        <span id="lblCloseCancel">Zpět k dokumentu</span>
       </button>
     </div>
   </div>
@@ -1047,7 +1048,8 @@ body.movie-active #settingsSheet {
 <script>
 (function () {
 // --- Module: src/core/rules.js ---
-const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];const KEYS = PII_KEYS.concat(ORG_KEYS);const RULES = "2026.10.20-ai48";const CHANGELOG = [
+const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];const KEYS = PII_KEYS.concat(ORG_KEYS);const RULES = "2026.10.20-ai49";const CHANGELOG = [
+  { version: "2026.10.20-ai49", notes: { cs: "UI/UX audit a oprava regresí (WCAG 2.1 AA): Odstraněn memory leak opakovaného navěšování posluchače click na document v paintWorkBar, opraveno přepisování textových popisků (#lblThemeText a #lblLangText) v overflow menu záhlaví, vyřešeno ořezávání spodních panelů (inspektor, proces, média) v review aside povolením plynulého svislého posunu, nahrazeny zbývající nativní confirm() za jednotný in-app dialog showConfirm pro „Vše ponechat“ i potvrzení neprohlédnutých nálezů, dopojeny pomocné funkce skloňování formatPlural() na zbývající výskyty v app.js (smartScanTitle, scanWarning, morphToast, queueDone), zajištěno okamžité zaměření (focus) bezpečného tlačítka při otevření modálních oken, ošetřena klávesová kolize šipek v rozbalovacích nabídkách se synchronizací aria-expanded a návratem focusu na toggle tlačítko po Escape, odstraněn nevalidní duplicitní atribut id v šabloně a doplněno automatické scrollování aktivní karty v bočním panelu.", en: "UI/UX audit and regression fixes (WCAG 2.1 AA): Fixed global click event listener leak inside paintWorkBar, resolved DOM clobbering of theme and language text labels (#lblThemeText and #lblLangText) in header overflow menu, eliminated content clipping of sidebar subpanels (inspector, process, media) by enabling vertical scrolling in review aside, replaced remaining native confirm() prompts with reusable in-app showConfirm modal for 'Keep all' and unreviewed findings confirmation, connected formatPlural() across all remaining call sites in app.js (smartScanTitle, scanWarning, morphToast, queueDone), ensured immediate keyboard focus on safe action buttons upon opening modals, fixed arrow key keyboard collision in open dropdown menus with aria-expanded synchronization and focus return on Escape, removed invalid duplicate id attribute in template, and added auto-scrolling to active entity cards in the sidebar." } },
   { version: "2026.10.20-ai48", notes: { cs: "Ergonomie, přístupnost (WCAG 2.1 AA), oprava flexe {n} a bezpečnost rozhodování: Odstraněna chyba {n} a implementováno plnohodnotné české i anglické skloňování počtů nálezů a výskytů (1 / 2–4 / 5+). Viditelné odůvodnění uzamčení exportu (#exportGateHint) a potvrzovací dialog při pokusu označit Zkontrolováno s neprohlédnutými nálezy. Vizuální oddělení filtrů od hromadných akcí v postranním panelu, potvrzení pro „Vše ponechat“, historie a tlačítko Zpět (Undo), rozšíření panelu na 420 px a zvětšení dotykových cílů na 36 px+. Nekolorní odlišení anonymizace a ponechání (přeškrtnutí .mk-on, čárkované podtržení .mk-off, styly ohraničení karet entit, ikony 🔒 a ✓). In-app dialog pro zavření dokumentu (#closeDocModal) s možností bezpečného uložení šifrovaného sezení pro 4 oči. Oprava kontrastu pilulek v tmavém režimu (#12161c na --hit a --ok) a posílení hranic UI (> 3:1). Plná ARIA sémantika (role dialog, tablist, tab, aria-pressed, focus trap v modálech a klávesnice v kartách entit). Full-height rozvržení bez vícenásobných posuvníků, viditelná nápověda klávesových zkratek, strukturované exportní menu, kompaktní overflow menu v hlavičce a trvalý odznak lokálního zpracování.", en: "Usability, accessibility (WCAG 2.1 AA), {n} pluralization fix and decision safety: Fixed {n} counter bug with full Czech/English pluralization for findings and occurrence counts (1 / 2–4 / 5+). Visible export gate lock explanation (#exportGateHint) and confirmation prompt when ticking Reviewed with unseen findings. Visual separation of filters and bulk actions in aside, confirmation for 'Keep all', action undo state with Undo button, aside widened to 420px, and enlarged touch targets (36px+). Non-color cues for redact vs. keep (strikethrough on .mk-on, dashed underline on .mk-off, distinct entity card borders, 🔒 and ✓ icons). In-app close document modal (#closeDocModal) offering encrypted session save for 4-eyes review. Dark mode pill contrast fix (#12161c on --hit/--ok) and enhanced non-text UI boundaries (> 3:1). Comprehensive ARIA semantics (dialog, tablist, tab, aria-pressed, modal focus trap, and keyboard navigation for entity cards). Full-height desktop review layout eliminating nested scrollbars, visible shortcut hints, categorized export menu, header overflow menu, and persistent local processing badge." } },
   { version: "2026.10.20-ai47", notes: { cs: "Konsolidace pracovní lišty, eliminace duplicitních prvků a zrušení stažení offline aplikace (ADR-0013): Odstraněna redundantní lišta #bar (8 duplicitních tlačítek), mrtvý #toolbar a samostatná lišta čipů #queueBar. Dávková fronta je plně integrována do levého kontextu Pracovní lišty s tlačítkem přidání dokumentu (+) a bezpečným odebráním/vymazáním (✕). Export dávky jako ZIP přesunut výhradně do rozbalovací nabídky exportu. Hromadné akce (schválit/zamítnout vše) vyhrazeny Reviznímu panelu. Úplné odstranění funkce stažení offline aplikace (tlačítko #btnHtml a podpora generování samostatné HTML aplikace) dle explicitního požadavku. Vyčištění zastaralých stylů a optimalizace výšky Pracovní lišty.", en: "Workplace bar consolidation, duplicate control elimination and removal of offline HTML app download (ADR-0013): Removed redundant #bar (8 duplicate controls), dead #toolbar and separate #queueBar chip bar. Batch queue is fully consolidated into Workplace bar document context with add document (+) and safe clear/remove (✕) controls. Bulk queue ZIP export relocated into export dropdown menu. Bulk actions (approve/reject all) reserved exclusively for Review panel. Completely removed offline HTML app download button (#btnHtml) and related self-export generation per explicit requirement. Cleaned up obsolete CSS and dynamic bar height variables." } },
   { version: "2026.10.19-ai46", notes: { cs: "Omezení expanze tokenů, deterministické sledování výskytů a layoutová dekonflikce v PDF (ADR-0011): Zákaz horizontálního přetékání pseudonymizačních tokenů v pevném layoutu PDF s adaptivním zkracováním tokenů a kompresí písma v rámci boxW, proporční rozdělení šířek znaků v mapPageGlyphs eliminující kumulativní chybu posunu nálezu (10–19 px) u proporčních písem, deterministický occurrence tracking v okně ±50 znaků eliminující kolize duplicitních jmen na stránce, vertikální kalibrace výšky boxu (baseLine - 0.95*fH až baseLine + 0.22*fH = 1.17 em) nepřesahující standardní řádkování a chránící descenders/diakritiku sousedních řádků, horizontální padding škálovaný dle mezery k sousedním nálezům (gap/2 - 0.5) a přilehlé interpunkci (gap - 0.5), vizuální sloučení těsně sousedících nálezů na řádku v exportu i náhledu zamezující překryvu vycpávek s ochranou proti pohlcení krátkých slov, mediánové vzorkování podkladové barvy z plátna odolné vůči antialiasingu a tmavým hlavičkám, zachování řezu písma (tučné, kurzíva) i adaptivní šířka režimu xxxx a inline styl značek v pre.doc bez uskakování řádků.", en: "PDF token expansion limits, deterministic occurrence tracking and layout deconfliction (ADR-0011): Strict horizontal bounding of pseudonym tokens within boxW in fixed-layout PDFs with compact token fallbacks and text condensing, proportional character width distribution in mapPageGlyphs eliminating 10-19px cumulative finding offset errors in proportional fonts, deterministic occurrence tracking within ±50 char window eliminating duplicate value collapses on a page, line-height calibrated vertical bounds (baseLine - 0.95*fH to baseLine + 0.22*fH = 1.17 em) preventing multi-line box collision and protecting descenders/diacritics of adjacent lines, gap-adaptive horizontal padding preventing bleed between adjacent words and preserving punctuation, visual merging of adjacent findings in both export and preview with threshold guarding intervening short words, median canvas background sampling robust to antialiasing and dark table headers, font weight/style preservation (bold, italic) and adaptive xxxx mode length, and pure inline marker styling in pre.doc eliminating line-height jumping." } },
@@ -8253,14 +8255,15 @@ const S = {
     const btn = $("btnTheme");
     if (btn) {
       const t = i();
-      btn.textContent = dark ? "☀" : "☾";
+      const lblTheme = $("lblThemeText");
+      if (lblTheme) {
+        lblTheme.textContent = dark ? "☀ " + (S.lang === "cs" ? "Světlý režim" : "Light mode") : "☾ " + (S.lang === "cs" ? "Tmavý režim" : "Dark mode");
+      } else {
+        btn.textContent = dark ? "☀" : "☾";
+      }
       btn.setAttribute("aria-pressed", dark ? "true" : "false");
       btn.setAttribute("aria-label", dark ? t.themeLight : t.themeDark);
       btn.setAttribute("data-tip", t.tips.theme);
-    }
-    const lblTheme = $("lblThemeText");
-    if (lblTheme) {
-      lblTheme.textContent = dark ? "☀ " + (S.lang === "cs" ? "Světlý režim" : "Light mode") : "☾ " + (S.lang === "cs" ? "Tmavý režim" : "Dark mode");
     }
   }
   function toggleTheme(){
@@ -8452,6 +8455,7 @@ function download(name, blob){
       if (btnCancel) btnCancel.textContent = cancelLabel || (t.cancel || (S.lang === "cs" ? "Zpět" : "Cancel"));
 
       modal.classList.remove("hidden");
+      btnCancel?.focus();
 
       const onKeyDown = (e) => {
         if (e.key === "Escape") {
@@ -8556,7 +8560,7 @@ function download(name, blob){
     const p = prefix || "";
     const t = i();
     return `
-      <div class="settings-tab-pane" id="${p}tabPaneProfile">
+      <div class="settings-tab-pane" id="${p}tabPaneProfile" role="tabpanel" aria-labelledby="${p === 'm_' ? 'tabBtnProfile' : ''}">
         <label class="field">${t.profile} <button type="button" class="help-i" data-tip="${t.tips.cats.ico}">?</button></label>
         <select id="${p}selProfile">${Object.entries(t.profiles).map(([k,v])=>`<option value="${k}" ${S.profile===k?"selected":""}>${v}</option>`).join("")}</select>
         <label class="field">${t.mode}</label>
@@ -8570,7 +8574,7 @@ function download(name, blob){
         <p class="lbl">${t.layerOrg}</p>
         <div class="cats">${ORG_KEYS.map(k=>`<label><input type="checkbox" data-cat="${k}" ${S.enabled[k]?"checked":""} /> <span>${t.cats[k]}</span> <button type="button" class="help-i" data-tip="${t.tips.cats[k]}">?</button></label>`).join("")}</div>
       </div>
-      <div class="settings-tab-pane hidden" id="${p}tabPaneDicts">
+      <div class="settings-tab-pane hidden" id="${p}tabPaneDicts" role="tabpanel" aria-labelledby="${p === 'm_' ? 'tabBtnDicts' : ''}">
         <label class="field">${t.secrets}</label>
         <textarea id="${p}taSecrets">${escAttr(S.secrets)}</textarea>
         <label class="field">${t.systemsDict}</label>
@@ -8581,7 +8585,7 @@ function download(name, blob){
         <textarea id="${p}taOrgs">${escAttr(S.orgs)}</textarea>
         <p class="dict-hint">${t.dictHint}</p>
       </div>
-      <div class="settings-tab-pane hidden" id="${p}tabPaneFormats">
+      <div class="settings-tab-pane hidden" id="${p}tabPaneFormats" role="tabpanel" aria-labelledby="${p === 'm_' ? 'tabBtnFormats' : ''}">
         <label class="check"><input type="checkbox" id="${p}chkMeta" ${S.stripMeta?"checked":""}/> ${t.stripMeta} <button type="button" class="help-i" data-tip="${t.tips.stripMeta}">?</button></label>
         <label class="check"><input type="checkbox" id="${p}chkTrueRedact" ${S.truePdfRedact?"checked":""}/> ${t.truePdfRedact} <button type="button" class="help-i" data-tip="${t.truePdfRedactHint}">?</button></label>
         <label class="check"><input type="checkbox" id="${p}chkOcr" ${S.ocrEnabled?"checked":""}/> ${t.enableOcr} <button type="button" class="help-i" data-tip="${t.tips.ocr}">?</button></label>
@@ -8811,12 +8815,28 @@ function download(name, blob){
     $("settingsModalMount").innerHTML = settingsHTML("m_");
     wireSettings($("settingsModalMount"), "m_");
 
-    document.querySelectorAll(".settings-tab-btn").forEach(btn => {
+    const tabBtns = Array.from(document.querySelectorAll(".settings-tab-btn"));
+    tabBtns.forEach((btn, idx) => {
       btn.onclick = () => switchSettingsTab(btn.dataset.tab);
+      btn.onkeydown = (e) => {
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          const next = tabBtns[(idx + 1) % tabBtns.length];
+          next.focus();
+          switchSettingsTab(next.dataset.tab);
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          const prev = tabBtns[(idx - 1 + tabBtns.length) % tabBtns.length];
+          prev.focus();
+          switchSettingsTab(prev.dataset.tab);
+        }
+      };
     });
     switchSettingsTab(activeTab);
 
     $("settingsModal").classList.remove("hidden");
+    const activeBtn = tabBtns.find(b => b.dataset.tab === activeTab) || tabBtns[0];
+    activeBtn?.focus();
     bindTips();
   }
 
@@ -8851,10 +8871,21 @@ function download(name, blob){
     setT("privacy", t.privacy); setT("dropTitle", t.drop); setT("dropHint", S.ocrEnabled ? t.dropHintOcr : t.dropHint);
     setT("btnSample", t.trySample); setTip("btnSample", t.tips.sample);
     setT("btnMovie", t.movieTutorial); setTip("btnMovie", t.tips.movie);
-    setT("btnBrowse", t.browse); setTip("btnBrowse", t.tips.browse);
-    setT("btnLang", S.lang==="cs"?"EN":"CS"); setTip("btnLang", t.tips.lang);
+    const lblLang = $("lblLangText");
+    if (lblLang) {
+      lblLang.textContent = "🌐 " + (S.lang === "cs" ? "Jazyk: English" : "Language: Čeština");
+    } else {
+      setT("btnLang", S.lang === "cs" ? "EN" : "CS");
+    }
+    setTip("btnLang", t.tips.lang);
     applyTheme();
     setTip("btnHelp", t.tips.help);
+    const lblHelp = $("lblHelpText");
+    if (lblHelp) lblHelp.textContent = "❓ " + (t.helpTitle || "Nápověda");
+    const lblFeat = $("lblFeaturesText");
+    if (lblFeat) lblFeat.textContent = "✨ " + (t.featuresBtn || "Přehled funkcí");
+    const lblChange = $("lblChangelogText");
+    if (lblChange) lblChange.textContent = "📜 " + (t.changelogBtn || "Changelog");
     setT("btnFeatures", t.featuresBtn); setTip("btnFeatures", t.tips.features);
     setT("btnChangelog", t.changelogBtn); setTip("btnChangelog", t.tips.changelog);
     setTip("btnSettings", t.tips.settings);
@@ -9070,7 +9101,7 @@ function download(name, blob){
 
       return `
         <div class="entity-card ${badgeCls} ${isSel ? "sel" : ""}" data-ekey="${escAttr(e.key)}">
-          <div class="ec-header" role="button" tabindex="0" aria-expanded="${isExpanded}" aria-label="${escAttr(e.canonicalValue)}: ${isExpanded ? 'skrýt' : 'zobrazit'}" data-etoggle="${escAttr(e.key)}">
+          <div class="ec-header" role="button" tabindex="0" aria-expanded="${isExpanded}" aria-label="${escAttr(e.canonicalValue)}: ${isExpanded ? (t.entityCollapse || "skrýt") : (t.entityExpand || "zobrazit")}" data-etoggle="${escAttr(e.key)}">
             <div style="flex:1;min-width:0">
               <h3 class="ec-title">${esc(e.canonicalValue)}</h3>
               <div class="ec-meta">
@@ -9164,7 +9195,7 @@ function download(name, blob){
           <div class="sb-content">
             <span class="sb-icon">📄</span>
             <div>
-              <h4 class="sb-title">${esc((t.smartScanTitle || "Naskenované stránky bez textu ({n})").replace("{n}", S.noTextPages))}</h4>
+              <h4 class="sb-title">${esc(formatPlural(S.noTextPages, t.smartScanTitlePlural || t.smartScanTitle, S.lang))}</h4>
               <p class="sb-desc">${esc(t.smartScanDesc || "Tyto stránky neobsahují strojově čitelný text a vyžadují OCR.")}</p>
             </div>
           </div>
@@ -9263,7 +9294,8 @@ function download(name, blob){
     if ($("closeDocDesc")) $("closeDocDesc").textContent = t.closeDocDesc || "Máte rozpracované změny v anonymizaci dokumentu. Neuložené změny budou ztraceny. Můžete si stav bezpečně uložit pro druhou kontrolu.";
     if ($("lblCloseSaveSession")) $("lblCloseSaveSession").textContent = t.closeSaveSession || "Předat pro 4 oči (uložit sezení)";
     if ($("lblCloseDiscard")) $("lblCloseDiscard").textContent = t.closeDiscard || "Zavřít bez uložení";
-    if ($("btnCloseCancel")) $("btnCloseCancel").textContent = S.lang === "cs" ? "Zpět k dokumentu" : "Back to document";
+    if ($("lblCloseCancel")) $("lblCloseCancel").textContent = t.closeCancel || (S.lang === "cs" ? "Zpět k dokumentu" : "Back to document");
+    else if ($("btnCloseCancel")) $("btnCloseCancel").textContent = t.closeCancel || (S.lang === "cs" ? "Zpět k dokumentu" : "Back to document");
 
     const btnSave = $("btnCloseSaveSession");
     if (btnSave) {
@@ -9289,6 +9321,7 @@ function download(name, blob){
       };
     }
     modal.classList.remove("hidden");
+    btnCancel?.focus();
   }
 
   function paintWorkBar(acceptedCount, totalCount, t) {
@@ -9367,10 +9400,15 @@ function download(name, blob){
     const chkRev = $("chkRev");
     if (chkRev) {
       chkRev.checked = !!S.reviewed;
-      chkRev.onchange = (e) => {
+      chkRev.onchange = async (e) => {
         if (e.target.checked && unseenCount > 0) {
           const confirmMsg = formatPlural(unseenCount, t.unseenConfirm, S.lang);
-          if (!confirm(confirmMsg)) {
+          const ok = await showConfirm(
+            confirmMsg,
+            S.lang === "cs" ? "Pokračovat" : "Continue",
+            S.lang === "cs" ? "Zpět" : "Cancel"
+          );
+          if (!ok) {
             e.target.checked = false;
             return;
           }
@@ -9415,7 +9453,9 @@ function download(name, blob){
       btnExpToggle.disabled = !exportReady;
       btnExpToggle.onclick = (e) => {
         e.stopPropagation();
-        expMenu.classList.toggle("hidden");
+        const willOpen = expMenu.classList.contains("hidden");
+        expMenu.classList.toggle("hidden", !willOpen);
+        btnExpToggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
       };
     }
 
@@ -9435,6 +9475,7 @@ function download(name, blob){
         menuQueueZip.textContent = "📁 " + (t.queueExportReviewedZip || "Exportovat schválené z fronty (ZIP)");
         menuQueueZip.onclick = () => {
           expMenu?.classList.add("hidden");
+          btnExpToggle?.setAttribute("aria-expanded", "false");
           exportAllReviewed();
         };
       } else {
@@ -9446,6 +9487,7 @@ function download(name, blob){
     if (menuAi) {
       menuAi.onclick = () => {
         expMenu?.classList.add("hidden");
+        btnExpToggle?.setAttribute("aria-expanded", "false");
         openExport(true);
       };
     }
@@ -9454,6 +9496,7 @@ function download(name, blob){
     if (menuSession) {
       menuSession.onclick = async () => {
         expMenu?.classList.add("hidden");
+        btnExpToggle?.setAttribute("aria-expanded", "false");
         await exportSessionPrompt();
       };
     }
@@ -9462,6 +9505,7 @@ function download(name, blob){
     if (menuAudit) {
       menuAudit.onclick = () => {
         expMenu?.classList.add("hidden");
+        btnExpToggle?.setAttribute("aria-expanded", "false");
         download("znecitelne-audit.json", new Blob([JSON.stringify(buildAudit(), null, 2)], { type: "application/json" }));
       };
     }
@@ -9470,6 +9514,7 @@ function download(name, blob){
     if (menuRecord) {
       menuRecord.onclick = async () => {
         expMenu?.classList.add("hidden");
+        btnExpToggle?.setAttribute("aria-expanded", "false");
         try {
           const bytes = await exportProtocolPdf();
           download((S.fileName || "document").replace(/\.[^.]+$/, "") + "-protokol.pdf", new Blob([bytes], { type: "application/pdf" }));
@@ -9478,16 +9523,6 @@ function download(name, blob){
         }
       };
     }
-
-    document.addEventListener("click", (e) => {
-      if (expMenu && !expMenu.classList.contains("hidden") && !e.target.closest("#headerExportGroup")) {
-        expMenu.classList.add("hidden");
-      }
-      if (moreMenu && !moreMenu.classList.contains("hidden") && !e.target.closest(".header-more-group")) {
-        moreMenu.classList.add("hidden");
-        btnMore?.setAttribute("aria-expanded", "false");
-      }
-    }, { passive: true });
   }
 
   function paintReview(){
@@ -9538,7 +9573,7 @@ function download(name, blob){
     const scanWarn = $("scanWarn");
     if (S.noTextPages) {
       scanWarn.classList.remove("hidden");
-      scanWarn.textContent = t.scanWarning.replace("{n}", S.noTextPages);
+      scanWarn.textContent = formatPlural(S.noTextPages, t.scanWarningPlural || t.scanWarning, S.lang);
     } else {
       scanWarn.classList.add("hidden");
       scanWarn.textContent = "";
@@ -9685,7 +9720,7 @@ function download(name, blob){
           const beforeCount = S.hits.length;
           expandCzechNameMorphology(S.text, S.hits, sel);
           const added = S.hits.length - beforeCount;
-          toast(t.morphToast.replace("{n}", added));
+          toast(formatPlural(added, t.morphToastPlural || t.morphToast, S.lang));
           paintReview();
         };
       }
@@ -9733,11 +9768,14 @@ function download(name, blob){
       toast(t.bulkUndoToast || (S.lang === "cs" ? "Akci lze vrátit tlačítkem Zpět." : "You can undo this with the Undo button."));
       paintReview();
     };
-    const doNone = () => {
+    const doNone = async () => {
       if (S.hits.some(h => h.accept)) {
-        if (!confirm(t.bulkConfirmNone || (S.lang === "cs" ? "Opravdu chcete ponechat všechny nálezy (zrušit veškeré začernění)?" : "Keep all findings (clear all redactions)?"))) {
-          return;
-        }
+        const ok = await showConfirm(
+          t.bulkConfirmNone || (S.lang === "cs" ? "Opravdu chcete ponechat všechny nálezy (zrušit veškeré začernění)?" : "Keep all findings (clear all redactions)?"),
+          S.lang === "cs" ? "Ponechat vše" : "Keep all",
+          S.lang === "cs" ? "Zpět" : "Cancel"
+        );
+        if (!ok) return;
       }
       S._bulkUndoState = S.hits.map(h => ({ id: h.id, accept: h.accept }));
       S.hits.forEach(h => { h.accept = false; });
@@ -9782,6 +9820,8 @@ function download(name, blob){
     S.selectedId = id; S.seen.add(id); paintReview();
     const el = (S.pdfVisual ? $("pdfVisual") : $("orig")).querySelector(`[data-id="${id}"]`);
     if (el) el.scrollIntoView({ block:"center", behavior:"smooth" });
+    const asideItem = $("entityList")?.querySelector(".entity-card.sel") || $("hitList")?.querySelector(".hit.sel");
+    if (asideItem) asideItem.scrollIntoView({ block:"nearest", behavior:"smooth" });
   }
   function patch(id, accept){ const h = S.hits.find(x=>x.id===id); if (h) h.accept = accept; S.seen.add(id); paintReview(); }
   function selectNextHit(){
@@ -10289,9 +10329,9 @@ async function onFile(file){
       }
       if (failed) {
         const failMsg = S.lang === "cs" ? (String(failed) + " selhalo") : (String(failed) + " failed");
-        toast(t.queueDone.replace("{n}", String(done)) + " · " + failMsg);
+        toast(formatPlural(done, t.queueDonePlural || t.queueDone, S.lang) + " · " + failMsg);
       } else {
-        toast(t.queueDone.replace("{n}", String(done)));
+        toast(formatPlural(done, t.queueDonePlural || t.queueDone, S.lang));
       }
     };
   }
@@ -10626,7 +10666,11 @@ async function maybePdfa(bytes, notes){
       <li style="margin-top:8px"><kbd>P</kbd> ${t.kbdKeep}</li></ul>
       <p style="color:var(--muted);font-size:13px">Profil „Veřejná AI“ drží konzistentní tokeny (CBUAIS-5164 → [TICKET_001]) a maže Author / lastModifiedBy. Stejná osoba s titulem, iniciálou i v pádě sdílí token. Slovník a osnova používají stejná čísla jako text. Slovník pište jako <span class="mono">eSpis | INTEGRACE</span> — krátké názvy se berou jen na hranici slova.</p>
       <button class="btn" style="margin-top:12px" id="okHelp">OK</button>`;
-    $("okHelp").onclick = () => $("helpModal").classList.add("hidden");
+    const btnOkHelp = $("okHelp");
+    if (btnOkHelp) {
+      btnOkHelp.onclick = () => $("helpModal").classList.add("hidden");
+      btnOkHelp.focus();
+    }
   }
 
   function openFeaturesModal(){
@@ -10672,7 +10716,11 @@ async function maybePdfa(bytes, notes){
         <span>${t.privacy}</span>
       </p>
       <button class="btn" style="margin-top:12px" id="okFeatures">OK</button>`;
-    $("okFeatures").onclick = () => $("featuresModal").classList.add("hidden");
+    const btnOkFeat = $("okFeatures");
+    if (btnOkFeat) {
+      btnOkFeat.onclick = () => $("featuresModal").classList.add("hidden");
+      btnOkFeat.focus();
+    }
   }
 
   function openChangelogModal(){
@@ -10683,7 +10731,11 @@ async function maybePdfa(bytes, notes){
       <ul style="margin:0;padding-left:18px">${rows}</ul>
       <p style="color:var(--muted);font-size:13px;margin-top:16px">${t.changelogNote}</p>
       <button class="btn" style="margin-top:12px" id="okChangelog">OK</button>`;
-    $("okChangelog").onclick = () => $("changelogModal").classList.add("hidden");
+    const btnOkChange = $("okChangelog");
+    if (btnOkChange) {
+      btnOkChange.onclick = () => $("changelogModal").classList.add("hidden");
+      btnOkChange.focus();
+    }
   }
 
   $("btnHelp").onclick = openHelpModal;
@@ -10691,6 +10743,19 @@ async function maybePdfa(bytes, notes){
   if ($("btnChangelog")) $("btnChangelog").onclick = openChangelogModal;
   if ($("btnHdrFeatures")) $("btnHdrFeatures").onclick = () => { $("headerMoreMenu")?.classList.add("hidden"); openFeaturesModal(); };
   if ($("btnHdrChangelog")) $("btnHdrChangelog").onclick = () => { $("headerMoreMenu")?.classList.add("hidden"); openChangelogModal(); };
+
+  document.addEventListener("click", (e) => {
+    const expMenu = $("headerExportMenu");
+    const moreMenu = $("headerMoreMenu");
+    if (expMenu && !expMenu.classList.contains("hidden") && !e.target.closest("#headerExportGroup")) {
+      expMenu.classList.add("hidden");
+      $("btnExpMenuToggle")?.setAttribute("aria-expanded", "false");
+    }
+    if (moreMenu && !moreMenu.classList.contains("hidden") && !e.target.closest(".header-more-group")) {
+      moreMenu.classList.add("hidden");
+      $("btnHeaderMore")?.setAttribute("aria-expanded", "false");
+    }
+  }, { passive: true });
 
   function pickFile(){
     if (S.movie) return;
@@ -10851,7 +10916,7 @@ async function maybePdfa(bytes, notes){
       const beforeCount = S.hits.length;
       expandCzechNameMorphology(S.text, S.hits, newHit);
       const added = S.hits.length - beforeCount;
-      if (added > 0) toast(i().morphToast.replace("{n}", added));
+      if (added > 0) toast(formatPlural(added, i().morphToastPlural || i().morphToast, S.lang));
     }
     paintReview();
   };
@@ -10881,7 +10946,10 @@ async function maybePdfa(bytes, notes){
         if (focusables.length > 0) {
           const first = focusables[0];
           const last = focusables[focusables.length - 1];
-          if (e.shiftKey && document.activeElement === first) {
+          if (!openModal.contains(document.activeElement)) {
+            e.preventDefault();
+            first.focus();
+          } else if (e.shiftKey && document.activeElement === first) {
             e.preventDefault();
             last.focus();
           } else if (!e.shiftKey && document.activeElement === last) {
@@ -10897,11 +10965,34 @@ async function maybePdfa(bytes, notes){
       const moreMenu = $("headerMoreMenu");
       if (expMenu && !expMenu.classList.contains("hidden")) {
         expMenu.classList.add("hidden");
+        $("btnExpMenuToggle")?.setAttribute("aria-expanded", "false");
+        $("btnExpMenuToggle")?.focus();
         return;
       }
       if (moreMenu && !moreMenu.classList.contains("hidden")) {
         moreMenu.classList.add("hidden");
         $("btnHeaderMore")?.setAttribute("aria-expanded", "false");
+        $("btnHeaderMore")?.focus();
+        return;
+      }
+    }
+    const expMenu = $("headerExportMenu");
+    const moreMenu = $("headerMoreMenu");
+    const activeDropdown = (expMenu && !expMenu.classList.contains("hidden")) ? expMenu : ((moreMenu && !moreMenu.classList.contains("hidden")) ? moreMenu : null);
+    if (activeDropdown) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const items = Array.from(activeDropdown.querySelectorAll('.dropdown-item:not(.hidden):not([disabled])'));
+        if (items.length) {
+          const curIdx = items.indexOf(document.activeElement);
+          let nextIdx = 0;
+          if (curIdx >= 0) {
+            nextIdx = e.key === "ArrowDown" ? (curIdx + 1) % items.length : (curIdx - 1 + items.length) % items.length;
+          } else {
+            nextIdx = e.key === "ArrowDown" ? 0 : items.length - 1;
+          }
+          items[nextIdx].focus();
+        }
         return;
       }
     }

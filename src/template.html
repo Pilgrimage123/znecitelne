@@ -281,12 +281,13 @@ html[data-theme="dark"] .pill-ok { background: var(--ok); color: #12161c; }
     flex-direction: column;
     min-height: 0;
     height: 100%;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
   body.has-doc .entities-container,
   body.has-doc .hits {
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: 120px;
     max-height: none !important;
     overflow-y: auto;
   }
@@ -1009,8 +1010,8 @@ body.movie-active #settingsSheet {
       <button class="btn btn-sec" id="btnCloseDiscard" type="button" style="justify-content:flex-start;color:var(--danger);border-color:var(--danger);">
         ✕ <span id="lblCloseDiscard">Zavřít bez uložení</span>
       </button>
-      <button class="btn btn-ghost" id="btnCloseCancel" type="button" id="lblCloseCancel">
-        Zpět k dokumentu
+      <button class="btn btn-ghost" id="btnCloseCancel" type="button">
+        <span id="lblCloseCancel">Zpět k dokumentu</span>
       </button>
     </div>
   </div>

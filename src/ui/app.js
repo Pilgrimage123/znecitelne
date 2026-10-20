@@ -54,14 +54,15 @@ export const S = {
     const btn = $("btnTheme");
     if (btn) {
       const t = i();
-      btn.textContent = dark ? "☀" : "☾";
+      const lblTheme = $("lblThemeText");
+      if (lblTheme) {
+        lblTheme.textContent = dark ? "☀ " + (S.lang === "cs" ? "Světlý režim" : "Light mode") : "☾ " + (S.lang === "cs" ? "Tmavý režim" : "Dark mode");
+      } else {
+        btn.textContent = dark ? "☀" : "☾";
+      }
       btn.setAttribute("aria-pressed", dark ? "true" : "false");
       btn.setAttribute("aria-label", dark ? t.themeLight : t.themeDark);
       btn.setAttribute("data-tip", t.tips.theme);
-    }
-    const lblTheme = $("lblThemeText");
-    if (lblTheme) {
-      lblTheme.textContent = dark ? "☀ " + (S.lang === "cs" ? "Světlý režim" : "Light mode") : "☾ " + (S.lang === "cs" ? "Tmavý režim" : "Dark mode");
     }
   }
   function toggleTheme(){
@@ -254,6 +255,7 @@ function download(name, blob){
       if (btnCancel) btnCancel.textContent = cancelLabel || (t.cancel || (S.lang === "cs" ? "Zpět" : "Cancel"));
 
       modal.classList.remove("hidden");
+      btnCancel?.focus();
 
       const onKeyDown = (e) => {
         if (e.key === "Escape") {
@@ -358,7 +360,7 @@ function download(name, blob){
     const p = prefix || "";
     const t = i();
     return `
-      <div class="settings-tab-pane" id="${p}tabPaneProfile">
+      <div class="settings-tab-pane" id="${p}tabPaneProfile" role="tabpanel" aria-labelledby="${p === 'm_' ? 'tabBtnProfile' : ''}">
         <label class="field">${t.profile} <button type="button" class="help-i" data-tip="${t.tips.cats.ico}">?</button></label>
         <select id="${p}selProfile">${Object.entries(t.profiles).map(([k,v])=>`<option value="${k}" ${S.profile===k?"selected":""}>${v}</option>`).join("")}</select>
         <label class="field">${t.mode}</label>
@@ -372,7 +374,7 @@ function download(name, blob){
         <p class="lbl">${t.layerOrg}</p>
         <div class="cats">${ORG_KEYS.map(k=>`<label><input type="checkbox" data-cat="${k}" ${S.enabled[k]?"checked":""} /> <span>${t.cats[k]}</span> <button type="button" class="help-i" data-tip="${t.tips.cats[k]}">?</button></label>`).join("")}</div>
       </div>
-      <div class="settings-tab-pane hidden" id="${p}tabPaneDicts">
+      <div class="settings-tab-pane hidden" id="${p}tabPaneDicts" role="tabpanel" aria-labelledby="${p === 'm_' ? 'tabBtnDicts' : ''}">
         <label class="field">${t.secrets}</label>
         <textarea id="${p}taSecrets">${escAttr(S.secrets)}</textarea>
         <label class="field">${t.systemsDict}</label>
@@ -383,7 +385,7 @@ function download(name, blob){
         <textarea id="${p}taOrgs">${escAttr(S.orgs)}</textarea>
         <p class="dict-hint">${t.dictHint}</p>
       </div>
-      <div class="settings-tab-pane hidden" id="${p}tabPaneFormats">
+      <div class="settings-tab-pane hidden" id="${p}tabPaneFormats" role="tabpanel" aria-labelledby="${p === 'm_' ? 'tabBtnFormats' : ''}">
         <label class="check"><input type="checkbox" id="${p}chkMeta" ${S.stripMeta?"checked":""}/> ${t.stripMeta} <button type="button" class="help-i" data-tip="${t.tips.stripMeta}">?</button></label>
         <label class="check"><input type="checkbox" id="${p}chkTrueRedact" ${S.truePdfRedact?"checked":""}/> ${t.truePdfRedact} <button type="button" class="help-i" data-tip="${t.truePdfRedactHint}">?</button></label>
         <label class="check"><input type="checkbox" id="${p}chkOcr" ${S.ocrEnabled?"checked":""}/> ${t.enableOcr} <button type="button" class="help-i" data-tip="${t.tips.ocr}">?</button></label>
@@ -613,12 +615,28 @@ function download(name, blob){
     $("settingsModalMount").innerHTML = settingsHTML("m_");
     wireSettings($("settingsModalMount"), "m_");
 
-    document.querySelectorAll(".settings-tab-btn").forEach(btn => {
+    const tabBtns = Array.from(document.querySelectorAll(".settings-tab-btn"));
+    tabBtns.forEach((btn, idx) => {
       btn.onclick = () => switchSettingsTab(btn.dataset.tab);
+      btn.onkeydown = (e) => {
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          const next = tabBtns[(idx + 1) % tabBtns.length];
+          next.focus();
+          switchSettingsTab(next.dataset.tab);
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          const prev = tabBtns[(idx - 1 + tabBtns.length) % tabBtns.length];
+          prev.focus();
+          switchSettingsTab(prev.dataset.tab);
+        }
+      };
     });
     switchSettingsTab(activeTab);
 
     $("settingsModal").classList.remove("hidden");
+    const activeBtn = tabBtns.find(b => b.dataset.tab === activeTab) || tabBtns[0];
+    activeBtn?.focus();
     bindTips();
   }
 
@@ -653,10 +671,21 @@ function download(name, blob){
     setT("privacy", t.privacy); setT("dropTitle", t.drop); setT("dropHint", S.ocrEnabled ? t.dropHintOcr : t.dropHint);
     setT("btnSample", t.trySample); setTip("btnSample", t.tips.sample);
     setT("btnMovie", t.movieTutorial); setTip("btnMovie", t.tips.movie);
-    setT("btnBrowse", t.browse); setTip("btnBrowse", t.tips.browse);
-    setT("btnLang", S.lang==="cs"?"EN":"CS"); setTip("btnLang", t.tips.lang);
+    const lblLang = $("lblLangText");
+    if (lblLang) {
+      lblLang.textContent = "🌐 " + (S.lang === "cs" ? "Jazyk: English" : "Language: Čeština");
+    } else {
+      setT("btnLang", S.lang === "cs" ? "EN" : "CS");
+    }
+    setTip("btnLang", t.tips.lang);
     applyTheme();
     setTip("btnHelp", t.tips.help);
+    const lblHelp = $("lblHelpText");
+    if (lblHelp) lblHelp.textContent = "❓ " + (t.helpTitle || "Nápověda");
+    const lblFeat = $("lblFeaturesText");
+    if (lblFeat) lblFeat.textContent = "✨ " + (t.featuresBtn || "Přehled funkcí");
+    const lblChange = $("lblChangelogText");
+    if (lblChange) lblChange.textContent = "📜 " + (t.changelogBtn || "Changelog");
     setT("btnFeatures", t.featuresBtn); setTip("btnFeatures", t.tips.features);
     setT("btnChangelog", t.changelogBtn); setTip("btnChangelog", t.tips.changelog);
     setTip("btnSettings", t.tips.settings);
@@ -878,7 +907,7 @@ function download(name, blob){
 
       return `
         <div class="entity-card ${badgeCls} ${isSel ? "sel" : ""}" data-ekey="${escAttr(e.key)}">
-          <div class="ec-header" role="button" tabindex="0" aria-expanded="${isExpanded}" aria-label="${escAttr(e.canonicalValue)}: ${isExpanded ? 'skrýt' : 'zobrazit'}" data-etoggle="${escAttr(e.key)}">
+          <div class="ec-header" role="button" tabindex="0" aria-expanded="${isExpanded}" aria-label="${escAttr(e.canonicalValue)}: ${isExpanded ? (t.entityCollapse || "skrýt") : (t.entityExpand || "zobrazit")}" data-etoggle="${escAttr(e.key)}">
             <div style="flex:1;min-width:0">
               <h3 class="ec-title">${esc(e.canonicalValue)}</h3>
               <div class="ec-meta">
@@ -972,7 +1001,7 @@ function download(name, blob){
           <div class="sb-content">
             <span class="sb-icon">📄</span>
             <div>
-              <h4 class="sb-title">${esc((t.smartScanTitle || "Naskenované stránky bez textu ({n})").replace("{n}", S.noTextPages))}</h4>
+              <h4 class="sb-title">${esc(formatPlural(S.noTextPages, t.smartScanTitlePlural || t.smartScanTitle, S.lang))}</h4>
               <p class="sb-desc">${esc(t.smartScanDesc || "Tyto stránky neobsahují strojově čitelný text a vyžadují OCR.")}</p>
             </div>
           </div>
@@ -1071,7 +1100,8 @@ function download(name, blob){
     if ($("closeDocDesc")) $("closeDocDesc").textContent = t.closeDocDesc || "Máte rozpracované změny v anonymizaci dokumentu. Neuložené změny budou ztraceny. Můžete si stav bezpečně uložit pro druhou kontrolu.";
     if ($("lblCloseSaveSession")) $("lblCloseSaveSession").textContent = t.closeSaveSession || "Předat pro 4 oči (uložit sezení)";
     if ($("lblCloseDiscard")) $("lblCloseDiscard").textContent = t.closeDiscard || "Zavřít bez uložení";
-    if ($("btnCloseCancel")) $("btnCloseCancel").textContent = S.lang === "cs" ? "Zpět k dokumentu" : "Back to document";
+    if ($("lblCloseCancel")) $("lblCloseCancel").textContent = t.closeCancel || (S.lang === "cs" ? "Zpět k dokumentu" : "Back to document");
+    else if ($("btnCloseCancel")) $("btnCloseCancel").textContent = t.closeCancel || (S.lang === "cs" ? "Zpět k dokumentu" : "Back to document");
 
     const btnSave = $("btnCloseSaveSession");
     if (btnSave) {
@@ -1097,6 +1127,7 @@ function download(name, blob){
       };
     }
     modal.classList.remove("hidden");
+    btnCancel?.focus();
   }
 
   function paintWorkBar(acceptedCount, totalCount, t) {
@@ -1175,10 +1206,15 @@ function download(name, blob){
     const chkRev = $("chkRev");
     if (chkRev) {
       chkRev.checked = !!S.reviewed;
-      chkRev.onchange = (e) => {
+      chkRev.onchange = async (e) => {
         if (e.target.checked && unseenCount > 0) {
           const confirmMsg = formatPlural(unseenCount, t.unseenConfirm, S.lang);
-          if (!confirm(confirmMsg)) {
+          const ok = await showConfirm(
+            confirmMsg,
+            S.lang === "cs" ? "Pokračovat" : "Continue",
+            S.lang === "cs" ? "Zpět" : "Cancel"
+          );
+          if (!ok) {
             e.target.checked = false;
             return;
           }
@@ -1223,7 +1259,9 @@ function download(name, blob){
       btnExpToggle.disabled = !exportReady;
       btnExpToggle.onclick = (e) => {
         e.stopPropagation();
-        expMenu.classList.toggle("hidden");
+        const willOpen = expMenu.classList.contains("hidden");
+        expMenu.classList.toggle("hidden", !willOpen);
+        btnExpToggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
       };
     }
 
@@ -1243,6 +1281,7 @@ function download(name, blob){
         menuQueueZip.textContent = "📁 " + (t.queueExportReviewedZip || "Exportovat schválené z fronty (ZIP)");
         menuQueueZip.onclick = () => {
           expMenu?.classList.add("hidden");
+          btnExpToggle?.setAttribute("aria-expanded", "false");
           exportAllReviewed();
         };
       } else {
@@ -1254,6 +1293,7 @@ function download(name, blob){
     if (menuAi) {
       menuAi.onclick = () => {
         expMenu?.classList.add("hidden");
+        btnExpToggle?.setAttribute("aria-expanded", "false");
         openExport(true);
       };
     }
@@ -1262,6 +1302,7 @@ function download(name, blob){
     if (menuSession) {
       menuSession.onclick = async () => {
         expMenu?.classList.add("hidden");
+        btnExpToggle?.setAttribute("aria-expanded", "false");
         await exportSessionPrompt();
       };
     }
@@ -1270,6 +1311,7 @@ function download(name, blob){
     if (menuAudit) {
       menuAudit.onclick = () => {
         expMenu?.classList.add("hidden");
+        btnExpToggle?.setAttribute("aria-expanded", "false");
         download("znecitelne-audit.json", new Blob([JSON.stringify(buildAudit(), null, 2)], { type: "application/json" }));
       };
     }
@@ -1278,6 +1320,7 @@ function download(name, blob){
     if (menuRecord) {
       menuRecord.onclick = async () => {
         expMenu?.classList.add("hidden");
+        btnExpToggle?.setAttribute("aria-expanded", "false");
         try {
           const bytes = await exportProtocolPdf();
           download((S.fileName || "document").replace(/\.[^.]+$/, "") + "-protokol.pdf", new Blob([bytes], { type: "application/pdf" }));
@@ -1286,16 +1329,6 @@ function download(name, blob){
         }
       };
     }
-
-    document.addEventListener("click", (e) => {
-      if (expMenu && !expMenu.classList.contains("hidden") && !e.target.closest("#headerExportGroup")) {
-        expMenu.classList.add("hidden");
-      }
-      if (moreMenu && !moreMenu.classList.contains("hidden") && !e.target.closest(".header-more-group")) {
-        moreMenu.classList.add("hidden");
-        btnMore?.setAttribute("aria-expanded", "false");
-      }
-    }, { passive: true });
   }
 
   function paintReview(){
@@ -1346,7 +1379,7 @@ function download(name, blob){
     const scanWarn = $("scanWarn");
     if (S.noTextPages) {
       scanWarn.classList.remove("hidden");
-      scanWarn.textContent = t.scanWarning.replace("{n}", S.noTextPages);
+      scanWarn.textContent = formatPlural(S.noTextPages, t.scanWarningPlural || t.scanWarning, S.lang);
     } else {
       scanWarn.classList.add("hidden");
       scanWarn.textContent = "";
@@ -1493,7 +1526,7 @@ function download(name, blob){
           const beforeCount = S.hits.length;
           expandCzechNameMorphology(S.text, S.hits, sel);
           const added = S.hits.length - beforeCount;
-          toast(t.morphToast.replace("{n}", added));
+          toast(formatPlural(added, t.morphToastPlural || t.morphToast, S.lang));
           paintReview();
         };
       }
@@ -1541,11 +1574,14 @@ function download(name, blob){
       toast(t.bulkUndoToast || (S.lang === "cs" ? "Akci lze vrátit tlačítkem Zpět." : "You can undo this with the Undo button."));
       paintReview();
     };
-    const doNone = () => {
+    const doNone = async () => {
       if (S.hits.some(h => h.accept)) {
-        if (!confirm(t.bulkConfirmNone || (S.lang === "cs" ? "Opravdu chcete ponechat všechny nálezy (zrušit veškeré začernění)?" : "Keep all findings (clear all redactions)?"))) {
-          return;
-        }
+        const ok = await showConfirm(
+          t.bulkConfirmNone || (S.lang === "cs" ? "Opravdu chcete ponechat všechny nálezy (zrušit veškeré začernění)?" : "Keep all findings (clear all redactions)?"),
+          S.lang === "cs" ? "Ponechat vše" : "Keep all",
+          S.lang === "cs" ? "Zpět" : "Cancel"
+        );
+        if (!ok) return;
       }
       S._bulkUndoState = S.hits.map(h => ({ id: h.id, accept: h.accept }));
       S.hits.forEach(h => { h.accept = false; });
@@ -1590,6 +1626,8 @@ function download(name, blob){
     S.selectedId = id; S.seen.add(id); paintReview();
     const el = (S.pdfVisual ? $("pdfVisual") : $("orig")).querySelector(`[data-id="${id}"]`);
     if (el) el.scrollIntoView({ block:"center", behavior:"smooth" });
+    const asideItem = $("entityList")?.querySelector(".entity-card.sel") || $("hitList")?.querySelector(".hit.sel");
+    if (asideItem) asideItem.scrollIntoView({ block:"nearest", behavior:"smooth" });
   }
   function patch(id, accept){ const h = S.hits.find(x=>x.id===id); if (h) h.accept = accept; S.seen.add(id); paintReview(); }
   function selectNextHit(){
@@ -2097,9 +2135,9 @@ async function onFile(file){
       }
       if (failed) {
         const failMsg = S.lang === "cs" ? (String(failed) + " selhalo") : (String(failed) + " failed");
-        toast(t.queueDone.replace("{n}", String(done)) + " · " + failMsg);
+        toast(formatPlural(done, t.queueDonePlural || t.queueDone, S.lang) + " · " + failMsg);
       } else {
-        toast(t.queueDone.replace("{n}", String(done)));
+        toast(formatPlural(done, t.queueDonePlural || t.queueDone, S.lang));
       }
     };
   }
@@ -2434,7 +2472,11 @@ async function maybePdfa(bytes, notes){
       <li style="margin-top:8px"><kbd>P</kbd> ${t.kbdKeep}</li></ul>
       <p style="color:var(--muted);font-size:13px">Profil „Veřejná AI“ drží konzistentní tokeny (CBUAIS-5164 → [TICKET_001]) a maže Author / lastModifiedBy. Stejná osoba s titulem, iniciálou i v pádě sdílí token. Slovník a osnova používají stejná čísla jako text. Slovník pište jako <span class="mono">eSpis | INTEGRACE</span> — krátké názvy se berou jen na hranici slova.</p>
       <button class="btn" style="margin-top:12px" id="okHelp">OK</button>`;
-    $("okHelp").onclick = () => $("helpModal").classList.add("hidden");
+    const btnOkHelp = $("okHelp");
+    if (btnOkHelp) {
+      btnOkHelp.onclick = () => $("helpModal").classList.add("hidden");
+      btnOkHelp.focus();
+    }
   }
 
   function openFeaturesModal(){
@@ -2480,7 +2522,11 @@ async function maybePdfa(bytes, notes){
         <span>${t.privacy}</span>
       </p>
       <button class="btn" style="margin-top:12px" id="okFeatures">OK</button>`;
-    $("okFeatures").onclick = () => $("featuresModal").classList.add("hidden");
+    const btnOkFeat = $("okFeatures");
+    if (btnOkFeat) {
+      btnOkFeat.onclick = () => $("featuresModal").classList.add("hidden");
+      btnOkFeat.focus();
+    }
   }
 
   function openChangelogModal(){
@@ -2491,7 +2537,11 @@ async function maybePdfa(bytes, notes){
       <ul style="margin:0;padding-left:18px">${rows}</ul>
       <p style="color:var(--muted);font-size:13px;margin-top:16px">${t.changelogNote}</p>
       <button class="btn" style="margin-top:12px" id="okChangelog">OK</button>`;
-    $("okChangelog").onclick = () => $("changelogModal").classList.add("hidden");
+    const btnOkChange = $("okChangelog");
+    if (btnOkChange) {
+      btnOkChange.onclick = () => $("changelogModal").classList.add("hidden");
+      btnOkChange.focus();
+    }
   }
 
   $("btnHelp").onclick = openHelpModal;
@@ -2499,6 +2549,19 @@ async function maybePdfa(bytes, notes){
   if ($("btnChangelog")) $("btnChangelog").onclick = openChangelogModal;
   if ($("btnHdrFeatures")) $("btnHdrFeatures").onclick = () => { $("headerMoreMenu")?.classList.add("hidden"); openFeaturesModal(); };
   if ($("btnHdrChangelog")) $("btnHdrChangelog").onclick = () => { $("headerMoreMenu")?.classList.add("hidden"); openChangelogModal(); };
+
+  document.addEventListener("click", (e) => {
+    const expMenu = $("headerExportMenu");
+    const moreMenu = $("headerMoreMenu");
+    if (expMenu && !expMenu.classList.contains("hidden") && !e.target.closest("#headerExportGroup")) {
+      expMenu.classList.add("hidden");
+      $("btnExpMenuToggle")?.setAttribute("aria-expanded", "false");
+    }
+    if (moreMenu && !moreMenu.classList.contains("hidden") && !e.target.closest(".header-more-group")) {
+      moreMenu.classList.add("hidden");
+      $("btnHeaderMore")?.setAttribute("aria-expanded", "false");
+    }
+  }, { passive: true });
 
   function pickFile(){
     if (S.movie) return;
@@ -2659,7 +2722,7 @@ async function maybePdfa(bytes, notes){
       const beforeCount = S.hits.length;
       expandCzechNameMorphology(S.text, S.hits, newHit);
       const added = S.hits.length - beforeCount;
-      if (added > 0) toast(i().morphToast.replace("{n}", added));
+      if (added > 0) toast(formatPlural(added, i().morphToastPlural || i().morphToast, S.lang));
     }
     paintReview();
   };
@@ -2689,7 +2752,10 @@ async function maybePdfa(bytes, notes){
         if (focusables.length > 0) {
           const first = focusables[0];
           const last = focusables[focusables.length - 1];
-          if (e.shiftKey && document.activeElement === first) {
+          if (!openModal.contains(document.activeElement)) {
+            e.preventDefault();
+            first.focus();
+          } else if (e.shiftKey && document.activeElement === first) {
             e.preventDefault();
             last.focus();
           } else if (!e.shiftKey && document.activeElement === last) {
@@ -2705,11 +2771,34 @@ async function maybePdfa(bytes, notes){
       const moreMenu = $("headerMoreMenu");
       if (expMenu && !expMenu.classList.contains("hidden")) {
         expMenu.classList.add("hidden");
+        $("btnExpMenuToggle")?.setAttribute("aria-expanded", "false");
+        $("btnExpMenuToggle")?.focus();
         return;
       }
       if (moreMenu && !moreMenu.classList.contains("hidden")) {
         moreMenu.classList.add("hidden");
         $("btnHeaderMore")?.setAttribute("aria-expanded", "false");
+        $("btnHeaderMore")?.focus();
+        return;
+      }
+    }
+    const expMenu = $("headerExportMenu");
+    const moreMenu = $("headerMoreMenu");
+    const activeDropdown = (expMenu && !expMenu.classList.contains("hidden")) ? expMenu : ((moreMenu && !moreMenu.classList.contains("hidden")) ? moreMenu : null);
+    if (activeDropdown) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const items = Array.from(activeDropdown.querySelectorAll('.dropdown-item:not(.hidden):not([disabled])'));
+        if (items.length) {
+          const curIdx = items.indexOf(document.activeElement);
+          let nextIdx = 0;
+          if (curIdx >= 0) {
+            nextIdx = e.key === "ArrowDown" ? (curIdx + 1) % items.length : (curIdx - 1 + items.length) % items.length;
+          } else {
+            nextIdx = e.key === "ArrowDown" ? 0 : items.length - 1;
+          }
+          items[nextIdx].focus();
+        }
         return;
       }
     }

@@ -2233,6 +2233,14 @@ try {
   check(canonical.includes('id="lblExpGroupDoc"') && canonical.includes('id="lblExpGroupCollab"') && canonical.includes('id="lblExpGroupAudit"'), "Export menu must be grouped into 3 titled sections");
   check(!I18N.cs.tips.features.includes("všechod"), "Typo 'všechod' in Czech dictionary must be fixed");
   check(I18N.en.queueLbl === "Batch queue", "English queueLbl must be translated to 'Batch queue'");
+
+  // 8. Audit & Regression checks from UI/UX review
+  check(!canonical.includes('id="btnCloseCancel" type="button" id="lblCloseCancel"'), "Must not have duplicate id attributes on btnCloseCancel");
+  check(canonical.includes('id="lblCloseCancel"'), "Must retain lblCloseCancel for localization");
+  check(canonical.includes('role="tabpanel"'), "Settings tab panes must declare role='tabpanel'");
+  check(canonical.includes('overflow-y: auto;') && canonical.includes('body.has-doc #reviewAside'), "body.has-doc #reviewAside must have overflow-y: auto to prevent panel clipping");
+  check(!canonical.includes('document.addEventListener("click"') || (canonical.match(/document\.addEventListener\("click"/g) || []).length <= 1, "Must not leak document click listener inside paintWorkBar");
+  check(canonical.includes('id="lblThemeText"') && canonical.includes('id="lblLangText"'), "Header overflow items must retain text span labels");
 } catch (recErr) {
   failures.push("Recommendations test failed: " + (recErr.message || String(recErr)));
 }
