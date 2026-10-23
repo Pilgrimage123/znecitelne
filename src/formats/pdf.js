@@ -478,7 +478,11 @@ function setupVisualPdfMarquee(wrap, layer, pageNum, mapped){
             hitGlyphs.sort((a, b) => a.start - b.start);
             const firstStart = hitGlyphs[0].start;
             const lastEnd = hitGlyphs[hitGlyphs.length - 1].end;
-            const selectedText = mapped.text.slice(firstStart, lastEnd).trim();
+            const rawSlice = mapped.text.slice(firstStart, lastEnd);
+            const leadTrim = rawSlice.length - rawSlice.trimStart().length;
+            const selectedText = rawSlice.trim();
+            const adjStart = firstStart + leadTrim;
+            const adjEnd = adjStart + selectedText.length;
             if (selectedText.length >= 2) {
               const flBtn = document.createElement("button");
               flBtn.type = "button";
@@ -492,7 +496,7 @@ function setupVisualPdfMarquee(wrap, layer, pageNum, mapped){
                 btnEv.stopPropagation();
                 flBtn.remove();
                 if (typeof globalThis.addManualHitFromVisual === "function") {
-                  globalThis.addManualHitFromVisual(selectedText, pageNum, firstStart, lastEnd);
+                  globalThis.addManualHitFromVisual(selectedText, pageNum, adjStart, adjEnd);
                 }
               };
             }

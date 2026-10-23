@@ -1395,7 +1395,7 @@ html[data-theme="dark"] .badge-second-reviewer {
         <button type="button" class="dropdown-item" id="menuExportSession">
           <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           <div style="display:flex;flex-direction:column;gap:2px;">
-            <span style="font-weight:600">Předat pro 4 oči (.znecitelne-session)</span>
+            <span style="font-weight:600" id="lblExportSession">Předat pro 4 oči (.znecitelne-session)</span>
             <span class="dropdown-desc" id="lblExpSessionDesc">Šifrované rozpracované sezení pro druhou kontrolu</span>
           </div>
         </button>
@@ -1404,14 +1404,14 @@ html[data-theme="dark"] .badge-second-reviewer {
         <button type="button" class="dropdown-item" id="menuExportAudit">
           <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
           <div style="display:flex;flex-direction:column;gap:2px;">
-            <span style="font-weight:600">Auditní protokol (JSON)</span>
+            <span style="font-weight:600" id="lblExportAudit">Auditní protokol (JSON)</span>
             <span class="dropdown-desc" id="lblExpAuditDesc">Hash rozhodnutí se zkrácenými hodnotami pro doložení</span>
           </div>
         </button>
         <button type="button" class="dropdown-item" id="menuExportRecord">
           <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           <div style="display:flex;flex-direction:column;gap:2px;">
-            <span style="font-weight:600">Protokol o anonymizaci (PDF)</span>
+            <span style="font-weight:600" id="lblExportRecord">Protokol o anonymizaci (PDF)</span>
             <span class="dropdown-desc" id="lblExpRecordDesc">Formální záznam o začernění pro spis</span>
           </div>
         </button>
@@ -1513,7 +1513,7 @@ html[data-theme="dark"] .badge-second-reviewer {
         <p style="color:var(--muted);font-size:14px;margin:8px 0 16px" id="dropHint"></p>
         <button class="btn btn-file" id="btnBrowse" type="button">Vybrat dokument</button>
       </div>
-      <input id="file" type="file" multiple hidden accept=".pdf,.docx,.xlsx,.xls,.ods,.odt,.rtf,.txt,.csv,.tsv,.json,.xml,.html,.htm,.md,.png,.jpg,.jpeg,.webp,.bmp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.text,application/rtf,text/rtf,text/plain,text/csv,image/*" />
+      <input id="file" type="file" multiple hidden accept=".znecitelne-session,.pdf,.docx,.xlsx,.xls,.ods,.odt,.rtf,.txt,.csv,.tsv,.json,.xml,.html,.htm,.md,.png,.jpg,.jpeg,.webp,.bmp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.text,application/rtf,text/rtf,text/plain,text/csv,image/*" />
       <div class="landing-secondary-actions" style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
         <button class="btn btn-sec" id="btnSample" type="button"></button>
         <div class="landing-links" style="display:flex;justify-content:center;gap:8px;margin-top:6px;flex-wrap:wrap">

@@ -2314,6 +2314,91 @@ try {
 }
 
 
+// Runtime bug fixes regression suite (processAnalysis scope, Settings tab event guard, 4-Eyes session, XLSX grid selection, PDF marquee offset, i18n)
+try {
+  // 1. paintReview processAnalysis variable scope & caching
+  check(
+    htmlSourceIncludes("let replaced, leftovers, leaks, red, proc;") &&
+    htmlSourceIncludes("proc = _reviewCache.proc || { leaks: [] };"),
+    "paintReview must declare proc in function scope and cache it so processAnalysis does not throw ReferenceError"
+  );
+
+  // 2. openSettings and switchSettingsTab guard against PointerEvent / MouseEvent arguments
+  check(
+    htmlSourceIncludes("function switchSettingsTab(rawTabId)") &&
+    htmlSourceIncludes("function openSettings(rawActiveTab = \"tabProfile\")") &&
+    htmlSourceIncludes("$(\"btnSettings\").onclick = () => openSettings(\"tabProfile\");"),
+    "openSettings and switchSettingsTab must guard against Event arguments so clicking #btnSettings never hides all tab panes"
+  );
+
+  // 3. Session export/import preserves S.mode, noTextPages, hashIn, and onFile calls paint() instead of undefined render()
+  const sessState = {
+    fileName: "smlouva.pdf",
+    kind: "pdf",
+    text: "Obsah dokumentu",
+    pages: [{ n: 1, start: 0, end: 15 }],
+    noTextPages: 2,
+    hashIn: "abc123hash",
+    reviewed: true,
+    mode: "pseudo",
+    profile: "publicai",
+    lang: "cs",
+    hits: [{ id: 1, type: "name", value: "Jan Novák", start: 0, end: 9, accept: true }]
+  };
+  const exportedEnv = await exportSession(sessState, "Heslo123!");
+  const importedData = await importSession(exportedEnv, "Heslo123!");
+  check(
+    importedData.mode === "pseudo" && importedData.replaceMode === "pseudo",
+    "exportSession must serialize S.mode into both mode and replaceMode"
+  );
+  check(
+    importedData.doc.noTextPages === 2 && importedData.doc.hashIn === "abc123hash",
+    "exportSession must preserve doc.noTextPages and doc.hashIn"
+  );
+  check(
+    !htmlSourceIncludes("render();\n          toast(") &&
+    htmlSourceIncludes("await onFile(sessionFile);") &&
+    canonical.includes('accept=".znecitelne-session,'),
+    "Session file loader must route .znecitelne-session in onFiles to onFile and call paint() instead of undefined render()"
+  );
+
+  // 4. XLSX Grid View selection switches activeSheet and queries #xlsxGrid
+  check(
+    htmlSourceIncludes("if (hitCell && hitCell.sheet && S.activeSheet !== hitCell.sheet)") &&
+    htmlSourceIncludes("const docHost = S.pdfVisual ? $(\"pdfVisual\") : (isXlsxDoc ? $(\"xlsxGrid\") : $(\"orig\"));"),
+    "select(id) must switch S.activeSheet for XLSX hits and scroll within #xlsxGrid"
+  );
+
+  // 5. Visual PDF marquee trims leading whitespace offset accurately and tags manual hits
+  check(
+    htmlSourceIncludes("const adjStart = firstStart + leadTrim;") &&
+    htmlSourceIncludes("globalThis.addManualHitFromVisual(selectedText, pageNum, adjStart, adjEnd);") &&
+    htmlSourceIncludes('reasons: ["manual", isName ? "morphology" : "dict"]'),
+    "Visual PDF marquee must adjust start offset for leading whitespace and tag manual hits with 'manual' reason"
+  );
+
+  // 6. Export dropdown menu DOM IDs and i18n keys
+  check(
+    canonical.includes('id="lblExportSession"') &&
+    canonical.includes('id="lblExportAudit"') &&
+    canonical.includes('id="lblExportRecord"') &&
+    htmlSourceIncludes("t.exportGroupDoc") &&
+    htmlSourceIncludes("t.exportGroupHandoff") &&
+    htmlSourceIncludes("t.exportGroupAudit"),
+    "Export menu items must have localization DOM IDs and bind to canonical I18N keys"
+  );
+
+  // 7. Movie tutorial references existing header controls and auto-activates hidden settings tab panes
+  check(
+    !htmlSourceIncludes('highlight: "btnNewFile"') &&
+    htmlSourceIncludes('highlight: ["btnHeaderAddDoc", "btnHeaderClear"]') &&
+    htmlSourceIncludes('const hiddenPane = el && el.closest && el.closest(".settings-tab-pane.hidden");'),
+    "Movie tutorial must reference existing header controls and auto-switch settings tabs when highlighting hidden tab controls"
+  );
+} catch (bugFixErr) {
+  failures.push("Runtime bug fixes regression test failed: " + (bugFixErr.message || String(bugFixErr)));
+}
+
 if (failures.length) {
   console.error("Quality gate failed:");
   for (const failure of failures) console.error(`- ${failure}`);

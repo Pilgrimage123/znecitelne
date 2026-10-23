@@ -350,7 +350,7 @@ export let MOVIE_TIMER = null;
         "Vlastní soubor nahrajete na úvodní obrazovce tlačítkem „Nový soubor“ nebo pouhým přetažením myší na plochu.",
         "Upload your own file on the start screen using the 'New file' button or simply by drag-and-dropping it onto the area."
       ),
-      highlight: "btnNewFile",
+      highlight: ["btnHeaderAddDoc", "btnHeaderClear"],
       holdMs: 7000
     },
     {
@@ -559,7 +559,16 @@ export let MOVIE_TIMER = null;
       const toTarget = el => el.matches('input[type="checkbox"]')
         ? (el.closest("label") || el.parentElement || el)
         : el;
-      let els = Array.from(new Set(movieResolve(spec).map(toTarget))).filter(movieVisible);
+      const rawEls = movieResolve(spec).map(toTarget);
+      rawEls.forEach(el => {
+        const hiddenPane = el && el.closest && el.closest(".settings-tab-pane.hidden");
+        if (hiddenPane && hiddenPane.id) {
+          const tabName = hiddenPane.id.replace(/^m_tabPane/, "tab");
+          const tabBtn = document.querySelector(`.settings-tab-btn[data-tab="${tabName}"]`);
+          if (tabBtn) tabBtn.click();
+        }
+      });
+      let els = Array.from(new Set(rawEls)).filter(movieVisible);
       const menu = $("movie-select-menu");
       if (menu && menu.classList.contains("active")) els.push(menu);
       els = Array.from(new Set(els)).filter(movieVisible);

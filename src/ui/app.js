@@ -475,7 +475,7 @@ function download(name, blob){
       </div>`;
   }
   function escAttr(s){
-    return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
   function applyProfile(p){
     S.profile = p;
@@ -671,7 +671,8 @@ function download(name, blob){
     applyBarPos();
   }
 
-  function switchSettingsTab(tabId) {
+  function switchSettingsTab(rawTabId) {
+    const tabId = (typeof rawTabId === "string" && ["tabProfile", "tabDicts", "tabFormats"].includes(rawTabId)) ? rawTabId : "tabProfile";
     document.querySelectorAll(".settings-tab-btn").forEach(btn => {
       const active = btn.dataset.tab === tabId;
       btn.classList.toggle("active", active);
@@ -686,7 +687,8 @@ function download(name, blob){
     if (paneFormats) paneFormats.classList.toggle("hidden", tabId !== "tabFormats");
   }
 
-  function openSettings(activeTab = "tabProfile"){
+  function openSettings(rawActiveTab = "tabProfile"){
+    const activeTab = (typeof rawActiveTab === "string" && ["tabProfile", "tabDicts", "tabFormats"].includes(rawActiveTab)) ? rawActiveTab : "tabProfile";
     const t = i();
 
     SETTINGS_MODAL_SNAPSHOT = captureSettingsModalSnapshot();
@@ -757,6 +759,25 @@ function download(name, blob){
     const showOcrHint = S.ocrEnabled && S.ocrSupported !== false;
     setT("privacy", t.privacy); setT("dropTitle", t.drop); setT("dropHint", showOcrHint ? t.dropHintOcr : t.dropHint);
     setT("btnSample", t.trySample); setTip("btnSample", t.tips.sample);
+    setT("btnBrowse", t.browse); setTip("btnBrowse", t.tips.browse);
+    setT("lblLandingProfile", (t.profile || "Profil publikace") + ":");
+    setT("btnLandingProfileMore", S.lang === "cs" ? "Upravit v Nastavení ⚙" : "Customize in Settings ⚙");
+    const pillTranslations = {
+      registr: { title: S.lang === "cs" ? "Registr smluv" : "Contracts Reg.", badge: "340/2015 Sb.", tip: t.tips.profiles.registr },
+      infoact: { title: "InfZ 106", badge: "106/1999 Sb.", tip: t.tips.profiles.infoact },
+      court: { title: S.lang === "cs" ? "Rozhodnutí" : "Court Decisions", badge: "403/2022 Sb.", tip: t.tips.profiles.court },
+      publicai: { title: S.lang === "cs" ? "Veřejná AI" : "Public AI", badge: S.lang === "cs" ? "Všechny tokeny" : "All tokens", tip: t.tips.profiles.publicai }
+    };
+    document.querySelectorAll("#landingProfilePills .profile-pill-btn").forEach(pl => {
+      const pInfo = pillTranslations[pl.dataset.profile];
+      if (pInfo) {
+        const pt = pl.querySelector(".pill-title");
+        const pb = pl.querySelector(".pill-badge");
+        if (pt) pt.textContent = pInfo.title;
+        if (pb) pb.textContent = pInfo.badge;
+        if (pInfo.tip) pl.title = pInfo.tip;
+      }
+    });
     setT("btnMovie", t.movieTutorial); setTip("btnMovie", t.tips.movie);
 
     const pills = document.querySelectorAll("#landingProfilePills .profile-pill-btn");
@@ -996,6 +1017,7 @@ function download(name, blob){
       const k = h.entityKey || `${h.type}|${(h.value || "").trim().toLocaleLowerCase("cs")}`;
       if (k === entityKey) {
         h.accept = accept;
+        h.userModified = true;
         S.seen.add(h.id);
       }
     });
@@ -1164,7 +1186,12 @@ function download(name, blob){
         localStorage.setItem("znec-ocr", "1");
         toast(t.enableOcr || "OCR povoleno");
         if (Q.cur >= 0 && Q.items[Q.cur]) {
+        if (Q.cur >= 0 && Q.items[Q.cur]) {
+          const curItem = Q.items[Q.cur];
+          curItem.snap = null;
+          curItem.doc = null;
           void openQueueItem(Q.cur);
+        }
         }
       };
     }
@@ -1273,7 +1300,14 @@ function download(name, blob){
     if (exportGroup) exportGroup.classList.toggle("hidden", !isReviewActive);
 
     const lblPriv = $("lblHeaderPrivacy");
-    if (lblPriv) lblPriv.textContent = t.processedLocally || "Zpracováno lokálně";
+    if (lblPriv) lblPriv.textContent = t.processedLocally || (S.lang === "cs" ? "Zpracováno lokálně" : "Processed locally");
+    const privBadge = $("headerPrivacyBadge");
+    if (privBadge) privBadge.title = t.privacy || "";
+    if ($("lblReviewedText")) $("lblReviewedText").textContent = t.reviewed;
+    if ($("lblSecondEyesText")) $("lblSecondEyesText").textContent = t.secondEyes;
+    if ($("lblQpTitle")) $("lblQpTitle").textContent = t.queueLbl;
+    if ($("btnQpNextUnreviewed")) $("btnQpNextUnreviewed").textContent = S.lang === "cs" ? "➔ Přejít na další neschválený" : "➔ Next unreviewed document";
+    if ($("btnQpExportAll")) $("btnQpExportAll").textContent = t.queueExportReviewedZip || t.queueAll;
 
     const btnMore = $("btnHeaderMore");
     const moreMenu = $("headerMoreMenu");
@@ -1501,6 +1535,8 @@ function download(name, blob){
       chk2.checked = !!S.secondEyes;
       chk2.onchange = (e) => {
         S.secondEyes = e.target.checked;
+        if (!S.secondEyes && !S.isSecondReviewMode && S.filter === "secondReview") S.filter = "all";
+        paintReview();
       };
     }
 
@@ -1519,6 +1555,7 @@ function download(name, blob){
     const btnExp = $("btnExp");
     if (btnExp) {
       btnExp.disabled = !exportReady;
+      btnExp.textContent = t.export;
       btnExp.setAttribute("data-tip", exportReady ? t.tips.export : t.tips.exportLocked);
       btnExp.onclick = () => openExport(false);
     }
@@ -1527,6 +1564,8 @@ function download(name, blob){
     const expMenu = $("headerExportMenu");
     if (btnExpToggle && expMenu) {
       btnExpToggle.disabled = !exportReady;
+      btnExpToggle.title = t.exportMenuToggle || (S.lang === "cs" ? "Další možnosti exportu" : "More export options");
+      btnExpToggle.setAttribute("aria-label", btnExpToggle.title);
       btnExpToggle.onclick = (e) => {
         e.stopPropagation();
         const willOpen = expMenu.classList.contains("hidden");
@@ -1535,14 +1574,24 @@ function download(name, blob){
       };
     }
 
-    if ($("lblExpGroupDoc")) $("lblExpGroupDoc").textContent = t.lblExpGroupDoc || "Výstup dokumentu";
-    if ($("lblExpGroupCollab")) $("lblExpGroupCollab").textContent = t.lblExpGroupCollab || "Předání a spolupráce";
-    if ($("lblExpGroupAudit")) $("lblExpGroupAudit").textContent = t.lblExpGroupAudit || "Evidence a audit";
-    if ($("lblExportSession")) $("lblExportSession").textContent = t.exportSession || "Uložit šifrované sezení (.znecitelne-session)";
-    if ($("lblExportSessionHelp")) $("lblExportSessionHelp").textContent = t.exportSessionHelp || "Pro druhou kontrolu";
-    if ($("lblExportAudit")) $("lblExportAudit").textContent = t.exportAudit || "Auditní stopa rozhodnutí (JSON)";
-    if ($("lblExportRecord")) $("lblExportRecord").textContent = t.exportRecord || "Protokol o znečitelnění (PDF)";
-    if ($("lblExportAi")) $("lblExportAi").textContent = t.exportAiPack || "Balíček pro AI (ZIP)";
+    if ($("lblExpGroupDoc")) $("lblExpGroupDoc").textContent = t.exportGroupDoc || t.lblExpGroupDoc || "Dokumentový výstup";
+    if ($("lblExpGroupCollab")) $("lblExpGroupCollab").textContent = t.exportGroupHandoff || t.lblExpGroupCollab || "Předání a spolupráce";
+    if ($("lblExpGroupAudit")) $("lblExpGroupAudit").textContent = t.exportGroupAudit || t.lblExpGroupAudit || "Audit a evidence";
+    if ($("lblExportSession")) $("lblExportSession").textContent = t.exportSession || (S.lang === "cs" ? "Předat pro 4 oči (.znecitelne-session)" : "Save for 4-eyes review (.znecitelne-session)");
+    if ($("lblExpSessionDesc")) $("lblExpSessionDesc").textContent = t.exportSessionDesc || "";
+    if ($("lblExportAudit")) $("lblExportAudit").textContent = t.exportAudit || (S.lang === "cs" ? "Auditní protokol (JSON)" : "Audit log (JSON)");
+    if ($("lblExpAuditDesc")) $("lblExpAuditDesc").textContent = t.exportAuditDesc || "";
+    if ($("lblExportRecord")) $("lblExportRecord").textContent = t.exportRecord || (S.lang === "cs" ? "Protokol o anonymizaci (PDF)" : "Redaction record (PDF)");
+    if ($("lblExpRecordDesc")) $("lblExpRecordDesc").textContent = t.exportRecordDesc || "";
+    if ($("lblExportAi")) $("lblExportAi").textContent = t.aiPack || t.exportAiPack || "AI balíček (ZIP)";
+    if ($("lblExpAiDesc")) $("lblExpAiDesc").textContent = t.exportAiDesc || "";
+
+
+
+
+
+
+
 
     const menuQueueZip = $("menuExportQueueZip");
     if (menuQueueZip) {
@@ -1689,7 +1738,7 @@ function download(name, blob){
           const rawVal = S.text.slice(cell.start, cell.end);
           const cellHits = visHits.filter(h => h.start < cell.end && h.end > cell.start);
           if (!cellHits.length) {
-            cellsInRow += `<td class="xlsx-td-cell" title="${escAttr(cell.ref)}: ${escAttr(rawVal)}">${esc(rawVal)}</td>`;
+            cellsInRow += `<td class="xlsx-td-cell" data-cell-start="${cell.start}" data-cell-end="${cell.end}" title="${escAttr(cell.ref)}: ${escAttr(rawVal)}">${esc(rawVal)}</td>`;
           } else {
             let cellContent = "";
             let cur = cell.start;
@@ -1703,7 +1752,7 @@ function download(name, blob){
               cur = Math.min(cell.end, h.end);
             });
             if (cur < cell.end) cellContent += esc(S.text.slice(cur, cell.end));
-            cellsInRow += `<td class="xlsx-td-cell" title="${escAttr(cell.ref)}">${cellContent}</td>`;
+            cellsInRow += `<td class="xlsx-td-cell" data-cell-start="${cell.start}" data-cell-end="${cell.end}" title="${escAttr(cell.ref)}">${cellContent}</td>`;
           }
         }
       }
@@ -1744,21 +1793,23 @@ function download(name, blob){
       }
     }
     const cacheKey = `${S.text ? S.text.length : 0}_${S.mode}_${S.lang}_${!!S.processAnalysis}_${S.hits.length}_${acceptedCount}_${acceptedSig}`;
-    let replaced, leftovers, leaks, red;
+    let replaced, leftovers, leaks, red, proc;
     if (_reviewCache && _reviewCache.key === cacheKey && _reviewCache.text === S.text) {
       replaced = _reviewCache.replaced;
       leftovers = _reviewCache.leftovers;
       leaks = _reviewCache.leaks;
       red = _reviewCache.red;
+      proc = _reviewCache.proc || { leaks: [] };
     } else {
       replaced = apply(S.text, S.hits, S.mode, S.lang);
       const eff = effectiveHits(S.hits);
       leftovers = eff.filter(h => h.value.length >= 5 && replaced.includes(h.value));
-      const proc = S.processAnalysis ? analyzeProcess(S.text, replaced, S.hits) : { leaks: [] };
+      proc = S.processAnalysis ? analyzeProcess(S.text, replaced, S.hits) : { leaks: [] };
       leaks = proc.leaks;
       red = acceptedCount;
       _reviewCache = {
         key: cacheKey,
+        proc,
         text: S.text,
         replaced,
         leftovers,
@@ -1821,6 +1872,7 @@ function download(name, blob){
     const btnVis = $("btnVisual");
     if (btnOrig) {
       const isSel = !previewOn && !S.pdfVisual;
+      btnOrig.textContent = S.lang === "cs" ? "Původní text" : "Original text";
       btnOrig.classList.toggle("on", isSel);
       btnOrig.setAttribute("aria-pressed", isSel ? "true" : "false");
       btnOrig.onclick = () => {
@@ -1830,6 +1882,7 @@ function download(name, blob){
     }
     if (btnPrev) {
       const isSel = previewOn && !S.pdfVisual;
+      btnPrev.textContent = S.lang === "cs" ? "Náhled změn" : "Preview changes";
       btnPrev.classList.toggle("on", isSel);
       btnPrev.setAttribute("aria-pressed", isSel ? "true" : "false");
       btnPrev.onclick = () => {
@@ -1848,6 +1901,12 @@ function download(name, blob){
     const btnModeH = $("btnModeHits");
     if (btnModeEnt) {
       btnModeEnt.classList.toggle("on", isEntities);
+      btnModeEnt.textContent = t.viewEntities || (S.lang === "cs" ? "Entitní přehled" : "Entity view");
+      if (btnModeH) btnModeH.textContent = t.viewHits || (S.lang === "cs" ? "Jednotlivé nálezy" : "Individual findings");
+      if ($("btnAll")) $("btnAll").textContent = t.acceptAll;
+      if ($("btnOff")) $("btnOff").textContent = t.keepOfficials;
+      if ($("btnNone")) $("btnNone").textContent = t.rejectAll;
+      if ($("lblMedia")) $("lblMedia").textContent = S.lang === "cs" ? "Obrázky a podpisy" : "Images & signatures";
       btnModeEnt.setAttribute("aria-pressed", isEntities ? "true" : "false");
       btnModeEnt.onclick = () => {
         S.viewMode = "entities";
@@ -2054,8 +2113,20 @@ function download(name, blob){
     }
   }
   function select(id){
-    S.selectedId = id; S.seen.add(id); paintReview();
-    const el = (S.pdfVisual ? $("pdfVisual") : $("orig")).querySelector(`[data-id="${id}"]`);
+    S.selectedId = id; S.seen.add(id);
+    if (id != null && S.kind === "xlsx" && S.cellMap && S.cellMap.length > 0 && !S.pdfVisual) {
+      const hitObj = S.hits.find(x => x.id === id);
+      if (hitObj) {
+        const hitCell = S.cellMap.find(c => hitObj.start < c.end && hitObj.end > c.start);
+        if (hitCell && hitCell.sheet && S.activeSheet !== hitCell.sheet) {
+          S.activeSheet = hitCell.sheet;
+        }
+      }
+    }
+    paintReview();
+    const isXlsxDoc = S.kind === "xlsx" && S.cellMap && S.cellMap.length > 0 && !S.pdfVisual;
+    const docHost = S.pdfVisual ? $("pdfVisual") : (isXlsxDoc ? $("xlsxGrid") : $("orig"));
+    const el = docHost ? docHost.querySelector(`[data-id="${id}"]`) : null;
     if (el) el.scrollIntoView({ block:"center", behavior:"smooth" });
     const asideItem = $("entityList")?.querySelector(".entity-card.sel") || $("hitList")?.querySelector(".hit.sel");
     const asideList = $("entityList")?.classList.contains("hidden") ? $("hitList") : $("entityList");
@@ -2068,7 +2139,7 @@ function download(name, blob){
       scrollChildIntoContainer(aside, insp, 16);
     }
   }
-  function patch(id, accept){ const h = S.hits.find(x=>x.id===id); if (h) h.accept = accept; S.seen.add(id); paintReview(); }
+  function patch(id, accept){ const h = S.hits.find(x=>x.id===id); if (h) { h.accept = accept; h.userModified = true; } S.seen.add(id); paintReview(); }
   function selectNextHit(){
     const list = filtered();
     if (!list.length) return;
@@ -2216,7 +2287,11 @@ async function onFile(file){
           S.fileName = sessionData.doc.fileName;
           S.kind = sessionData.doc.kind;
           S.text = sessionData.doc.text;
-          S.pages = sessionData.doc.pages || [sessionData.doc.text];
+          S.pages = Array.isArray(sessionData.doc.pages) && sessionData.doc.pages.length && typeof sessionData.doc.pages[0] === "object"
+            ? sessionData.doc.pages
+            : [{ n: 1, start: 0, end: (sessionData.doc.text || "").length }];
+          S.noTextPages = sessionData.doc.noTextPages || 0;
+          S.hashIn = sessionData.doc.hashIn || "";
           S.reviewed = sessionData.doc.reviewed ?? true;
           S.secondEyes = true;
           S.isSecondReviewMode = true;
@@ -2227,11 +2302,16 @@ async function onFile(file){
           S.hits = sessionData.hits || [];
           S.seen = new Set(sessionData.seen || []);
           if (sessionData.profile) S.profile = sessionData.profile;
-          if (sessionData.replaceMode) S.mode = sessionData.replaceMode;
+          if (sessionData.replaceMode || sessionData.mode) S.mode = sessionData.replaceMode || sessionData.mode;
           if (sessionData.lang) S.lang = sessionData.lang;
           if (sessionData.legalReason) S.legalReason = sessionData.legalReason;
           S.sourceBuf = sessionData.doc.sourceBuf || null;
-          render();
+          S.activeSheet = (S.cellMap && S.cellMap.length > 0) ? (S.cellMap[0].sheet || "List 1") : null;
+          S.selectedId = S.hits[0] ? S.hits[0].id : null;
+          clearPdfVisual();
+          Q.items = [{ name: S.fileName || file.name, file, doc: null, snap: snapState() }];
+          Q.cur = 0;
+          paint();
           toast(S.lang === "cs" ? "Sezení bylo úspěšně načteno pro druhou kontrolu." : "Session loaded for second-eye review.");
           return true;
         }
@@ -2261,7 +2341,7 @@ async function onFile(file){
   }
   const Q = { items: [], cur: -1 };
   let QUEUE_LOAD_GENERATION = 0;
-  const SNAP_KEYS = ["fileName","kind","text","sourceBuf","pages","noTextPages","cellMap","hashIn","hashOut","hits","reviewed","secondEyes","selectedId","filter","seen","sigDetected","analysisContext","settings"];
+  const SNAP_KEYS = ["fileName","kind","text","sourceBuf","pages","noTextPages","cellMap","activeSheet","hashIn","hashOut","hits","reviewed","secondEyes","isSecondReviewMode","firstOperator","selectedId","filter","seen","sigDetected","analysisContext","settings"];
   const SNAP_SETTING_KEYS = ["profile","mode","suspicion","enabled","secrets","systems","projects","orgs","stripMeta","pdfaDecl","includeOutline","publicGlossary","truePdfRedact","ocrEnabled","expertMode","processAnalysis","quickMode","fastApprove","barPos"];
 
   function snapshotSettings(){
@@ -2337,6 +2417,16 @@ async function onFile(file){
   async function onFiles(list){
     const files = Array.from(list || []);
     if (!files.length || S.movie) return;
+    const sessionFile = files.find(f => f && (f.name.endsWith(".znecitelne-session") || f.name.endsWith(".json")));
+    if (files.length === 1 && sessionFile) {
+      try {
+        const rawText = await (sessionFile.text ? sessionFile.text() : new TextDecoder().decode(sessionFile.buffer ? new Uint8Array(sessionFile.buffer) : toBytes(sessionFile)));
+        if (rawText.includes('"format": "znecitelne-session"') || rawText.includes('"format":"znecitelne-session"')) {
+          await onFile(sessionFile);
+          return;
+        }
+      } catch (_) {}
+    }
     QUEUE_LOAD_GENERATION++;
     saveCurrent();
     const start = Q.items.length;
@@ -2888,7 +2978,7 @@ async function maybePdfa(bytes, notes){
   ["fullscreenchange", "webkitfullscreenchange", "mozfullscreenchange", "MSFullscreenChange"].forEach((evt) => {
     document.addEventListener(evt, updateFullscreenUI);
   });
-  $("btnSettings").onclick = openSettings;
+  $("btnSettings").onclick = () => openSettings("tabProfile");
   $("btnSettingsApply").onclick = () => {
     const root = $("settingsModalMount");
     const pull = (id, field) => {
@@ -3187,11 +3277,14 @@ async function maybePdfa(bytes, notes){
       end: start + sel.length,
       accept: true,
       confidence: "high",
-      reasons: [isName ? "morphology" : "dict"],
+      reasons: ["manual", isName ? "morphology" : "dict"],
+      userModified: true,
       entityKey,
       page: pageNum || pageOf(start)
     };
     S.hits.push(newHit);
+    S.selectedId = nid;
+    S.seen.add(nid);
     if (!isName && !secretList().includes(sel)) S.secrets += "\n" + sel;
     if (isName) {
       const beforeCount = S.hits.length;
@@ -3207,7 +3300,18 @@ async function maybePdfa(bytes, notes){
     if (sel.length<3) return;
     let start = -1;
     const origEl = $("orig");
+    const xlsxGridEl = $("xlsxGrid");
     const selection = window.getSelection();
+    if (selection && selection.rangeCount && xlsxGridEl && !xlsxGridEl.classList.contains("hidden") && xlsxGridEl.contains(selection.getRangeAt(0).startContainer)) {
+      const startNode = selection.getRangeAt(0).startContainer;
+      const tdEl = (startNode instanceof Element ? startNode : startNode.parentElement)?.closest("td[data-cell-start]");
+      if (tdEl) {
+        const cStart = +tdEl.dataset.cellStart;
+        const cEnd = +tdEl.dataset.cellEnd;
+        const inCellIdx = S.text.slice(cStart, cEnd).indexOf(sel);
+        if (inCellIdx >= 0) start = cStart + inCellIdx;
+      }
+    }
     if (selection && selection.rangeCount && origEl && origEl.contains(selection.getRangeAt(0).startContainer)) {
       const range = selection.getRangeAt(0);
       const preRange = range.cloneRange();
@@ -3225,8 +3329,10 @@ async function maybePdfa(bytes, notes){
     const isName = looksName(sel) || (words.length >= 2 && words.some(w => looksName(w)));
     const hitType = isName ? "name" : "secrets";
     const entityKey = isName ? ("name|" + nameKey(sel)) : ("secrets|" + sel.toLocaleLowerCase("cs"));
-    const newHit = { id:nid, type:hitType, value:sel, start, end:start+sel.length, accept:true, confidence:"high", reasons:[isName ? "morphology" : "dict"], entityKey, page: pageOf(start) };
+    const newHit = { id:nid, type:hitType, value:sel, start, end:start+sel.length, accept:true, confidence:"high", reasons:["manual", isName ? "morphology" : "dict"], userModified:true, entityKey, page: pageOf(start) };
     S.hits.push(newHit);
+    S.selectedId = nid;
+    S.seen.add(nid);
     if (!isName && !secretList().includes(sel)) S.secrets += "\n"+sel;
     if (isName) {
       const beforeCount = S.hits.length;
