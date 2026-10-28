@@ -660,6 +660,7 @@ try {
     LABEL: { cs: { name: "OSOBA", ticket: "TICKET" } },
     STATUS_GENERIC: { cs: { prod: "PROD" } },
     canonToken: (s) => String(s).toLowerCase(),
+    declinedPersonTokenBase,
     I18N: {
       cs: {
         cats: { name: "Jména a tituly" },
@@ -2394,6 +2395,64 @@ try {
     htmlSourceIncludes('highlight: ["btnHeaderAddDoc", "btnHeaderClear"]') &&
     htmlSourceIncludes('const hiddenPane = el && el.closest && el.closest(".settings-tab-pane.hidden");'),
     "Movie tutorial must reference existing header controls and auto-switch settings tabs when highlighting hidden tab controls"
+  );
+
+  // 8. SPZ medium-suspicion bug fix: bare alphanumeric without context or space must not falsely match
+  const spzFalsePosHits = detect(
+    "Tabulka obsahuje kód 2A1234 bez souvislosti s dopravou.",
+    { spz: true },
+    null,
+    { suspicion: "medium" }
+  ).filter((h) => h.type === "spz");
+  check(
+    spzFalsePosHits.length === 0,
+    "Medium suspicion SPZ detector must not match bare alphanumeric codes without vehicle context or space"
+  );
+  const spzTruePosCtx = detect(
+    "Vozidlo má SPZ 2A1234 v evidenci.",
+    { spz: true },
+    null,
+    { suspicion: "medium" }
+  ).filter((h) => h.type === "spz");
+  const spzTruePosSpace = detect(
+    "Zaparkované auto 1AB 2345 u vjezdu.",
+    { spz: true },
+    null,
+    { suspicion: "medium" }
+  ).filter((h) => h.type === "spz");
+  check(
+    spzTruePosCtx.length === 1 && spzTruePosSpace.length === 1,
+    "Medium suspicion SPZ detector must match when vehicle context or standard space separator is present"
+  );
+
+  // 9. Dead code removal & in-app password prompt checks
+  check(
+    !existsSync(resolve("src/worker/worker.js")) &&
+    !htmlSourceIncludes("function renderQueue(") &&
+    !htmlSourceIncludes("function initActionMarquees(") &&
+    !htmlSourceIncludes("function startTextMarquee(") &&
+    !canonical.includes('id="landingSettingsDetails"'),
+    "Dead worker.js, renderQueue, marquee stubs, and hidden landingSettingsDetails must be removed"
+  );
+  check(
+    htmlSourceIncludes("function showPasswordPrompt(") &&
+    canonical.includes('id="confirmPasswordBox"') &&
+    !htmlSourceIncludes("window.prompt(") &&
+    !htmlSourceIncludes("window.confirm("),
+    "Native browser prompt/confirm calls must be replaced by in-app showPasswordPrompt and showConfirm modal"
+  );
+
+  // 10. I18N parity and smart state architecture checks
+  check(
+    typeof I18N.en.processedLocally === "string" && I18N.en.processedLocally.length > 0,
+    "I18N.en.processedLocally must be defined for English localization parity"
+  );
+  check(
+    htmlSourceIncludes("function bumpRev(") &&
+    htmlSourceIncludes("auditTrail: []") &&
+    htmlSourceIncludes("S.doc = doc;") &&
+    htmlSourceIncludes("hasCanonDoc ? S.doc.sourceBuf"),
+    "State S must track immutable CanonicalDocument reference (S.doc), revision counter (bumpRev), and auditTrail"
   );
 } catch (bugFixErr) {
   failures.push("Runtime bug fixes regression test failed: " + (bugFixErr.message || String(bugFixErr)));

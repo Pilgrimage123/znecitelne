@@ -6,13 +6,6 @@ export let MOVIE_TIMER = null;
   export const MOVIE_SLOWDOWN = 0.3;
   export function movieEffectiveSpeed(){ return MOVIE_SPEED * MOVIE_SLOWDOWN; }
 
-  export function initActionMarquees(_root){
-    /* Cleaned: text overflow handled via responsive CSS */
-  }
-  export function startTextMarquee(_chip){
-    /* Cleaned: chip wrapping handled via responsive CSS */
-  }
-
   let MOVIE_PREV = null;
 
   function movieCaption(cs, en){ return S.lang === "en" ? en : cs; }

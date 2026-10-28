@@ -3,7 +3,7 @@ import { stripTitle, isOnomasticName, initOnomasticRegistry, getOnomasticTrie, O
 import {
   stemNamePart, isCzechVerbOrParticiple, looksName, nameKey, canonToken,
   systemCore, accountKey, nameInitial, clusterNameKeys, isLikelyNonPersonName,
-  isSentenceStart, RE_AGENDA_APELATIVA, ROLE_WORDS_SET,
+  isSentenceStart, declinedPersonTokenBase, RE_AGENDA_APELATIVA, ROLE_WORDS_SET,
   RE_CZECH_SURNAMES
 } from "./morphology.js";
 import { createEntityPropagationCache, expandCzechNameMorphology, alignDictEntity } from "./propagation.js";
@@ -447,7 +447,7 @@ export function detect(text, enabled, secrets, options){
       add(findAll(t, /\b[1-9][A-ZÁ]{1,2}\s?\d{4}\b/g, "spz", (v,f,i) => {
         if (sus === "low") return ctxHas(f,i,i+v.length,["spz","registrační značka","vozidlo","rz"], win);
         if (sus === "high") return true;
-        return ctxHas(f,i,i+v.length,["spz","vozid","značk","plate"], win) || true;
+        return ctxHas(f,i,i+v.length,["spz","registrační značka","vozid","značk","plate","rz","auto"], win) || /\s/.test(v);
       }).map(h => { h.reasons = ["format"]; return h; }));
       add(findAll(t, /\b(?:EL|AK|EB|EE)\s?\d{2,4}\b/g, "spz", (v,f,i) => sus==="high" || ctxHas(f,i,i+v.length,["spz","vozid","značk","elektro"], win)), ["format"]);
     }
@@ -891,7 +891,7 @@ export function detect(text, enabled, secrets, options){
       }
     }
 
-    bag.sort((a,b)=>a.start-b.start || (b.end-a.start)-(a.end-a.start));
+    bag.sort((a,b)=>a.start-b.start || (b.end-b.start)-(a.end-a.start));
     const merged = [];
     const rank = (h) => scoreHit(h)*10 + (h.end-h.start);
     for (const h of bag) {
@@ -1083,48 +1083,7 @@ export function detect(text, enabled, secrets, options){
     return String(n).padStart(3, "0");
   }
 
-export function declinedPersonTokenBase(base, h, lang){
-    if (lang !== "cs" || !h || h.type !== "name" || base !== "OSOBA") return base;
-    const clean = String(h.value || "").replace(/,.*$/, "").trim();
-    const words = clean.toLocaleLowerCase("cs").replace(/[.,;:!?]/g, "").split(/\s+/).filter(Boolean);
-    if (!words.length) return base;
-    const first = words[0];
-    const last = words[words.length - 1];
-
-    // Accusative with first-name inflection:
-    // e.g. "Jana Svobodu" (first name in accusative/genitive -a/-e/-ho),
-    // or "Evu Novákovou" (first name in accusative -u).
-    if (words.length >= 2) {
-      if (/(?:u|a|e|ho)$/u.test(first) && !/(?:ovi|ou)$/u.test(first)) {
-        if (last.endsWith("u") || last.endsWith("ovou") || last.endsWith("ou")) {
-          return "OSOBA";
-        }
-      }
-    }
-
-    // Single-word or surname in accusative ending in -u (e.g. "Svobodu", "Evu"):
-    // Note: excludes -ou and -ovi which belong to instrumental and dative.
-    if (last.endsWith("u") && !last.endsWith("ou") && !last.endsWith("ovi")) {
-      return "OSOBA";
-    }
-
-    // Foreign surnames ending in -i (e.g. Rossi, Bondi, Visconti, Verdi, Mancini, etc.):
-    // In Czech singular masculine they are indeclinable nominatives -> "OSOBA"
-    if (/(?:rossi|bondi|visconti|verdi|puccini|ferrari|mancini|pellegrini|morandi|berlusconi)$/u.test(last) ||
-        (/[bdfgklmnprstvz]i$/u.test(last) && !/(?:marii|lucii|sofii|julii)$/u.test(last) && !last.endsWith("ovi"))) {
-      if (words.length === 1 || !/(?:u|ovi)$/u.test(first)) {
-        return "OSOBA";
-      }
-    }
-
-    // Instrumental: Janem Novákem, Janou Novákovou, Kovářem, Černým, Jiřím.
-    if (/(?:em|ou|ovou|ým|ím)$/u.test(last)) return "OSOBOU";
-
-    // Dative/locative: Janu Novákovi, Janovi Novákovi, Kovářovi, Černému, Marii.
-    if (/(?:ovi|i|ému|ě)$/u.test(last)) return "OSOBĚ";
-
-    return base;
-  }
+export { declinedPersonTokenBase };
 
   export function makeReplacer(mode, lang){
     const counters = {}; const map = new Map();

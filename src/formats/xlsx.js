@@ -610,5 +610,6 @@ export function stripWorkbookMeta(wb){
     };
     wb.Custprops = {};
     if (wb.Workbook && wb.Workbook.WBProps) {
+      delete wb.Workbook.WBProps;
     }
   }

@@ -39,11 +39,9 @@ export const I18N = {
       inspireTitle:"Inspirace k dalšímu rozvoji",
       inspireIntro:"Nápady, které v aplikaci zatím nejsou implementované — slouží jako směr dalšího vývoje.",
       inspireList:[
-        {t:"<strong>Oddělení rolí (workflow „čtyř očí“).</strong> Možnost uzamknout rozpracovaný stav, exportovat jej jako koncept (<code>.znecitelne-session</code>) a předat vedoucímu nebo DPO k autorizaci."},
         {t:"<strong>Integrace na spisovou službu (eSSL).</strong> Přímé napojení na systémy úřadů přes standardizované rozhraní (NSESSS / REST API) pro přímé stahování a ukládání dokumentů."},
-        {t:"<strong>Ověření Fáze 4 v prohlížeči (nevyzkoušeno).</strong> Dosud neprošly živým testem se zapnutou sítí: vizuální PDF náhled (canvas + klikací překryv), zpětný export DOCX, PDF/A deklarace, dávková fronta a chování offline bez složky <code>./lib/</code>."},
-        {t:"<strong>Vše v jednom HTML souboru (nedokončeno).</strong> Knihovny (pdf-lib, pdf.js včetně workeru, mammoth, xlsx, fflate, Tesseract včetně jádra a české jazykové vrstvy) se pořád načítají z <code>./lib/</code> nebo z CDN; pro jediný soubor je nutné je vložit přímo do HTML."},
-        {t:"<strong>Certifikovaný PDF/A.</strong> Současná „Deklarace PDF/A-2b“ je jen XMP metadata; skutečná shoda vyžaduje vložené fonty a OutputIntent (ICC profil)."}
+        {t:"<strong>Vše v jednom HTML souboru bez externích knihoven.</strong> Knihovny (pdf-lib, pdf.js včetně workeru, mammoth, xlsx, fflate, Tesseract včetně jádra a české jazykové vrstvy) se načítají z lokální složky <code>./lib/</code>; pro jediný přenosný soubor by šlo vložit je přímo do HTML."},
+        {t:"<strong>Certifikovaný PDF/A preflight.</strong> Deklarace PDF/A-2b a sRGB OutputIntent (ICC profil) se vkládají přímo při exportu; plná certifikovaná shoda u textové vrstvy vyžaduje kompletní vložení všech použitých fontů a externí preflight."}
       ],
       planTitle:"Plán změn k provedení",
       planIntro:"Rozpracované změny bezpečnosti DOCX/PDF exportu; položky se dokončují po syntaktické, strukturální a živé browserové kontrole.",
@@ -256,6 +254,7 @@ export const I18N = {
       name:"Znečitelně", tagline:"Redaction for agencies and public AI",
       themeDark:"Dark mode", themeLight:"Light mode",
       privacy:"Nothing is uploaded. Detection, redaction and process analysis stay on this device.",
+      processedLocally:"Processed locally",
       trySample:"Try the sample document", movieTutorial:"Video tutorial", newFile:"New document",
       drop:"Drag & drop documents (PDF, DOCX, XLSX, TXT, scans…)",
       dropHint:"Or pick from storage. Supports PDF, DOCX, XLSX, TXT, spreadsheets and scans.",
@@ -272,11 +271,9 @@ export const I18N = {
       inspireTitle:"Ideas for future development",
       inspireIntro:"Ideas that are not implemented in the app yet — a direction for further development.",
       inspireList:[
-        {t:"<strong>Separation of roles (“four eyes” workflow).</strong> Lock a work in progress, export it as a draft (<code>.znecitelne-session</code>) and hand it to a supervisor or the DPO for authorisation."},
         {t:"<strong>Records-management (eSSL) integration.</strong> Direct connection to public-office systems via a standard interface (NSESSS / REST API) to fetch and store documents."},
-        {t:"<strong>Verify Phase 4 in a browser (untested).</strong> Not yet checked live with the network on: visual PDF preview (canvas + clickable overlay), DOCX round-trip export, PDF/A declaration, batch queue and offline behaviour without the <code>./lib/</code> folder."},
-        {t:"<strong>Everything in a single HTML file (unfinished).</strong> The libraries (pdf-lib, pdf.js incl. worker, mammoth, xlsx, fflate, Tesseract incl. core and Czech language data) still load from <code>./lib/</code> or a CDN; a single file means inlining them into the HTML."},
-        {t:"<strong>Certified PDF/A.</strong> The current “PDF/A-2b declaration” is XMP metadata only; real conformance needs embedded fonts and an OutputIntent (ICC profile)."}
+        {t:"<strong>Everything in a single self-contained HTML file.</strong> Runtime libraries (pdf-lib, pdf.js incl. worker, mammoth, xlsx, fflate, Tesseract incl. core and Czech language data) load from the local <code>./lib/</code> folder; a single-file distribution could inline them directly into the HTML."},
+        {t:"<strong>Certified PDF/A preflight.</strong> PDF/A-2b XMP metadata and sRGB OutputIntent (ICC profile) are embedded on export; full certified conformance for text-layer pages requires embedding all referenced fonts and external preflight verification."}
       ],
       planTitle:"Planned changes",
       planIntro:"Security work for DOCX/PDF export is in progress; items are completed after syntax, structural and live browser checks.",
@@ -298,7 +295,7 @@ export const I18N = {
       leakOk:"After redaction, no leftover ticket, email or birth-number patterns.",
       leakBad:"After redaction, patterns remain that a public AI could still misuse.",
       stripMeta:"Strip metadata",
-      pdfaDecl:"PDF/A-2b declaration (XMP) – not certified conformance", pdfaNote:"The PDF only carries a PDF/A declaration (XMP); it is not certified PDF/A – embedded fonts and an OutputIntent are missing.", pdfaFontWarn:"Unembedded fonts found on page(s) {n}; these pages should be converted to raster for secure export.", pdfaFail:"Could not embed the PDF/A declaration.",
+      pdfaDecl:"PDF/A-2b declaration + sRGB OutputIntent (preflight still required)", pdfaNote:"PDF/A metadata and sRGB OutputIntent were embedded; conformance is still not certified without external preflight.", pdfaFontWarn:"Unembedded fonts found on page(s) {n}; these pages should be converted to raster for secure export.", pdfaFail:"Could not embed PDF/A metadata or OutputIntent.",
       queueLbl:"Batch queue", queueAll:"Export batch queue (ZIP)", queueNone:"No document in the queue has been reviewed yet.", queueDone:"Documents exported: {n}", queueDonePlural:["1 document exported", "{n} documents exported"], queueBad:"Document “{f}” could not be loaded.", queueRemove:"Remove from queue", errPdfPassword:"PDF is password-protected. Please remove the password before processing.", errPdfInvalid:"PDF file is damaged or incomplete.", errFileEmpty:"Document “{f}” is empty (0 bytes).", errFileTooLarge:"Document “{f}” is too large (maximum is 100 MB).", errFileBinary:"Document “{f}” is in an unsupported binary format.", errDocOld:"Legacy .doc format (Word 97-2003) should be saved as .docx or .pdf.", errImageNeedOcr:"Image processing (scans) requires OCR enabled in settings.",
       truePdfRedact:"Truly remove redacted text from PDF (not just an image)",
       truePdfRedactHint:"Keeps the rest of the document as searchable text, in every output mode (black-box, XXXX, label, and pseudonym alike). Pages that can't be safely verified are still converted to an image.",

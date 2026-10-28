@@ -756,17 +756,6 @@ body.movie-active [inert] {
 }
 .movie-progress-fill { height: 100%; background: var(--header-fg); transition: width .25s ease; }
 .movie-progress-label { margin-top: 4px; font-size: 11px; color: var(--header-muted); }
-.chip-track {
-  display: inline-flex;
-  align-items: center;
-  white-space: nowrap;
-  animation: chipMarquee var(--chip-marquee-duration, 8s) linear infinite;
-}
-.chip-content-clone { margin-left: 32px; }
-@keyframes chipMarquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(calc(-1 * var(--chip-marquee-shift, 0px))); }
-}
 .wrap-line, .hit-value, .insp-marquee {
   display: block;
   width: 100%;
@@ -1522,10 +1511,6 @@ html[data-theme="dark"] .badge-second-reviewer {
           <button class="btn btn-ghost btn-sm" id="btnChangelog" type="button"></button>
         </div>
       </div>
-      <details class="settings hidden" id="landingSettingsDetails" style="display:none">
-        <summary id="sumSettings"></summary>
-        <div id="settingsMount"></div>
-      </details>
       <p class="danger hidden" id="errLand"></p>
     </div>
   </div>
@@ -1617,6 +1602,11 @@ html[data-theme="dark"] .badge-second-reviewer {
 <div class="modal hidden" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmMessage">
   <div class="sheet" id="confirmSheet" style="max-width:440px;text-align:center">
     <p id="confirmMessage" style="font-size:15px;font-weight:600;margin:12px 0 20px;line-height:1.5"></p>
+    <div id="confirmPasswordBox" class="hidden" style="display:flex;flex-direction:column;gap:8px;margin:0 0 16px;text-align:left">
+      <input type="password" id="inSessionPassword" autocomplete="off" style="width:100%" />
+      <input type="password" id="inSessionPasswordConfirm" class="hidden" autocomplete="off" style="width:100%" />
+      <p id="confirmPasswordErr" class="danger hidden" style="margin:0;font-size:12px"></p>
+    </div>
     <div style="display:flex;justify-content:center;gap:10px">
       <button type="button" class="btn btn-sec btn-sm" id="btnConfirmCancel">Zrušit</button>
       <button type="button" class="btn btn-sm" id="btnConfirmOk" style="background:var(--danger);border-color:var(--danger);color:#fff">Potvrdit</button>

@@ -532,4 +532,45 @@ export function stemNamePart(token){
     "odpovídá", "zpracoval", "zpracovala", "zpracuje", "uloženo", "různé"
   ]);
 
-export { declinedPersonTokenBase } from "./detector.js";
+export function declinedPersonTokenBase(base, h, lang){
+    if (lang !== "cs" || !h || h.type !== "name" || base !== "OSOBA") return base;
+    const clean = String(h.value || "").replace(/,.*$/, "").trim();
+    const words = clean.toLocaleLowerCase("cs").replace(/[.,;:!?]/g, "").split(/\s+/).filter(Boolean);
+    if (!words.length) return base;
+    const first = words[0];
+    const last = words[words.length - 1];
+
+    // Accusative with first-name inflection:
+    // e.g. "Jana Svobodu" (first name in accusative/genitive -a/-e/-ho),
+    // or "Evu Novákovou" (first name in accusative -u).
+    if (words.length >= 2) {
+      if (/(?:u|a|e|ho)$/u.test(first) && !/(?:ovi|ou)$/u.test(first)) {
+        if (last.endsWith("u") || last.endsWith("ovou") || last.endsWith("ou")) {
+          return "OSOBA";
+        }
+      }
+    }
+
+    // Single-word or surname in accusative ending in -u (e.g. "Svobodu", "Evu"):
+    // Note: excludes -ou and -ovi which belong to instrumental and dative.
+    if (last.endsWith("u") && !last.endsWith("ou") && !last.endsWith("ovi")) {
+      return "OSOBA";
+    }
+
+    // Foreign surnames ending in -i (e.g. Rossi, Bondi, Visconti, Verdi, Mancini, etc.):
+    // In Czech singular masculine they are indeclinable nominatives -> "OSOBA"
+    if (/(?:rossi|bondi|visconti|verdi|puccini|ferrari|mancini|pellegrini|morandi|berlusconi)$/u.test(last) ||
+        (/[bdfgklmnprstvz]i$/u.test(last) && !/(?:marii|lucii|sofii|julii)$/u.test(last) && !last.endsWith("ovi"))) {
+      if (words.length === 1 || !/(?:u|ovi)$/u.test(first)) {
+        return "OSOBA";
+      }
+    }
+
+    // Instrumental: Janem Novákem, Janou Novákovou, Kovářem, Černým, Jiřím.
+    if (/(?:em|ou|ovou|ým|ím)$/u.test(last)) return "OSOBOU";
+
+    // Dative/locative: Janu Novákovi, Janovi Novákovi, Kovářovi, Černému, Marii.
+    if (/(?:ovi|i|ému|ě)$/u.test(last)) return "OSOBĚ";
+
+    return base;
+  }

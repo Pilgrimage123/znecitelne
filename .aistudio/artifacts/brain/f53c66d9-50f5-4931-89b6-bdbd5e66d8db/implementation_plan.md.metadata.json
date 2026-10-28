@@ -1,6 +1,6 @@
 {
-  "summary": "Comprehensive audit and remediation plan for Znečitelně covering full-codebase inspection of detection, export, and UI pipelines. The plan identifies specific dead code (duplicate docxMakeWork, vestigial pv-prev-box class), terminology inconsistencies (entity cache vs. Dokumentová mezipaměť entit, gazetteer legacy markers), and bad optimizations that bottleneck large documents (apply() string reallocation thrashing, isSentenceStart() unbounded slicing, EntityPropagationCache cubic search, and unmemoized paintReview string scanning). Refactoring strategy preserves all existing contracts, interfaces, and regression tests.",
-  "updatedAt": "2026-10-13T14:53:11.405456355Z",
-  "requestFeedback": true,
-  "userFacing": true
+  "summary":  "Comprehensive implementation plan to fix logic and runtime bugs, remove dead code and obsolete stubs, resolve i18n and circular dependency inconsistencies, and optimize the S / Q / CanonicalDocument state architecture in-place while maintaining full backward compatibility with test.js and znecitelne.html.",
+  "updatedAt":  "2026-10-28T10:36:48.951609233Z",
+  "requestFeedback":  true,
+  "userFacing":  true
 }

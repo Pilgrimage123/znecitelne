@@ -1,15 +1,16 @@
 import { KEYS, PII_KEYS, ORG_KEYS, RULES, CHANGELOG, LABEL, STATUS_GENERIC, PUBLIC, SAMPLE } from "../core/rules.js";
 import { I18N, formatPlural } from "../core/i18n.js";
 import { isOnomasticName, initOnomasticRegistry, createOnomasticTrie } from "../core/onomastic.js";
-import { isCzechVerbOrParticiple, isSentenceStart, declinedPersonTokenBase } from "../core/morphology.js";
+import { isCzechVerbOrParticiple, isSentenceStart, declinedPersonTokenBase, looksName, nameKey, isLikelyNonPersonName } from "../core/morphology.js";
 import { EntityPropagationCache, createEntityPropagationCache, expandCzechNameMorphology } from "../core/propagation.js";
-import { detect, apply, applyCourtProfileRules, filterCourtDecisionsWhitelist, effectiveHits, resolveHits, visibleHits, topHits, bindReplacer, buildGlossary, pageOf } from "../core/detector.js";
+import { detect, apply, applyCourtProfileRules, filterCourtDecisionsWhitelist, effectiveHits, resolveHits, visibleHits, topHits, bindReplacer, buildGlossary, pageOf, parseDict, isPublic, toBytes } from "../core/detector.js";
 import { exportSession, importSession } from "../crypto/session.js";
-import { extractPdf, exportPdfTrueRedact, exportPdfRaster, applyPdfaDeclaration, pdfWorker, getPdfDocument, exportTextPdf, exportProtocolPdf, base64ToUint8Array, SRGB_ICC_PROFILE_BASE64, canFetchLocalAssets } from "../formats/pdf.js";
+import { extractPdf, exportPdfTrueRedact, exportPdfRaster, applyPdfaDeclaration, pdfWorker, getPdfDocument, exportTextPdf, exportProtocolPdf, base64ToUint8Array, SRGB_ICC_PROFILE_BASE64, canFetchLocalAssets, pdfWordQuads, verifySanitizedPdfText, isSignatureAnnot, paintPdfVisual, clearPdfVisual } from "../formats/pdf.js";
 import { exportDocxFile, docxMakeWork, docxNormalizeZipPath, docxRelativeZipPath } from "../formats/docx.js";
 import { exportXlsxFile, exportXlsxFileFflate } from "../formats/xlsx.js";
-import { ingestDocument, ingestDocumentBatch, buildCanonicalDocument, applyDocumentToState, DocumentIngestionError, IngestErrorCode, localizeIngestError, sha256 } from "../formats/ingest.js";
-import { startMovieTutorial, exitMovieTutorial, MOVIE_SPEED, MOVIE_SLOWDOWN, movieEffectiveSpeed, initActionMarquees, startTextMarquee } from "./movie.js";
+import { decodeTextBuffer, isBinaryBuffer, extractRtfText } from "../formats/rtf.js";
+import { ingestDocument, ingestDocumentBatch, buildCanonicalDocument, applyDocumentToState, DocumentIngestionError, IngestErrorCode, localizeIngestError, sha256, isImageFile } from "../formats/ingest.js";
+import { startMovieTutorial, exitMovieTutorial, MOVIE_SPEED, MOVIE_SLOWDOWN, movieEffectiveSpeed } from "./movie.js";
 
 
 export const S = {
@@ -34,11 +35,13 @@ export const S = {
     fastApprove: localStorage.getItem("znec-fastapprove") === "1",
     ocrEnabled: localStorage.getItem("znec-ocr") !== "0",
     ocrSupported: null,
+    doc: null,
     operator: "", sigDetected: false, fileName: "", kind: "text", text: "", sourceBuf: null,
     pages: [], noTextPages: 0, cellMap: [], activeSheet: null,
     hashIn: "", hashOut: "", hits: [], reviewed: false, secondEyes: false,
     isSecondReviewMode: false, firstOperator: "",
     selectedId: null, filter: "all", seen: new Set(),
+    legalReason: "", auditTrail: [], rev: 0,
     analysisContext: "",
     docView: localStorage.getItem("znec-docview") === "preview" ? "preview" : "original",
     pdfVisual: false,
@@ -46,6 +49,13 @@ export const S = {
     expandedEntities: new Set(),
     movie: false, movieStepIndex: 0
   };
+  function bumpRev(action, detail){
+    S.rev = (S.rev || 0) + 1;
+    if (action) {
+      if (!Array.isArray(S.auditTrail)) S.auditTrail = [];
+      S.auditTrail.push({ ts: new Date().toISOString(), action, ...(detail || {}) });
+    }
+  }
   const i = () => I18N[S.lang];
   const $ = (id) => document.getElementById(id);
   function applyTheme(){
@@ -319,19 +329,21 @@ function download(name, blob){
   export function showConfirm(message, okLabel, cancelLabel) {
     const modal = $("confirmModal");
     if (!modal) {
-      try {
-        return Promise.resolve(window.confirm(message));
-      } catch (_) {
-        return Promise.resolve(true);
-      }
+      return Promise.resolve(true);
     }
     return new Promise((resolve) => {
       const msgEl = $("confirmMessage");
+      const pwdBox = $("confirmPasswordBox");
       const btnOk = $("btnConfirmOk");
       const btnCancel = $("btnConfirmCancel");
       const t = i();
+      if (pwdBox) pwdBox.classList.add("hidden");
       if (msgEl) msgEl.textContent = message;
-      if (btnOk) btnOk.textContent = okLabel || (t.clear || (S.lang === "cs" ? "Zavřít" : "Close"));
+      if (btnOk) {
+        btnOk.textContent = okLabel || (t.clear || (S.lang === "cs" ? "Zavřít" : "Close"));
+        btnOk.style.background = "var(--danger)";
+        btnOk.style.borderColor = "var(--danger)";
+      }
       if (btnCancel) btnCancel.textContent = cancelLabel || (t.cancel || (S.lang === "cs" ? "Zpět" : "Cancel"));
 
       modal.classList.remove("hidden");
@@ -357,6 +369,97 @@ function download(name, blob){
       if (btnCancel) btnCancel.onclick = () => cleanup(false);
       modal.onclick = (e) => {
         if (e.target === modal) cleanup(false);
+      };
+      document.addEventListener("keydown", onKeyDown);
+    });
+  }
+
+  export function showPasswordPrompt(message, options = {}) {
+    const modal = $("confirmModal");
+    const pwdBox = $("confirmPasswordBox");
+    const inPwd = $("inSessionPassword");
+    const inPwd2 = $("inSessionPasswordConfirm");
+    const errEl = $("confirmPasswordErr");
+    if (!modal || !pwdBox || !inPwd) {
+      return Promise.resolve(null);
+    }
+    const requireConfirm = !!options.requireConfirm;
+    return new Promise((resolve) => {
+      const msgEl = $("confirmMessage");
+      const btnOk = $("btnConfirmOk");
+      const btnCancel = $("btnConfirmCancel");
+      const t = i();
+      if (msgEl) msgEl.textContent = message;
+      pwdBox.classList.remove("hidden");
+      inPwd.value = "";
+      inPwd.placeholder = options.placeholder || (S.lang === "cs" ? "Heslo…" : "Password…");
+      if (inPwd2) {
+        inPwd2.value = "";
+        inPwd2.placeholder = options.confirmPlaceholder || (S.lang === "cs" ? "Potvrďte heslo…" : "Confirm password…");
+        inPwd2.classList.toggle("hidden", !requireConfirm);
+      }
+      if (errEl) {
+        errEl.textContent = "";
+        errEl.classList.add("hidden");
+      }
+      if (btnOk) {
+        btnOk.textContent = options.okLabel || (S.lang === "cs" ? "Potvrdit" : "Confirm");
+        btnOk.style.background = "var(--accent)";
+        btnOk.style.borderColor = "var(--accent)";
+      }
+      if (btnCancel) btnCancel.textContent = options.cancelLabel || (t.cancel || (S.lang === "cs" ? "Zrušit" : "Cancel"));
+
+      modal.classList.remove("hidden");
+      inPwd.focus();
+
+      const submit = () => {
+        const val = inPwd.value || "";
+        if (!val) {
+          if (errEl) {
+            errEl.textContent = S.lang === "cs" ? "Zadejte prosím heslo." : "Please enter a password.";
+            errEl.classList.remove("hidden");
+          }
+          inPwd.focus();
+          return;
+        }
+        if (requireConfirm && inPwd2 && val !== (inPwd2.value || "")) {
+          if (errEl) {
+            errEl.textContent = S.lang === "cs" ? "Hesla se neshodují." : "Passwords do not match.";
+            errEl.classList.remove("hidden");
+          }
+          inPwd2.focus();
+          return;
+        }
+        cleanup(val);
+      };
+
+      const onKeyDown = (e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          cleanup(null);
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          submit();
+        }
+      };
+
+      const cleanup = (res) => {
+        modal.classList.add("hidden");
+        pwdBox.classList.add("hidden");
+        inPwd.value = "";
+        if (inPwd2) inPwd2.value = "";
+        if (errEl) { errEl.textContent = ""; errEl.classList.add("hidden"); }
+        if (btnOk) btnOk.onclick = null;
+        if (btnCancel) btnCancel.onclick = null;
+        modal.onclick = null;
+        document.removeEventListener("keydown", onKeyDown);
+        resolve(res);
+      };
+
+      if (btnOk) btnOk.onclick = submit;
+      if (btnCancel) btnCancel.onclick = () => cleanup(null);
+      modal.onclick = (e) => {
+        if (e.target === modal) cleanup(null);
       };
       document.addEventListener("keydown", onKeyDown);
     });
@@ -401,9 +504,7 @@ function download(name, blob){
     if (immediate || (tipAnchor === el && $("tip").classList.contains("on"))) reveal();
     else tipTimer = setTimeout(reveal, TIP_DELAY_MS);
   }
-  function tipHide(fromEl){
-    if (fromEl && tipAnchor && (fromEl === tipAnchor || fromEl.contains(tipAnchor) || tipAnchor.contains(fromEl))) {
-    }
+  function tipHide(_fromEl){
     if (tipTimer) { clearTimeout(tipTimer); tipTimer = null; }
     tipAnchor = null;
     $("tip").classList.remove("on");
@@ -587,7 +688,7 @@ function download(name, blob){
     document.body.classList.toggle("fast-approve", !!S.fastApprove);
   }
   function syncSettingsForms(except){
-    const mounts = [$("settingsMount"), $("settingsModalMount")].filter(Boolean);
+    const mounts = [$("settingsModalMount")].filter(Boolean);
     mounts.forEach(m => {
       if (m === except || !m.children.length) return;
       const selP = m.querySelector("[id$=selProfile]");
@@ -627,7 +728,6 @@ function download(name, blob){
     });
   }
   let SETTINGS_MODAL_SNAPSHOT = null;
-  let LANDING_SETTINGS_SIGNATURE = "";
 
   function captureSettingsModalSnapshot(){
     const storage = {};
@@ -744,8 +844,7 @@ function download(name, blob){
     if (S.text) {
       paint();
     } else if (!$("landing").classList.contains("hidden")) {
-      $("settingsMount").innerHTML = settingsHTML();
-      wireSettings($("settingsMount"));
+      paintLanding();
     }
   }
 
@@ -823,16 +922,6 @@ function download(name, blob){
     setT("btnChangelog", t.changelogBtn); setTip("btnChangelog", t.tips.changelog);
     setTip("btnSettings", t.tips.settings);
     const bs = $("btnSettings"); if (bs) bs.setAttribute("aria-label", t.settings);
-    setT("sumSettings", t.settings);
-    const landingSettingsSignature = S.lang + "|" + t.settings + "|" + t.categories;
-    const settingsMount = $("settingsMount");
-    if (settingsMount && (!settingsMount.children.length || LANDING_SETTINGS_SIGNATURE !== landingSettingsSignature)) {
-      settingsMount.innerHTML = settingsHTML();
-      wireSettings(settingsMount);
-      LANDING_SETTINGS_SIGNATURE = landingSettingsSignature;
-    } else if (settingsMount) {
-      syncSettingsForms(settingsMount);
-    }
     $("footer").textContent = t.footer;
     bindTips();
   }
@@ -973,7 +1062,15 @@ function download(name, blob){
     };
   }
 
+  let _entityCache = null;
+
   export function groupHitsIntoEntities(hits) {
+    const isStateHits = hits === S.hits;
+    const entityCacheKey = isStateHits ? `${S.rev || 0}_${S.mode}_${S.lang}_${hits.length}` : "";
+    if (isStateHits && _entityCache && _entityCache.key === entityCacheKey) {
+      return _entityCache.entities;
+    }
+
     const groups = new Map();
     hits.forEach(h => {
       const key = h.entityKey || `${h.type}|${(h.value || "").trim().toLocaleLowerCase("cs")}`;
@@ -996,7 +1093,7 @@ function download(name, blob){
     });
 
     const replacer = bindReplacer(S.mode === "box" ? "pseudo" : S.mode, S.lang, hits);
-    return Array.from(groups.values()).map(g => {
+    const entities = Array.from(groups.values()).map(g => {
       const acceptedCount = g.hits.filter(h => h.accept).length;
       const acceptState = acceptedCount === g.hits.length ? "all" : (acceptedCount === 0 ? "none" : "mixed");
       const sampleHit = g.hits[0];
@@ -1010,6 +1107,11 @@ function download(name, blob){
         token
       };
     });
+
+    if (isStateHits) {
+      _entityCache = { key: entityCacheKey, entities };
+    }
+    return entities;
   }
 
   function patchEntity(entityKey, accept) {
@@ -1021,6 +1123,8 @@ function download(name, blob){
         S.seen.add(h.id);
       }
     });
+    S.seen.add(entityKey);
+    bumpRev("entity_toggle", { entityKey, accept });
     paintReview();
   }
 
@@ -1186,12 +1290,10 @@ function download(name, blob){
         localStorage.setItem("znec-ocr", "1");
         toast(t.enableOcr || "OCR povoleno");
         if (Q.cur >= 0 && Q.items[Q.cur]) {
-        if (Q.cur >= 0 && Q.items[Q.cur]) {
           const curItem = Q.items[Q.cur];
           curItem.snap = null;
           curItem.doc = null;
           void openQueueItem(Q.cur);
-        }
         }
       };
     }
@@ -1207,13 +1309,11 @@ function download(name, blob){
   }
 
   async function exportSessionPrompt(){
-    const pwd = prompt(S.lang === "cs" ? "Zadejte heslo pro zašifrování sezení (pro druhou kontrolu):" : "Enter password to encrypt session (for second review):");
+    const pwd = await showPasswordPrompt(
+      S.lang === "cs" ? "Zadejte heslo pro zašifrování sezení (pro druhou kontrolu):" : "Enter password to encrypt session (for second review):",
+      { requireConfirm: true }
+    );
     if (!pwd) return false;
-    const pwdConfirm = prompt(S.lang === "cs" ? "Potvrďte heslo:" : "Confirm password:");
-    if (pwd !== pwdConfirm) {
-      toast(S.lang === "cs" ? "Hesla se neshodují." : "Passwords do not match.");
-      return false;
-    }
     try {
       const envelopeJson = await exportSession(S, pwd);
       const blob = new Blob([envelopeJson], { type: "application/json" });
@@ -1490,7 +1590,7 @@ function download(name, blob){
       btnHdrClear.onclick = () => openCloseDocModal();
     }
 
-    const unseenCount = Math.max(0, S.hits.filter(h => !S.seen.has(h.id)).length);
+    const unseenCount = Math.max(0, S.hits.filter(h => !S.seen.has(h.id) && !(h.entityKey && S.seen.has(h.entityKey))).length);
     const pendingBadge = $("badgePendingFindings");
     if (pendingBadge) {
       pendingBadge.textContent = formatPlural(unseenCount, t.unreviewedCountPlural || t.unreviewedCount, S.lang);
@@ -1789,10 +1889,11 @@ function download(name, blob){
       const h = S.hits[idx];
       if (h.accept) {
         acceptedCount++;
-        acceptedSig = (acceptedSig * 33 + (h.id || idx)) | 0;
+        acceptedSig = (acceptedSig * 33 + (h.id || idx) + (h.start || 0) * 7 + (h.end || 0)) | 0;
       }
     }
-    const cacheKey = `${S.text ? S.text.length : 0}_${S.mode}_${S.lang}_${!!S.processAnalysis}_${S.hits.length}_${acceptedCount}_${acceptedSig}`;
+    const dictSig = `${(S.secrets || "").length}_${(S.systems || "").length}_${(S.projects || "").length}_${(S.orgs || "").length}`;
+    const cacheKey = `${S.rev || 0}_${S.text ? S.text.length : 0}_${S.profile}_${S.mode}_${S.lang}_${!!S.processAnalysis}_${S.hits.length}_${acceptedCount}_${acceptedSig}_${dictSig}`;
     let replaced, leftovers, leaks, red, proc;
     if (_reviewCache && _reviewCache.key === cacheKey && _reviewCache.text === S.text) {
       replaced = _reviewCache.replaced;
@@ -1990,6 +2091,7 @@ function download(name, blob){
             if (h.entityKey === sel.entityKey) h.legalBasis = val;
           });
         }
+        bumpRev("legal_basis", { id: sel.id, entityKey: sel.entityKey || null, legalBasis: val });
         paintReview();
       };
       $("inLegal").oninput = (e) => {
@@ -2000,12 +2102,14 @@ function download(name, blob){
             if (h.entityKey === sel.entityKey) h.legalCustom = val;
           });
         }
+        bumpRev();
       };
       if ($("btnMorphExpand")) {
         $("btnMorphExpand").onclick = () => {
           const beforeCount = S.hits.length;
           expandCzechNameMorphology(S.text, S.hits, sel);
           const added = S.hits.length - beforeCount;
+          if (added > 0) bumpRev("morphology_expand", { id: sel.id, added });
           toast(formatPlural(added, t.morphToastPlural || t.morphToast, S.lang));
           paintReview();
         };
@@ -2022,7 +2126,7 @@ function download(name, blob){
       const flateLib = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
       if (S.kind === "docx" && S.sourceBuf && flateLib) {
         try {
-          const files = window.fflate.unzipSync(new Uint8Array(S.sourceBuf.slice(0)));
+          const files = flateLib.unzipSync(new Uint8Array(S.sourceBuf.slice(0)));
           docxMediaCount = Object.keys(files).filter(k => /^word\/(?:media|embeddings)\//i.test(k)).length;
         } catch (_) {}
       }
@@ -2051,6 +2155,7 @@ function download(name, blob){
     const doAll = () => {
       S._bulkUndoState = S.hits.map(h => ({ id: h.id, accept: h.accept }));
       S.hits.forEach(h => { h.accept = true; });
+      bumpRev("approve_all");
       toast(t.bulkUndoToast || (S.lang === "cs" ? "Akci lze vrátit tlačítkem Zpět." : "You can undo this with the Undo button."));
       paintReview();
     };
@@ -2065,6 +2170,7 @@ function download(name, blob){
       }
       S._bulkUndoState = S.hits.map(h => ({ id: h.id, accept: h.accept }));
       S.hits.forEach(h => { h.accept = false; });
+      bumpRev("reject_all");
       toast(t.bulkUndoToast || (S.lang === "cs" ? "Akci lze vrátit tlačítkem Zpět." : "You can undo this with the Undo button."));
       paintReview();
     };
@@ -2074,6 +2180,7 @@ function download(name, blob){
         const around = S.text.slice(Math.max(0,h.start-80), h.end+20);
         if (isPublic(h.value) || isPublic(around) || (h.type==="ico" && /státní podnik|ministerstvo|úřad|správa|republik/i.test(around))) h.accept = false;
       });
+      bumpRev("keep_officials");
       toast(t.bulkUndoToast || (S.lang === "cs" ? "Akci lze vrátit tlačítkem Zpět." : "You can undo this with the Undo button."));
       paintReview();
     };
@@ -2093,6 +2200,7 @@ function download(name, blob){
             if (map.has(h.id)) h.accept = map.get(h.id);
           });
           S._bulkUndoState = null;
+          bumpRev("undo_bulk");
           toast(t.bulkReverted || (S.lang === "cs" ? "Hromadná akce byla vrácena." : "Bulk action reverted."));
           paintReview();
         }
@@ -2139,7 +2247,16 @@ function download(name, blob){
       scrollChildIntoContainer(aside, insp, 16);
     }
   }
-  function patch(id, accept){ const h = S.hits.find(x=>x.id===id); if (h) { h.accept = accept; h.userModified = true; } S.seen.add(id); paintReview(); }
+  function patch(id, accept){
+    const h = S.hits.find(x=>x.id===id);
+    if (h) {
+      h.accept = accept;
+      h.userModified = true;
+      bumpRev("hit_toggle", { id, accept });
+    }
+    S.seen.add(id);
+    paintReview();
+  }
   function selectNextHit(){
     const list = filtered();
     if (!list.length) return;
@@ -2216,7 +2333,6 @@ function download(name, blob){
       document.body.classList.remove("hit-selected");
       paintWorkBar(0, 0, i());
     }
-    renderQueue();
   }
   function secretList(){ return S.secrets.split("\n").map(s=>s.trim()).filter(Boolean); }
   function runAnalyze(text, opts){
@@ -2271,6 +2387,7 @@ function download(name, blob){
     }
 
     S.analysisContext = contextNow;
+    bumpRev();
     paint();
   }
 
@@ -2281,9 +2398,13 @@ async function onFile(file){
       try {
         const text = await (file.text ? file.text() : new TextDecoder().decode(file.buffer ? new Uint8Array(file.buffer) : toBytes(file)));
         if (text.includes('"format": "znecitelne-session"') || text.includes('"format":"znecitelne-session"')) {
-          const pwd = prompt(S.lang === "cs" ? "Zadejte heslo pro otevření šifrovaného sezení:" : "Enter password to decrypt session:");
+          const pwd = await showPasswordPrompt(
+            S.lang === "cs" ? "Zadejte heslo pro otevření šifrovaného sezení:" : "Enter password to decrypt session:",
+            { requireConfirm: false }
+          );
           if (!pwd) return false;
           const sessionData = await importSession(text, pwd);
+          S.doc = null;
           S.fileName = sessionData.doc.fileName;
           S.kind = sessionData.doc.kind;
           S.text = sessionData.doc.text;
@@ -2301,6 +2422,7 @@ async function onFile(file){
           S.sigDetected = !!sessionData.doc.sigDetected;
           S.hits = sessionData.hits || [];
           S.seen = new Set(sessionData.seen || []);
+          S.auditTrail = Array.isArray(sessionData.auditTrail) ? sessionData.auditTrail : [];
           if (sessionData.profile) S.profile = sessionData.profile;
           if (sessionData.replaceMode || sessionData.mode) S.mode = sessionData.replaceMode || sessionData.mode;
           if (sessionData.lang) S.lang = sessionData.lang;
@@ -2308,6 +2430,7 @@ async function onFile(file){
           S.sourceBuf = sessionData.doc.sourceBuf || null;
           S.activeSheet = (S.cellMap && S.cellMap.length > 0) ? (S.cellMap[0].sheet || "List 1") : null;
           S.selectedId = S.hits[0] ? S.hits[0].id : null;
+          bumpRev("session_imported", { fileName: S.fileName });
           clearPdfVisual();
           Q.items = [{ name: S.fileName || file.name, file, doc: null, snap: snapState() }];
           Q.cur = 0;
@@ -2341,7 +2464,7 @@ async function onFile(file){
   }
   const Q = { items: [], cur: -1 };
   let QUEUE_LOAD_GENERATION = 0;
-  const SNAP_KEYS = ["fileName","kind","text","sourceBuf","pages","noTextPages","cellMap","activeSheet","hashIn","hashOut","hits","reviewed","secondEyes","isSecondReviewMode","firstOperator","selectedId","filter","seen","sigDetected","analysisContext","settings"];
+  const SNAP_KEYS = ["doc","fileName","kind","text","sourceBuf","pages","noTextPages","cellMap","activeSheet","hashIn","hashOut","hits","reviewed","secondEyes","isSecondReviewMode","firstOperator","selectedId","filter","seen","legalReason","auditTrail","rev","sigDetected","analysisContext","settings"];
   const SNAP_SETTING_KEYS = ["profile","mode","suspicion","enabled","secrets","systems","projects","orgs","stripMeta","pdfaDecl","includeOutline","publicGlossary","truePdfRedact","ocrEnabled","expertMode","processAnalysis","quickMode","fastApprove","barPos"];
 
   function snapshotSettings(){
@@ -2381,12 +2504,14 @@ async function onFile(file){
 
   const snapState = () => {
     const o = {};
+    const hasCanonDoc = !!(S.doc && Object.isFrozen(S.doc));
     SNAP_KEYS.forEach(k => {
       if (k === "hits") o[k] = Array.isArray(S[k]) ? S[k].map(h => ({ ...h })) : [];
-      else if (k === "pages") o[k] = Array.isArray(S[k]) ? S[k].map(pg => ({ ...pg })) : [];
-      else if (k === "cellMap") o[k] = Array.isArray(S[k]) ? S[k].map(cell => ({ ...cell })) : [];
+      else if (k === "pages") o[k] = hasCanonDoc ? S.doc.pages : (Array.isArray(S[k]) ? S[k].map(pg => ({ ...pg })) : []);
+      else if (k === "cellMap") o[k] = hasCanonDoc ? S.doc.cellMap : (Array.isArray(S[k]) ? S[k].map(cell => ({ ...cell })) : []);
       else if (k === "seen") o[k] = new Set(S[k] || []);
-      else if (k === "sourceBuf" && S[k] && typeof S[k].slice === "function") o[k] = S[k].slice(0);
+      else if (k === "auditTrail") o[k] = Array.isArray(S[k]) ? S[k].slice() : [];
+      else if (k === "sourceBuf") o[k] = hasCanonDoc ? S.doc.sourceBuf : S[k];
       else if (k === "settings") o[k] = snapshotSettings();
       else o[k] = S[k];
     });
@@ -2396,16 +2521,19 @@ async function onFile(file){
 
   const restoreState = (o) => {
     if (!o) return;
+    const hasCanonDoc = !!(o.doc && Object.isFrozen(o.doc));
     SNAP_KEYS.forEach(k => {
       if (k === "hits") S[k] = Array.isArray(o[k]) ? o[k].map(h => ({ ...h })) : [];
-      else if (k === "pages") S[k] = Array.isArray(o[k]) ? o[k].map(pg => ({ ...pg })) : [];
-      else if (k === "cellMap") S[k] = Array.isArray(o[k]) ? o[k].map(cell => ({ ...cell })) : [];
+      else if (k === "pages") S[k] = hasCanonDoc ? o.doc.pages : (Array.isArray(o[k]) ? o[k].map(pg => ({ ...pg })) : []);
+      else if (k === "cellMap") S[k] = hasCanonDoc ? o.doc.cellMap : (Array.isArray(o[k]) ? o[k].map(cell => ({ ...cell })) : []);
       else if (k === "seen") S[k] = new Set(o[k] || []);
-      else if (k === "sourceBuf" && o[k] && typeof o[k].slice === "function") S[k] = o[k].slice(0);
+      else if (k === "auditTrail") S[k] = Array.isArray(o[k]) ? o[k].slice() : [];
+      else if (k === "sourceBuf") S[k] = hasCanonDoc ? o.doc.sourceBuf : o[k];
       else if (k !== "settings") S[k] = o[k];
     });
     restoreSettingsSnapshot(o.settings);
     S.analysisContext = o.analysisContext || analysisContextKey();
+    bumpRev();
   };
 
   function saveCurrent(){
@@ -2455,7 +2583,7 @@ async function onFile(file){
     } else if (!Q.items.length) {
       paintLanding();
     } else {
-      renderQueue();
+      paintWorkBar(S.hits.filter(h => h.accept).length, S.hits.length, i());
     }
   }
 
@@ -2474,7 +2602,7 @@ async function onFile(file){
       void openQueueItem(nextIdx);
     } else {
       if (Q.cur > idx) Q.cur--;
-      renderQueue();
+      paintWorkBar(S.hits.filter(h => h.accept).length, S.hits.length, i());
     }
   }
 
@@ -2535,37 +2663,6 @@ async function onFile(file){
     }
 
     reset();
-  }
-
-  function renderQueue(){
-    const bar = $("queueBar");
-    if (!bar) return;
-    if (Q.items.length < 2) {
-      bar.classList.add("hidden");
-      bar.innerHTML = "";
-      return;
-    }
-    const t = i();
-    const chips = Q.items.map((it, n) => {
-      const rev = n === Q.cur ? S.reviewed : !!(it.snap && it.snap.reviewed);
-      return `<span class="qchip-wrap"><button type="button" class="btn btn-sm btn-sec qchip${n===Q.cur?" active":""}" data-q="${n}" title="${escAttr(it.name)}" aria-pressed="${n===Q.cur}">${rev?"✓ ":""}${esc(it.name)}</button><button type="button" class="qchip-del" data-qdel="${n}" title="${escAttr(t.queueRemove || 'Odebrat')}" aria-label="${escAttr(t.queueRemove || 'Odebrat')}">×</button></span>`;
-    }).join("");
-    bar.innerHTML = `<span style="font-size:13px;color:var(--muted)">${t.queueLbl}:</span>${chips}<button type="button" class="btn btn-sm" id="qAll">${t.queueAll}</button>`;
-    bar.classList.remove("hidden");
-    bar.querySelectorAll("[data-q]").forEach(b => {
-      b.onclick = () => {
-        const n = +b.dataset.q;
-        if (n !== Q.cur) void openQueueItem(n);
-      };
-    });
-    bar.querySelectorAll("[data-qdel]").forEach(b => {
-      b.onclick = (e) => {
-        e.stopPropagation();
-        const n = +b.dataset.qdel;
-        removeQueueItem(n);
-      };
-    });
-    $("qAll").onclick = exportAllReviewed;
   }
 
   function exportAllReviewed(){
@@ -2936,6 +3033,7 @@ async function maybePdfa(bytes, notes){
     Q.cur = -1;
     clearPdfVisual();
 
+    S.doc = null;
     S.sigDetected = false;
     S.text = "";
     S.hits = [];
@@ -2948,6 +3046,11 @@ async function maybePdfa(bytes, notes){
     if (S.filter === "secondReview") S.filter = "all";
     S.selectedId = null;
     S.seen = new Set();
+    S.legalReason = "";
+    S.auditTrail = [];
+    S.rev = (S.rev || 0) + 1;
+    _reviewCache = null;
+    _entityCache = null;
     S.hashIn = "";
     S.hashOut = "";
     S.sourceBuf = null;
@@ -2997,11 +3100,11 @@ async function maybePdfa(bytes, notes){
     SETTINGS_MODAL_SNAPSHOT = null;
     $("settingsModal").classList.add("hidden");
 
+    bumpRev();
     if (S.text) {
       runAnalyze();
     } else if (!$("landing").classList.contains("hidden")) {
-      $("settingsMount").innerHTML = settingsHTML();
-      wireSettings($("settingsMount"));
+      paintLanding();
     }
 
     applyQuickMode();
@@ -3292,6 +3395,7 @@ async function maybePdfa(bytes, notes){
       const added = S.hits.length - beforeCount;
       if (added > 0) toast(formatPlural(added, i().morphToastPlural || i().morphToast, S.lang));
     }
+    bumpRev("manual_add", { id: nid, type: hitType });
     paintReview();
   };
 
@@ -3340,6 +3444,7 @@ async function maybePdfa(bytes, notes){
       const added = S.hits.length - beforeCount;
       if (added > 0) toast(formatPlural(added, i().morphToastPlural || i().morphToast, S.lang));
     }
+    bumpRev("manual_add", { id: nid, type: hitType });
     paintReview();
   };
   document.onkeydown = (e) => {
@@ -3473,7 +3578,7 @@ export function selfTest(){
     });
     cases.push({ name:"pdf ICC profile present", ok: SRGB_ICC_PROFILE_BASE64.length > 100 && base64ToUint8Array(SRGB_ICC_PROFILE_BASE64).length > 400, type:"pdfa", includes:"sRGB ICC", got:[String(base64ToUint8Array(SRGB_ICC_PROFILE_BASE64).length)] });
     cases.push({ name:"movie 70% slower", ok: Math.abs(movieEffectiveSpeed() - 0.3 * MOVIE_SPEED) < 1e-9 && MOVIE_SLOWDOWN === 0.3, type:"movie", includes:"0.3", got:[String(MOVIE_SLOWDOWN), String(movieEffectiveSpeed())] });
-    cases.push({ name:"marquee helpers", ok: typeof initActionMarquees === "function" && typeof startTextMarquee === "function", type:"movie", includes:"fns", got:[typeof initActionMarquees, typeof startTextMarquee] });
+    cases.push({ name:"in-app dialog helpers", ok: typeof showConfirm === "function" && typeof showPasswordPrompt === "function", type:"ui", includes:"fns", got:[typeof showConfirm, typeof showPasswordPrompt] });
     const expect = (name, text, sus, type, includes) => {
       S.suspicion = sus;
       const hits = detect(text, enabled, secrets);
@@ -4034,6 +4139,7 @@ export function selfTest(){
     window.exportTextPdf = exportTextPdf;
     window.groupHitsIntoEntities = groupHitsIntoEntities;
     window.showConfirm = showConfirm;
+    window.showPasswordPrompt = showPasswordPrompt;
     window.S = S;
   }
   if (typeof queueMicrotask === "function") {

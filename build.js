@@ -23,7 +23,6 @@ const requiredModules = [
   "src/formats/pdf.js",
   "src/formats/ingest.js",
   "src/crypto/session.js",
-  "src/worker/worker.js",
   "src/ui/movie.js",
   "src/ui/app.js"
 ];

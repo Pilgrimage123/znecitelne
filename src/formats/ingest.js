@@ -77,6 +77,7 @@ export const IngestErrorCode = Object.freeze({
 
   export function applyDocumentToState(doc){
     if (!doc) return;
+    S.doc = doc;
     S.fileName = doc.fileName;
     S.kind = doc.kind;
     S.text = doc.text;
@@ -89,6 +90,8 @@ export const IngestErrorCode = Object.freeze({
     S.hashOut = "";
     S.reviewed = false;
     S.hits = [];
+    S.auditTrail = [];
+    S.rev = (S.rev || 0) + 1;
     runAnalyze(doc.text);
   }
 
@@ -165,7 +168,7 @@ export const IngestErrorCode = Object.freeze({
         corePath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/core/", location.href).href : "./lib/tesseract/core/",
         langPath: (typeof location !== "undefined" && location.href) ? new URL("./lib/tesseract/lang/", location.href).href : "./lib/tesseract/lang/"
       } : {};
-      const createPromise = Tesseract.createWorker("ces", 1, {
+      const createPromise = tesseractLib.createWorker("ces", 1, {
         ...localOpts,
         errorHandler: err => {
           if (workerErrReject) workerErrReject(new Error(typeof err === "string" ? err : ((err && err.message) || "OCR error")));
