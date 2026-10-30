@@ -1685,6 +1685,7 @@ const ORG_KEYS = ["ticket","system","project","incident","casefile","status","or
 const KEYS = PII_KEYS.concat(ORG_KEYS);
 const RULES = "2026.10.30-ai53";
 const CHANGELOG = [
+  { version: "2026.10.30-ai53", notes: { cs: "Scoped knihovní resolvery, izolace stavu hromadných akcí, přístupnost (WCAG 2.1), in-app modální dialog pro heslo sezení, oprava detekce SPZ a optimalizace struktury stavu: Odstraněny přímé reference na globální identifikátory v extraktorech a exportérech DOCX, XLSX, ODT a PDF (getXlsxLib, getPdfjsLib, getPdfLib), včetně ošetření exportProtocolPdf. Přidána izolace stavu hromadného vrácení změn (_bulkUndoState) ve frontě dokumentů a sdílení zmrazeného CanonicalDocument (S.doc) bez duplikace binárních bufferů. Doplněna podpora vnořeného CanonicalDocument v exportSession() a hydratace při importu sezení (.znecitelne-session) s vlastním in-app dialogem hesla (showPasswordPrompt) namísto nativního prompt(). Opravena falešně pozitivní detekce SPZ na střední citlivost, vyčištěn mrtvý kód (worker.js, renderQueue, marquee stuby) a zrychleno nahrazování split runs v DOCX/XLSX i vykreslování mřížky XLSX (cellHitsMap) na lineární složitost.", en: "Scoped library resolvers, bulk undo state isolation, accessibility (WCAG 2.1), in-app session password modal, SPZ detection fix, and smart state optimization: Replaced naked global library identifiers across DOCX, XLSX, ODT, and PDF extractors/exporters with scoped resolvers (getXlsxLib, getPdfjsLib, getPdfLib), including fixing exportProtocolPdf. Isolated _bulkUndoState across batch queue document snapshots and deduplicated binary buffers via frozen CanonicalDocument (S.doc) references. Added nested CanonicalDocument support in exportSession() and automatic hydration on .znecitelne-session import using an in-app password dialog (showPasswordPrompt) instead of native prompt(). Fixed medium-suspicion SPZ false positives, removed dead code (worker.js, renderQueue, marquee stubs), and optimized DOCX/XLSX split-run replacement and XLSX grid rendering (cellHitsMap) to linear time." } },
   { version: "2026.10.20-ai52", notes: { cs: "Oprava přístupnosti karet a rozvržení posuvníků (scrollbarů): Vyřešeno ořezávání a nedostupnost spodních akčních tlačítek karty Vybraný nález (#inspector) a panelů v revizním aside odstraněním chybného height: 100% u .work způsobujícího přetékání a ořezání v .review. Zaveden bezpečný spodní padding (24 px) a scrollbar-gutter: stable u #reviewAside, .entities-container a .hits. Zajištěno deterministické scrollování aktivního nálezu a inspektoru do zorného pole (scrollChildIntoContainer) bez nežádoucího odskakování rodičovského panelu nahoru. Omezeno přetékání u dlouhých textů v inspektoru (.insp-marquee s max-height: 120px) a skrytí prázdného inspektoru (#inspector:empty).", en: "Card accessibility and scrollbar layout fix: Resolved clipping and inaccessibility of bottom action buttons in Selected Finding card (#inspector) and aside subpanels by removing invalid height: 100% on .work that caused parent .review overflow clipping. Added protective bottom padding (24px) and scrollbar-gutter: stable on #reviewAside, .entities-container and .hits. Implemented deterministic, container-isolated scrolling for selected findings and inspector (scrollChildIntoContainer) without unwanted parent scroll resets. Constrained multiline text overflow in inspector (.insp-marquee with max-height: 120px) and hid empty inspector card (#inspector:empty)." } },
   { version: "2026.10.20-ai51", notes: { cs: "Komplexní ergonomická a workflow vylepšení UI/UX: Rychlý výběr Profilu publikace (Registr smluv, InfZ 106, Rozhodnutí, Veřejná AI) přímo nad dropzónou úvodní obrazovky s obousměrnou synchronizací do Nastavení. Možnost ručního výběru textu myší tažením (Marquee selection) ve Vizuálním náhledu PDF s detekcí glyfů, plovoucí akcí [+ Anonymizovat výběr] a automatickou morfologickou expanzí pádů. Tabulková mřížka (Grid View) pro XLSX a ODS s přepínáním listů a souřadnicemi buněk (A, B, C...) namísto prostého textu. Zpřehlednění workflow Principu 4 očí (.znecitelne-session) s odznakem 1. kontrolora v Pracovní liště a rychlým filtrem ručních zásahů a výjimek v Revizním panelu. Přehledový dashboard (Popover) Dávkové fronty se stavovými indikátory (schváleno, k pozornosti, nezkontrolováno) a navigací na další neschválený dokument. Uživatelsky srozumitelné ošetření a startup detekce dostupnosti OCR v offline prostředí (file:///) bez vývojářského žargonu.", en: "Comprehensive ergonomic and workflow UI/UX enhancements: Quick publication profile selector (Contracts Register, InfZ 106, Court Decisions, Public AI) on landing card above dropzone with two-way Settings synchronization. Direct mouse drag selection (Marquee selection) in Visual PDF preview with glyph intersection, floating [+ Redact selection] action button, and morphological declension expansion. Interactive Grid View table for XLSX and ODS spreadsheets with sheet tabs and coordinates (A, B, C...) replacing plain text preview. Four-Eyes principle workflow enhancements (.znecitelne-session) displaying 1st reviewer identity badge in Workplace bar and dedicated aside filter for manual interventions and exceptions. Batch Queue Dashboard Popover with per-document status indicators (approved, warning, unreviewed) and quick jump to next unreviewed file. Clear offline OCR availability preflight and user-facing explanation in file:/// protocol without developer jargon." } },
   { version: "2026.10.20-ai50", notes: { cs: "Vizuální harmonizace a sjednocení ikon v horní liště (UI/UX Pro Max): Všechna samostatná tlačítka ikon v liště (#btnHeaderAddDoc, #btnHeaderClear, #btnSettings, #btnHeaderMore) sjednocena na přesný čtvercový rozměr 36×36 px s flexibilním středěním, jednotným poloměrem zaoblení (var(--radius-sm, 6px)) a neviditelným rozšířením dotykové zóny na minimálně 44×44 pt pro bezchybnou mobilní přístupnost (WCAG 2.5.5). Sjednocení rozměrů a tahů vektorových SVG ikon v záhlaví na lineární styl (Phosphor/Lucide, stroke-width: 2/2.2). Textový znak šipky ▾ u rozbalovacího exportu nahrazen centrovaným SVG chevronem s plynulou rotací při otevření. Všechny nesourodé systémové emoji v exportním i overflow menu nahrazeny monochromatickými SVG ikonami a štítek aktivního souboru (.doc-badge) doplněn o vektorovou ikonu dokumentu se zarovnáním výšky na 36 px.", en: "Visual harmonization and icon system unification in top bar (UI/UX Pro Max): Unified all standalone icon buttons (#btnHeaderAddDoc, #btnHeaderClear, #btnSettings, #btnHeaderMore) to exact 36×36 px squares with optical centering, consistent corner radii (var(--radius-sm, 6px)), and invisible touch target expansions (>=44×44 pt) for WCAG 2.5.5 compliance. Standardized header vector SVG icons to clean linear Phosphor/Lucide style (stroke-width: 2/2.2). Replaced text arrow ▾ on split export button with an SVG chevron rotating smoothly on menu open. Replaced all emoji glyphs in export and overflow menus with crisp monochrome SVG icons, and enhanced active document badge (.doc-badge) with a document icon aligned to 36 px toolbar height." } },
@@ -4586,7 +4587,7 @@ function extractRtfText(rtfStr){
 
 // --- Module: src/formats/odt.js ---
 function extractOdtText(buf){
-    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || (typeof fflate !== "undefined" ? fflate : null);
     if (!flate || !flate.unzipSync) throw new Error("fflate není k dispozici");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
     const files = flate.unzipSync(u8);
@@ -5554,7 +5555,7 @@ function getOrderedDocxPartNames(files, partRe) {
     return [...headers, ...body, ...footers, ...comments, ...charts, ...diagrams, ...others];
   }
 async function exportDocxFile(sourceBuf, hits, mode, lang){
-    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || (typeof fflate !== "undefined" ? fflate : null);
     if (!flate) return { ok:false, reason:"fflate" };
     if (!sourceBuf) return { ok:false, reason:"sourceBuf missing" };
 
@@ -5655,10 +5656,10 @@ async function exportDocxFile(sourceBuf, hits, mode, lang){
 
     const bytes = flate.zipSync(files, { level: 6 });
 
-    const mammoth = (typeof window !== "undefined" && window.mammoth) || (typeof globalThis !== "undefined" && globalThis.mammoth) || null;
-    if (mammoth) {
+    const mammothLib = (typeof window !== "undefined" && window.mammoth) || (typeof globalThis !== "undefined" && globalThis.mammoth) || (typeof mammoth !== "undefined" ? mammoth : null);
+    if (mammothLib) {
       const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-      const chk = (await mammoth.extractRawText({ arrayBuffer: buf })).value || "";
+      const chk = (await mammothLib.extractRawText({ arrayBuffer: buf })).value || "";
       const left = Array.from(map.entries()).filter(([v, rep]) => !rep.includes(v) && chk.includes(v));
       if (left.length) {
         throw new Error("Zbytková hodnota po kontrole");
@@ -5672,7 +5673,7 @@ async function exportDocxFile(sourceBuf, hits, mode, lang){
     };
   }
 function extractDocxTextWithFflate(buf){
-    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || (typeof fflate !== "undefined" ? fflate : null);
     if (!flate || !flate.unzipSync) throw new Error("fflate není k dispozici");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
     const files = flate.unzipSync(u8);
@@ -5759,7 +5760,11 @@ const getI = () => {
   return (typeof I18N !== "undefined" && I18N[lang]) ? I18N[lang] : (typeof I18N !== "undefined" && I18N.cs ? I18N.cs : {});
 };
 function esc(s){
-  return String(s||"").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  const amp = "&" + "amp;";
+  const lt = "&" + "lt;";
+  const gt = "&" + "gt;";
+  const quot = "&" + "quot;";
+  return String(s ?? "").replace(/&/g, amp).replace(/</g, lt).replace(/>/g, gt).replace(/"/g, quot).replace(/'/g, "&#39;");
 }
 
 function translit(ch){
@@ -6266,11 +6271,11 @@ function setupVisualPdfMarquee(wrap, layer, pageNum, mapped){
   });
 }
 async function buildPdfVisual(token){
-    const host = $("pdfVisual");
+    const host = getEl("pdfVisual");
     if (!host) return;
     const width = Math.max(280, Math.min(900, host.clientWidth - 16 || 700));
     if (PV && PV.buf === S.sourceBuf && PV.width === width && host.firstChild) { paintPdfVisualOverlays(); return; }
-    host.innerHTML = `<p class="pv-note">${esc(i().visualNote)}</p>`;
+    host.innerHTML = `<p class="pv-note">${esc(getI().visualNote)}</p>`;
     const pdf = await getPdfDocument(S.sourceBuf);
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const pages = [];
@@ -6713,14 +6718,15 @@ function computeCharWidths(str, totalW, fontH, fontFam, isMono) {
   }
   function pdfRenderParams(ctx, vp){
     const opts = { canvasContext: ctx, viewport: vp };
-    const pdfjs = (typeof window !== "undefined" && window.pdfjsLib) || (typeof globalThis !== "undefined" && globalThis.pdfjsLib) || null;
+    const pdfjs = getPdfjsLib();
     if (pdfjs && pdfjs.AnnotationMode) {
       opts.annotationMode = pdfjs.AnnotationMode.ENABLE;
     }
     return opts;
   }
   function shouldCoverVisibleStamps(){
-    return !S.enabled || S.enabled.sigcert !== false;
+    const s = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : {}));
+    return !s.enabled || s.enabled.sigcert !== false;
   }
   let _canFetchLocalCache = null;
 async function canFetchLocalAssets() {
@@ -6849,14 +6855,15 @@ async function extractPdf(data){
         let finalItems = compact;
         let body;
 
+        const s = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : {}));
         let activeWorker = null;
-        if (isScan && S.ocrEnabled) {
+        if (isScan && s.ocrEnabled) {
           activeWorker = await getOcrWorker();
         }
 
         if (isScan && activeWorker) {
-          const t = S.lang;
-          showOcrProgress((t === "cs" ? "OCR: zpracovávám stránku " : "OCR: processing page ") + i + "/" + pdf.numPages + "…");
+          const t = s.lang || "cs";
+          if (typeof showOcrProgress === "function") showOcrProgress((t === "cs" ? "OCR: zpracovávám stránku " : "OCR: processing page ") + i + "/" + pdf.numPages + "…");
           try {
             const ocrScale = 2.5;
             const vp = page.getViewport({ scale: ocrScale });
@@ -6865,7 +6872,7 @@ async function extractPdf(data){
             const ctx = canvas.getContext("2d");
             await page.render({ canvasContext: ctx, viewport: vp }).promise;
 
-            showOcrProgress((t === "cs" ? "OCR: stránka " : "OCR: page ") + i + "/" + pdf.numPages + "…");
+            if (typeof showOcrProgress === "function") showOcrProgress((t === "cs" ? "OCR: stránka " : "OCR: page ") + i + "/" + pdf.numPages + "…");
             const { data: ocrData } = await safeOcrRecognize(activeWorker, canvas);
 
             finalItems = (ocrData.words || [])
@@ -6900,7 +6907,7 @@ async function extractPdf(data){
         });
 
         let sigWorker = null;
-        if (hasVisibleSig && !isScan && S.ocrEnabled) {
+        if (hasVisibleSig && !isScan && s.ocrEnabled) {
           sigWorker = await getOcrWorker();
         }
 
@@ -6915,7 +6922,7 @@ async function extractPdf(data){
             for (const sig of signatures) {
               const r = viewportCoverRect(vp, sig.rect);
               if (!r || r.w < 8 || r.h < 8) continue;
-              showOcrProgress((S.lang === "cs" ? "OCR: razítko podpisu, str. " : "OCR: signature stamp, p. ") + i + "…");
+              if (typeof showOcrProgress === "function") showOcrProgress(((s.lang || "cs") === "cs" ? "OCR: razítko podpisu, str. " : "OCR: signature stamp, p. ") + i + "…");
               const crop = document.createElement("canvas");
               const cw = Math.min(canvas.width, Math.max(8, Math.ceil(r.w)));
               const ch = Math.min(canvas.height, Math.max(8, Math.ceil(r.h)));
@@ -6964,7 +6971,7 @@ async function extractPdf(data){
       if (ocrWorker) {
         try { await ocrWorker.terminate(); } catch (_) {}
       }
-      hideOcrProgress();
+      if (typeof hideOcrProgress === "function") hideOcrProgress();
     }
 
     return { text, pages };
@@ -6990,7 +6997,7 @@ async function exportPdfRaster(source, hits, title, mode, lang){
       const canvas = document.createElement("canvas"); canvas.width=vp.width; canvas.height=vp.height;
       const ctx = canvas.getContext("2d");
       await page.render(pdfRenderParams(ctx, vp)).promise;
-      const pageMeta = (S.pages||[]).find(p => p.n===i);
+      const pageMeta = (s.pages||[]).find(p => p.n===i);
       const rawItems = (pageMeta && pageMeta.items && pageMeta.items.length) ? pageMeta.items : (await page.getTextContent()).items;
       const mapped = mapPageGlyphs(rawItems, scale, vp);
       const text = mapped.text;
@@ -7076,7 +7083,7 @@ async function exportPdfRaster(source, hits, title, mode, lang){
       const p = doc.addPage([canvas.width / scale, canvas.height / scale]);
       p.drawImage(img, { x:0, y:0, width:p.getWidth(), height:p.getHeight() });
 
-      if (S.truePdfRedact && textFont && map && map.length) {
+      if (s.truePdfRedact && textFont && map && map.length) {
         let currentRun = [];
         const flushRun = (run) => {
           if (!run.length) return;
@@ -7112,7 +7119,7 @@ async function exportPdfRaster(source, hits, title, mode, lang){
     }
     const outBytes = await doc.save({ useObjectStreams:false });
     const verifiedBytes = assertSecurePdfBytes(outBytes);
-    if (S.truePdfRedact) {
+    if (s.truePdfRedact) {
       verifySanitizedPdfText(verifiedBytes, effectiveHits(hits));
     }
     return verifiedBytes;
@@ -7443,11 +7450,12 @@ async function exportTextPdf(text, title) {
   return assertSecurePdfBytes(outBytes);
 }
 async function exportProtocolPdf(){
-  if (!window.PDFLib) {
-    const t = (typeof I18N !== "undefined" && typeof S !== "undefined" && I18N[S.lang]) ? I18N[S.lang] : null;
+  const pdfLib = getPdfLib();
+  if (!pdfLib) {
+    const t = getI();
     throw new Error((t && t.recordNeedPdfLib) || "PDFLib is not loaded");
   }
-  const appState = typeof S !== "undefined" ? S : { lang: "cs", hits: [] };
+  const appState = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : { lang: "cs", hits: [] }));
   const t = (typeof I18N !== "undefined" && I18N[appState.lang]) ? I18N[appState.lang] : {
     record: {
       title: "Protokol o anonymizaci",
@@ -10076,13 +10084,6 @@ function showPasswordPrompt(message, options = {}) {
     bindTips();
   }
 
-  function esc(s){
-    const amp = "&" + "amp;";
-    const lt = "&" + "lt;";
-    const gt = "&" + "gt;";
-    const quot = "&" + "quot;";
-    return String(s).replace(/&/g, amp).replace(/</g, lt).replace(/>/g, gt).replace(/"/g, quot).replace(/'/g, "&#39;");
-  }
   function hitEvidence(h, t, full){
     const ev = h.confidence==="high"?t.high:t.medium;
     if (!full) return ev;
@@ -11579,6 +11580,7 @@ async function onFile(file){
             : [{ n: 1, start: 0, end: (sessionData.doc.text || "").length }];
           S.noTextPages = sessionData.doc.noTextPages || 0;
           S.hashIn = sessionData.doc.hashIn || "";
+          S.hashOut = "";
           S.reviewed = sessionData.doc.reviewed ?? true;
           S.secondEyes = true;
           S.isSecondReviewMode = true;
@@ -11589,6 +11591,7 @@ async function onFile(file){
           S.hits = sessionData.hits || [];
           S.seen = new Set(sessionData.seen || []);
           S.auditTrail = Array.isArray(sessionData.auditTrail) ? sessionData.auditTrail : [];
+          S._bulkUndoState = null;
           if (sessionData.profile) S.profile = sessionData.profile;
           if (sessionData.replaceMode || sessionData.mode) S.mode = sessionData.replaceMode || sessionData.mode;
           if (sessionData.lang) S.lang = sessionData.lang;
@@ -12059,6 +12062,7 @@ function getRedactionDiff(text, hits, mode, lang){
         download((S.fileName||"document").replace(/\.[^.]+$/,"")+"-protokol.pdf", new Blob([bytes], {type:"application/pdf"}));
       } catch (e) { toast(e.message||String(e)); }
     };
+    $("goExp")?.focus();
     bindTips();
   }
   /*
@@ -12114,7 +12118,7 @@ async function maybePdfa(bytes, notes){
           S._exportNotice = t.docxFallback.replace("{r}", docxRes.reason);
         }
       }
-      if (!S._aiPack && S.kind==="pdf" && S.sourceBuf && window.pdfjsLib && window.PDFLib) {
+      if (!S._aiPack && S.kind==="pdf" && S.sourceBuf && getPdfjsLib() && getPdfLib()) {
         let bytes, rasterPages;
         if (S.truePdfRedact) {
           try {
@@ -12133,7 +12137,7 @@ async function maybePdfa(bytes, notes){
         download(base+".pdf", new Blob([bytes], {type:"application/pdf"}));
         if (rasterPages && rasterPages.size) S._exportNotice = t.exportedMixed.replace("{n}", Array.from(rasterPages).sort((a,b)=>a-b).join(", "));
         else if (S.truePdfRedact && !S._exportNotice) S._exportNotice = t.pdfSearchableVerified;
-      } else if (!S._aiPack && S.kind==="xlsx" && S.sourceBuf && window.XLSX) {
+      } else if (!S._aiPack && S.kind==="xlsx" && S.sourceBuf && getXlsxLib()) {
         const bytes = exportXlsxFile(S.sourceBuf, S.hits, S.mode, S.lang);
         S.hashOut = await sha256(bytes);
         download(base+".xlsx", new Blob([bytes], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
@@ -12143,7 +12147,7 @@ async function maybePdfa(bytes, notes){
         S._exportNotice = t.exportedDocx;
       } else if (!S._aiPack) {
         download(base+".txt", new Blob([replaced], {type:"text/plain;charset=utf-8"}));
-        if (window.PDFLib) {
+        if (getPdfLib()) {
           let bytes = await exportTextPdf(replaced, S.fileName);
           const pdfaResult = await maybePdfa(bytes, pdfaNotes);
           bytes = pdfaResult.bytes;
@@ -12169,7 +12173,7 @@ async function maybePdfa(bytes, notes){
           }
           zipEntries[base + "-slovnik.json"] = flateLib.strToU8(glossJson);
           zipEntries[base + "-audit.json"] = flateLib.strToU8(auditJson);
-          if (window.PDFLib) {
+          if (getPdfLib()) {
             const bytes = await exportTextPdf(replaced+"\n\n---\n"+processMarkdown(info), S.fileName+" AI pack");
             S.hashOut = await sha256(bytes);
             zipEntries[base + "-ai.pdf"] = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
@@ -12181,7 +12185,7 @@ async function maybePdfa(bytes, notes){
           if (S.includeOutline) download(base+"-osnova.md", new Blob([processMarkdown(info)], {type:"text/markdown;charset=utf-8"}));
           download(base+"-slovnik.json", new Blob([glossJson], {type:"application/json"}));
           download(base+"-audit.json", new Blob([auditJson], {type:"application/json"}));
-          if (window.PDFLib) {
+          if (getPdfLib()) {
             const bytes = await exportTextPdf(replaced+"\n\n---\n"+processMarkdown(info), S.fileName+" AI pack");
             S.hashOut = await sha256(bytes);
             download(base+"-ai.pdf", new Blob([bytes], {type:"application/pdf"}));

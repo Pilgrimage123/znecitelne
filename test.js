@@ -2517,8 +2517,15 @@ try {
   check(
     htmlSourceIncludes('openModal.id === "confirmModal") $("btnConfirmCancel")?.click()') &&
     htmlSourceIncludes('openModal.id === "closeDocModal") $("btnCloseCancel")?.click()') &&
-    htmlSourceIncludes('itemEl.onkeydown = (e) => {'),
-    "Modals and queue items must support standard accessible keyboard interactions"
+    htmlSourceIncludes('itemEl.onkeydown = (e) => {') &&
+    htmlSourceIncludes('$("goExp")?.focus();'),
+    "Modals, export approval dialog, and queue items must support standard accessible keyboard interactions"
+  );
+  check(
+    CHANGELOG[0] && CHANGELOG[0].version === RULES &&
+    (canonical.match(/function esc\(s\)/g) || []).length === 1 &&
+    htmlSourceIncludes("async function exportProtocolPdf(){\n  const pdfLib = getPdfLib();"),
+    "CHANGELOG[0] must match RULES, esc(s) must not be duplicated in bundle, and exportProtocolPdf must resolve pdfLib via getPdfLib()"
   );
 } catch (bugFixErr) {
   failures.push("Runtime bug fixes regression test failed: " + (bugFixErr.message || String(bugFixErr)));

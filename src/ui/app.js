@@ -5,9 +5,9 @@ import { isCzechVerbOrParticiple, isSentenceStart, declinedPersonTokenBase, look
 import { EntityPropagationCache, createEntityPropagationCache, expandCzechNameMorphology } from "../core/propagation.js";
 import { detect, apply, applyCourtProfileRules, filterCourtDecisionsWhitelist, effectiveHits, resolveHits, visibleHits, topHits, bindReplacer, buildGlossary, pageOf, parseDict, isPublic, toBytes } from "../core/detector.js";
 import { exportSession, importSession } from "../crypto/session.js";
-import { extractPdf, exportPdfTrueRedact, exportPdfRaster, applyPdfaDeclaration, pdfWorker, getPdfDocument, exportTextPdf, exportProtocolPdf, base64ToUint8Array, SRGB_ICC_PROFILE_BASE64, canFetchLocalAssets, pdfWordQuads, verifySanitizedPdfText, isSignatureAnnot, paintPdfVisual, clearPdfVisual } from "../formats/pdf.js";
+import { extractPdf, exportPdfTrueRedact, exportPdfRaster, applyPdfaDeclaration, pdfWorker, getPdfDocument, exportTextPdf, exportProtocolPdf, base64ToUint8Array, SRGB_ICC_PROFILE_BASE64, canFetchLocalAssets, pdfWordQuads, verifySanitizedPdfText, isSignatureAnnot, paintPdfVisual, clearPdfVisual, getPdfjsLib, getPdfLib, esc } from "../formats/pdf.js";
 import { exportDocxFile, docxMakeWork, docxNormalizeZipPath, docxRelativeZipPath } from "../formats/docx.js";
-import { exportXlsxFile, exportXlsxFileFflate } from "../formats/xlsx.js";
+import { exportXlsxFile, exportXlsxFileFflate, getXlsxLib } from "../formats/xlsx.js";
 import { decodeTextBuffer, isBinaryBuffer, extractRtfText } from "../formats/rtf.js";
 import { ingestDocument, ingestDocumentBatch, buildCanonicalDocument, applyDocumentToState, DocumentIngestionError, IngestErrorCode, localizeIngestError, sha256, isImageFile } from "../formats/ingest.js";
 import { startMovieTutorial, exitMovieTutorial, MOVIE_SPEED, MOVIE_SLOWDOWN, movieEffectiveSpeed } from "./movie.js";
@@ -926,13 +926,6 @@ function download(name, blob){
     bindTips();
   }
 
-  function esc(s){
-    const amp = "&" + "amp;";
-    const lt = "&" + "lt;";
-    const gt = "&" + "gt;";
-    const quot = "&" + "quot;";
-    return String(s).replace(/&/g, amp).replace(/</g, lt).replace(/>/g, gt).replace(/"/g, quot).replace(/'/g, "&#39;");
-  }
   function hitEvidence(h, t, full){
     const ev = h.confidence==="high"?t.high:t.medium;
     if (!full) return ev;
@@ -2432,6 +2425,7 @@ async function onFile(file){
             : [{ n: 1, start: 0, end: (sessionData.doc.text || "").length }];
           S.noTextPages = sessionData.doc.noTextPages || 0;
           S.hashIn = sessionData.doc.hashIn || "";
+          S.hashOut = "";
           S.reviewed = sessionData.doc.reviewed ?? true;
           S.secondEyes = true;
           S.isSecondReviewMode = true;
@@ -2442,6 +2436,7 @@ async function onFile(file){
           S.hits = sessionData.hits || [];
           S.seen = new Set(sessionData.seen || []);
           S.auditTrail = Array.isArray(sessionData.auditTrail) ? sessionData.auditTrail : [];
+          S._bulkUndoState = null;
           if (sessionData.profile) S.profile = sessionData.profile;
           if (sessionData.replaceMode || sessionData.mode) S.mode = sessionData.replaceMode || sessionData.mode;
           if (sessionData.lang) S.lang = sessionData.lang;
@@ -2912,6 +2907,7 @@ function getRedactionDiff(text, hits, mode, lang){
         download((S.fileName||"document").replace(/\.[^.]+$/,"")+"-protokol.pdf", new Blob([bytes], {type:"application/pdf"}));
       } catch (e) { toast(e.message||String(e)); }
     };
+    $("goExp")?.focus();
     bindTips();
   }
   /*
@@ -2967,7 +2963,7 @@ async function maybePdfa(bytes, notes){
           S._exportNotice = t.docxFallback.replace("{r}", docxRes.reason);
         }
       }
-      if (!S._aiPack && S.kind==="pdf" && S.sourceBuf && window.pdfjsLib && window.PDFLib) {
+      if (!S._aiPack && S.kind==="pdf" && S.sourceBuf && getPdfjsLib() && getPdfLib()) {
         let bytes, rasterPages;
         if (S.truePdfRedact) {
           try {
@@ -2986,7 +2982,7 @@ async function maybePdfa(bytes, notes){
         download(base+".pdf", new Blob([bytes], {type:"application/pdf"}));
         if (rasterPages && rasterPages.size) S._exportNotice = t.exportedMixed.replace("{n}", Array.from(rasterPages).sort((a,b)=>a-b).join(", "));
         else if (S.truePdfRedact && !S._exportNotice) S._exportNotice = t.pdfSearchableVerified;
-      } else if (!S._aiPack && S.kind==="xlsx" && S.sourceBuf && window.XLSX) {
+      } else if (!S._aiPack && S.kind==="xlsx" && S.sourceBuf && getXlsxLib()) {
         const bytes = exportXlsxFile(S.sourceBuf, S.hits, S.mode, S.lang);
         S.hashOut = await sha256(bytes);
         download(base+".xlsx", new Blob([bytes], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
@@ -2996,7 +2992,7 @@ async function maybePdfa(bytes, notes){
         S._exportNotice = t.exportedDocx;
       } else if (!S._aiPack) {
         download(base+".txt", new Blob([replaced], {type:"text/plain;charset=utf-8"}));
-        if (window.PDFLib) {
+        if (getPdfLib()) {
           let bytes = await exportTextPdf(replaced, S.fileName);
           const pdfaResult = await maybePdfa(bytes, pdfaNotes);
           bytes = pdfaResult.bytes;
@@ -3022,7 +3018,7 @@ async function maybePdfa(bytes, notes){
           }
           zipEntries[base + "-slovnik.json"] = flateLib.strToU8(glossJson);
           zipEntries[base + "-audit.json"] = flateLib.strToU8(auditJson);
-          if (window.PDFLib) {
+          if (getPdfLib()) {
             const bytes = await exportTextPdf(replaced+"\n\n---\n"+processMarkdown(info), S.fileName+" AI pack");
             S.hashOut = await sha256(bytes);
             zipEntries[base + "-ai.pdf"] = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
@@ -3034,7 +3030,7 @@ async function maybePdfa(bytes, notes){
           if (S.includeOutline) download(base+"-osnova.md", new Blob([processMarkdown(info)], {type:"text/markdown;charset=utf-8"}));
           download(base+"-slovnik.json", new Blob([glossJson], {type:"application/json"}));
           download(base+"-audit.json", new Blob([auditJson], {type:"application/json"}));
-          if (window.PDFLib) {
+          if (getPdfLib()) {
             const bytes = await exportTextPdf(replaced+"\n\n---\n"+processMarkdown(info), S.fileName+" AI pack");
             S.hashOut = await sha256(bytes);
             download(base+"-ai.pdf", new Blob([bytes], {type:"application/pdf"}));

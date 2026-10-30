@@ -1,5 +1,7 @@
 // PDF format handling and security preflights (ADR-0001, ADR-0002)
-import { toBytes, bindReplacer, effectiveHits } from "../core/detector.js";
+import { toBytes, bindReplacer, effectiveHits, visibleHits, pageOf } from "../core/detector.js";
+import { RULES, TITLES, NAMES } from "../core/rules.js";
+import { looksName } from "../core/morphology.js";
 import { I18N } from "../core/i18n.js";
 
 export function getPdfjsLib() {
@@ -21,8 +23,12 @@ const getI = () => {
   const lang = (s && s.lang) || "cs";
   return (typeof I18N !== "undefined" && I18N[lang]) ? I18N[lang] : (typeof I18N !== "undefined" && I18N.cs ? I18N.cs : {});
 };
-function esc(s){
-  return String(s||"").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+export function esc(s){
+  const amp = "&" + "amp;";
+  const lt = "&" + "lt;";
+  const gt = "&" + "gt;";
+  const quot = "&" + "quot;";
+  return String(s ?? "").replace(/&/g, amp).replace(/</g, lt).replace(/>/g, gt).replace(/"/g, quot).replace(/'/g, "&#39;");
 }
 
 function translit(ch){
@@ -539,11 +545,11 @@ function setupVisualPdfMarquee(wrap, layer, pageNum, mapped){
 }
 
 export async function buildPdfVisual(token){
-    const host = $("pdfVisual");
+    const host = getEl("pdfVisual");
     if (!host) return;
     const width = Math.max(280, Math.min(900, host.clientWidth - 16 || 700));
     if (PV && PV.buf === S.sourceBuf && PV.width === width && host.firstChild) { paintPdfVisualOverlays(); return; }
-    host.innerHTML = `<p class="pv-note">${esc(i().visualNote)}</p>`;
+    host.innerHTML = `<p class="pv-note">${esc(getI().visualNote)}</p>`;
     const pdf = await getPdfDocument(S.sourceBuf);
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const pages = [];
@@ -989,14 +995,15 @@ export function pdfWorker(){
   }
   function pdfRenderParams(ctx, vp){
     const opts = { canvasContext: ctx, viewport: vp };
-    const pdfjs = (typeof window !== "undefined" && window.pdfjsLib) || (typeof globalThis !== "undefined" && globalThis.pdfjsLib) || null;
+    const pdfjs = getPdfjsLib();
     if (pdfjs && pdfjs.AnnotationMode) {
       opts.annotationMode = pdfjs.AnnotationMode.ENABLE;
     }
     return opts;
   }
   function shouldCoverVisibleStamps(){
-    return !S.enabled || S.enabled.sigcert !== false;
+    const s = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : {}));
+    return !s.enabled || s.enabled.sigcert !== false;
   }
   let _canFetchLocalCache = null;
 export async function canFetchLocalAssets() {
@@ -1126,14 +1133,15 @@ export async function extractPdf(data){
         let finalItems = compact;
         let body;
 
+        const s = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : {}));
         let activeWorker = null;
-        if (isScan && S.ocrEnabled) {
+        if (isScan && s.ocrEnabled) {
           activeWorker = await getOcrWorker();
         }
 
         if (isScan && activeWorker) {
-          const t = S.lang;
-          showOcrProgress((t === "cs" ? "OCR: zpracovávám stránku " : "OCR: processing page ") + i + "/" + pdf.numPages + "…");
+          const t = s.lang || "cs";
+          if (typeof showOcrProgress === "function") showOcrProgress((t === "cs" ? "OCR: zpracovávám stránku " : "OCR: processing page ") + i + "/" + pdf.numPages + "…");
           try {
             const ocrScale = 2.5;
             const vp = page.getViewport({ scale: ocrScale });
@@ -1142,7 +1150,7 @@ export async function extractPdf(data){
             const ctx = canvas.getContext("2d");
             await page.render({ canvasContext: ctx, viewport: vp }).promise;
 
-            showOcrProgress((t === "cs" ? "OCR: stránka " : "OCR: page ") + i + "/" + pdf.numPages + "…");
+            if (typeof showOcrProgress === "function") showOcrProgress((t === "cs" ? "OCR: stránka " : "OCR: page ") + i + "/" + pdf.numPages + "…");
             const { data: ocrData } = await safeOcrRecognize(activeWorker, canvas);
 
             finalItems = (ocrData.words || [])
@@ -1177,7 +1185,7 @@ export async function extractPdf(data){
         });
 
         let sigWorker = null;
-        if (hasVisibleSig && !isScan && S.ocrEnabled) {
+        if (hasVisibleSig && !isScan && s.ocrEnabled) {
           sigWorker = await getOcrWorker();
         }
 
@@ -1192,7 +1200,7 @@ export async function extractPdf(data){
             for (const sig of signatures) {
               const r = viewportCoverRect(vp, sig.rect);
               if (!r || r.w < 8 || r.h < 8) continue;
-              showOcrProgress((S.lang === "cs" ? "OCR: razítko podpisu, str. " : "OCR: signature stamp, p. ") + i + "…");
+              if (typeof showOcrProgress === "function") showOcrProgress(((s.lang || "cs") === "cs" ? "OCR: razítko podpisu, str. " : "OCR: signature stamp, p. ") + i + "…");
               const crop = document.createElement("canvas");
               const cw = Math.min(canvas.width, Math.max(8, Math.ceil(r.w)));
               const ch = Math.min(canvas.height, Math.max(8, Math.ceil(r.h)));
@@ -1241,7 +1249,7 @@ export async function extractPdf(data){
       if (ocrWorker) {
         try { await ocrWorker.terminate(); } catch (_) {}
       }
-      hideOcrProgress();
+      if (typeof hideOcrProgress === "function") hideOcrProgress();
     }
 
     return { text, pages };
@@ -1269,7 +1277,7 @@ export async function exportPdfTrueRedact(source, hits, title, mode, lang){
       const canvas = document.createElement("canvas"); canvas.width=vp.width; canvas.height=vp.height;
       const ctx = canvas.getContext("2d");
       await page.render(pdfRenderParams(ctx, vp)).promise;
-      const pageMeta = (S.pages||[]).find(p => p.n===i);
+      const pageMeta = (s.pages||[]).find(p => p.n===i);
       const rawItems = (pageMeta && pageMeta.items && pageMeta.items.length) ? pageMeta.items : (await page.getTextContent()).items;
       const mapped = mapPageGlyphs(rawItems, scale, vp);
       const text = mapped.text;
@@ -1355,7 +1363,7 @@ export async function exportPdfTrueRedact(source, hits, title, mode, lang){
       const p = doc.addPage([canvas.width / scale, canvas.height / scale]);
       p.drawImage(img, { x:0, y:0, width:p.getWidth(), height:p.getHeight() });
 
-      if (S.truePdfRedact && textFont && map && map.length) {
+      if (s.truePdfRedact && textFont && map && map.length) {
         let currentRun = [];
         const flushRun = (run) => {
           if (!run.length) return;
@@ -1391,7 +1399,7 @@ export async function exportPdfTrueRedact(source, hits, title, mode, lang){
     }
     const outBytes = await doc.save({ useObjectStreams:false });
     const verifiedBytes = assertSecurePdfBytes(outBytes);
-    if (S.truePdfRedact) {
+    if (s.truePdfRedact) {
       verifySanitizedPdfText(verifiedBytes, effectiveHits(hits));
     }
     return verifiedBytes;
@@ -1734,11 +1742,12 @@ export async function exportTextPdf(text, title) {
 }
 
 export async function exportProtocolPdf(){
-  if (!window.PDFLib) {
-    const t = (typeof I18N !== "undefined" && typeof S !== "undefined" && I18N[S.lang]) ? I18N[S.lang] : null;
+  const pdfLib = getPdfLib();
+  if (!pdfLib) {
+    const t = getI();
     throw new Error((t && t.recordNeedPdfLib) || "PDFLib is not loaded");
   }
-  const appState = typeof S !== "undefined" ? S : { lang: "cs", hits: [] };
+  const appState = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : { lang: "cs", hits: [] }));
   const t = (typeof I18N !== "undefined" && I18N[appState.lang]) ? I18N[appState.lang] : {
     record: {
       title: "Protokol o anonymizaci",

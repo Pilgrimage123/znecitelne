@@ -319,7 +319,7 @@ const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationship
   }
 
   export async function exportDocxFile(sourceBuf, hits, mode, lang){
-    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || (typeof fflate !== "undefined" ? fflate : null);
     if (!flate) return { ok:false, reason:"fflate" };
     if (!sourceBuf) return { ok:false, reason:"sourceBuf missing" };
 
@@ -420,10 +420,10 @@ const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationship
 
     const bytes = flate.zipSync(files, { level: 6 });
 
-    const mammoth = (typeof window !== "undefined" && window.mammoth) || (typeof globalThis !== "undefined" && globalThis.mammoth) || null;
-    if (mammoth) {
+    const mammothLib = (typeof window !== "undefined" && window.mammoth) || (typeof globalThis !== "undefined" && globalThis.mammoth) || (typeof mammoth !== "undefined" ? mammoth : null);
+    if (mammothLib) {
       const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-      const chk = (await mammoth.extractRawText({ arrayBuffer: buf })).value || "";
+      const chk = (await mammothLib.extractRawText({ arrayBuffer: buf })).value || "";
       const left = Array.from(map.entries()).filter(([v, rep]) => !rep.includes(v) && chk.includes(v));
       if (left.length) {
         throw new Error("Zbytková hodnota po kontrole");
@@ -438,7 +438,7 @@ const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationship
   }
 
 export function extractDocxTextWithFflate(buf){
-    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || null;
+    const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || (typeof fflate !== "undefined" ? fflate : null);
     if (!flate || !flate.unzipSync) throw new Error("fflate není k dispozici");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
     const files = flate.unzipSync(u8);
