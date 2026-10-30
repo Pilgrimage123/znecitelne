@@ -1,15 +1,24 @@
 import { bindReplacer, effectiveHits } from "../core/detector.js";
 
+export function getXlsxLib() {
+  return (typeof XLSX !== "undefined" ? XLSX : null) ||
+         (typeof window !== "undefined" ? window.XLSX : null) ||
+         (typeof globalThis !== "undefined" ? globalThis.XLSX : null) ||
+         null;
+}
+
 export function xlsxToText(wb){
     const cellMap = []; let text = "";
     wb.SheetNames.forEach((sheetName) => {
       const ws = wb.Sheets[sheetName];
       text += "\n\n--- "+sheetName+" ---\n";
       const ref = ws["!ref"]; if (!ref) return;
-      const range = XLSX.utils.decode_range(ref);
+      const xlsxLib = getXlsxLib();
+      if (!xlsxLib || !xlsxLib.utils) throw new Error("XLSX: knihovna se nenačetla.");
+      const range = xlsxLib.utils.decode_range(ref);
       for (let r=range.s.r; r<=range.e.r; r++) {
         for (let c=range.s.c; c<=range.e.c; c++) {
-          const addr = XLSX.utils.encode_cell({ r, c });
+          const addr = xlsxLib.utils.encode_cell({ r, c });
           const cell = ws[addr];
           if (!cell || cell.v===undefined || cell.v===null || cell.v==="") continue;
           const str = String(cell.v);
@@ -23,7 +32,7 @@ export function xlsxToText(wb){
     return { text, cellMap };
   }
   export async function extractXlsx(buf){
-    const xlsxLib = (typeof window !== "undefined" && window.XLSX) || (typeof globalThis !== "undefined" && globalThis.XLSX) || null;
+    const xlsxLib = getXlsxLib();
     if (!xlsxLib) throw new Error("XLSX: knihovna se nenačetla.");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
     return xlsxToText(xlsxLib.read(u8, { type:"array" }));
@@ -88,10 +97,12 @@ export function replaceAcrossRuns(runs, values, getReplacement) {
   if (!matches.length) return false;
   matches.sort((a, b) => a.s - b.s);
 
+  let runStart = 0;
   runs.forEach((r, idx) => {
     const t = texts[idx];
-    const a = texts.slice(0, idx).reduce((acc, cur) => acc + cur.length, 0);
+    const a = runStart;
     const b = a + t.length;
+    runStart = b;
     let cursor = a;
     let out = "";
 
@@ -551,7 +562,7 @@ export function exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMeta = tr
       const fflateRes = exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMetaVal);
       if (fflateRes && fflateRes.ok) return fflateRes.bytes;
     }
-    const xlsxLib = (typeof window !== "undefined" && window.XLSX) || (typeof globalThis !== "undefined" && globalThis.XLSX) || null;
+    const xlsxLib = getXlsxLib();
     if (!xlsxLib) throw new Error("XLSX: knihovna se nenačetla.");
     const wb = xlsxLib.read(sourceBuf.slice(0), { type:"array" });
     const { cellMap } = xlsxToText(wb);

@@ -156,11 +156,13 @@ const DOCX_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationship
       if (!matches.length) return;
       matches.sort((a,b) => a.s - b.s);
 
+      let nodeStart = 0;
       nodes.forEach((n, nodeIndex) => {
         const isText = n.localName === tagName;
         const t = texts[nodeIndex];
-        const a = texts.slice(0, nodeIndex).reduce((x, y) => x + y.length, 0);
+        const a = nodeStart;
         const b = a + t.length;
+        nodeStart = b;
         let cursor = a;
         let out = "";
 

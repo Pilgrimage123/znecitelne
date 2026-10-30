@@ -1520,12 +1520,18 @@ function download(name, blob){
                     ${isCur ? `<span style="font-weight:700;color:var(--accent)">(${S.lang === 'cs' ? 'aktivní' : 'active'})</span>` : ""}
                   </div>
                 </div>
-                <button type="button" class="qp-item-del" data-del="${idx}" title="${S.lang === 'cs' ? 'Odebrat z fronty' : 'Remove'}">✕</button>
+                <button type="button" class="qp-item-del" data-del="${idx}" aria-label="${S.lang === 'cs' ? 'Odebrat z fronty' : 'Remove'}" title="${S.lang === 'cs' ? 'Odebrat z fronty' : 'Remove'}">✕</button>
               </div>
             `;
           }).join("");
 
           itemsList.querySelectorAll(".qp-item").forEach(itemEl => {
+            itemEl.onkeydown = (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                itemEl.click();
+              }
+            };
             itemEl.onclick = (e) => {
               if (e.target.closest(".qp-item-del")) return;
               const idx = +itemEl.dataset.idx;
@@ -1827,6 +1833,19 @@ function download(name, blob){
       colsHtml += `<th class="xlsx-th-col">${indexToColLetters(c)}</th>`;
     }
 
+    const cellHitsMap = new Map();
+    if (visHits.length > 0 && currentCells.length > 0) {
+      for (const h of visHits) {
+        for (const cell of currentCells) {
+          if (h.start < cell.end && h.end > cell.start) {
+            let list = cellHitsMap.get(cell);
+            if (!list) { list = []; cellHitsMap.set(cell, list); }
+            list.push(h);
+          }
+        }
+      }
+    }
+
     let rowsHtml = "";
     for (let r = minR; r <= maxR; r++) {
       let cellsInRow = `<td class="xlsx-td-row">${r}</td>`;
@@ -1836,7 +1855,7 @@ function download(name, blob){
           cellsInRow += `<td class="xlsx-td-cell"></td>`;
         } else {
           const rawVal = S.text.slice(cell.start, cell.end);
-          const cellHits = visHits.filter(h => h.start < cell.end && h.end > cell.start);
+          const cellHits = cellHitsMap.get(cell) || [];
           if (!cellHits.length) {
             cellsInRow += `<td class="xlsx-td-cell" data-cell-start="${cell.start}" data-cell-end="${cell.end}" title="${escAttr(cell.ref)}: ${escAttr(rawVal)}">${esc(rawVal)}</td>`;
           } else {
@@ -2431,8 +2450,18 @@ async function onFile(file){
           S.activeSheet = (S.cellMap && S.cellMap.length > 0) ? (S.cellMap[0].sheet || "List 1") : null;
           S.selectedId = S.hits[0] ? S.hits[0].id : null;
           bumpRev("session_imported", { fileName: S.fileName });
+          const canonDoc = await buildCanonicalDocument({
+            fileName: S.fileName,
+            kind: S.kind,
+            text: S.text,
+            sourceBuf: S.sourceBuf,
+            pages: S.pages,
+            cellMap: S.cellMap,
+            sigDetected: S.sigDetected
+          });
+          S.doc = canonDoc;
           clearPdfVisual();
-          Q.items = [{ name: S.fileName || file.name, file, doc: null, snap: snapState() }];
+          Q.items = [{ name: S.fileName || file.name, file, doc: canonDoc, snap: snapState() }];
           Q.cur = 0;
           paint();
           toast(S.lang === "cs" ? "Sezení bylo úspěšně načteno pro druhou kontrolu." : "Session loaded for second-eye review.");
@@ -2464,7 +2493,7 @@ async function onFile(file){
   }
   const Q = { items: [], cur: -1 };
   let QUEUE_LOAD_GENERATION = 0;
-  const SNAP_KEYS = ["doc","fileName","kind","text","sourceBuf","pages","noTextPages","cellMap","activeSheet","hashIn","hashOut","hits","reviewed","secondEyes","isSecondReviewMode","firstOperator","selectedId","filter","seen","legalReason","auditTrail","rev","sigDetected","analysisContext","settings"];
+  const SNAP_KEYS = ["doc","fileName","kind","text","sourceBuf","pages","noTextPages","cellMap","activeSheet","hashIn","hashOut","hits","reviewed","secondEyes","isSecondReviewMode","firstOperator","selectedId","filter","seen","legalReason","auditTrail","rev","sigDetected","analysisContext","_bulkUndoState","settings"];
   const SNAP_SETTING_KEYS = ["profile","mode","suspicion","enabled","secrets","systems","projects","orgs","stripMeta","pdfaDecl","includeOutline","publicGlossary","truePdfRedact","ocrEnabled","expertMode","processAnalysis","quickMode","fastApprove","barPos"];
 
   function snapshotSettings(){
@@ -2511,6 +2540,7 @@ async function onFile(file){
       else if (k === "cellMap") o[k] = hasCanonDoc ? S.doc.cellMap : (Array.isArray(S[k]) ? S[k].map(cell => ({ ...cell })) : []);
       else if (k === "seen") o[k] = new Set(S[k] || []);
       else if (k === "auditTrail") o[k] = Array.isArray(S[k]) ? S[k].slice() : [];
+      else if (k === "_bulkUndoState") o[k] = Array.isArray(S[k]) ? S[k].map(x => ({ ...x })) : null;
       else if (k === "sourceBuf") o[k] = hasCanonDoc ? S.doc.sourceBuf : S[k];
       else if (k === "settings") o[k] = snapshotSettings();
       else o[k] = S[k];
@@ -2528,6 +2558,7 @@ async function onFile(file){
       else if (k === "cellMap") S[k] = hasCanonDoc ? o.doc.cellMap : (Array.isArray(o[k]) ? o[k].map(cell => ({ ...cell })) : []);
       else if (k === "seen") S[k] = new Set(o[k] || []);
       else if (k === "auditTrail") S[k] = Array.isArray(o[k]) ? o[k].slice() : [];
+      else if (k === "_bulkUndoState") S[k] = Array.isArray(o[k]) ? o[k].map(x => ({ ...x })) : null;
       else if (k === "sourceBuf") S[k] = hasCanonDoc ? o.doc.sourceBuf : o[k];
       else if (k !== "settings") S[k] = o[k];
     });
@@ -2727,7 +2758,7 @@ async function onFile(file){
           }
         }
         if (done > 0 && S._batchFiles) {
-          const flateLib = window.fflate || (typeof fflate !== "undefined" ? fflate : null);
+          const flateLib = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || (typeof fflate !== "undefined" ? fflate : null);
           if (flateLib && typeof flateLib.zipSync === "function") {
             const zipEntries = {};
             for (const [fname, fblob] of Object.entries(S._batchFiles)) {
@@ -2982,7 +3013,7 @@ async function maybePdfa(bytes, notes){
         }, null, 2);
         const auditJson = JSON.stringify(buildAudit(), null, 2);
 
-        const flateLib = window.fflate || (typeof fflate !== "undefined" ? fflate : null);
+        const flateLib = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || (typeof fflate !== "undefined" ? fflate : null);
         if (flateLib && typeof flateLib.zipSync === "function") {
           const zipEntries = {};
           zipEntries[base + "-ai.txt"] = flateLib.strToU8(replaced);
@@ -3461,10 +3492,34 @@ async function maybePdfa(bytes, notes){
       else if (k === "Escape" || k === "Esc") exitMovieTutorial(true);
       return;
     }
+    if (e.key === "Escape" || e.key === "Esc") {
+      const expMenu = $("headerExportMenu");
+      const moreMenu = $("headerMoreMenu");
+      const queuePopover = $("queuePopover");
+      let closedPopup = false;
+      if (expMenu && !expMenu.classList.contains("hidden")) {
+        expMenu.classList.add("hidden");
+        $("btnExpMenuToggle")?.setAttribute("aria-expanded", "false");
+        closedPopup = true;
+      }
+      if (moreMenu && !moreMenu.classList.contains("hidden")) {
+        moreMenu.classList.add("hidden");
+        $("btnHeaderMore")?.setAttribute("aria-expanded", "false");
+        closedPopup = true;
+      }
+      if (queuePopover && !queuePopover.classList.contains("hidden")) {
+        queuePopover.classList.add("hidden");
+        $("btnQueueToggle")?.setAttribute("aria-expanded", "false");
+        closedPopup = true;
+      }
+      if (closedPopup) return;
+    }
     const openModal = document.querySelector(".modal:not(.hidden)");
     if (openModal) {
       if (e.key === "Escape" || e.key === "Esc") {
         if (openModal.id === "settingsModal") closeSettings();
+        else if (openModal.id === "confirmModal") $("btnConfirmCancel")?.click();
+        else if (openModal.id === "closeDocModal") $("btnCloseCancel")?.click();
         else openModal.classList.add("hidden");
         return;
       }

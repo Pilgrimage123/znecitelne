@@ -35,7 +35,7 @@ import {
 } from "./src/core/detector.js";
 import { decodeTextBuffer, isBinaryBuffer, extractRtfText } from "./src/formats/rtf.js";
 import { extractOdtText } from "./src/formats/odt.js";
-import { xlsxToText, extractXlsx, exportXlsxFile, exportXlsxFileFflate, stripWorkbookMeta, decodeXml } from "./src/formats/xlsx.js";
+import { xlsxToText, extractXlsx, exportXlsxFile, exportXlsxFileFflate, stripWorkbookMeta, decodeXml, getXlsxLib } from "./src/formats/xlsx.js";
 import {
   docxRelationshipSourcePart, docxNormalizeZipPath, docxResolveRelTarget,
   docxRelativeZipPath, docxSetTextPreservingSpace, docxMakeWork,
@@ -45,7 +45,7 @@ import {
 } from "./src/formats/docx.js";
 import {
   pdfWordQuads, pdfHasSignatureBytes, verifySanitizedPdfText, assertSecurePdfBytes,
-  resolvePageHitQuads, pdfDetectFontFamily, pdfDetectFontStyle, pdfCompactToken,
+  resolvePageHitQuads, pdfDetectFontFamily, pdfDetectFontStyle, pdfCompactToken, getPdfjsLib,
   mergeAdjacentBoxes, computeCharWidths, sampleCanvasBg
 } from "./src/formats/pdf.js";
 import {
@@ -2453,6 +2453,72 @@ try {
     htmlSourceIncludes("S.doc = doc;") &&
     htmlSourceIncludes("hasCanonDoc ? S.doc.sourceBuf"),
     "State S must track immutable CanonicalDocument reference (S.doc), revision counter (bumpRev), and auditTrail"
+  );
+
+  // 11. Scoped library resolution, modular state isolation, and efficiency checks
+  const mockState = { rev: 0 };
+  const sampleDoc = {
+    fileName: "test.txt",
+    kind: "text",
+    text: "Sample text",
+    sourceBuf: null,
+    pages: [{ n: 1, start: 0, end: 11 }],
+    noTextPages: 0,
+    cellMap: [],
+    sigDetected: false,
+    hashIn: "abc123"
+  };
+  applyDocumentToState(sampleDoc, mockState);
+  check(
+    mockState.fileName === "test.txt" && mockState.doc === sampleDoc && mockState.rev === 1,
+    "applyDocumentToState must safely update isolated target state objects without throwing"
+  );
+  check(
+    htmlSourceIncludes("getPdfLib()") && htmlSourceIncludes("cellHitsMap"),
+    "PDF exporter must use scoped getPdfLib resolver and XLSX grid must use indexed cell hits map"
+  );
+  check(
+    formatPlural(1, ["1 document", "{n} documents"], "en") === "1 document" &&
+    formatPlural(5, ["1 document", "{n} documents"], "en") === "5 documents",
+    "formatPlural must correctly format English singular and plural forms"
+  );
+  check(
+    typeof getXlsxLib === "function" && typeof getPdfjsLib === "function" &&
+    htmlSourceIncludes("getXlsxLib()") && htmlSourceIncludes("getPdfjsLib()"),
+    "Scoped resolvers getXlsxLib and getPdfjsLib must be implemented and bundled"
+  );
+  check(
+    htmlSourceIncludes('"_bulkUndoState"') && htmlSourceIncludes('k === "_bulkUndoState"'),
+    "Queue state snapshot must track and isolate _bulkUndoState per document"
+  );
+  const nestedSess = {
+    doc: {
+      fileName: "smlouva.docx",
+      kind: "docx",
+      text: "Text s Janem Novákem",
+      pages: [{ n: 1, start: 0, end: 20 }],
+      noTextPages: 1,
+      hashIn: "hash456",
+      sourceBuf: new Uint8Array([1, 2, 3])
+    },
+    hits: [{ id: 1, type: "name", value: "Jan Novák", start: 7, end: 16, accept: true }],
+    mode: "pseudo",
+    lang: "cs"
+  };
+  const envNested = await exportSession(nestedSess, "TestPwd123!");
+  const importedNested = await importSession(envNested, "TestPwd123!");
+  check(
+    importedNested.doc.fileName === "smlouva.docx" &&
+    importedNested.doc.noTextPages === 1 &&
+    importedNested.doc.sourceBuf instanceof Uint8Array &&
+    importedNested.doc.sourceBuf.length === 3,
+    "exportSession must support nested doc structure for session serialization"
+  );
+  check(
+    htmlSourceIncludes('openModal.id === "confirmModal") $("btnConfirmCancel")?.click()') &&
+    htmlSourceIncludes('openModal.id === "closeDocModal") $("btnCloseCancel")?.click()') &&
+    htmlSourceIncludes('itemEl.onkeydown = (e) => {'),
+    "Modals and queue items must support standard accessible keyboard interactions"
   );
 } catch (bugFixErr) {
   failures.push("Runtime bug fixes regression test failed: " + (bugFixErr.message || String(bugFixErr)));

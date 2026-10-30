@@ -47,7 +47,7 @@ export function stripTitle(token){
   export function initOnomasticRegistry() {
     if (ONOMASTIC_TRIE) return ONOMASTIC_TRIE;
     try {
-      const flate = (typeof window !== "undefined" && window.fflate) || (typeof fflate !== "undefined" ? fflate : null);
+      const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || (typeof fflate !== "undefined" ? fflate : null);
       if (!flate || !flate.inflateSync) return null;
       const bin = (typeof atob === "function") ? atob(ONOMASTIC_PAYLOAD_B64) : Buffer.from(ONOMASTIC_PAYLOAD_B64, "base64").toString("binary");
       const u8 = new Uint8Array(bin.length);

@@ -99,16 +99,16 @@ function stripModuleSyntax(code) {
 }
 
 const bundledCode = bundleModules.map(modPath => {
-  const content = readFileSync(resolve(root, modPath), "utf8");
+  const content = readFileSync(resolve(root, modPath), "utf8").replace(/\r\n/g, "\n");
   return `// --- Module: ${modPath} ---\n` + stripModuleSyntax(content).trim();
 }).join("\n\n");
 
-const template = readFileSync(templatePath, "utf8");
+const template = readFileSync(templatePath, "utf8").replace(/\r\n/g, "\n");
 if (!template.includes("/* APP_BUNDLE */")) {
   throw new Error("Missing /* APP_BUNDLE */ placeholder in src/template.html");
 }
 
-const generatedHtml = template.replace("/* APP_BUNDLE */", bundledCode);
+const generatedHtml = template.replace("/* APP_BUNDLE */", bundledCode).replace(/\r\n/g, "\n");
 writeFileSync(canonical, generatedHtml, "utf8");
 
 // 2. Validační kontroly vygenerovaného kanonického souboru

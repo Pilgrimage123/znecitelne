@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-30
+
+- Scoped knihovní resolvery, izolace stavu hromadných akcí, přístupnost (WCAG 2.1) a lineární výkon nahrazování:
+  - **Scoped knihovní resolvery a prevence běhových výjimek (`getXlsxLib`, `getPdfjsLib`, `getPdfLib`):** Odstraněny přímé reference na globální identifikátory bez kontextu v extraktorech a exportérech DOCX, XLSX a PDF. Knihovny XLSX, PDF-lib a PDF.js jsou nyní bezpečně a konzistentně resolvovány napříč lokálním scopem, `window` i `globalThis`, včetně ošetření volání fontů při vizuální redakci PDF.
+  - **Izolace stavu hromadného vrácení změn (`_bulkUndoState`) ve frontě dokumentů:** Přidán klíč `_bulkUndoState` do `SNAP_KEYS` a do logiky snapshotů a obnovení stavu. Přepínání mezi dokumenty v dávkové frontě již nezpůsobuje přenos nebo ztrátu stavu tlačítka „Zpět“ napříč dokumenty.
+  - **Podpora vnořeného `CanonicalDocument` a spolehlivá hydratace sezení (`.znecitelne-session`):** Funkce `exportSession()` podporuje serializaci vlastností dokumentu jak na první úrovni stavu, tak uvnitř vnořeného objektu `state.doc`. Import sezení automaticky hydratuje zmrazený kanonický dokument přes `buildCanonicalDocument()`.
+  - **Přístupnost a klávesnicová navigace (WCAG 2.1):** Položky dávkové fronty (`.qp-item`) doplněny o klávesové listenery `Enter` a `Mezerník` a tlačítka pro odebrání o `aria-label`. Stisk klávesy `Escape` spolehlivě zavírá otevřené rozbalovací nabídky a popovery lišty a korektně spouští storno akce potvrzovacích modálů. Při otevření dialogu exportu je fokus automaticky nastaven na schvalovací tlačítko.
+  - **Optimalizace výkonu nahrazování a tabulkového zobrazení:** Nahrazování textů ve split runs v XML DOCX i XLSX převedeno z kvadratického řezání polí na lineární akumulaci ($O(N)$), tabulka XLSX (`renderXlsxGrid`) využívá předindexovanou mapu zásahů (`cellHitsMap`).
+  - **Normalizace konců řádků v build skriptu (`build.js`):** Eliminován falešný diff kanonického HTML souboru při kompilaci na operačních systémech Windows díky automatické normalizaci CRLF na LF.
+
 ## 2026-10-20
 
 - Oprava přístupnosti karet a rozvržení posuvníků (scrollbarů):

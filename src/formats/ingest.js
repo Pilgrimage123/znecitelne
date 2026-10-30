@@ -75,24 +75,28 @@ export const IngestErrorCode = Object.freeze({
     });
   }
 
-  export function applyDocumentToState(doc){
-    if (!doc) return;
-    S.doc = doc;
-    S.fileName = doc.fileName;
-    S.kind = doc.kind;
-    S.text = doc.text;
-    S.sourceBuf = doc.sourceBuf;
-    S.pages = doc.pages;
-    S.noTextPages = doc.noTextPages;
-    S.cellMap = doc.cellMap;
-    S.sigDetected = doc.sigDetected;
-    S.hashIn = doc.hashIn;
-    S.hashOut = "";
-    S.reviewed = false;
-    S.hits = [];
-    S.auditTrail = [];
-    S.rev = (S.rev || 0) + 1;
-    runAnalyze(doc.text);
+  export function applyDocumentToState(doc, targetState){
+    const state = targetState || (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : null));
+    if (!doc || !state) return;
+    if (typeof S !== "undefined") S.doc = doc;
+    state.doc = doc;
+    state.fileName = doc.fileName;
+    state.kind = doc.kind;
+    state.text = doc.text;
+    state.sourceBuf = doc.sourceBuf;
+    state.pages = doc.pages;
+    state.noTextPages = doc.noTextPages;
+    state.cellMap = doc.cellMap;
+    state.sigDetected = doc.sigDetected;
+    state.hashIn = doc.hashIn;
+    state.hashOut = "";
+    state.reviewed = false;
+    state.hits = [];
+    state.auditTrail = [];
+    state.rev = (state.rev || 0) + 1;
+    if (typeof runAnalyze === "function") {
+      runAnalyze(doc.text);
+    }
   }
 
   export async function ingest(name, kind, text, buf, extra){
@@ -120,8 +124,8 @@ export const IngestErrorCode = Object.freeze({
     if (!ocrEnabled || !tesseractLib) {
       throw new DocumentIngestionError(IngestErrorCode.IMAGE_NEED_OCR, file ? file.name : "");
     }
-    const reportProgress = options.onProgress || showOcrProgress;
-    const t = options.lang || S.lang;
+    const reportProgress = options.onProgress || (typeof showOcrProgress === "function" ? showOcrProgress : () => {});
+    const t = options.lang || (typeof S !== "undefined" && S.lang ? S.lang : "cs");
     reportProgress(t === "cs" ? "OCR: připravuji obrázek…" : "OCR: preparing image…");
 
     const imgBlob = new Blob([buf], { type: (file && file.type) || "image/png" });
@@ -211,13 +215,14 @@ export const IngestErrorCode = Object.freeze({
       if (ocrWorker) {
         try { await ocrWorker.terminate(); } catch (_) {}
       }
-      hideOcrProgress();
+      if (typeof hideOcrProgress === "function") hideOcrProgress();
     }
 
     let pdfBuf = null;
-    if (window.PDFLib) {
+    const pdfLib = (typeof PDFLib !== "undefined" ? PDFLib : null) || (typeof window !== "undefined" && window.PDFLib) || (typeof globalThis !== "undefined" && globalThis.PDFLib) || null;
+    if (pdfLib) {
       try {
-        const { PDFDocument } = PDFLib;
+        const { PDFDocument } = pdfLib;
         const doc = await PDFDocument.create();
         let pdfImg = null;
         if ((file && file.type === "image/png") || (file && /\.png$/i.test(file.name))) {

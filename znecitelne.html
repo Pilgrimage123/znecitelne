@@ -1683,7 +1683,7 @@ html[data-theme="dark"] .badge-second-reviewer {
 const PII_KEYS = ["rc","ico","dic","account","phone","email","address","dob","name","idcard","datovka","spz","geo","sigcert","katastr","zahr_iban","doklady_extra"];
 const ORG_KEYS = ["ticket","system","project","incident","casefile","status","orgunit","secrets","host","ip","credential"];
 const KEYS = PII_KEYS.concat(ORG_KEYS);
-const RULES = "2026.10.20-ai52";
+const RULES = "2026.10.30-ai53";
 const CHANGELOG = [
   { version: "2026.10.20-ai52", notes: { cs: "Oprava přístupnosti karet a rozvržení posuvníků (scrollbarů): Vyřešeno ořezávání a nedostupnost spodních akčních tlačítek karty Vybraný nález (#inspector) a panelů v revizním aside odstraněním chybného height: 100% u .work způsobujícího přetékání a ořezání v .review. Zaveden bezpečný spodní padding (24 px) a scrollbar-gutter: stable u #reviewAside, .entities-container a .hits. Zajištěno deterministické scrollování aktivního nálezu a inspektoru do zorného pole (scrollChildIntoContainer) bez nežádoucího odskakování rodičovského panelu nahoru. Omezeno přetékání u dlouhých textů v inspektoru (.insp-marquee s max-height: 120px) a skrytí prázdného inspektoru (#inspector:empty).", en: "Card accessibility and scrollbar layout fix: Resolved clipping and inaccessibility of bottom action buttons in Selected Finding card (#inspector) and aside subpanels by removing invalid height: 100% on .work that caused parent .review overflow clipping. Added protective bottom padding (24px) and scrollbar-gutter: stable on #reviewAside, .entities-container and .hits. Implemented deterministic, container-isolated scrolling for selected findings and inspector (scrollChildIntoContainer) without unwanted parent scroll resets. Constrained multiline text overflow in inspector (.insp-marquee with max-height: 120px) and hid empty inspector card (#inspector:empty)." } },
   { version: "2026.10.20-ai51", notes: { cs: "Komplexní ergonomická a workflow vylepšení UI/UX: Rychlý výběr Profilu publikace (Registr smluv, InfZ 106, Rozhodnutí, Veřejná AI) přímo nad dropzónou úvodní obrazovky s obousměrnou synchronizací do Nastavení. Možnost ručního výběru textu myší tažením (Marquee selection) ve Vizuálním náhledu PDF s detekcí glyfů, plovoucí akcí [+ Anonymizovat výběr] a automatickou morfologickou expanzí pádů. Tabulková mřížka (Grid View) pro XLSX a ODS s přepínáním listů a souřadnicemi buněk (A, B, C...) namísto prostého textu. Zpřehlednění workflow Principu 4 očí (.znecitelne-session) s odznakem 1. kontrolora v Pracovní liště a rychlým filtrem ručních zásahů a výjimek v Revizním panelu. Přehledový dashboard (Popover) Dávkové fronty se stavovými indikátory (schváleno, k pozornosti, nezkontrolováno) a navigací na další neschválený dokument. Uživatelsky srozumitelné ošetření a startup detekce dostupnosti OCR v offline prostředí (file:///) bez vývojářského žargonu.", en: "Comprehensive ergonomic and workflow UI/UX enhancements: Quick publication profile selector (Contracts Register, InfZ 106, Court Decisions, Public AI) on landing card above dropzone with two-way Settings synchronization. Direct mouse drag selection (Marquee selection) in Visual PDF preview with glyph intersection, floating [+ Redact selection] action button, and morphological declension expansion. Interactive Grid View table for XLSX and ODS spreadsheets with sheet tabs and coordinates (A, B, C...) replacing plain text preview. Four-Eyes principle workflow enhancements (.znecitelne-session) displaying 1st reviewer identity badge in Workplace bar and dedicated aside filter for manual interventions and exceptions. Batch Queue Dashboard Popover with per-document status indicators (approved, warning, unreviewed) and quick jump to next unreviewed file. Clear offline OCR availability preflight and user-facing explanation in file:/// protocol without developer jargon." } },
@@ -2327,7 +2327,7 @@ function getOnomasticTrie() {
 function initOnomasticRegistry() {
     if (ONOMASTIC_TRIE) return ONOMASTIC_TRIE;
     try {
-      const flate = (typeof window !== "undefined" && window.fflate) || (typeof fflate !== "undefined" ? fflate : null);
+      const flate = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || (typeof fflate !== "undefined" ? fflate : null);
       if (!flate || !flate.inflateSync) return null;
       const bin = (typeof atob === "function") ? atob(ONOMASTIC_PAYLOAD_B64) : Buffer.from(ONOMASTIC_PAYLOAD_B64, "base64").toString("binary");
       const u8 = new Uint8Array(bin.length);
@@ -4632,16 +4632,24 @@ function extractOdtText(buf){
   }
 
 // --- Module: src/formats/xlsx.js ---
+function getXlsxLib() {
+  return (typeof XLSX !== "undefined" ? XLSX : null) ||
+         (typeof window !== "undefined" ? window.XLSX : null) ||
+         (typeof globalThis !== "undefined" ? globalThis.XLSX : null) ||
+         null;
+}
 function xlsxToText(wb){
     const cellMap = []; let text = "";
     wb.SheetNames.forEach((sheetName) => {
       const ws = wb.Sheets[sheetName];
       text += "\n\n--- "+sheetName+" ---\n";
       const ref = ws["!ref"]; if (!ref) return;
-      const range = XLSX.utils.decode_range(ref);
+      const xlsxLib = getXlsxLib();
+      if (!xlsxLib || !xlsxLib.utils) throw new Error("XLSX: knihovna se nenačetla.");
+      const range = xlsxLib.utils.decode_range(ref);
       for (let r=range.s.r; r<=range.e.r; r++) {
         for (let c=range.s.c; c<=range.e.c; c++) {
-          const addr = XLSX.utils.encode_cell({ r, c });
+          const addr = xlsxLib.utils.encode_cell({ r, c });
           const cell = ws[addr];
           if (!cell || cell.v===undefined || cell.v===null || cell.v==="") continue;
           const str = String(cell.v);
@@ -4655,7 +4663,7 @@ function xlsxToText(wb){
     return { text, cellMap };
   }
 async function extractXlsx(buf){
-    const xlsxLib = (typeof window !== "undefined" && window.XLSX) || (typeof globalThis !== "undefined" && globalThis.XLSX) || null;
+    const xlsxLib = getXlsxLib();
     if (!xlsxLib) throw new Error("XLSX: knihovna se nenačetla.");
     const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
     return xlsxToText(xlsxLib.read(u8, { type:"array" }));
@@ -4717,10 +4725,12 @@ function replaceAcrossRuns(runs, values, getReplacement) {
   if (!matches.length) return false;
   matches.sort((a, b) => a.s - b.s);
 
+  let runStart = 0;
   runs.forEach((r, idx) => {
     const t = texts[idx];
-    const a = texts.slice(0, idx).reduce((acc, cur) => acc + cur.length, 0);
+    const a = runStart;
     const b = a + t.length;
+    runStart = b;
     let cursor = a;
     let out = "";
 
@@ -5178,7 +5188,7 @@ function exportXlsxFile(sourceBuf, hits, mode, lang){
       const fflateRes = exportXlsxFileFflate(sourceBuf, hits, mode, lang, stripMetaVal);
       if (fflateRes && fflateRes.ok) return fflateRes.bytes;
     }
-    const xlsxLib = (typeof window !== "undefined" && window.XLSX) || (typeof globalThis !== "undefined" && globalThis.XLSX) || null;
+    const xlsxLib = getXlsxLib();
     if (!xlsxLib) throw new Error("XLSX: knihovna se nenačetla.");
     const wb = xlsxLib.read(sourceBuf.slice(0), { type:"array" });
     const { cellMap } = xlsxToText(wb);
@@ -5390,11 +5400,13 @@ function docxReplaceInXml(xml, map, tagName, found, occurrenceTracker){
       if (!matches.length) return;
       matches.sort((a,b) => a.s - b.s);
 
+      let nodeStart = 0;
       nodes.forEach((n, nodeIndex) => {
         const isText = n.localName === tagName;
         const t = texts[nodeIndex];
-        const a = texts.slice(0, nodeIndex).reduce((x, y) => x + y.length, 0);
+        const a = nodeStart;
         const b = a + t.length;
+        nodeStart = b;
         let cursor = a;
         let out = "";
 
@@ -5728,6 +5740,27 @@ function extractDocxTextWithFflate(buf){
 
 // --- Module: src/formats/pdf.js ---
 // PDF format handling and security preflights (ADR-0001, ADR-0002)
+function getPdfjsLib() {
+  return (typeof pdfjsLib !== "undefined" ? pdfjsLib : null) ||
+         (typeof window !== "undefined" && window.pdfjsLib ? window.pdfjsLib : null) ||
+         (typeof globalThis !== "undefined" && globalThis.pdfjsLib ? globalThis.pdfjsLib : null) ||
+         null;
+}
+function getPdfLib(){
+  return (typeof PDFLib !== "undefined" ? PDFLib : null) ||
+         (typeof window !== "undefined" && window.PDFLib ? window.PDFLib : null) ||
+         (typeof globalThis !== "undefined" && globalThis.PDFLib ? globalThis.PDFLib : null);
+}
+const getEl = (id) => (typeof $ === "function" ? $(id) : (typeof document !== "undefined" ? document.getElementById(id) : null));
+const getI = () => {
+  if (typeof i === "function") return i();
+  const s = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : null));
+  const lang = (s && s.lang) || "cs";
+  return (typeof I18N !== "undefined" && I18N[lang]) ? I18N[lang] : (typeof I18N !== "undefined" && I18N.cs ? I18N.cs : {});
+};
+function esc(s){
+  return String(s||"").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
 
 function translit(ch){
   const map = { "á":"a","č":"c","ď":"d","é":"e","ě":"e","í":"i","ň":"n","ó":"o","ř":"r","š":"s","ť":"t","ú":"u","ů":"u","ý":"y","ž":"z",
@@ -5742,10 +5775,14 @@ function stampPdfMeta(doc, title){
       doc.setKeywords([]);
       doc.setProducer("Znečitelně");
       doc.setCreator("Znečitelně");
-      if (S.stripMeta && doc.setCreationDate) doc.setCreationDate(new Date(0));
+      const s = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : {})); if (s.stripMeta && doc.setCreationDate) doc.setCreationDate(new Date(0));
     } catch (_) {}
   }
-function pdfVisualAvailable(){ return S.kind === "pdf" && !!S.sourceBuf && !!window.pdfjsLib; }
+function pdfVisualAvailable(){
+  const s = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : null));
+  const pdfjs = getPdfjsLib();
+  return !!(s && s.kind === "pdf" && s.sourceBuf && pdfjs);
+}
 function pdfWordQuads(glyphs){
     if (!glyphs || !glyphs.length) return [];
     const lines = [];
@@ -6266,7 +6303,7 @@ async function buildPdfVisual(token){
     paintPdfVisualOverlays();
   }
 function paintPdfVisual(){
-    const btn = $("btnVisual"), host = $("pdfVisual"), t = i();
+    const btn = getEl("btnVisual"), host = getEl("pdfVisual"), t = getI();
     const avail = pdfVisualAvailable();
     if (!avail && S.pdfVisual) S.pdfVisual = false;
     if (btn) {
@@ -6276,7 +6313,7 @@ function paintPdfVisual(){
       btn.onclick = () => { S.pdfVisual = !S.pdfVisual; paintReview(); };
     }
     document.body.classList.toggle("pdf-visual-on", S.pdfVisual);
-    const btnAdd = $("btnAdd");
+    const btnAdd = getEl("btnAdd");
     if (btnAdd) btnAdd.disabled = false;
     if (host) {
       host.classList.toggle("hidden", !S.pdfVisual);
@@ -6291,7 +6328,7 @@ function clearPdfVisual(){
     pvToken++;
     S.pdfVisual = false;
     document.body.classList.remove("pdf-visual-on");
-    const h = $("pdfVisual");
+    const h = getEl("pdfVisual");
     if (h) {
       h.innerHTML = "";
       h.classList.add("hidden");
@@ -6304,7 +6341,7 @@ function pdfHasSignatureBytes(buf){
     } catch (_) { return false; }
   }
 function pdfWorker(){
-    const pdfjs = (typeof window !== "undefined" && window.pdfjsLib) || (typeof globalThis !== "undefined" && globalThis.pdfjsLib) || null;
+    const pdfjs = getPdfjsLib();
     if (!pdfjs) throw new Error("PDF: knihovna se nenačetla.");
     const win = typeof window !== "undefined" ? window : globalThis;
     if (win.__pdfWorkerReady) return win.__pdfWorkerReady;
@@ -6327,7 +6364,9 @@ async function getPdfDocument(data){
       disableStream: true,
       disableAutoFetch: true
     };
-    return pdfjsLib.getDocument(options).promise;
+    const pdfjs = getPdfjsLib();
+    if (!pdfjs) throw new Error("PDF: knihovna se nenačetla.");
+    return pdfjs.getDocument(options).promise;
   }
   function pageTextFromItems(items){
     let text = "";
@@ -6460,7 +6499,8 @@ function computeCharWidths(str, totalW, fontH, fontFam, isMono) {
           curX += cw;
         }
       } else {
-        const tx = vp && pdfjsLib.Util.transform(vp.transform, it.transform);
+        const pdfjs = getPdfjsLib();
+        const tx = vp && pdfjs && pdfjs.Util ? pdfjs.Util.transform(vp.transform, it.transform) : null;
         const fontH = tx ? Math.hypot(tx[2], tx[3]) : 0;
         const totalW = (it.width || 0) * scale;
         const fontFam = pdfDetectFontFamily(it.fontName);
@@ -6707,10 +6747,10 @@ async function extractPdf(data){
       pdf = await getPdfDocument(data);
     } catch (e) {
       if (e && (e.name === "PasswordException" || /password/i.test(e.message || ""))) {
-        throw new Error(i().errPdfPassword);
+        throw new Error(getI().errPdfPassword || "PDF password protected");
       }
       if (e && (e.name === "InvalidPDFException" || /invalid pdf/i.test(e.message || ""))) {
-        throw new Error(i().errPdfInvalid);
+        throw new Error(getI().errPdfInvalid || "Invalid PDF");
       }
       throw e;
     }
@@ -6733,7 +6773,7 @@ async function extractPdf(data){
     async function getOcrWorker(){
       if (ocrWorker) return ocrWorker;
       const tesseractLib = (typeof window !== "undefined" && window.Tesseract) || (typeof globalThis !== "undefined" && globalThis.Tesseract) || null;
-      if (ocrDisabled || !S.ocrEnabled || !tesseractLib) return null;
+      const s = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : {})); if (ocrDisabled || !s.ocrEnabled || !tesseractLib) return null;
       const canFetch = await canFetchLocalAssets();
       if (!canFetch) {
         console.warn("OCR: local asset fetching is restricted under file:// protocol. Skipping OCR.");
@@ -6742,7 +6782,7 @@ async function extractPdf(data){
       }
       let initTimer = null;
       try {
-        showOcrProgress(S.lang === "cs" ? "OCR: inicializuji jazykový model…" : "OCR: loading language model…");
+        if (typeof showOcrProgress === "function") showOcrProgress((s.lang || "cs") === "cs" ? "OCR: inicializuji jazykový model…" : "OCR: loading language model…");
         const timeoutPromise = new Promise((_, reject) => {
           initTimer = setTimeout(() => reject(new Error("OCR init timeout")), 8000);
         });
@@ -6789,7 +6829,7 @@ async function extractPdf(data){
         console.warn("Tesseract OCR init failed:", e);
         ocrWorker = null;
         ocrDisabled = true;
-        hideOcrProgress();
+        if (typeof hideOcrProgress === "function") hideOcrProgress();
         return null;
       } finally {
         if (initTimer) clearTimeout(initTimer);
@@ -6934,14 +6974,16 @@ async function exportPdfTrueRedact(source, hits, title, mode, lang){
     return { bytes: assertSecurePdfBytes(bytes), rasterPages: new Set() };
   }
 async function exportPdfRaster(source, hits, title, mode, lang){
+    const pdfLib = getPdfLib();
+    if (!pdfLib) throw new Error("PDFLib není k dispozici");
+    const { PDFDocument } = pdfLib;
     const pdf = await getPdfDocument(source);
-    const { PDFDocument } = PDFLib;
     const doc = await PDFDocument.create();
     stampPdfMeta(doc, title);
     addSrgbOutputIntent(doc);
     const isBox = mode === "box" || !mode;
     const replacer = (mode && !isBox) ? bindReplacer(mode, lang, hits) : null;
-    const textFont = S.truePdfRedact ? await doc.embedFont(PDFLib.StandardFonts.Helvetica) : null;
+    const s = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : {})); const textFont = (s.truePdfRedact && pdfLib.StandardFonts) ? await doc.embedFont(pdfLib.StandardFonts.Helvetica) : null;
     for (let i=1;i<=pdf.numPages;i++) {
       const page = await pdf.getPage(i);
       const scale = 1.7; const vp = page.getViewport({ scale });
@@ -7093,7 +7135,7 @@ function stripDiacritic(str){
   }
 
   function pdfFindFontDescriptor(doc, fontDict, seen){
-    const { PDFDict, PDFArray, PDFName } = PDFLib;
+    const pdfLib = getPdfLib(); if (!pdfLib) return null; const { PDFDict, PDFArray, PDFName } = pdfLib;
     if (!(fontDict instanceof PDFDict)) return null;
     seen = seen || new Set();
 
@@ -7116,7 +7158,7 @@ function stripDiacritic(str){
   }
 
   function pdfFontIsEmbedded(doc, fontDict){
-    const { PDFDict, PDFName } = PDFLib;
+    const pdfLib = getPdfLib(); if (!pdfLib) return false; const { PDFDict, PDFName } = pdfLib;
     const descriptor = pdfFindFontDescriptor(doc, fontDict);
     if (!(descriptor instanceof PDFDict)) return false;
     return Boolean(
@@ -7127,7 +7169,9 @@ function stripDiacritic(str){
   }
 
   function inspectPdfFontEmbedding(pdfDoc){
-    const { PDFDict, PDFName } = PDFLib;
+    const pdfLib = getPdfLib();
+    if (!pdfLib) return [];
+    const { PDFDict, PDFName } = pdfLib;
     const result = [];
 
     pdfDoc.getPages().forEach((page, pageIndex) => {
@@ -7150,7 +7194,7 @@ function stripDiacritic(str){
     return result;
   }
 function addSrgbOutputIntent(pdfDoc){
-    const { PDFName } = PDFLib;
+    const pdfLib = getPdfLib(); if (!pdfLib) return; const { PDFName } = pdfLib;
     const iccBytes = base64ToUint8Array(SRGB_ICC_PROFILE_BASE64);
     if (!iccBytes.length) throw new Error("Missing sRGB ICC profile");
 
@@ -7179,7 +7223,7 @@ function addSrgbOutputIntent(pdfDoc){
     return { iccRef, intentRef };
   }
 async function applyPdfaDeclaration(bytes){
-    const { PDFDocument, PDFName } = PDFLib;
+    const pdfLib = getPdfLib(); if (!pdfLib) return; const { PDFDocument, PDFName } = pdfLib;
     const doc = await PDFDocument.load(bytes, { updateMetadata:false });
 
     const fontAudit = inspectPdfFontEmbedding(doc);
@@ -7332,8 +7376,9 @@ function assertSecurePdfBytes(bytes){
    * until a future true-redaction implementation has an object-level proof.
    */
 async function exportTextPdf(text, title) {
-  if (!window.PDFLib) throw new Error("PDFLib is not loaded");
-  const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+  const pdfLib = getPdfLib();
+  if (!pdfLib) throw new Error("PDFLib is not loaded");
+  const { PDFDocument, StandardFonts, rgb } = pdfLib;
   const doc = await PDFDocument.create();
   stampPdfMeta(doc, title);
   addSrgbOutputIntent(doc);
@@ -7432,7 +7477,7 @@ async function exportProtocolPdf(){
     legalShort: { trade:"§ 504 OZ", gdpr:"čl. 6 GDPR", security:"Bezpečnost", custom:"Vlastní" }
   };
   const rec = t.record;
-  const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+  const { PDFDocument, StandardFonts, rgb } = pdfLib;
   const doc = await PDFDocument.create();
   stampPdfMeta(doc, (appState.fileName || "document") + " — protokol");
   addSrgbOutputIntent(doc);
@@ -7768,24 +7813,28 @@ async function buildCanonicalDocument({ fileName, kind, text, sourceBuf = null, 
       hashIn: hashIn
     });
   }
-function applyDocumentToState(doc){
-    if (!doc) return;
-    S.doc = doc;
-    S.fileName = doc.fileName;
-    S.kind = doc.kind;
-    S.text = doc.text;
-    S.sourceBuf = doc.sourceBuf;
-    S.pages = doc.pages;
-    S.noTextPages = doc.noTextPages;
-    S.cellMap = doc.cellMap;
-    S.sigDetected = doc.sigDetected;
-    S.hashIn = doc.hashIn;
-    S.hashOut = "";
-    S.reviewed = false;
-    S.hits = [];
-    S.auditTrail = [];
-    S.rev = (S.rev || 0) + 1;
-    runAnalyze(doc.text);
+function applyDocumentToState(doc, targetState){
+    const state = targetState || (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : null));
+    if (!doc || !state) return;
+    if (typeof S !== "undefined") S.doc = doc;
+    state.doc = doc;
+    state.fileName = doc.fileName;
+    state.kind = doc.kind;
+    state.text = doc.text;
+    state.sourceBuf = doc.sourceBuf;
+    state.pages = doc.pages;
+    state.noTextPages = doc.noTextPages;
+    state.cellMap = doc.cellMap;
+    state.sigDetected = doc.sigDetected;
+    state.hashIn = doc.hashIn;
+    state.hashOut = "";
+    state.reviewed = false;
+    state.hits = [];
+    state.auditTrail = [];
+    state.rev = (state.rev || 0) + 1;
+    if (typeof runAnalyze === "function") {
+      runAnalyze(doc.text);
+    }
   }
 async function ingest(name, kind, text, buf, extra){
     const doc = await buildCanonicalDocument({
@@ -7810,8 +7859,8 @@ async function handleImageFile(file, buf, options = {}){
     if (!ocrEnabled || !tesseractLib) {
       throw new DocumentIngestionError(IngestErrorCode.IMAGE_NEED_OCR, file ? file.name : "");
     }
-    const reportProgress = options.onProgress || showOcrProgress;
-    const t = options.lang || S.lang;
+    const reportProgress = options.onProgress || (typeof showOcrProgress === "function" ? showOcrProgress : () => {});
+    const t = options.lang || (typeof S !== "undefined" && S.lang ? S.lang : "cs");
     reportProgress(t === "cs" ? "OCR: připravuji obrázek…" : "OCR: preparing image…");
 
     const imgBlob = new Blob([buf], { type: (file && file.type) || "image/png" });
@@ -7901,13 +7950,14 @@ async function handleImageFile(file, buf, options = {}){
       if (ocrWorker) {
         try { await ocrWorker.terminate(); } catch (_) {}
       }
-      hideOcrProgress();
+      if (typeof hideOcrProgress === "function") hideOcrProgress();
     }
 
     let pdfBuf = null;
-    if (window.PDFLib) {
+    const pdfLib = (typeof PDFLib !== "undefined" ? PDFLib : null) || (typeof window !== "undefined" && window.PDFLib) || (typeof globalThis !== "undefined" && globalThis.PDFLib) || null;
+    if (pdfLib) {
       try {
-        const { PDFDocument } = PDFLib;
+        const { PDFDocument } = pdfLib;
         const doc = await PDFDocument.create();
         let pdfImg = null;
         if ((file && file.type === "image/png") || (file && /\.png$/i.test(file.name))) {
@@ -8153,21 +8203,23 @@ async function exportSession(state, password, options = {}) {
 
   const key = await deriveKey(password, salt, ["encrypt"]);
 
-  const sourceBuf = state.sourceBuf ? (state.sourceBuf instanceof Uint8Array ? state.sourceBuf : new Uint8Array(state.sourceBuf)) : null;
+  const doc = state.doc || {};
+  const src = state.sourceBuf || doc.sourceBuf || null;
+  const sourceBuf = src ? (src instanceof Uint8Array ? src : new Uint8Array(src)) : null;
 
   // Payload: state to serialize
   const payload = {
     doc: {
-      fileName: state.fileName,
-      kind: state.kind,
-      text: state.text,
-      pages: state.pages,
-      noTextPages: state.noTextPages || 0,
-      hashIn: state.hashIn || "",
-      reviewed: state.reviewed,
-      approvalState: state.approvalState || (state.reviewed ? "approved" : "unreviewed"),
-      cellMap: state.cellMap,
-      sigDetected: state.sigDetected,
+      fileName: state.fileName || doc.fileName,
+      kind: state.kind || doc.kind,
+      text: state.text !== undefined ? state.text : doc.text,
+      pages: state.pages || doc.pages,
+      noTextPages: state.noTextPages !== undefined ? state.noTextPages : (doc.noTextPages || 0),
+      hashIn: state.hashIn || doc.hashIn || "",
+      reviewed: state.reviewed !== undefined ? state.reviewed : doc.reviewed,
+      approvalState: state.approvalState || doc.approvalState || (state.reviewed ? "approved" : "unreviewed"),
+      cellMap: state.cellMap || doc.cellMap,
+      sigDetected: state.sigDetected !== undefined ? state.sigDetected : (doc.sigDetected || false),
       sourceBuf: sourceBuf ? bufferToBase64(sourceBuf) : null
     },
     hits: state.hits,
@@ -10615,12 +10667,18 @@ function groupHitsIntoEntities(hits) {
                     ${isCur ? `<span style="font-weight:700;color:var(--accent)">(${S.lang === 'cs' ? 'aktivní' : 'active'})</span>` : ""}
                   </div>
                 </div>
-                <button type="button" class="qp-item-del" data-del="${idx}" title="${S.lang === 'cs' ? 'Odebrat z fronty' : 'Remove'}">✕</button>
+                <button type="button" class="qp-item-del" data-del="${idx}" aria-label="${S.lang === 'cs' ? 'Odebrat z fronty' : 'Remove'}" title="${S.lang === 'cs' ? 'Odebrat z fronty' : 'Remove'}">✕</button>
               </div>
             `;
           }).join("");
 
           itemsList.querySelectorAll(".qp-item").forEach(itemEl => {
+            itemEl.onkeydown = (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                itemEl.click();
+              }
+            };
             itemEl.onclick = (e) => {
               if (e.target.closest(".qp-item-del")) return;
               const idx = +itemEl.dataset.idx;
@@ -10922,6 +10980,19 @@ function groupHitsIntoEntities(hits) {
       colsHtml += `<th class="xlsx-th-col">${indexToColLetters(c)}</th>`;
     }
 
+    const cellHitsMap = new Map();
+    if (visHits.length > 0 && currentCells.length > 0) {
+      for (const h of visHits) {
+        for (const cell of currentCells) {
+          if (h.start < cell.end && h.end > cell.start) {
+            let list = cellHitsMap.get(cell);
+            if (!list) { list = []; cellHitsMap.set(cell, list); }
+            list.push(h);
+          }
+        }
+      }
+    }
+
     let rowsHtml = "";
     for (let r = minR; r <= maxR; r++) {
       let cellsInRow = `<td class="xlsx-td-row">${r}</td>`;
@@ -10931,7 +11002,7 @@ function groupHitsIntoEntities(hits) {
           cellsInRow += `<td class="xlsx-td-cell"></td>`;
         } else {
           const rawVal = S.text.slice(cell.start, cell.end);
-          const cellHits = visHits.filter(h => h.start < cell.end && h.end > cell.start);
+          const cellHits = cellHitsMap.get(cell) || [];
           if (!cellHits.length) {
             cellsInRow += `<td class="xlsx-td-cell" data-cell-start="${cell.start}" data-cell-end="${cell.end}" title="${escAttr(cell.ref)}: ${escAttr(rawVal)}">${esc(rawVal)}</td>`;
           } else {
@@ -11526,8 +11597,18 @@ async function onFile(file){
           S.activeSheet = (S.cellMap && S.cellMap.length > 0) ? (S.cellMap[0].sheet || "List 1") : null;
           S.selectedId = S.hits[0] ? S.hits[0].id : null;
           bumpRev("session_imported", { fileName: S.fileName });
+          const canonDoc = await buildCanonicalDocument({
+            fileName: S.fileName,
+            kind: S.kind,
+            text: S.text,
+            sourceBuf: S.sourceBuf,
+            pages: S.pages,
+            cellMap: S.cellMap,
+            sigDetected: S.sigDetected
+          });
+          S.doc = canonDoc;
           clearPdfVisual();
-          Q.items = [{ name: S.fileName || file.name, file, doc: null, snap: snapState() }];
+          Q.items = [{ name: S.fileName || file.name, file, doc: canonDoc, snap: snapState() }];
           Q.cur = 0;
           paint();
           toast(S.lang === "cs" ? "Sezení bylo úspěšně načteno pro druhou kontrolu." : "Session loaded for second-eye review.");
@@ -11559,7 +11640,7 @@ async function onFile(file){
   }
   const Q = { items: [], cur: -1 };
   let QUEUE_LOAD_GENERATION = 0;
-  const SNAP_KEYS = ["doc","fileName","kind","text","sourceBuf","pages","noTextPages","cellMap","activeSheet","hashIn","hashOut","hits","reviewed","secondEyes","isSecondReviewMode","firstOperator","selectedId","filter","seen","legalReason","auditTrail","rev","sigDetected","analysisContext","settings"];
+  const SNAP_KEYS = ["doc","fileName","kind","text","sourceBuf","pages","noTextPages","cellMap","activeSheet","hashIn","hashOut","hits","reviewed","secondEyes","isSecondReviewMode","firstOperator","selectedId","filter","seen","legalReason","auditTrail","rev","sigDetected","analysisContext","_bulkUndoState","settings"];
   const SNAP_SETTING_KEYS = ["profile","mode","suspicion","enabled","secrets","systems","projects","orgs","stripMeta","pdfaDecl","includeOutline","publicGlossary","truePdfRedact","ocrEnabled","expertMode","processAnalysis","quickMode","fastApprove","barPos"];
 
   function snapshotSettings(){
@@ -11606,6 +11687,7 @@ async function onFile(file){
       else if (k === "cellMap") o[k] = hasCanonDoc ? S.doc.cellMap : (Array.isArray(S[k]) ? S[k].map(cell => ({ ...cell })) : []);
       else if (k === "seen") o[k] = new Set(S[k] || []);
       else if (k === "auditTrail") o[k] = Array.isArray(S[k]) ? S[k].slice() : [];
+      else if (k === "_bulkUndoState") o[k] = Array.isArray(S[k]) ? S[k].map(x => ({ ...x })) : null;
       else if (k === "sourceBuf") o[k] = hasCanonDoc ? S.doc.sourceBuf : S[k];
       else if (k === "settings") o[k] = snapshotSettings();
       else o[k] = S[k];
@@ -11623,6 +11705,7 @@ async function onFile(file){
       else if (k === "cellMap") S[k] = hasCanonDoc ? o.doc.cellMap : (Array.isArray(o[k]) ? o[k].map(cell => ({ ...cell })) : []);
       else if (k === "seen") S[k] = new Set(o[k] || []);
       else if (k === "auditTrail") S[k] = Array.isArray(o[k]) ? o[k].slice() : [];
+      else if (k === "_bulkUndoState") S[k] = Array.isArray(o[k]) ? o[k].map(x => ({ ...x })) : null;
       else if (k === "sourceBuf") S[k] = hasCanonDoc ? o.doc.sourceBuf : o[k];
       else if (k !== "settings") S[k] = o[k];
     });
@@ -11822,7 +11905,7 @@ async function onFile(file){
           }
         }
         if (done > 0 && S._batchFiles) {
-          const flateLib = window.fflate || (typeof fflate !== "undefined" ? fflate : null);
+          const flateLib = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || (typeof fflate !== "undefined" ? fflate : null);
           if (flateLib && typeof flateLib.zipSync === "function") {
             const zipEntries = {};
             for (const [fname, fblob] of Object.entries(S._batchFiles)) {
@@ -12077,7 +12160,7 @@ async function maybePdfa(bytes, notes){
         }, null, 2);
         const auditJson = JSON.stringify(buildAudit(), null, 2);
 
-        const flateLib = window.fflate || (typeof fflate !== "undefined" ? fflate : null);
+        const flateLib = (typeof window !== "undefined" && window.fflate) || (typeof globalThis !== "undefined" && globalThis.fflate) || (typeof fflate !== "undefined" ? fflate : null);
         if (flateLib && typeof flateLib.zipSync === "function") {
           const zipEntries = {};
           zipEntries[base + "-ai.txt"] = flateLib.strToU8(replaced);
@@ -12556,10 +12639,34 @@ async function maybePdfa(bytes, notes){
       else if (k === "Escape" || k === "Esc") exitMovieTutorial(true);
       return;
     }
+    if (e.key === "Escape" || e.key === "Esc") {
+      const expMenu = $("headerExportMenu");
+      const moreMenu = $("headerMoreMenu");
+      const queuePopover = $("queuePopover");
+      let closedPopup = false;
+      if (expMenu && !expMenu.classList.contains("hidden")) {
+        expMenu.classList.add("hidden");
+        $("btnExpMenuToggle")?.setAttribute("aria-expanded", "false");
+        closedPopup = true;
+      }
+      if (moreMenu && !moreMenu.classList.contains("hidden")) {
+        moreMenu.classList.add("hidden");
+        $("btnHeaderMore")?.setAttribute("aria-expanded", "false");
+        closedPopup = true;
+      }
+      if (queuePopover && !queuePopover.classList.contains("hidden")) {
+        queuePopover.classList.add("hidden");
+        $("btnQueueToggle")?.setAttribute("aria-expanded", "false");
+        closedPopup = true;
+      }
+      if (closedPopup) return;
+    }
     const openModal = document.querySelector(".modal:not(.hidden)");
     if (openModal) {
       if (e.key === "Escape" || e.key === "Esc") {
         if (openModal.id === "settingsModal") closeSettings();
+        else if (openModal.id === "confirmModal") $("btnConfirmCancel")?.click();
+        else if (openModal.id === "closeDocModal") $("btnCloseCancel")?.click();
         else openModal.classList.add("hidden");
         return;
       }

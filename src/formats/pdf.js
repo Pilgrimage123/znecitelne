@@ -1,5 +1,29 @@
 // PDF format handling and security preflights (ADR-0001, ADR-0002)
 import { toBytes, bindReplacer, effectiveHits } from "../core/detector.js";
+import { I18N } from "../core/i18n.js";
+
+export function getPdfjsLib() {
+  return (typeof pdfjsLib !== "undefined" ? pdfjsLib : null) ||
+         (typeof window !== "undefined" && window.pdfjsLib ? window.pdfjsLib : null) ||
+         (typeof globalThis !== "undefined" && globalThis.pdfjsLib ? globalThis.pdfjsLib : null) ||
+         null;
+}
+
+export function getPdfLib(){
+  return (typeof PDFLib !== "undefined" ? PDFLib : null) ||
+         (typeof window !== "undefined" && window.PDFLib ? window.PDFLib : null) ||
+         (typeof globalThis !== "undefined" && globalThis.PDFLib ? globalThis.PDFLib : null);
+}
+const getEl = (id) => (typeof $ === "function" ? $(id) : (typeof document !== "undefined" ? document.getElementById(id) : null));
+const getI = () => {
+  if (typeof i === "function") return i();
+  const s = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : null));
+  const lang = (s && s.lang) || "cs";
+  return (typeof I18N !== "undefined" && I18N[lang]) ? I18N[lang] : (typeof I18N !== "undefined" && I18N.cs ? I18N.cs : {});
+};
+function esc(s){
+  return String(s||"").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
 
 function translit(ch){
   const map = { "á":"a","č":"c","ď":"d","é":"e","ě":"e","í":"i","ň":"n","ó":"o","ř":"r","š":"s","ť":"t","ú":"u","ů":"u","ý":"y","ž":"z",
@@ -15,11 +39,15 @@ export function stampPdfMeta(doc, title){
       doc.setKeywords([]);
       doc.setProducer("Znečitelně");
       doc.setCreator("Znečitelně");
-      if (S.stripMeta && doc.setCreationDate) doc.setCreationDate(new Date(0));
+      const s = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : {})); if (s.stripMeta && doc.setCreationDate) doc.setCreationDate(new Date(0));
     } catch (_) {}
   }
 
-export function pdfVisualAvailable(){ return S.kind === "pdf" && !!S.sourceBuf && !!window.pdfjsLib; }
+export function pdfVisualAvailable(){
+  const s = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : null));
+  const pdfjs = getPdfjsLib();
+  return !!(s && s.kind === "pdf" && s.sourceBuf && pdfjs);
+}
   export function pdfWordQuads(glyphs){
     if (!glyphs || !glyphs.length) return [];
     const lines = [];
@@ -548,7 +576,7 @@ export async function buildPdfVisual(token){
     paintPdfVisualOverlays();
   }
   export function paintPdfVisual(){
-    const btn = $("btnVisual"), host = $("pdfVisual"), t = i();
+    const btn = getEl("btnVisual"), host = getEl("pdfVisual"), t = getI();
     const avail = pdfVisualAvailable();
     if (!avail && S.pdfVisual) S.pdfVisual = false;
     if (btn) {
@@ -558,7 +586,7 @@ export async function buildPdfVisual(token){
       btn.onclick = () => { S.pdfVisual = !S.pdfVisual; paintReview(); };
     }
     document.body.classList.toggle("pdf-visual-on", S.pdfVisual);
-    const btnAdd = $("btnAdd");
+    const btnAdd = getEl("btnAdd");
     if (btnAdd) btnAdd.disabled = false;
     if (host) {
       host.classList.toggle("hidden", !S.pdfVisual);
@@ -573,7 +601,7 @@ export async function buildPdfVisual(token){
     pvToken++;
     S.pdfVisual = false;
     document.body.classList.remove("pdf-visual-on");
-    const h = $("pdfVisual");
+    const h = getEl("pdfVisual");
     if (h) {
       h.innerHTML = "";
       h.classList.add("hidden");
@@ -588,7 +616,7 @@ export function pdfHasSignatureBytes(buf){
   }
 
 export function pdfWorker(){
-    const pdfjs = (typeof window !== "undefined" && window.pdfjsLib) || (typeof globalThis !== "undefined" && globalThis.pdfjsLib) || null;
+    const pdfjs = getPdfjsLib();
     if (!pdfjs) throw new Error("PDF: knihovna se nenačetla.");
     const win = typeof window !== "undefined" ? window : globalThis;
     if (win.__pdfWorkerReady) return win.__pdfWorkerReady;
@@ -611,7 +639,9 @@ export function pdfWorker(){
       disableStream: true,
       disableAutoFetch: true
     };
-    return pdfjsLib.getDocument(options).promise;
+    const pdfjs = getPdfjsLib();
+    if (!pdfjs) throw new Error("PDF: knihovna se nenačetla.");
+    return pdfjs.getDocument(options).promise;
   }
   function pageTextFromItems(items){
     let text = "";
@@ -745,7 +775,8 @@ export function pdfWorker(){
           curX += cw;
         }
       } else {
-        const tx = vp && pdfjsLib.Util.transform(vp.transform, it.transform);
+        const pdfjs = getPdfjsLib();
+        const tx = vp && pdfjs && pdfjs.Util ? pdfjs.Util.transform(vp.transform, it.transform) : null;
         const fontH = tx ? Math.hypot(tx[2], tx[3]) : 0;
         const totalW = (it.width || 0) * scale;
         const fontFam = pdfDetectFontFamily(it.fontName);
@@ -993,10 +1024,10 @@ export async function extractPdf(data){
       pdf = await getPdfDocument(data);
     } catch (e) {
       if (e && (e.name === "PasswordException" || /password/i.test(e.message || ""))) {
-        throw new Error(i().errPdfPassword);
+        throw new Error(getI().errPdfPassword || "PDF password protected");
       }
       if (e && (e.name === "InvalidPDFException" || /invalid pdf/i.test(e.message || ""))) {
-        throw new Error(i().errPdfInvalid);
+        throw new Error(getI().errPdfInvalid || "Invalid PDF");
       }
       throw e;
     }
@@ -1019,7 +1050,7 @@ export async function extractPdf(data){
     async function getOcrWorker(){
       if (ocrWorker) return ocrWorker;
       const tesseractLib = (typeof window !== "undefined" && window.Tesseract) || (typeof globalThis !== "undefined" && globalThis.Tesseract) || null;
-      if (ocrDisabled || !S.ocrEnabled || !tesseractLib) return null;
+      const s = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : {})); if (ocrDisabled || !s.ocrEnabled || !tesseractLib) return null;
       const canFetch = await canFetchLocalAssets();
       if (!canFetch) {
         console.warn("OCR: local asset fetching is restricted under file:// protocol. Skipping OCR.");
@@ -1028,7 +1059,7 @@ export async function extractPdf(data){
       }
       let initTimer = null;
       try {
-        showOcrProgress(S.lang === "cs" ? "OCR: inicializuji jazykový model…" : "OCR: loading language model…");
+        if (typeof showOcrProgress === "function") showOcrProgress((s.lang || "cs") === "cs" ? "OCR: inicializuji jazykový model…" : "OCR: loading language model…");
         const timeoutPromise = new Promise((_, reject) => {
           initTimer = setTimeout(() => reject(new Error("OCR init timeout")), 8000);
         });
@@ -1075,7 +1106,7 @@ export async function extractPdf(data){
         console.warn("Tesseract OCR init failed:", e);
         ocrWorker = null;
         ocrDisabled = true;
-        hideOcrProgress();
+        if (typeof hideOcrProgress === "function") hideOcrProgress();
         return null;
       } finally {
         if (initTimer) clearTimeout(initTimer);
@@ -1222,14 +1253,16 @@ export async function exportPdfTrueRedact(source, hits, title, mode, lang){
   }
 
   export async function exportPdfRaster(source, hits, title, mode, lang){
+    const pdfLib = getPdfLib();
+    if (!pdfLib) throw new Error("PDFLib není k dispozici");
+    const { PDFDocument } = pdfLib;
     const pdf = await getPdfDocument(source);
-    const { PDFDocument } = PDFLib;
     const doc = await PDFDocument.create();
     stampPdfMeta(doc, title);
     addSrgbOutputIntent(doc);
     const isBox = mode === "box" || !mode;
     const replacer = (mode && !isBox) ? bindReplacer(mode, lang, hits) : null;
-    const textFont = S.truePdfRedact ? await doc.embedFont(PDFLib.StandardFonts.Helvetica) : null;
+    const s = (typeof S !== "undefined" ? S : (typeof globalThis !== "undefined" && globalThis.S ? globalThis.S : {})); const textFont = (s.truePdfRedact && pdfLib.StandardFonts) ? await doc.embedFont(pdfLib.StandardFonts.Helvetica) : null;
     for (let i=1;i<=pdf.numPages;i++) {
       const page = await pdf.getPage(i);
       const scale = 1.7; const vp = page.getViewport({ scale });
@@ -1384,7 +1417,7 @@ export function base64ToUint8Array(base64){
   }
 
   function pdfFindFontDescriptor(doc, fontDict, seen){
-    const { PDFDict, PDFArray, PDFName } = PDFLib;
+    const pdfLib = getPdfLib(); if (!pdfLib) return null; const { PDFDict, PDFArray, PDFName } = pdfLib;
     if (!(fontDict instanceof PDFDict)) return null;
     seen = seen || new Set();
 
@@ -1407,7 +1440,7 @@ export function base64ToUint8Array(base64){
   }
 
   function pdfFontIsEmbedded(doc, fontDict){
-    const { PDFDict, PDFName } = PDFLib;
+    const pdfLib = getPdfLib(); if (!pdfLib) return false; const { PDFDict, PDFName } = pdfLib;
     const descriptor = pdfFindFontDescriptor(doc, fontDict);
     if (!(descriptor instanceof PDFDict)) return false;
     return Boolean(
@@ -1418,7 +1451,9 @@ export function base64ToUint8Array(base64){
   }
 
   function inspectPdfFontEmbedding(pdfDoc){
-    const { PDFDict, PDFName } = PDFLib;
+    const pdfLib = getPdfLib();
+    if (!pdfLib) return [];
+    const { PDFDict, PDFName } = pdfLib;
     const result = [];
 
     pdfDoc.getPages().forEach((page, pageIndex) => {
@@ -1444,7 +1479,7 @@ export function base64ToUint8Array(base64){
 
 
   export function addSrgbOutputIntent(pdfDoc){
-    const { PDFName } = PDFLib;
+    const pdfLib = getPdfLib(); if (!pdfLib) return; const { PDFName } = pdfLib;
     const iccBytes = base64ToUint8Array(SRGB_ICC_PROFILE_BASE64);
     if (!iccBytes.length) throw new Error("Missing sRGB ICC profile");
 
@@ -1475,7 +1510,7 @@ export function base64ToUint8Array(base64){
 
 
   export async function applyPdfaDeclaration(bytes){
-    const { PDFDocument, PDFName } = PDFLib;
+    const pdfLib = getPdfLib(); if (!pdfLib) return; const { PDFDocument, PDFName } = pdfLib;
     const doc = await PDFDocument.load(bytes, { updateMetadata:false });
 
     const fontAudit = inspectPdfFontEmbedding(doc);
@@ -1631,8 +1666,9 @@ export function verifySanitizedPdfText(bytes, activeHits){
    */
 
 export async function exportTextPdf(text, title) {
-  if (!window.PDFLib) throw new Error("PDFLib is not loaded");
-  const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+  const pdfLib = getPdfLib();
+  if (!pdfLib) throw new Error("PDFLib is not loaded");
+  const { PDFDocument, StandardFonts, rgb } = pdfLib;
   const doc = await PDFDocument.create();
   stampPdfMeta(doc, title);
   addSrgbOutputIntent(doc);
@@ -1732,7 +1768,7 @@ export async function exportProtocolPdf(){
     legalShort: { trade:"§ 504 OZ", gdpr:"čl. 6 GDPR", security:"Bezpečnost", custom:"Vlastní" }
   };
   const rec = t.record;
-  const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+  const { PDFDocument, StandardFonts, rgb } = pdfLib;
   const doc = await PDFDocument.create();
   stampPdfMeta(doc, (appState.fileName || "document") + " — protokol");
   addSrgbOutputIntent(doc);

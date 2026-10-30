@@ -66,21 +66,23 @@ export async function exportSession(state, password, options = {}) {
 
   const key = await deriveKey(password, salt, ["encrypt"]);
 
-  const sourceBuf = state.sourceBuf ? (state.sourceBuf instanceof Uint8Array ? state.sourceBuf : new Uint8Array(state.sourceBuf)) : null;
+  const doc = state.doc || {};
+  const src = state.sourceBuf || doc.sourceBuf || null;
+  const sourceBuf = src ? (src instanceof Uint8Array ? src : new Uint8Array(src)) : null;
 
   // Payload: state to serialize
   const payload = {
     doc: {
-      fileName: state.fileName,
-      kind: state.kind,
-      text: state.text,
-      pages: state.pages,
-      noTextPages: state.noTextPages || 0,
-      hashIn: state.hashIn || "",
-      reviewed: state.reviewed,
-      approvalState: state.approvalState || (state.reviewed ? "approved" : "unreviewed"),
-      cellMap: state.cellMap,
-      sigDetected: state.sigDetected,
+      fileName: state.fileName || doc.fileName,
+      kind: state.kind || doc.kind,
+      text: state.text !== undefined ? state.text : doc.text,
+      pages: state.pages || doc.pages,
+      noTextPages: state.noTextPages !== undefined ? state.noTextPages : (doc.noTextPages || 0),
+      hashIn: state.hashIn || doc.hashIn || "",
+      reviewed: state.reviewed !== undefined ? state.reviewed : doc.reviewed,
+      approvalState: state.approvalState || doc.approvalState || (state.reviewed ? "approved" : "unreviewed"),
+      cellMap: state.cellMap || doc.cellMap,
+      sigDetected: state.sigDetected !== undefined ? state.sigDetected : (doc.sigDetected || false),
       sourceBuf: sourceBuf ? bufferToBase64(sourceBuf) : null
     },
     hits: state.hits,
